@@ -199,3 +199,6 @@ h2 { font-size: clamp(36px, 6vw, 64px); transform: rotate(-1.5deg); transform-or
   body.dash .nav-r { flex-wrap: nowrap; }
   body.dash .nav-r #plan { display: none; }
 }
+/* champ de recherche : pas de style iOS arrondi */
+.psearch input[type=search] { -webkit-appearance: none; appearance: none; border-radius: 0; }
+.psearch input[type=search]::-webkit-search-decoration { -webkit-appearance: none; }
