@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padel JA — Overlay</title>
+<link rel="stylesheet" href="/css/ram.css">
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; }
+body.green { background: #00FF00; } body.blue { background: #0047FF; } body.transparent { background: transparent; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; font-family: var(--body); color: var(--white); }
+.sb { position: absolute; left: 70px; bottom: 80px; filter: drop-shadow(0 12px 30px #0007); transition: opacity .5s, transform .6s cubic-bezier(.2,.9,.3,1.2); }
+.sb.hide { opacity: 0; transform: translateY(40px); }
+.strip { display: inline-flex; align-items: center; gap: 14px; background: var(--accent2); color: #fff; font-family: var(--label); font-weight: 800; font-size: 22px; letter-spacing: .12em; transform: rotate(-1.5deg); transform-origin: left bottom; margin-bottom: 4px;
+  text-transform: uppercase; padding: 7px 22px 7px 16px; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+.strip img { height: 26px; }
+.board { display: grid; grid-template-columns: auto; background: var(--ink); border: 3px solid var(--white); box-shadow: 8px 8px 0 var(--accent); }
+.board::before { content: ""; position: absolute; inset: 0; background: var(--dots); pointer-events: none; }
+.row { display: flex; align-items: stretch; height: 72px; position: relative; }
+.row + .row { border-top: 1px solid #ffffff22; }
+.srv { width: 34px; display: grid; place-items: center; }
+.srv i { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); transform: scale(0); transition: transform .35s cubic-bezier(.2,.9,.3,1.6); }
+.row.serving .srv i { transform: scale(1); }
+.nm { width: 520px; display: flex; flex-direction: column; justify-content: center; padding-right: 24px; }
+.nm b { font-family: var(--display); font-weight: 400; font-size: 36px; text-transform: uppercase; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .4s; }
+.row.won .nm b { color: var(--accent); }
+.cell { width: 58px; display: grid; place-items: center; font-family: var(--display); font-size: 38px; font-weight: 400; font-variant-numeric: tabular-nums; color: #ffffffa0; position: relative; }
+.cell.w { color: #fff; font-weight: 800; }
+.cell sup { position: absolute; top: 8px; right: 6px; font-size: 15px; }
+.cell.cur { background: #ffffff1c; color: #fff; }
+.cell.pts { width: 92px; background: var(--accent); color: var(--ink); font-size: 40px; }
+.cell.pts.tb { background: var(--accent2); color: #fff; }
+.flag { position: absolute; left: 100%; top: 12px; height: 48px; display: flex; align-items: center; padding: 0 22px 0 30px; background: var(--accent2); color: #fff; font-family: var(--label); font-weight: 800;
+  font-size: 22px; letter-spacing: .14em; white-space: nowrap; clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%); transform-origin: left; transform: scaleX(0); transition: transform .45s cubic-bezier(.2,.9,.3,1.2); }
+.flag.on { transform: scaleX(1); }
+.info { margin-top: 8px; display: inline-flex; gap: 18px; background: var(--white); color: var(--ink); padding: 4px 16px; font-family: var(--label); font-weight: 700; font-size: 18px; letter-spacing: .1em; text-transform: uppercase; }
+.info:empty { display: none; }
+.bump { animation: bump .5s cubic-bezier(.2,.9,.3,1.5); }
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+.flash { animation: flash .9s ease; }
+@keyframes flash { 0% { background: #fff; color: var(--bg); } 100% { } }
+.winner { position: absolute; right: 0; bottom: 100%; margin-bottom: 10px; font-family: var(--display); font-size: 30px; text-transform: uppercase; background: var(--accent); color: var(--ink); padding: 0 14px; transform: rotate(-2deg); opacity: 0; transform: translateY(10px); transition: all .6s; }
+.winner.on { opacity: 1; transform: rotate(-2deg); }
+.enter .row { animation: slide .7s cubic-bezier(.2,.9,.3,1.1) both; } .enter .row + .row { animation-delay: .08s; }
+@keyframes slide { from { opacity: 0; transform: translateX(-60px); } }
+.hint { position: absolute; left: 70px; top: 60px; font: 700 22px var(--label); text-transform: uppercase; letter-spacing: .1em; color: #0009; }
+</style>
+</head>
+<body class="green">
+<div id="stage"><div class="hint" id="hint"></div><div id="sb" class="sb hide"></div></div>
+<script src="/js/engine.js"></script>
+<script src="/js/client.js"></script>
+<script>
+(function () {
+  const E = Engine, A = App, esc = A.esc;
+  const qs = new URLSearchParams(location.search);
+  const stage = document.getElementById('stage'), sb = document.getElementById('sb');
+  function fit() { const k = Math.min(innerWidth / 1920, innerHeight / 1080); stage.style.transform = `scale(${k})`; }
+  addEventListener('resize', fit); fit();
+  let sig = '', lastFlag = {};
+
+  function pickMatch(S, R) {
+    if (qs.get('match')) return S.matches.find(m => m.id === qs.get('match'));
+    if (qs.get('court')) {
+      const q = S.matches.filter(m => m.court === qs.get('court') && !R[m.id].staticBye).sort((a, b) => a.order - b.order);
+      return q.find(m => R[m.id].state === 'live') || q.find(m => R[m.id].state === 'ready');
+    }
+    return S.display.stream && S.matches.find(m => m.id === S.display.stream);
+  }
+
+  A.connect(S => {
+    const R = A.R;
+    document.body.className = qs.get('bg') || S.display.overlay || 'green';
+    const m = pickMatch(S, R);
+    document.getElementById('hint').textContent = m ? '' : (document.body.className === 'transparent' ? '' : 'Overlay Padel JA — choisissez un match dans l\'onglet « Écran TV & stream »');
+    if (!m) { sb.classList.add('hide'); return; }
+    const r = R[m.id];
+    const sc = r.score;
+    const sets = sc ? sc.sets : [];
+    const live = sc && !sc.manual && !sc.winner && r.state !== 'done';
+    const nCols = sets.length + (live ? (sc.mode === 'game' ? 2 : 1) : 0);
+    const s2 = m.id + ':' + nCols + ':' + (live && sc.mode);
+    const t = S.tournament;
+    if (s2 !== sig) {
+      const first = !sig.startsWith(m.id + ':');
+      sig = s2;
+      const row = side => `<div class="row" id="r${side}"><div class="srv"><i></i></div><div class="nm"><b data-k="n${side}"></b></div>
+        ${sets.map((_, i) => `<div class="cell" id="s${side}${i}"></div>`).join('')}
+        ${live && sc.mode === 'game' ? `<div class="cell cur" id="g${side}"></div>` : ''}${live ? `<div class="cell pts ${sc.mode !== 'game' ? 'tb' : ''}" id="p${side}"></div>` : ''}
+        <div class="flag" id="f${side}"></div></div>`;
+      sb.innerHTML = `<div class="strip"><img src="/img/ram-logo-rouge-blanc.png">${t.logo ? `<img src="${t.logo}">` : ''}<span id="title"></span></div>
+        <div class="board" style="position:relative"><div class="winner" id="win">VAINQUEURS</div>${row('A')}${row('B')}</div><div class="info" id="info"></div>`;
+      if (first) { sb.classList.remove('enter'); void sb.offsetWidth; sb.classList.add('enter'); lastFlag = {}; }
+    }
+    sb.classList.remove('hide');
+    const $ = id => document.getElementById(id);
+    A.setText($('title'), `${t.name} · ${E.matchLabel(m)}`);
+    const fl = live ? E.pointFlags(r.fk, m.points, m.firstServer) : {};
+    ['A', 'B'].forEach(side => {
+      A.setText(sb.querySelector(`[data-k=n${side}]`), A.sideName(m, side, 'last'));
+      sets.forEach((s, i) => {
+        const c = $('s' + side + i); if (!c) return;
+        const v = String(s.stb ? s.stb[side] : s[side]);
+        if (c.firstChild == null || c.firstChild.textContent !== v) { c.innerHTML = esc(v) + (s.tb && s.w !== side ? `<sup>${s.tb[side]}</sup>` : ''); }
+        c.classList.toggle('w', s.w === side);
+      });
+      if (live && sc.mode === 'game') A.setText($('g' + side), sc.games[side]);
+      if (live) A.setText($('p' + side), sc.labels[side]);
+      $('r' + side).classList.toggle('serving', !!live && sc.server === side);
+      $('r' + side).classList.toggle('won', !!r.winner && r.winner === r[side]);
+      const f = fl[side] || (fl.decisive ? 'POINT DÉCISIF' : '');
+      const fe = $('f' + side);
+      if (f) fe.textContent = f;
+      fe.classList.toggle('on', !!f && (fl[side] || side === sc.server));
+    });
+    $('win').classList.toggle('on', r.state === 'done');
+    const info = [m.court ? A.courtName(m.court) : '', r.fk ? 'Format ' + r.fk : '', live && sc.mode === 'tb' ? 'Jeu décisif' : '', live && sc.mode === 'stb' ? 'Super jeu décisif' : '', r.woTeam ? 'Forfait' : ''].filter(Boolean);
+    $('info').innerHTML = info.map(esc).map(x => `<span>${x}</span>`).join('');
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mes tournois — Padel JA /RAM</title>
+<link rel="icon" href="/img/ram-logo-rouge-blanc.png">
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="dash">
+<div class="guest" id="guestBar" hidden>Mode démo : vos tournois seront effacés dans 24 h. <a href="/inscription">Créer mon compte gratuitement</a></div>
+<header class="nav"><a href="/" class="logo"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><b>Padel JA</b></a>
+  <div class="nav-r"><span id="who"></span><a href="/deconnexion" class="btn ghost sm">Déconnexion</a></div></header>
+<main class="wrap">
+  <h1 class="h1">Mes <span class="band lime">tournois</span></h1>
+  <section class="newt">
+    <span class="eyebrow">Nouveau tournoi</span>
+    <h2>Partir d'un modèle</h2>
+    <div class="tpls" id="tpls"></div>
+  </section>
+  <section>
+    <span class="eyebrow">Mes tournois</span>
+    <div class="tlist" id="tlist"><p class="muted">Chargement…</p></div>
+  </section>
+</main>
+<script>
+(function () {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = s => document.querySelector(s);
+  fetch('/api/me').then(r => r.json()).then(d => {
+    if (!d.user) return location.href = '/connexion';
+    $('#who').textContent = d.user.guest ? 'Visiteur (démo)' : (d.user.name || d.user.email);
+    $('#guestBar').hidden = !d.user.guest;
+  });
+  async function create(body) {
+    const r = await fetch('/api/tournaments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json(); if (d.id) location.href = '/t/' + d.id;
+  }
+  async function load() {
+    const d = await fetch('/api/tournaments').then(r => r.json());
+    const tpl = (t, mine) => `<button class="tpl" data-t="${t.id}"><span class="tag ${mine ? 'lime' : ''}">${mine ? 'Mon modèle' : esc(t.fields.category)}</span><b>${esc(t.name)}</b><small>${esc(t.desc || '')}</small></button>`;
+    $('#tpls').innerHTML = `<button class="tpl blank" data-t=""><span class="tag ink">Vierge</span><b>Tournoi vierge</b><small>Je configure tout moi-même.</small></button>` +
+      d.mine.map(t => tpl(t, true)).join('') + d.presets.map(t => tpl(t, false)).join('');
+    document.querySelectorAll('.tpl').forEach(b => b.onclick = () => {
+      const name = prompt('Nom du tournoi ?', b.dataset.t ? b.querySelector('b').textContent : 'Mon tournoi');
+      if (name !== null) create({ name: name || 'Tournoi', template: b.dataset.t || undefined });
+    });
+    const fmt = s => s ? new Date(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    $('#tlist').innerHTML = d.tournaments.length ? d.tournaments.map(t => `
+      <article class="tcard">
+        <div class="tc-top"><span class="tag">${esc(t.category || '')} · ${esc(t.gender || '')}</span><span class="st ${t.drawn ? (t.done && t.done === t.matches ? 'fin' : 'on') : ''}">${t.drawn ? (t.done && t.done === t.matches ? 'Terminé' : `${t.done}/${t.matches} matchs`) : 'Inscriptions'}</span></div>
+        <h3>${esc(t.name || 'Sans nom')}</h3>
+        <p>${esc([fmt(t.dateStart), t.club, t.pairs + ' paires'].filter(Boolean).join(' · '))}</p>
+        <div class="tc-act"><a class="btn primary sm" href="/t/${t.id}">Ouvrir</a><a class="btn ghost sm" href="/t/${t.id}/tv" target="_blank">Écran TV</a>
+          <button class="btn ghost sm" data-dup="${t.id}">Dupliquer</button><button class="btn ghost sm danger" data-del="${t.id}">Supprimer</button></div>
+      </article>`).join('') : '<p class="muted">Aucun tournoi pour l\'instant : choisissez un modèle ci-dessus.</p>';
+    document.querySelectorAll('[data-dup]').forEach(b => b.onclick = async () => { const r = await fetch('/api/tournaments/' + b.dataset.dup + '/duplicate', { method: 'POST' }).then(r => r.json()); if (r.id) load(); });
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (confirm('Supprimer définitivement ce tournoi ?')) { await fetch('/api/tournaments/' + b.dataset.del, { method: 'DELETE' }); load(); } });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

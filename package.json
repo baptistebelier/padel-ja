@@ -1,0 +1,14 @@
+{
+  "name": "padel-ja",
+  "version": "0.3.0",
+  "description": "Logiciel du juge-arbitre de padel : inscriptions, tirage, tableaux, programmation, écran TV, overlay stream",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}

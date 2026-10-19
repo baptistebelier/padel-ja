@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padel JA — /RAM</title>
+<link rel="icon" href="/img/ram-logo-rouge-blanc.png">
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/editor.css">
+</head>
+<body>
+<div class="annonce"><div class="annonce-in" id="annonce"></div></div>
+<div class="guest" id="guestBar" hidden>Mode démo : ce tournoi sera effacé dans 24 h. <a href="/inscription">Créer mon compte gratuitement</a> pour garder vos tournois.</div>
+<div class="shell">
+<aside class="side">
+  <div class="brand"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><div><b>PADEL JA</b><small>Juge-arbitre</small></div></div>
+  <a href="/app" class="back">← Mes tournois</a>
+  <nav id="nav">
+    <button data-tab="tournoi"><i>01</i>Tournoi</button>
+    <button data-tab="inscriptions"><i>02</i>Inscriptions</button>
+    <button data-tab="tirage"><i>03</i>Tirage au sort</button>
+    <button data-tab="tableaux"><i>04</i>Tableaux</button>
+    <button data-tab="programmation"><i>05</i>Programmation</button>
+    <button data-tab="direct"><i>06</i>Direct &amp; repos</button>
+    <button data-tab="diffusion"><i>07</i>Écran TV &amp; stream</button>
+  </nav>
+  <div class="side-foot">
+    <div id="conn" class="conn off">Hors ligne</div>
+    <div class="side-btns">
+      <button id="btnExport" title="Enregistrer une copie du tournoi">Exporter</button>
+      <button id="btnImport" title="Ouvrir un fichier de tournoi">Importer</button>
+      <button id="btnDemo" title="Remplir ce tournoi avec des joueurs fictifs">Joueurs démo</button>
+      <a href="/deconnexion" class="btnlike">Déconnexion</a>
+    </div>
+    <input type="file" id="fileImport" accept=".json" hidden>
+  </div>
+</aside>
+
+<main>
+  <header class="top">
+    <div class="top-t"><span class="tag" id="hTag">P100 · MESSIEURS</span><h1 id="hName">Tournoi</h1><div id="hSub" class="muted"></div></div>
+    <div class="top-actions">
+      <button id="btnUndo" class="ghost" title="Annuler la dernière action (Ctrl+Z)">↶ Annuler</button>
+      <button id="btnPrint" class="ghost" title="Imprimer ou enregistrer en PDF">Imprimer / PDF</button>
+      <button id="btnOverlay" class="ghost" title="Fenêtre overlay fond vert pour le stream">Overlay</button>
+      <button id="btnTv" class="accent" title="Ouvrir l'écran TV (à placer sur la télévision, F11 pour plein écran)">Écran TV</button>
+      <button id="btnHelp" class="ghost sq" title="Raccourcis clavier (?)">?</button>
+    </div>
+  </header>
+
+  <!-- ===================== 01 TOURNOI ===================== -->
+  <section id="tab-tournoi" class="tab">
+    <h2 class="ptitle">Fiche <span class="band lime">tournoi</span></h2>
+    <div class="card tpl-card">
+      <div class="row-between"><div><span class="eyebrow">Modèles</span><h3>Formats préenregistrés</h3></div>
+        <div class="btns"><button class="ghost" id="tplSave">+ Enregistrer ce format comme modèle</button></div></div>
+      <div id="tplList" class="tpl-list"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <span class="eyebrow">01 / Infos</span><h3>Informations</h3>
+        <div class="form">
+          <label class="span2">Nom du tournoi<input data-f="name"></label>
+          <label>Catégorie<select data-f="category"><option>P25</option><option>P50</option><option>P100</option><option>P250</option><option>P500</option><option>P1000</option><option>P2000</option></select></label>
+          <label>Épreuve<select data-f="gender"><option>Messieurs</option><option>Dames</option><option>Mixte</option></select></label>
+          <label>Date de début<input type="date" data-f="dateStart"></label>
+          <label>Date de fin<input type="date" data-f="dateEnd"></label>
+          <label>Club<input data-f="club"></label>
+          <label>Adresse<input data-f="address"></label>
+          <label>Juge-arbitre<input data-f="ja"></label>
+          <label>Qualification JA<input data-f="jaNumber" placeholder="JAP1, JAP2…"></label>
+          <label>Téléphone JA<input data-f="jaPhone"></label>
+          <label>Date limite d'inscription<input type="datetime-local" data-f="deadline"></label>
+          <label>Balles<input data-f="balls" placeholder="Marque / modèle, changement…"></label>
+          <label>Dotation<input data-f="prize"></label>
+          <label class="span2">Notes / règlement particulier<textarea data-f="notes" rows="2"></textarea></label>
+        </div>
+      </div>
+      <div class="card">
+        <span class="eyebrow">02 / Formule</span><h3>Formule sportive</h3>
+        <div class="form">
+          <label class="span2">Formule<select data-f="formula"><option value="tf">Tableau final direct</option><option value="qualif_tf">Qualifications + tableau final</option><option value="poules_tf">Poules + tableau final</option><option value="poules">Poules uniquement</option></select></label>
+          <label>Nombre de paires acceptées<input type="number" min="2" max="128" data-f="maxPairs"></label>
+          <label data-show="tf qualif_tf poules_tf">Tableau final<select data-f="drawMode"><option value="tmc">TMC — tous les classements</option><option value="elim">Élimination directe</option></select></label>
+          <label data-show="qualif_tf">Entrées directes au TF<input type="number" min="1" data-f="tfDirect"></label>
+          <label data-show="qualif_tf">Qualifiés sortants<input type="number" min="1" data-f="qualifCount"></label>
+          <label data-show="poules poules_tf">Paires par poule<input type="number" min="3" max="8" data-f="pouleSize"></label>
+          <label data-show="poules_tf">Qualifiés par poule<input type="number" min="1" max="4" data-f="pouleQualif"></label>
+          <label data-show="poules poules_tf">Constitution des poules<select data-f="pouleMethod"><option value="serpentin">Serpentin (placement imposé)</option><option value="rang">Répartition par rang (tirage)</option></select></label>
+          <label class="chk" data-show="tf qualif_tf poules_tf"><input type="checkbox" data-f="thirdPlace"> Petite finale (élimination directe)</label>
+          <label>Heure de début<input type="time" data-f="startTime"></label>
+        </div>
+        <div id="planBox" class="plan"></div>
+        <h4>Formats de jeu</h4>
+        <div class="form">
+          <label data-show="poules poules_tf">Poules<select data-f="formatPoule" class="fmt" data-empty="Comme le tableau"></select></label>
+          <label data-show="qualif_tf">Qualifications<select data-f="formatQualif" class="fmt" data-empty="Comme le tableau"></select></label>
+          <label data-show="tf qualif_tf poules_tf">Tableau final<select data-f="formatMain" class="fmt"></select></label>
+          <label data-show="tf qualif_tf poules_tf">1/2 finales<select data-f="formatSemi" class="fmt" data-empty="Comme le tableau"></select></label>
+          <label data-show="tf qualif_tf poules_tf">Finale<select data-f="formatFinal" class="fmt" data-empty="Comme les 1/2"></select></label>
+          <label data-show="tf qualif_tf poules_tf">Matchs de classement<select data-f="formatClass" class="fmt" data-empty="Comme le tableau"></select></label>
+        </div>
+        <h4>Durées estimées (min) <small class="muted">pour la programmation</small></h4>
+        <div class="durs" id="durs"></div>
+      </div>
+      <div class="card">
+        <span class="eyebrow">03 / Règlement</span><h3>Règles FFT <span class="tag" id="ruleCat"></span></h3>
+        <div id="rules"></div>
+      </div>
+      <div class="card">
+        <span class="eyebrow">04 / Terrains</span><h3>Terrains</h3>
+        <div id="courts"></div>
+        <button id="addCourt" class="ghost">+ Ajouter un terrain</button>
+        <span class="eyebrow" style="margin-top:22px">05 / Habillage</span><h3>Écran TV &amp; stream</h3>
+        <div class="form">
+          <label>Fond<input type="color" data-c="bg"></label>
+          <label>Surfaces<input type="color" data-c="primary"></label>
+          <label>Accent (citron)<input type="color" data-c="accent"></label>
+          <label>Accent 2 (rose)<input type="color" data-c="accent2"></label>
+          <div class="span2 btns"><button class="ghost sm" id="ramColors">Remettre la charte /RAM</button></div>
+          <label class="span2">Bandeau partenaires<input data-f="sponsor"></label>
+          <label class="span2">Logo du club / tournoi (PNG, &lt; 600 Ko)<input type="file" id="logoFile" accept="image/*"></label>
+          <div class="span2 logo-prev" id="logoPrev"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 02 INSCRIPTIONS ===================== -->
+  <section id="tab-inscriptions" class="tab">
+    <h2 class="ptitle"><span class="band lime">Inscriptions</span></h2>
+    <div class="card">
+      <span class="eyebrow">Nouvelle paire</span>
+      <h3>Saisie rapide <small class="muted">Entrée pour valider : le curseur revient sur le premier champ</small></h3>
+      <form id="addPair" class="pairform" autocomplete="off">
+        <fieldset><legend>Joueur 1</legend>
+          <input name="l1" placeholder="NOM" required><input name="f1" placeholder="Prénom"><input name="r1" placeholder="Classement" inputmode="numeric"><input name="i1" placeholder="Licence">
+        </fieldset>
+        <fieldset><legend>Joueur 2</legend>
+          <input name="l2" placeholder="NOM" required><input name="f2" placeholder="Prénom"><input name="r2" placeholder="Classement" inputmode="numeric"><input name="i2" placeholder="Licence">
+        </fieldset>
+        <fieldset class="narrow"><legend>Inscription</legend>
+          <input type="datetime-local" name="date"><label class="chk"><input type="checkbox" name="wc"> Wild-card</label>
+        </fieldset>
+        <button class="accent big">Ajouter ↵</button>
+      </form>
+      <details class="paste"><summary>Coller une liste depuis Excel / MOJA</summary>
+        <p class="muted">Une paire par ligne : <code>NOM1 ; Prénom1 ; Clt1 ; NOM2 ; Prénom2 ; Clt2 ; date (optionnelle)</code>. Séparateur : tabulation, point-virgule ou virgule.</p>
+        <textarea id="pasteArea" rows="5"></textarea><button id="pasteBtn" class="ghost">Importer les lignes</button>
+      </details>
+    </div>
+    <div class="card">
+      <div class="row-between"><h3 id="mainTitle">Paires retenues</h3><div class="muted" id="selMode"></div></div>
+      <table class="tbl" id="tblMain"></table>
+      <h3 style="margin-top:22px" id="waitTitle">Liste d'attente</h3>
+      <table class="tbl" id="tblWait"></table>
+      <h3 style="margin-top:22px" id="wdTitle">Forfaits / retraits</h3>
+      <table class="tbl" id="tblWd"></table>
+    </div>
+  </section>
+
+  <!-- ===================== 03 TIRAGE ===================== -->
+  <section id="tab-tirage" class="tab">
+    <h2 class="ptitle">Tirage <span class="band pink">au sort</span></h2>
+    <div id="drawPanel"></div>
+  </section>
+
+  <!-- ===================== 04 TABLEAUX ===================== -->
+  <section id="tab-tableaux" class="tab">
+    <h2 class="ptitle"><span class="band lime">Tableaux</span></h2>
+    <div id="tabPoules"></div>
+    <div class="card" id="cardQualif"><span class="eyebrow">Phase 1</span><h3>Qualifications</h3><div id="qualifEd" class="bracket-ed"></div></div>
+    <div class="card" id="cardTf"><span class="eyebrow">Phase finale</span><h3>Tableau final</h3><div id="bracketEd" class="bracket-ed"></div></div>
+    <div class="card" id="classCard"><span class="eyebrow">TMC</span><h3>Matchs de classement</h3><div id="classEd" class="class-ed"></div></div>
+  </section>
+
+  <!-- ===================== 05 PROGRAMMATION ===================== -->
+  <section id="tab-programmation" class="tab">
+    <h2 class="ptitle"><span class="band lime">Programmation</span></h2>
+    <div class="card">
+      <div class="row-between">
+        <p class="muted" style="margin:0">Glissez-déposez les matchs entre terrains. Les horaires tiennent compte des durées et des repos obligatoires (A : 1h30, B : 1h, C/D : 30 min, F : 15 min).</p>
+        <div class="btns">
+          <button id="schedAuto" class="accent">⚡ Programmation automatique</button>
+          <button id="schedClear" class="ghost">Vider (non commencés)</button>
+        </div>
+      </div>
+      <div id="schedWarn"></div>
+      <div id="sched" class="sched"></div>
+    </div>
+  </section>
+
+  <!-- ===================== 06 DIRECT & REPOS ===================== -->
+  <section id="tab-direct" class="tab">
+    <h2 class="ptitle">Direct <span class="band pink">&amp; repos</span></h2>
+    <div class="card"><span class="eyebrow">Sur les terrains</span><div id="liveList" class="live-list"></div></div>
+    <div class="grid2">
+      <div class="card"><span class="eyebrow">Paires</span><h3>Repos &amp; attente</h3>
+        <p class="muted small">Le chrono démarre à la fin de chaque match. En rose : repos obligatoire en cours. En citron : la paire peut rejouer.</p>
+        <table class="tbl" id="restTbl"></table></div>
+      <div class="card"><span class="eyebrow">Contrôle</span><h3>Matchs par jour &amp; horaires</h3><div id="dayChecks"></div>
+        <h3 style="margin-top:20px">Tous les matchs</h3><table class="tbl" id="allMatches"></table></div>
+    </div>
+  </section>
+
+  <!-- ===================== 07 DIFFUSION ===================== -->
+  <section id="tab-diffusion" class="tab">
+    <h2 class="ptitle">Écran TV <span class="band lime">&amp; stream</span></h2>
+    <div class="grid2">
+      <div class="card">
+        <span class="eyebrow">Télévision</span><h3>Vue affichée <small class="muted">touches T · O · P · D · C · I · G</small></h3>
+        <div class="tvviews" id="tvViews">
+          <button data-tv="bracket"><b>T</b>Tableau final</button>
+          <button data-tv="poules"><b>O</b>Poules / qualifs</button>
+          <button data-tv="schedule"><b>P</b>Programmation</button>
+          <button data-tv="live"><b>D</b>Scores en direct</button>
+          <button data-tv="standings"><b>C</b>Classement</button>
+          <button data-tv="info"><b>I</b>Fiche tournoi</button>
+          <button data-tv="draw"><b>G</b>Tirage au sort</button>
+        </div>
+        <div class="form" style="margin-top:14px">
+          <label class="chk span2"><input type="checkbox" id="rotate"> <b>R</b>&nbsp;Rotation automatique des écrans</label>
+          <label>Durée par écran (s)<input type="number" id="rotateSec" min="5" max="300"></label>
+          <label class="span2">Message défilant<input id="ticker" placeholder="Ex : Remise des prix à 18h…"></label>
+        </div>
+        <div class="btns"><button id="btnTv2" class="accent">Ouvrir l'écran TV</button></div>
+        <p class="muted small">Glissez la fenêtre sur la télévision puis <b>F11</b> (ou double-clic) pour le plein écran. Le pointeur est masqué, sauf pendant le tirage au sort.</p>
+      </div>
+      <div class="card">
+        <span class="eyebrow">Stream</span><h3>Overlay score</h3>
+        <div class="form">
+          <label class="span2">Match diffusé<select id="streamSel"></select></label>
+          <label>Fond<select id="overlayBg"><option value="green">Vert (incrustation)</option><option value="transparent">Transparent (OBS)</option><option value="blue">Bleu (incrustation)</option></select></label>
+          <label>&nbsp;<button id="btnOverlay2" class="ghost">Ouvrir l'overlay</button></label>
+        </div>
+        <div id="streamPad"></div>
+        <div class="urls" id="urls"></div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<div id="modal" class="modal" hidden><div class="modal-box" id="modalBox"></div></div>
+<div id="toasts"></div>
+
+<script src="/js/engine.js"></script>
+<script src="/js/client.js"></script>
+<script src="/js/editor.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Configuration Render (déploiement automatique depuis GitHub)
+services:
+  - type: web
+    name: padel-ja
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: "echo 'Aucune dépendance à installer'"
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

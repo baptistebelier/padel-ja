@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0A0F2C">
+<title>Padel JA — Télécommande</title>
+<link rel="stylesheet" href="/css/ram.css">
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; min-height: 100%; background: var(--ink); color: #fff; font-family: var(--body); }
+body::before { content: ""; position: fixed; inset: 0; background: var(--dots); pointer-events: none; }
+body { padding: 14px 14px 30px; }
+h1 { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 400; font-size: 26px; margin: 4px 0 14px; text-transform: uppercase; } h1 img { height: 34px; }
+select, input, button { font: inherit; color: inherit; border-radius: 0; border: 2px solid #3d3d3d; background: #151515; padding: 12px; width: 100%; position: relative; }
+button { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+button { cursor: pointer; }
+.pin { display: grid; gap: 10px; margin-top: 30vh; }
+.team { margin-top: 14px; background: #151515; padding: 14px; border: 2px solid #3d3d3d; position: relative; }
+.team.srv { border-color: #d4ff3a88; }
+.tn { font-family: var(--display); font-size: 24px; text-transform: uppercase; }
+.ts { display: flex; gap: 6px; margin: 10px 0; font-family: var(--display); font-size: 28px; }
+.ts span { min-width: 40px; text-align: center; background: #0B0B0B; padding: 2px 4px; color: #ffffffa0; }
+.ts span.w { color: #fff; font-weight: 800; } .ts .g { background: #ffffff1c; color: #fff; } .ts .p { background: var(--accent); color: var(--bg); font-weight: 800; min-width: 60px; }
+.flag { color: var(--accent2); font-weight: 800; font-size: 13px; letter-spacing: .12em; min-height: 16px; }
+.big { background: var(--accent); color: var(--ink); border: 0; font-family: var(--display); font-weight: 400; font-size: 30px; padding: 24px; margin-top: 6px; box-shadow: 5px 5px 0 var(--accent2); }
+.big:active { transform: scale(.97); }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.muted { color: #8f98c7; font-size: 13px; margin-top: 16px; text-align: center; }
+.err { color: #ff5d6c; }
+</style>
+</head>
+<body>
+<h1><img src="/img/ram-logo-rouge-blanc.png" alt="">Télécommande</h1>
+<div id="app"></div>
+<script src="/js/engine.js"></script>
+<script src="/js/client.js"></script>
+<script>
+(function () {
+  const E = Engine, A = App, esc = A.esc, app = document.getElementById('app');
+  let sel = null; try { sel = localStorage.getItem('padelja-remote-match'); } catch (e) {}
+  let started = false;
+
+  function askPin(msg) {
+    app.innerHTML = `<div class="pin"><div>Code PIN affiché sur le PC (onglet « Écran TV &amp; stream ») :</div>
+      <input id="pin" inputmode="numeric" maxlength="4" placeholder="••••"><button class="big" id="go">Connexion</button><div class="err">${msg || ''}</div></div>`;
+    document.getElementById('go').onclick = () => { A.setPin(document.getElementById('pin').value.trim()); location.reload(); };
+  }
+
+  A.check()
+    .then(st => { if (st === 401) askPin(A.pin() ? 'Code incorrect' : ''); else if (st === 404) app.innerHTML = '<p class="err">Tournoi introuvable.</p>'; else start(); })
+    .catch(() => askPin('Serveur injoignable'));
+
+  function start() {
+    if (started) return; started = true;
+    A.connect(render);
+  }
+
+  function render(S) {
+    const R = A.R;
+    const list = S.matches.filter(m => R[m.id] && (R[m.id].state === 'live' || R[m.id].state === 'ready' || m.id === sel)).sort((a, b) => a.num - b.num);
+    if (!sel && S.display.stream) sel = S.display.stream;
+    const m = S.matches.find(x => x.id === sel);
+    let h = `<select id="ms"><option value="">— Choisir un match —</option>${list.map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>M${x.num} · ${esc(A.sideName(x, 'A'))} vs ${esc(A.sideName(x, 'B'))}${x.court ? ' · ' + esc(A.courtName(x.court)) : ''}</option>`).join('')}</select>`;
+    if (m) {
+      const r = R[m.id], sc = r.score;
+      const live = sc && !sc.manual && !sc.winner;
+      const fl = live ? E.pointFlags(r.fk, m.points, m.firstServer) : {};
+      const team = s => `<div class="team ${live && sc.server === s ? 'srv' : ''}"><div class="tn">${live && sc.server === s ? '● ' : ''}${esc(A.sideName(m, s, 'initial'))}</div>
+        <div class="ts">${sc ? sc.sets.map(x => `<span class="${x.w === s ? 'w' : ''}">${x.stb ? x.stb[s] : x[s]}</span>`).join('') : ''}${live ? `${sc.mode === 'game' ? `<span class="g">${sc.games[s]}</span>` : ''}<span class="p">${sc.labels[s]}</span>` : ''}</div>
+        <div class="flag">${fl[s] || ''}</div>
+        <button class="big" data-p="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ POINT</button></div>`;
+      h += `<div class="muted">${esc(E.matchLabel(m))} · Format ${r.fk}${r.state === 'done' ? ' · <b>Terminé</b>' : ''}${fl.decisive ? ' · <b style="color:var(--accent2)">POINT DÉCISIF</b>' : ''}</div>
+        ${team('A')}${team('B')}
+        <div class="row"><button id="undo">↶ Annuler</button><button id="srv">Changer serveur</button></div>
+        <div class="row"><button id="stream">🎥 Mettre en overlay</button><button id="refresh">⟳</button></div>`;
+    }
+    app.innerHTML = h;
+    document.getElementById('ms').onchange = e => { sel = e.target.value; try { localStorage.setItem('padelja-remote-match', sel); } catch (_) {} render(A.state); };
+    if (m) {
+      app.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { if (navigator.vibrate) navigator.vibrate(30); A.send('match/point', { id: m.id, team: b.dataset.p }); });
+      document.getElementById('undo').onclick = () => A.send('match/undoPoint', { id: m.id });
+      document.getElementById('srv').onclick = () => A.send('match/server', { id: m.id, team: m.firstServer === 'A' ? 'B' : 'A' });
+      document.getElementById('stream').onclick = () => A.send('display/set', { stream: m.id });
+      document.getElementById('refresh').onclick = () => location.reload();
+    }
+  }
+})();
+</script>
+</body>
+</html>

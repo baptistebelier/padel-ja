@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — Padel JA /RAM</title>
+<link rel="icon" href="/img/ram-logo-rouge-blanc.png">
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="auth-page">
+<header class="nav"><a href="/" class="logo"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><b>Padel JA</b></a><a href="/demo" class="btn ghost">Essayer la démo</a></header>
+<main class="auth">
+  <div class="auth-box">
+    <div class="tabs"><button data-m="login">Connexion</button><button data-m="signup">Créer un compte</button></div>
+    <h1 id="title"></h1>
+    <form id="f" autocomplete="on">
+      <label data-only="signup">Nom et prénom<input name="name" autocomplete="name"></label>
+      <label data-only="signup">Club / structure<input name="club" autocomplete="organization"></label>
+      <label>E-mail<input name="email" type="email" required autocomplete="email"></label>
+      <label>Mot de passe<input name="password" type="password" required minlength="8" autocomplete="current-password"></label>
+      <p class="hint" data-only="signup">8 caractères minimum. Un tournoi d'exemple sera créé pour vous aider à démarrer.</p>
+      <div class="err" id="err"></div>
+      <button class="btn primary" id="go"></button>
+    </form>
+  </div>
+</main>
+<script>
+(function () {
+  const qs = new URLSearchParams(location.search);
+  let mode = location.pathname === '/inscription' ? 'signup' : 'login';
+  const f = document.getElementById('f');
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+    document.querySelectorAll('[data-only]').forEach(el => { el.hidden = el.dataset.only !== m; });
+    document.getElementById('title').innerHTML = m === 'signup' ? 'Créer <span class="band lime">mon compte</span>' : 'Espace <span class="band lime">juge-arbitre</span>';
+    document.getElementById('go').textContent = m === 'signup' ? 'Créer mon compte' : 'Se connecter';
+    f.password.autocomplete = m === 'signup' ? 'new-password' : 'current-password';
+    history.replaceState(null, '', (m === 'signup' ? '/inscription' : '/connexion') + location.search);
+    document.getElementById('err').textContent = '';
+  }
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setMode(b.dataset.m));
+  setMode(mode);
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const body = { email: f.email.value, password: f.password.value, name: f.name.value, club: f.club.value };
+    const r = await fetch('/api/auth/' + (mode === 'signup' ? 'signup' : 'login'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { document.getElementById('err').textContent = d.error || 'Erreur'; return; }
+    const back = qs.get('retour');
+    location.href = back && back.startsWith('/t/') ? back : '/app';
+  };
+})();
+</script>
+</body>
+</html>

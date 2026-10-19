@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Padel JA — Impression</title>
+<link rel="stylesheet" href="/css/ram.css">
+<style>
+@page { size: A4 landscape; margin: 10mm; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; background: #ddd; color: var(--ink); font: 11.5px/1.4 var(--body); }
+.bar { position: sticky; top: 0; z-index: 3; display: flex; gap: 10px; align-items: center; padding: 10px 16px; background: var(--ink); color: #fff; }
+.bar button, .bar select { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 8px 14px; border: 2px solid #fff; background: transparent; color: #fff; cursor: pointer; border-radius: 0; font-size: 13px; }
+.bar button.go { background: var(--lime); color: var(--ink); border-color: var(--lime); }
+.bar span { margin-left: auto; font-size: 12px; color: #aaa; }
+.page { width: 277mm; min-height: 190mm; margin: 14px auto; background: var(--paper); padding: 10mm 12mm; position: relative; }
+.page.portrait { width: 190mm; min-height: 277mm; }
+.head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid var(--ink); padding-bottom: 8px; margin-bottom: 14px; }
+.head h1 { font-family: var(--display); font-weight: 400; font-size: 30px; text-transform: uppercase; margin: 0; line-height: 1; transform: rotate(-1deg); transform-origin: left; }
+.head h1 .band { font-size: 26px; }
+.head .meta { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: #444; margin-top: 6px; }
+.head img { height: 46px; }
+.foot { position: absolute; bottom: 6mm; left: 12mm; right: 12mm; display: flex; justify-content: space-between; font-family: var(--label); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; color: #777; }
+h2 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 20px; margin: 14px 0 8px; }
+table { width: 100%; border-collapse: collapse; }
+th { background: var(--ink); color: #fff; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 10.5px; text-align: left; padding: 4px 6px; }
+td { padding: 4px 6px; border-bottom: 1px solid #cfc9bf; vertical-align: top; }
+tr:nth-child(even) td { background: #ebe7e0; }
+td.n { font-family: var(--label); font-weight: 700; width: 40px; }
+.w { font-weight: 700; }
+.brk { display: flex; gap: 10px; }
+.bcol { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.bcol h3 { font-family: var(--label); font-weight: 800; text-transform: uppercase; letter-spacing: .1em; font-size: 11px; margin: 0 0 6px; text-align: center; background: var(--ink); color: #fff; padding: 2px; }
+.bcol-in { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 4px; }
+.m { border: 1.5px solid var(--ink); background: #fff; font-size: 10.5px; break-inside: avoid; }
+.m .r { display: flex; justify-content: space-between; gap: 4px; padding: 2px 5px; }
+.m .r + .r { border-top: 1px solid #ccc; }
+.m .r span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m .r.win { background: var(--lime); font-weight: 700; }
+.m .mh { font-family: var(--label); font-weight: 700; font-size: 9px; color: #666; padding: 0 5px; text-transform: uppercase; background: #f1eee8; display: flex; justify-content: space-between; }
+.m.bye { opacity: .45; }
+.ts { font-family: var(--label); font-weight: 800; background: var(--ink); color: var(--lime); padding: 0 3px; margin-right: 3px; font-size: 9px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80mm, 1fr)); gap: 10px; }
+.box { border: 2px solid var(--ink); padding: 6px 8px; background: #fff; break-inside: avoid; }
+.box h3 { margin: 0 0 4px; font-family: var(--display); font-weight: 400; font-size: 18px; text-transform: uppercase; }
+.court { break-inside: avoid; margin-bottom: 10px; }
+.kv { display: grid; grid-template-columns: 50mm 1fr; gap: 0; }
+.kv div { padding: 5px 0; border-bottom: 1px solid #cfc9bf; } .kv div:nth-child(odd) { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #555; }
+@media print { body { background: none; } .bar { display: none; } .page { margin: 0; width: auto; min-height: 0; box-shadow: none; padding: 0 0 10mm; page-break-after: always; } .page.portrait { width: auto; } .foot { position: fixed; bottom: 0; left: 0; right: 0; } }
+</style>
+</head>
+<body>
+<div class="bar"><select id="doc"></select><button class="go" onclick="window.print()">Imprimer / Enregistrer en PDF</button><span>Astuce : imprimante « Enregistrer au format PDF » ou « Microsoft Print to PDF »</span></div>
+<div id="out"></div>
+<script src="/js/engine.js"></script>
+<script src="/js/client.js"></script>
+<script>
+(function () {
+  const E = Engine, A = App, esc = A.esc;
+  const qs = new URLSearchParams(location.search);
+  let doc = qs.get('doc') || 'tableau';
+  const DOCS = { tableau: 'Tableau final', poules: 'Poules', qualifs: 'Qualifications', programmation: 'Programmation', resultats: 'Résultats', classement: 'Classement final', inscrits: 'Liste des inscrits', fiche: 'Fiche tournoi' };
+  const sel = document.getElementById('doc');
+  sel.innerHTML = Object.keys(DOCS).map(k => `<option value="${k}" ${k === doc ? 'selected' : ''}>${DOCS[k]}</option>`).join('');
+  sel.onchange = () => { doc = sel.value; history.replaceState(null, '', '?doc=' + doc); render(); };
+  let S, R, done = false;
+  A.connect(st => { S = st; R = A.R; if (!done) { done = true; render(); } });
+
+  function page(title, body, portrait) {
+    const t = S.tournament;
+    const d = t.dateStart ? new Date(t.dateStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    return `<div class="page ${portrait ? 'portrait' : ''}"><div class="head"><div><h1>${esc(t.name)} · <span class="band lime">${esc(title)}</span></h1>
+      <div class="meta">${esc([t.category + ' ' + t.gender, t.club, d, t.ja && 'JA : ' + t.ja].filter(Boolean).join(' · '))}</div></div>
+      <div>${t.logo ? `<img src="${t.logo}">` : ''} <img src="/img/ram-logo-noir.png" style="height:34px"></div></div>${body}
+      <div class="foot"><span>Padel JA · /RAM — Rise And Move</span><span>Édité le ${new Date().toLocaleString('fr-FR')}</span></div></div>`;
+  }
+  const mBox = m => {
+    const r = R[m.id];
+    if (r.staticBye && r.state !== 'waiting') return `<div class="m bye"><div class="r"><span>${esc(A.sideName(m, r.A === 'BYE' ? 'B' : 'A'))}</span><span>exempt</span></div></div>`;
+    const sc = r.score;
+    const row = s => { const id = r[s]; const ts = m.phase === 'TF' ? A.seedOf(id) : null;
+      return `<div class="r ${r.winner && r.winner === id ? 'win' : ''}"><span>${ts ? `<span class="ts">${ts}</span>` : ''}${esc(A.sideName(m, s))}</span><span>${r.woTeam === s ? 'WO' : sc ? sc.sets.map(x => x.stb ? x.stb[s] : x[s]).join(' ') : ''}</span></div>`; };
+    return `<div class="m"><div class="mh"><span>M${m.num}</span><span>${esc(A.courtName(m.court))}</span><span>${r.fk}</span></div>${row('A')}${row('B')}</div>`;
+  };
+  const cols = (list, nameOf) => {
+    const sizes = [...new Set(list.map(m => m.size))].sort((a, b) => b - a);
+    return `<div class="brk">${sizes.map(sz => { const ms = list.filter(m => m.size === sz).sort((a, b) => a.idx - b.idx);
+      return `<div class="bcol"><h3>${nameOf(ms[0])}</h3><div class="bcol-in">${ms.map(mBox).join('')}</div></div>`; }).join('')}</div>`;
+  };
+
+  function render() {
+    const out = document.getElementById('out');
+    if (!S) return;
+    const t = S.tournament;
+    const tl = E.timeline(S, R);
+    let html = '';
+    if (doc === 'tableau') {
+      const main = S.matches.filter(m => m.phase === 'TF' && m.a === 1);
+      html = page('Tableau final', main.length ? cols(main, m => E.ROUND_NAMES[m.size]) : '<p>Tirage non effectué.</p>');
+      const cls = S.matches.filter(m => m.phase === 'TF' && m.a !== 1);
+      if (cls.length) {
+        const g = {}; cls.forEach(m => { const k = m.a + '-' + m.size; (g[k] = g[k] || []).push(m); });
+        html += page('Matchs de classement', `<div class="grid">${Object.keys(g).sort((a, b) => parseInt(a) - parseInt(b) || parseInt(b.split('-')[1]) - parseInt(a.split('-')[1])).map(k => `<div class="box"><h3>${esc(E.matchLabel(g[k][0]))}</h3>${g[k].sort((a, b) => a.idx - b.idx).map(mBox).join('')}</div>`).join('')}</div>`);
+      }
+    }
+    if (doc === 'qualifs') {
+      const q = S.matches.filter(m => m.phase === 'Q');
+      html = page('Qualifications', q.length ? cols(q, m => (m.qfinal ? 'Tour décisif' : 'Tour ' + m.depth)) : '<p>Pas de qualifications.</p>');
+    }
+    if (doc === 'poules') {
+      html = page('Poules', S.poules.length ? `<div class="grid">${S.poules.map(P => {
+        const st = E.pouleStandings(S, R, P.id);
+        const ms = S.matches.filter(m => m.phase === 'P' && m.poule === P.id).sort((a, b) => a.depth - b.depth || a.idx - b.idx);
+        return `<div class="box"><h3>Poule ${P.id}</h3><table><tr><th>#</th><th>Paire</th><th>J</th><th>V</th><th>Pts</th><th>Sets</th><th>Jeux</th></tr>
+          ${st.rows.map(x => `<tr><td class="n">${x.rank}</td><td>${esc(A.pairName(x.pair, 'initial'))}</td><td>${x.played}</td><td>${x.won}</td><td class="w">${x.pts}</td><td>${x.sw - x.sl}</td><td>${x.gw - x.gl}</td></tr>`).join('')}</table>
+          <table style="margin-top:6px">${ms.map(m => { const r = R[m.id]; return `<tr><td class="n">M${m.num}</td><td class="${r.winner === r.A ? 'w' : ''}">${esc(A.sideName(m, 'A'))}</td><td class="${r.winner === r.B ? 'w' : ''}">${esc(A.sideName(m, 'B'))}</td><td>${esc(E.scoreText(r))}</td></tr>`; }).join('')}</table></div>`;
+      }).join('')}</div>` : '<p>Pas de poules.</p>');
+    }
+    if (doc === 'programmation') {
+      html = page('Programmation', S.courts.map(c => {
+        const q = S.matches.filter(m => m.court === c.id && !R[m.id].staticBye).sort((a, b) => a.order - b.order);
+        return `<div class="court"><h2>${esc(c.name)}</h2><table><tr><th>Heure</th><th>N°</th><th>Tour</th><th>Équipe 1</th><th>Équipe 2</th><th>Format</th><th>Score</th></tr>
+          ${q.map(m => { const r = R[m.id]; return `<tr><td class="n">${m.startedAt ? A.hhmm(m.startedAt) : tl[m.id] ? '~' + A.hhmm(tl[m.id].start) : ''}</td><td class="n">M${m.num}</td><td>${esc(E.matchLabel(m))}</td>
+            <td class="${r.winner && r.winner === r.A ? 'w' : ''}">${esc(A.sideName(m, 'A'))}</td><td class="${r.winner && r.winner === r.B ? 'w' : ''}">${esc(A.sideName(m, 'B'))}</td><td>${r.fk}</td><td>${esc(E.scoreText(r))}</td></tr>`; }).join('') || '<tr><td colspan="7">Aucun match</td></tr>'}</table></div>`;
+      }).join(''));
+    }
+    if (doc === 'resultats') {
+      const all = S.matches.filter(m => !R[m.id].staticBye).sort((a, b) => a.num - b.num);
+      html = page('Résultats', `<table><tr><th>N°</th><th>Tour</th><th>Vainqueur</th><th>Perdant</th><th>Score</th><th>Format</th><th>Terrain</th><th>Fin</th></tr>${all.map(m => { const r = R[m.id];
+        return r.state === 'done' ? `<tr><td class="n">M${m.num}</td><td>${esc(E.matchLabel(m))}</td><td class="w">${esc(A.pairName(r.winner))}</td><td>${esc(A.pairName(r.loser))}</td><td>${esc(E.winnerScoreText(r))}</td><td>${r.fk}</td><td>${esc(A.courtName(m.court))}</td><td>${m.endedAt ? A.hhmm(m.endedAt) : ''}</td></tr>`
+          : `<tr><td class="n">M${m.num}</td><td>${esc(E.matchLabel(m))}</td><td>${esc(A.sideName(m, 'A'))}</td><td>${esc(A.sideName(m, 'B'))}</td><td><i>${r.state === 'live' ? 'en cours ' + esc(E.scoreText(r)) : 'à jouer'}</i></td><td>${r.fk}</td><td>${esc(A.courtName(m.court))}</td><td></td></tr>`; }).join('')}</table>`, true);
+    }
+    if (doc === 'classement') {
+      const st = E.standings(S, R);
+      html = page('Classement final', st.length ? `<table><tr><th>Place</th><th>Paire</th><th>Joueur 1</th><th>Joueur 2</th></tr>${st.map(x => { const p = A.pairs[x.pair];
+        return `<tr><td class="n">${x.place}</td><td class="w">${esc(A.pairName(x.pair))}</td><td>${esc(A.player(p.p1))} (${esc(p.p1.rank || 'NC')})</td><td>${esc(A.player(p.p2))} (${esc(p.p2.rank || 'NC')})</td></tr>`; }).join('')}</table>` : '<p>Classement disponible à l\'issue des matchs.</p>', true);
+    }
+    if (doc === 'inscrits') {
+      const s = E.selection(S);
+      const tbl = (title, l) => `<h2>${title} (${l.length})</h2><table><tr><th>#</th><th>Joueur 1</th><th>Clt</th><th>Joueur 2</th><th>Clt</th><th>Poids</th><th>Inscription</th></tr>${l.map((p, i) => `<tr><td class="n">${i + 1}</td><td>${esc(A.player(p.p1))}</td><td>${esc(p.p1.rank || 'NC')}</td><td>${esc(A.player(p.p2))}</td><td>${esc(p.p2.rank || 'NC')}</td><td class="w">${E.weightOf(p)}</td><td>${p.registeredAt ? new Date(p.registeredAt).toLocaleString('fr-FR') : ''}${p.wc ? ' · WC' : ''}</td></tr>`).join('')}</table>`;
+      html = page('Inscrits', tbl('Paires retenues', s.main) + tbl('Liste d\'attente', s.waiting) + (s.withdrawn.length ? tbl('Forfaits', s.withdrawn) : ''), true);
+    }
+    if (doc === 'fiche') {
+      const cat = E.CATEGORIES[t.category] || {};
+      const f = t.formula || 'tf';
+      const fmt = k => (k ? `${k} — ${E.FORMATS[k].name}` : '');
+      const rows = [['Catégorie', `${t.category} ${t.gender}`], ['Dates', [t.dateStart, t.dateEnd].filter(Boolean).map(d => new Date(d).toLocaleDateString('fr-FR')).join(' → ')], ['Club', [t.club, t.address].filter(Boolean).join(' — ')],
+        ['Juge-arbitre', [t.ja, t.jaNumber, t.jaPhone].filter(Boolean).join(' · ')], ['Formule', E.FORMULAS[f] + (f !== 'poules' ? ` · ${t.drawMode === 'tmc' ? 'TMC' : 'élimination directe'}` : '')],
+        ['Paires', E.selection(S).main.length], f.startsWith('poules') ? ['Format poules', fmt(t.formatPoule || t.formatMain)] : null, f === 'qualif_tf' ? ['Format qualifs', fmt(t.formatQualif || t.formatMain)] : null,
+        f !== 'poules' ? ['Format tableau', fmt(t.formatMain)] : null, f !== 'poules' ? ['Format 1/2 finales', fmt(t.formatSemi || t.formatMain)] : null, f !== 'poules' ? ['Format finale', fmt(t.formatFinal || t.formatSemi || t.formatMain)] : null,
+        ['Balles', t.balls || cat.balls], ['Terrains', S.courts.map(c => `${c.name} (${c.start})`).join(', ')], ['Dotation', t.prize], ['Notes', t.notes],
+        ['Repos obligatoires', 'A : 1h30 · B : 1h · C / D : 30 min · F : 15 min · E : 15 min après 3 matchs consécutifs']].filter(r => r && r[1]);
+      html = page('Fiche tournoi', `<div class="kv">${rows.map(r => `<div>${esc(r[0])}</div><div>${esc(r[1])}</div>`).join('')}</div>`, true);
+    }
+    out.innerHTML = html;
+  }
+})();
+</script>
+</body>
+</html>
