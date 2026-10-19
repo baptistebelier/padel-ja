@@ -251,3 +251,40 @@ a.btnlike:hover { border-color: var(--white); }
 .guest { position: relative; z-index: 3; background: var(--accent2); color: #fff; text-align: center; padding: 7px 12px; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
 .guest a { color: var(--accent); }
 .guest[hidden] { display: none; }
+
+/* ---------- formats de jeu : une ligne par phase ---------- */
+.fmt-list { display: grid; gap: 8px; }
+.fmt-list label { display: grid; grid-template-columns: 170px minmax(0, 1fr); align-items: center; gap: 12px; }
+.fmt-list label.hide { display: none; }
+.fmt-list label span { color: var(--white); font-size: 13px; }
+.fmt-list select, .form select, .form input:not([type=checkbox]):not([type=radio]) { min-width: 0; width: 100%; }
+.rot-pick label.chk, label.chk { white-space: nowrap; }
+.form > label, .form > div { min-width: 0; }
+
+/* ---------- icônes date / heure en blanc ---------- */
+input[type=date], input[type=time], input[type=datetime-local] { color-scheme: dark; }
+input::-webkit-calendar-picker-indicator { filter: invert(1) brightness(1.4); opacity: .9; cursor: pointer; }
+
+/* ---------- partenaires ---------- */
+.sponsors { display: grid; gap: 8px; margin: 10px 0; }
+.sp-row { display: grid; grid-template-columns: 26px 110px minmax(0, 1fr) 96px 40px; gap: 8px; align-items: center; }
+.sp-num { font-family: var(--display); font-size: 20px; color: var(--accent); text-align: center; }
+.sp-logo { height: 46px; border: 2px dashed var(--line2); display: grid; place-items: center; cursor: pointer; background: #ffffff0a; flex-direction: row; overflow: hidden; }
+.sp-logo:hover { border-color: var(--accent); }
+.sp-logo img { max-height: 40px; max-width: 100px; object-fit: contain; }
+.sp-logo em { font-style: normal; color: var(--mut); font-size: 12px; }
+.profile-box { margin-top: 22px; padding: 14px; border: 2px solid var(--accent); background: #E0F50A0d; }
+.profile-box p { margin: 6px 0 0; }
+.rot-pick { display: grid; gap: 6px; }
+.rot-pick #rotViews { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.rot-pick label.chk { font-size: 13px; }
+
+/* ---------- classement en temps réel ---------- */
+.rank-ed { columns: 3 260px; column-gap: 14px; }
+.rk-block { break-inside: avoid; border: 2px solid var(--line2); background: var(--ink); margin-bottom: 12px; }
+.rk-block.exact { border-color: #ffffff30; }
+.rk-block.p1 { border-color: var(--accent); box-shadow: 4px 4px 0 var(--accent); }
+.rk-h { display: flex; justify-content: space-between; gap: 8px; padding: 5px 10px; background: var(--white); color: var(--ink); font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 13px; }
+.rk-block.p1 .rk-h { background: var(--accent); }
+.rk-h b { font-family: var(--display); font-weight: 400; font-size: 17px; letter-spacing: 0; }
+.rk-p { padding: 4px 10px; font-size: 13px; border-top: 1px solid #ffffff0c; }

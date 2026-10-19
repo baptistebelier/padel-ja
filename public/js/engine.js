@@ -493,6 +493,7 @@
     if (m.phase === 'Q') return t.formatQualif || t.formatMain;
     if (m.a === 1 && m.size === 2) return t.formatFinal || t.formatSemi || t.formatMain;
     if (m.a === 1 && m.size === 4) return t.formatSemi || t.formatMain;
+    if (m.a === 1 && m.size === 8) return t.formatQuarter || t.formatMain;
     if (m.a === 1) return t.formatMain;
     return t.formatClass || t.formatMain;
   }
@@ -850,6 +851,7 @@
     const f = t.formula || 'tf';
     if (f !== 'poules') {
       check(t.formatMain, 'le tableau final', cat.formats);
+      check(t.formatQuarter || t.formatMain, 'les 1/4 de finale', cat.formats);
       check(t.formatSemi || t.formatMain, 'les 1/2 finales', cat.semiFormats || cat.formats);
       check(t.formatFinal || t.formatSemi || t.formatMain, 'la finale', cat.finalFormats || cat.formats);
       if (t.drawMode === 'tmc') check(t.formatClass, 'les matchs de classement', cat.formats);
@@ -877,7 +879,7 @@
      MODÈLES DE TOURNOI (formats préenregistrés)
      --------------------------------------------------------------------- */
   const TEMPLATE_FIELDS = ['category', 'gender', 'maxPairs', 'formula', 'drawMode', 'thirdPlace', 'pouleSize', 'pouleQualif', 'pouleMethod',
-    'tfDirect', 'qualifCount', 'formatMain', 'formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif', 'startTime', 'durations', 'balls'];
+    'tfDirect', 'qualifCount', 'formatMain', 'formatQuarter', 'formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif', 'startTime', 'durations', 'balls'];
 
   const courtsOf = (n, start) => Array.from({ length: n }, (_, i) => ({ name: `Terrain ${i + 1}`, start }));
   const PRESETS = [
@@ -908,9 +910,94 @@
     if (T.draw) throw new Error('Annulez le tirage avant d\'appliquer un modèle.');
     const f = Object.assign({}, tpl.fields);
     TEMPLATE_FIELDS.forEach(k => { if (k in f) T.tournament[k] = f[k]; });
-    ['formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif'].forEach(k => { if (!(k in f)) T.tournament[k] = ''; });
+    ['formatQuarter', 'formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif'].forEach(k => { if (!(k in f)) T.tournament[k] = ''; });
     if (tpl.courts && tpl.courts.length) T.courts = tpl.courts.map((c, i) => ({ id: 'c' + (i + 1), name: c.name, start: c.start }));
     T.tournament.template = tpl.name;
+  }
+
+  /* ---------------------------------------------------------------------
+     BARÈMES DE POINTS FFT (Chap. II — tournois par paires, MAJ sept. 2026)
+     P25 à P250 : selon le nombre de paires (4-8, 9-12, 13-16, 17-20, 21-24, 25-28, 29-32 et +)
+     --------------------------------------------------------------------- */
+  const BAREME = {"P25":[[25,20,15,9,6,4,2,1],[25,20,16,14,10,8,7,6,4,3,2,1],[25,20,17,15,14,13,12,11,8,7,6,5,4,3,2,1],[25,22,19,17,15,13,12,11,9,8,7,6,5,4,3,2,1,1,1,1],[25,22,19,17,15,13,12,11,9,8,7,6,5,5,5,5,4,4,3,3,2,2,1,1],[25,22,19,17,15,13,12,11,8,7,6,5,4,4,4,4,3,3,3,3,2,2,2,2,1,1,1,1],[25,22,19,17,15,14,13,12,10,9,8,7,6,5,4,3,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1]],"P50":[[50,40,30,20,13,5,3,1],[50,40,33,28,20,15,10,5,3,2,1,1],[50,40,35,30,25,23,20,15,13,11,9,8,5,3,2,1],[50,43,38,35,30,28,25,23,18,15,13,12,10,9,8,6,5,3,2,1],[50,43,38,35,30,28,25,23,19,18,17,16,15,14,13,12,10,9,8,6,5,3,2,1],[50,43,38,35,30,28,25,23,19,18,17,16,15,14,13,12,10,9,8,7,6,5,4,3,2,2,1,1],[50,43,38,35,30,29,28,27,23,22,21,20,19,18,17,16,14,13,13,12,12,11,11,10,9,8,7,6,5,4,3,2]],"P100":[[100,80,60,40,25,10,5,1],[100,80,65,55,40,30,20,10,5,3,2,1],[100,80,70,60,50,45,40,30,25,21,18,15,10,5,3,1],[100,85,75,70,60,55,50,45,35,30,25,23,20,18,15,12,10,5,3,1],[100,85,75,70,60,55,50,45,38,36,34,32,30,28,26,24,20,18,15,12,10,5,3,1],[100,85,75,70,60,55,50,45,38,36,34,32,30,28,26,24,20,18,16,14,12,10,8,6,4,3,2,1],[100,85,75,70,60,58,56,54,45,43,41,39,37,35,33,31,27,26,25,24,23,22,21,20,17,15,13,11,9,7,5,3]],"P250":[[250,200,150,100,63,25,13,3],[250,200,165,140,100,75,50,25,13,8,5,3],[250,200,175,150,125,115,100,75,63,53,45,38,25,13,8,3],[250,213,188,175,150,138,125,113,88,75,63,58,50,45,38,30,25,13,8,3],[250,213,188,175,150,138,125,113,95,90,85,80,75,70,65,60,50,45,38,30,25,13,8,3],[250,213,188,175,150,138,125,113,95,90,85,80,75,70,65,60,50,45,40,35,30,25,20,15,10,8,5,3],[250,213,188,175,150,145,140,135,113,108,103,98,93,88,83,78,68,65,63,60,58,55,53,50,43,38,33,28,23,18,13,8]]};
+  const BAREME_UNIQUE = {
+    P500: { Messieurs: [500, 425, 375, 350, 300, 290, 280, 270, 225, 215, 205, 195, 185, 175, 165, 155, 135, 130, 125, 120, 115, 110, 105, 100, 85, 75, 65, 55, 45, 35, 25, 15],
+            Dames: [500, 425, 375, 350, 300, 275, 250, 225, 190, 180, 170, 160, 150, 140, 130, 120, 100, 90, 80, 70, 60, 50, 40, 30, 20] },
+    P1000: { Messieurs: [1000, 850, 750, 700, 600, 580, 560, 540, 450, 430, 410, 390, 370, 350, 330, 310, 270, 260, 250, 240, 230, 220, 210, 200, 170, 150, 130, 110, 90, 70, 50, 30],
+             Dames: [1000, 850, 750, 700, 600, 550, 500, 450, 380, 360, 340, 320, 300, 280, 260, 240, 200, 180, 160, 140, 120, 100, 80, 60, 40] },
+    P2000: { all: [2000, 1700, 1500, 1400, 1200, 1160, 1120, 1080, 900, 860, 820, 780, 740, 700, 660, 620, 540, 520, 500, 480, 460, 440, 420, 400, 340, 300, 260, 220, 180, 140, 100, 60] }
+  };
+  function pointsFor(T, place, nPairs) {
+    const t = T.tournament;
+    if (!place || nPairs < 4) return null;
+    let arr;
+    if (BAREME[t.category]) arr = BAREME[t.category][nPairs <= 8 ? 0 : nPairs <= 12 ? 1 : nPairs <= 16 ? 2 : nPairs <= 20 ? 3 : nPairs <= 24 ? 4 : nPairs <= 28 ? 5 : 6];
+    else if (BAREME_UNIQUE[t.category]) { const b = BAREME_UNIQUE[t.category]; arr = b.all || (t.gender === 'Dames' ? b.Dames : b.Messieurs); }
+    if (!arr) return null;
+    return arr[Math.min(place, arr.length) - 1];
+  }
+
+  /* ---------------------------------------------------------------------
+     CLASSEMENT EN TEMPS RÉEL
+     Chaque paire est placée dans la fourchette de places encore possible :
+     au départ un seul bloc, qui se scinde au fil des tours.
+     --------------------------------------------------------------------- */
+  function liveStandings(T, R) {
+    R = R || resolve(T);
+    const D = T.draw;
+    if (!D || !D.built) return { N: 0, groups: [] };
+    const N = D.entrants.length;
+    const range = {};
+    D.entrants.forEach(id => { range[id] = [1, N]; });
+    const tf = T.matches.filter(m => m.phase === 'TF');
+    const tfSess = D.sessions.find(s => s.key === 'tf');
+    const tfEntrants = tfSess ? Object.values(tfSess.fill).filter(x => x !== 'BYE').length : N;
+    const inTf = new Set();
+    tf.forEach(m => { const r = R[m.id]; [r.A, r.B].forEach(p => { if (p && p !== 'BYE') inTf.add(p); }); });
+    // éliminés avant le tableau final (poules, qualifications)
+    if (D.formula === 'poules_tf' || D.formula === 'qualif_tf') {
+      const elim = new Set();
+      if (D.formula === 'poules_tf') (T.poules || []).forEach(P => { const st = pouleStandings(T, R, P.id); if (st.complete) st.rows.forEach(x => { if (!inTf.has(x.pair)) elim.add(x.pair); }); });
+      T.matches.filter(m => m.phase === 'Q').forEach(m => { const r = R[m.id]; if (r.state === 'done' && r.loser && r.loser !== 'BYE') elim.add(r.loser); });
+      elim.forEach(p => { range[p] = [tfEntrants + 1, N]; });
+      inTf.forEach(p => { range[p] = [1, tfEntrants]; });
+    }
+    if (D.formula === 'poules') {
+      (T.poules || []).forEach(P => { const st = pouleStandings(T, R, P.id); if (T.poules.length === 1 && st.complete) st.rows.forEach(x => { range[x.pair] = [x.rank, x.rank]; }); });
+    }
+    // tableau final : le match le plus avancé de chaque paire donne sa fourchette
+    const deepest = {};
+    tf.forEach(m => { const r = R[m.id]; [r.A, r.B].forEach(p => { if (p && p !== 'BYE' && (!deepest[p] || m.depth > deepest[p].depth)) deepest[p] = m; }); });
+    Object.keys(deepest).forEach(p => {
+      const m = deepest[p], r = R[m.id];
+      let lo = m.a, hi = m.a + m.size - 1;
+      if (r.state === 'done' || r.state === 'bye') {
+        if (m.size === 2) { lo = hi = r.winner === p ? m.a : m.a + 1; }
+        else if (r.winner === p) hi = m.a + m.size / 2 - 1;
+        else lo = m.a + m.size / 2;              // élimination directe : place partagée
+      }
+      range[p] = [lo, Math.min(hi, tfEntrants)];
+    });
+    const groups = {};
+    Object.keys(range).forEach(p => { const [lo, hi] = range[p]; const k = lo + '-' + hi; (groups[k] = groups[k] || { lo, hi, pairs: [] }).pairs.push(p); });
+    const list = Object.values(groups).sort((a, b) => a.lo - b.lo || a.hi - b.hi);
+    list.forEach(g => { g.exact = g.lo === g.hi; g.ptsHi = pointsFor(T, g.lo, N); g.ptsLo = pointsFor(T, Math.min(g.hi, N), N); });
+    return { N, groups: list };
+  }
+
+  /* ---------------------------------------------------------------------
+     RÉGLAGES DU COMPTE (club, terrains, logo, partenaires…)
+     --------------------------------------------------------------------- */
+  const PROFILE_FIELDS = ['club', 'address', 'ja', 'jaNumber', 'jaPhone', 'balls', 'startTime', 'durations', 'colors', 'logo', 'sponsors'];
+  function profileFromState(T) {
+    const p = { courts: T.courts.map(c => ({ name: c.name, start: c.start })) };
+    PROFILE_FIELDS.forEach(k => { p[k] = JSON.parse(JSON.stringify(T.tournament[k] == null ? '' : T.tournament[k])); });
+    return p;
+  }
+  function applyProfile(T, p) {
+    if (!p) return;
+    PROFILE_FIELDS.forEach(k => { if (p[k] !== undefined && p[k] !== '') T.tournament[k] = JSON.parse(JSON.stringify(p[k])); });
+    if (p.courts && p.courts.length) T.courts = p.courts.map((c, i) => ({ id: 'c' + (i + 1), name: c.name, start: c.start }));
   }
 
   /* ---------------------------------------------------------------------
@@ -927,13 +1014,13 @@
         club: '', address: '', ja: '', jaNumber: '', jaPhone: '', balls: '', deadline: '', maxPairs: 16,
         formula: 'tf', drawMode: 'tmc', thirdPlace: true,
         pouleSize: 4, pouleQualif: 2, pouleMethod: 'serpentin', tfDirect: 12, qualifCount: 4,
-        formatMain: 'C2', formatSemi: '', formatFinal: 'B2', formatClass: 'C2', formatPoule: '', formatQualif: '',
+        formatMain: 'C2', formatQuarter: '', formatSemi: '', formatFinal: 'B2', formatClass: 'C2', formatPoule: '', formatQualif: '',
         startTime: '09:00', durations: Object.assign({}, DEFAULT_DUR), prize: '', notes: '',
-        colors: Object.assign({}, RAM_COLORS), logo: '', sponsor: ''
+        colors: Object.assign({}, RAM_COLORS), logo: '', sponsors: []
       },
       courts: [{ id: 'c1', name: 'Terrain 1', start: '09:00' }, { id: 'c2', name: 'Terrain 2', start: '09:00' }, { id: 'c3', name: 'Terrain 3', start: '09:00' }],
       pairs: [], draw: null, matches: [], poules: [],
-      display: { tv: 'bracket', rotate: false, rotateSec: 20, stream: null, overlay: 'green', ticker: '' }
+      display: { tv: 'bracket', rotate: false, rotateSec: 20, rotateViews: ['bracket', 'poules', 'schedule', 'live', 'standings'], stream: null, overlay: 'green', ticker: '' }
     };
   }
 
@@ -941,6 +1028,8 @@
     const base = initialState();
     T.tournament = Object.assign({}, base.tournament, T.tournament || {});
     if (!T.tournament.colors || T.tournament.colors.bg === '#0A0F2C') T.tournament.colors = Object.assign({}, RAM_COLORS);
+    if (!Array.isArray(T.tournament.sponsors)) T.tournament.sponsors = T.tournament.sponsor ? [{ id: uid('s'), name: T.tournament.sponsor, logo: '' }] : [];
+    delete T.tournament.sponsor;
     T.display = Object.assign({}, base.display, T.display || {});
     T.courts = T.courts || base.courts;
     T.pairs = T.pairs || [];
@@ -1049,6 +1138,7 @@
       case 'schedule/clear': T.matches.forEach(m => { if (m.status === 'pending') { m.court = null; m.order = null; } }); break;
 
       case 'template/apply': applyTemplate(T, p.template); break;
+      case 'profile/apply': applyProfile(T, p.profile); break;
       case 'display/set': Object.assign(T.display, p); break;
       case 'demo/load': loadDemo(T, rand || Math.random, p); break;
       default: throw new Error('Action inconnue : ' + action.type);
@@ -1079,7 +1169,7 @@
     const t = T.tournament;
     Object.assign(t, { name: 'Open /RAM Padel', category: 'P250', gender: 'Messieurs', club: 'Padel Club Démo', address: 'Brive-la-Gaillarde',
       ja: 'Juge-Arbitre Démo', jaNumber: 'JAP2', balls: 'Head Pro S (3 / piste)', maxPairs: 14, formatMain: 'C2', formatSemi: 'B2', formatFinal: 'B2', formatClass: 'C2',
-      prize: '1 500 € de dotation', sponsor: '/RAM · Rise And Move · Padel Club Démo', colors: Object.assign({}, RAM_COLORS) });
+      prize: '1 500 € de dotation', sponsors: [{ id: 's1', name: '/RAM · Rise And Move', logo: '' }, { id: 's2', name: 'Padel Club Démo', logo: '' }], colors: Object.assign({}, RAM_COLORS) });
     T.pairs = []; T.draw = null; T.matches = []; T.poules = [];
     const base = new Date(); base.setDate(base.getDate() - 20);
     for (let i = 0; i < n; i++) {
@@ -1095,7 +1185,7 @@
   }
 
   return {
-    FORMATS, FORMAT_KEYS, CATEGORIES, FORMULAS, PRESETS, TEMPLATE_FIELDS, templateFromState, REST, DEFAULT_DUR, ROUND_NAMES, ROUND_SHORT, RAM_COLORS,
+    FORMATS, FORMAT_KEYS, CATEGORIES, FORMULAS, PRESETS, TEMPLATE_FIELDS, templateFromState, PROFILE_FIELDS, profileFromState, applyProfile, pointsFor, liveStandings, REST, DEFAULT_DUR, ROUND_NAMES, ROUND_SHORT, RAM_COLORS,
     computeScore, pointFlags, pointLabels, setsText, scoreText, winnerScoreText, manualToSets,
     weightOf, rankOf, isPair, tokenLabel, selection, plan, pouleSizes, seedOrder, nextPow2, defaultSeeds,
     prepareDraw, currentPot, sessionSlots, posLabel, buildAll, matchLabel, formatOf,

@@ -108,6 +108,7 @@ async function access(req, url, room) {
 async function newTournament(owner, opts) {
   const state = Engine.initialState();
   if (opts.demo) Engine.reduce(state, { type: 'demo/load', payload: { n: 16 } });
+  if (opts.profile) Engine.reduce(state, { type: 'profile/apply', payload: { profile: opts.profile } });
   if (opts.template) Engine.reduce(state, { type: 'template/apply', payload: { template: opts.template } });
   if (opts.name) state.tournament.name = opts.name;
   if (opts.state) Object.assign(state, Engine.migrate(JSON.parse(JSON.stringify(opts.state))));
@@ -201,7 +202,7 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
       if (req.method === 'POST') {
         const b = await readBody(req);
-        let opts = { name: b.name, demo: !!b.demo };
+        let opts = { name: b.name, demo: !!b.demo, profile: u.guest ? null : await store.getProfile(u.id) };
         if (b.template) {
           const mine = await store.getTemplates(u.id);
           opts.template = Engine.PRESETS.find(t => t.id === b.template) || mine.find(t => t.id === b.template);
@@ -229,6 +230,19 @@ const server = http.createServer(async (req, res) => {
         rooms.delete(m[1]); await store.deleteTournament(m[1]);
         return json(res, 200, { ok: true });
       }
+    }
+
+    /* ---------- API réglages du compte (club, terrains, logo, partenaires) ---------- */
+    if (p === '/api/profile') {
+      const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
+      if (req.method === 'POST') {
+        const b = await readBody(req);
+        const room = b.tid && await getRoom(b.tid);
+        if (!room || room.row.owner !== u.id) return json(res, 404, { error: 'Tournoi introuvable' });
+        if (u.guest) return json(res, 403, { error: 'Créez un compte pour mémoriser vos réglages.' });
+        await store.saveProfile(u.id, Engine.profileFromState(room.row.state));
+      }
+      return json(res, 200, { profile: await store.getProfile(u.id), guest: !!u.guest });
     }
 
     /* ---------- API modèles du compte ---------- */

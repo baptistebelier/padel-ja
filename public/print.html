@@ -146,7 +146,7 @@ td.n { font-family: var(--label); font-weight: 700; width: 40px; }
       const rows = [['Catégorie', `${t.category} ${t.gender}`], ['Dates', [t.dateStart, t.dateEnd].filter(Boolean).map(d => new Date(d).toLocaleDateString('fr-FR')).join(' → ')], ['Club', [t.club, t.address].filter(Boolean).join(' — ')],
         ['Juge-arbitre', [t.ja, t.jaNumber, t.jaPhone].filter(Boolean).join(' · ')], ['Formule', E.FORMULAS[f] + (f !== 'poules' ? ` · ${t.drawMode === 'tmc' ? 'TMC' : 'élimination directe'}` : '')],
         ['Paires', E.selection(S).main.length], f.startsWith('poules') ? ['Format poules', fmt(t.formatPoule || t.formatMain)] : null, f === 'qualif_tf' ? ['Format qualifs', fmt(t.formatQualif || t.formatMain)] : null,
-        f !== 'poules' ? ['Format tableau', fmt(t.formatMain)] : null, f !== 'poules' ? ['Format 1/2 finales', fmt(t.formatSemi || t.formatMain)] : null, f !== 'poules' ? ['Format finale', fmt(t.formatFinal || t.formatSemi || t.formatMain)] : null,
+        f !== 'poules' ? ['Format tableau', fmt(t.formatMain)] : null, f !== 'poules' && t.formatQuarter ? ['Format 1/4 de finale', fmt(t.formatQuarter)] : null, f !== 'poules' ? ['Format 1/2 finales', fmt(t.formatSemi || t.formatMain)] : null, f !== 'poules' ? ['Format finale', fmt(t.formatFinal || t.formatSemi || t.formatMain)] : null,
         ['Balles', t.balls || cat.balls], ['Terrains', S.courts.map(c => `${c.name} (${c.start})`).join(', ')], ['Dotation', t.prize], ['Notes', t.notes],
         ['Repos obligatoires', 'A : 1h30 · B : 1h · C / D : 30 min · F : 15 min · E : 15 min après 3 matchs consécutifs']].filter(r => r && r[1]);
       html = page('Fiche tournoi', `<div class="kv">${rows.map(r => `<div>${esc(r[0])}</div><div>${esc(r[1])}</div>`).join('')}</div>`, true);

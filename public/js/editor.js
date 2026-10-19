@@ -42,7 +42,7 @@
     $('#hTag').textContent = `${t.category} · ${t.gender}`;
     $('#hSub').textContent = [E.FORMULAS[t.formula || 'tf'], t.club, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ');
     $('#btnUndo').disabled = !A.canUndo;
-    const ann = [`${t.name}`, `${t.category} ${t.gender}`, t.club, t.balls && 'Balles : ' + t.balls, t.prize, '/RAM — Rise And Move'].filter(Boolean).join('   ✦   ');
+    const ann = [`${t.name}`, `${t.category} ${t.gender}`, t.club, t.balls && 'Balles : ' + t.balls, t.prize].concat((t.sponsors || []).map(s => s.name)).concat('/RAM — Rise And Move').filter(Boolean).join('   ✦   ');
     const an = $('#annonce'); if (an.dataset.t !== ann) { an.dataset.t = ann; an.innerHTML = `<span>${esc(ann)}</span><span>${esc(ann)}</span>`; }
     ({ tournoi: renderTournoi, inscriptions: renderInscriptions, tirage: renderTirage, tableaux: renderTableaux, programmation: renderSched,
        direct: renderDirect, diffusion: renderDiffusion })[tab]();
@@ -65,12 +65,71 @@
   $$('[data-c]').forEach(el => el.addEventListener('change', () => send('tournament/update', { colors: Object.assign({}, S.tournament.colors, { [el.dataset.c]: el.value }) })));
   $$('[data-d]').forEach(el => el.addEventListener('change', () => send('tournament/update', { durations: Object.assign({}, S.tournament.durations, { [el.dataset.d]: +el.value }) })));
   $('#ramColors').onclick = () => send('tournament/update', { colors: Object.assign({}, E.RAM_COLORS) });
+  /* image réduite automatiquement (logos légers, quel que soit le fichier d'origine) */
+  function loadImage(file, maxH, maxW) {
+    return new Promise((resolve, reject) => {
+      if (!file || !/^image\//.test(file.type)) return reject(new Error('Choisissez une image (PNG, JPG, SVG…)'));
+      const rd = new FileReader();
+      rd.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const k = Math.min(1, maxH / img.height, maxW / img.width);
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/png'));
+        };
+        img.onerror = () => reject(new Error('Image illisible'));
+        img.src = rd.result;
+      };
+      rd.readAsDataURL(file);
+    });
+  }
   $('#logoFile').onchange = e => {
-    const f = e.target.files[0]; if (!f) return;
-    if (f.size > 600 * 1024) return A.toast('Logo trop lourd (600 Ko max)', 'err');
-    const rd = new FileReader(); rd.onload = () => send('tournament/update', { logo: rd.result }); rd.readAsDataURL(f);
+    loadImage(e.target.files[0], 260, 700).then(src => send('tournament/update', { logo: src })).catch(err => A.toast(err.message, 'err'));
+    e.target.value = '';
   };
   $('#addCourt').onclick = () => send('court/add', {});
+
+  /* ---------- partenaires ---------- */
+  const sponsors = () => (S.tournament.sponsors || []).map(x => Object.assign({}, x));
+  const saveSponsors = list => send('tournament/update', { sponsors: list });
+  $('#addSponsor').onclick = () => saveSponsors(sponsors().concat({ id: 's' + Date.now().toString(36), name: '', logo: '' }));
+  function renderSponsors() {
+    const box = $('#sponsors'), list = sponsors();
+    if (box.contains(document.activeElement) && box.dataset.n === String(list.length)) return;   // saisie en cours
+    box.dataset.n = list.length;
+    box.innerHTML = list.map((s, i) => `<div class="sp-row" data-i="${i}">
+      <span class="sp-num">${i + 1}</span>
+      <label class="sp-logo">${s.logo ? `<img src="${s.logo}" alt="">` : '<em>+ Logo</em>'}<input type="file" accept="image/*" hidden></label>
+      <input class="spn-name" placeholder="Nom (facultatif)" value="${esc(s.name)}">
+      ${s.logo ? '<button class="ghost sm" data-rmlogo title="Retirer le logo">Sans logo</button>' : '<span></span>'}
+      <button class="ghost sm danger" data-rm title="Supprimer ce partenaire">✕</button></div>`).join('') || '<p class="muted small">Aucun partenaire pour l\'instant.</p>';
+    $$('.sp-row', box).forEach(row => {
+      const i = +row.dataset.i;
+      $('.spn-name', row).onchange = e => { const l = sponsors(); l[i].name = e.target.value; saveSponsors(l); };
+      $('input[type=file]', row).onchange = e => loadImage(e.target.files[0], 120, 480).then(src => { const l = sponsors(); l[i].logo = src; saveSponsors(l); }).catch(err => A.toast(err.message, 'err'));
+      const rl = $('[data-rmlogo]', row); if (rl) rl.onclick = () => { const l = sponsors(); l[i].logo = ''; saveSponsors(l); };
+      $('[data-rm]', row).onclick = () => { const l = sponsors(); l.splice(i, 1); saveSponsors(l); };
+    });
+  }
+
+  /* ---------- réglages mémorisés dans le compte ---------- */
+  let profile = null, guest = false;
+  const loadProfile = () => A.api('/api/profile').then(d => { profile = d.profile; guest = d.guest; if (tab === 'tournoi') renderProfileInfo(); });
+  loadProfile();
+  function renderProfileInfo() {
+    $('#profApply').disabled = !profile;
+    $('#profSave').disabled = guest;
+    $('#profInfo').textContent = guest ? 'Créez un compte pour mémoriser vos réglages.'
+      : profile ? `Réglages mémorisés : ${profile.club || 'club sans nom'}, ${(profile.courts || []).length} terrain(s), ${(profile.sponsors || []).length} partenaire(s)${profile.logo ? ', logo' : ''}.`
+      : 'Aucun réglage mémorisé pour l\'instant.';
+  }
+  $('#profSave').onclick = () => A.api('/api/profile', { method: 'POST', body: JSON.stringify({ tid: A.tid }) }).then(d => {
+    if (d.error) return A.toast(d.error, 'err');
+    profile = d.profile; renderProfileInfo(); A.toast('Réglages mémorisés pour vos prochains tournois', 'ok');
+  });
+  $('#profApply').onclick = () => profile && confirm('Remplacer le club, les terrains, le logo, les couleurs et les partenaires de ce tournoi par vos réglages mémorisés ?') && send('profile/apply', { profile });
 
   function loadTemplates() { return A.api('/api/templates').then(d => { templates = d; if (tab === 'tournoi') renderTemplates(); }); }
   loadTemplates();
@@ -128,6 +187,8 @@
     $('#planBox').innerHTML = planChips(E.plan(S));
     $('#logoPrev').innerHTML = t.logo ? `<img src="${t.logo}"><button class="ghost sm" id="rmLogo">Retirer</button>` : '';
     if ($('#rmLogo')) $('#rmLogo').onclick = () => send('tournament/update', { logo: '' });
+    renderSponsors();
+    renderProfileInfo();
 
     const cat = E.CATEGORIES[t.category] || {};
     $('#ruleCat').textContent = t.category + ' ' + t.gender;
@@ -385,6 +446,14 @@
     }).join('');
   }
 
+  /* classement en temps réel : blocs de places qui se scindent au fil des tours */
+  const ptsTxt = g => (g.ptsHi == null ? '' : g.exact || g.ptsHi === g.ptsLo ? `${g.ptsHi} pts` : `${g.ptsLo} à ${g.ptsHi} pts`);
+  function rankBlocks(LS) {
+    return LS.groups.map(g => `<div class="rk-block ${g.exact ? 'exact' : ''} ${g.lo === 1 && g.exact ? 'p1' : ''}">
+      <div class="rk-h"><b>${g.exact ? g.lo + (g.lo === 1 ? 'er' : 'e') : `Places ${g.lo} – ${g.hi}`}</b><span>${ptsTxt(g)}</span></div>
+      ${g.pairs.map(p => `<div class="rk-p">${esc(A.pairName(p, 'initial'))}</div>`).join('')}</div>`).join('');
+  }
+
   function renderTableaux() {
     const has = !!(S.draw && S.draw.built);
     // poules
@@ -403,6 +472,9 @@
     const main = has ? S.matches.filter(m => m.phase === 'TF' && m.a === 1) : [];
     $('#cardTf').hidden = has && !main.length;
     $('#bracketEd').innerHTML = has ? bracketCols(main) : '<p class="muted">Les tableaux apparaîtront après le tirage au sort.</p>';
+    const LS = has ? E.liveStandings(S, R) : { groups: [] };
+    $('#liveRank').hidden = !LS.groups.length;
+    $('#liveRankEd').innerHTML = rankBlocks(LS);
     const cls = has ? S.matches.filter(m => m.phase === 'TF' && m.a !== 1) : [];
     $('#classCard').hidden = !cls.length;
     const groups = {};
@@ -622,6 +694,13 @@
      ===================================================================== */
   $$('#tvViews [data-tv]').forEach(b => b.onclick = () => send('display/set', { tv: b.dataset.tv, rotate: false }));
   $('#rotate').onchange = e => send('display/set', { rotate: e.target.checked });
+  const VIEWS = [['bracket', 'Tableau final'], ['poules', 'Poules / qualifs'], ['schedule', 'Programmation'], ['live', 'Scores en direct'], ['standings', 'Classement'], ['info', 'Fiche tournoi']];
+  $('#rotViews').innerHTML = VIEWS.map(([k, l]) => `<label class="chk"><input type="checkbox" value="${k}"> ${l}</label>`).join('');
+  $$('#rotViews input').forEach(cb => cb.onchange = () => {
+    const sel = $$('#rotViews input').filter(x => x.checked).map(x => x.value);
+    if (!sel.length) { cb.checked = true; return A.toast('Gardez au moins un écran dans la rotation', 'err'); }
+    send('display/set', { rotateViews: sel });
+  });
   $('#rotateSec').onchange = e => send('display/set', { rotateSec: +e.target.value || 20 });
   $('#ticker').onchange = e => send('display/set', { ticker: e.target.value });
   $('#streamSel').onchange = e => send('display/set', { stream: e.target.value || null });
@@ -637,6 +716,8 @@
   function renderDiffusion() {
     const d = S.display;
     $$('#tvViews [data-tv]').forEach(b => b.classList.toggle('on', b.dataset.tv === d.tv && !d.rotate));
+    const rv = d.rotateViews || ['bracket', 'poules', 'schedule', 'live', 'standings'];
+    $$('#rotViews input').forEach(cb => { cb.checked = rv.includes(cb.value); });
     fill($('#rotate'), d.rotate); fill($('#rotateSec'), d.rotateSec); fill($('#ticker'), d.ticker); fill($('#overlayBg'), d.overlay);
     const opts = S.matches.filter(m => R[m.id] && (R[m.id].state === 'live' || R[m.id].state === 'ready' || m.id === d.stream)).sort((a, b) => a.num - b.num);
     const sel = $('#streamSel');

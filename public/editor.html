@@ -92,13 +92,14 @@
         </div>
         <div id="planBox" class="plan"></div>
         <h4>Formats de jeu</h4>
-        <div class="form">
-          <label data-show="poules poules_tf">Poules<select data-f="formatPoule" class="fmt" data-empty="Comme le tableau"></select></label>
-          <label data-show="qualif_tf">Qualifications<select data-f="formatQualif" class="fmt" data-empty="Comme le tableau"></select></label>
-          <label data-show="tf qualif_tf poules_tf">Tableau final<select data-f="formatMain" class="fmt"></select></label>
-          <label data-show="tf qualif_tf poules_tf">1/2 finales<select data-f="formatSemi" class="fmt" data-empty="Comme le tableau"></select></label>
-          <label data-show="tf qualif_tf poules_tf">Finale<select data-f="formatFinal" class="fmt" data-empty="Comme les 1/2"></select></label>
-          <label data-show="tf qualif_tf poules_tf">Matchs de classement<select data-f="formatClass" class="fmt" data-empty="Comme le tableau"></select></label>
+        <div class="fmt-list">
+          <label data-show="poules poules_tf"><span>Poules</span><select data-f="formatPoule" class="fmt" data-empty="Comme le tableau final"></select></label>
+          <label data-show="qualif_tf"><span>Qualifications</span><select data-f="formatQualif" class="fmt" data-empty="Comme le tableau final"></select></label>
+          <label data-show="tf qualif_tf poules_tf"><span>Tableau final</span><select data-f="formatMain" class="fmt"></select></label>
+          <label data-show="tf qualif_tf poules_tf"><span>1/4 de finale</span><select data-f="formatQuarter" class="fmt" data-empty="Comme le tableau final"></select></label>
+          <label data-show="tf qualif_tf poules_tf"><span>1/2 finales</span><select data-f="formatSemi" class="fmt" data-empty="Comme le tableau final"></select></label>
+          <label data-show="tf qualif_tf poules_tf"><span>Finale</span><select data-f="formatFinal" class="fmt" data-empty="Comme les 1/2 finales"></select></label>
+          <label data-show="tf qualif_tf poules_tf"><span>Matchs de classement</span><select data-f="formatClass" class="fmt" data-empty="Comme le tableau final"></select></label>
         </div>
         <h4>Durées estimées (min) <small class="muted">pour la programmation</small></h4>
         <div class="durs" id="durs"></div>
@@ -118,9 +119,18 @@
           <label>Accent (citron)<input type="color" data-c="accent"></label>
           <label>Accent 2 (rose)<input type="color" data-c="accent2"></label>
           <div class="span2 btns"><button class="ghost sm" id="ramColors">Remettre la charte /RAM</button></div>
-          <label class="span2">Bandeau partenaires<input data-f="sponsor"></label>
-          <label class="span2">Logo du club / tournoi (PNG, &lt; 600 Ko)<input type="file" id="logoFile" accept="image/*"></label>
+          <label class="span2">Logo du club / tournoi<input type="file" id="logoFile" accept="image/*"></label>
           <div class="span2 logo-prev" id="logoPrev"></div>
+        </div>
+        <span class="eyebrow" style="margin-top:22px">06 / Partenaires</span><h3>Bandeau partenaires</h3>
+        <p class="muted small">Ils défilent en bas de l'écran TV. Pour chaque partenaire, mettez un nom, un logo, ou les deux : seul ce qui est rempli s'affiche.</p>
+        <div id="sponsors" class="sponsors"></div>
+        <button id="addSponsor" class="ghost">+ Ajouter un partenaire</button>
+        <div class="profile-box">
+          <span class="eyebrow">Mon compte</span>
+          <p class="muted small">Gagnez du temps : mémorisez le club, le juge-arbitre, les balles, les terrains, les horaires, les couleurs, le logo et les partenaires. Ils seront repris automatiquement dans vos prochains tournois.</p>
+          <div class="btns"><button class="accent" id="profSave">Mémoriser pour mes prochains tournois</button><button class="ghost" id="profApply">Appliquer mes réglages ici</button></div>
+          <div class="muted small" id="profInfo"></div>
         </div>
       </div>
     </div>
@@ -171,6 +181,7 @@
     <div id="tabPoules"></div>
     <div class="card" id="cardQualif"><span class="eyebrow">Phase 1</span><h3>Qualifications</h3><div id="qualifEd" class="bracket-ed"></div></div>
     <div class="card" id="cardTf"><span class="eyebrow">Phase finale</span><h3>Tableau final</h3><div id="bracketEd" class="bracket-ed"></div></div>
+    <div class="card" id="liveRank"><span class="eyebrow">En temps réel</span><h3>Classement &amp; points FFT</h3><div id="liveRankEd" class="rank-ed"></div></div>
     <div class="card" id="classCard"><span class="eyebrow">TMC</span><h3>Matchs de classement</h3><div id="classEd" class="class-ed"></div></div>
   </section>
 
@@ -220,6 +231,7 @@
         </div>
         <div class="form" style="margin-top:14px">
           <label class="chk span2"><input type="checkbox" id="rotate"> <b>R</b>&nbsp;Rotation automatique des écrans</label>
+          <div class="span2 rot-pick"><span class="muted small">Écrans qui tournent en boucle :</span><div id="rotViews"></div></div>
           <label>Durée par écran (s)<input type="number" id="rotateSec" min="5" max="300"></label>
           <label class="span2">Message défilant<input id="ticker" placeholder="Ex : Remise des prix à 18h…"></label>
         </div>

@@ -17,7 +17,7 @@
     if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen();
   });
 
-  const TITLES = { bracket: 'Tableau final', poules: 'Poules', schedule: 'Programmation', live: 'En direct', standings: 'Classement', info: 'Le tournoi', draw: 'Tirage au sort' };
+  const TITLES = { bracket: 'Tableau final', poules: 'Poules', schedule: 'Programmation', live: 'En direct', standings: 'Classement live', info: 'Le tournoi', draw: 'Tirage au sort' };
 
   A.connect(st => { S = st; R = A.R; $('#waiting').hidden = true; update(); }, ok => { if (!ok) $('#waiting').hidden = false; });
   setInterval(() => { $('#clock').textContent = A.hhmm(Date.now()); }, 1000);
@@ -45,9 +45,17 @@
     $('#tName').textContent = t.name || '';
     $('#tSub').textContent = [t.category + ' ' + t.gender, t.club].filter(Boolean).join(' — ');
     const logo = $('#logo'); if (t.logo) { logo.src = t.logo; logo.hidden = false; } else logo.hidden = true;
-    const msg = [S.display.ticker, t.sponsor, t.name && t.category ? `${t.name} · ${t.category} ${t.gender}` : ''].filter(Boolean).join('     ✦     ');
+    // bandeau : message du JA, partenaires (logo et/ou nom), nom du tournoi
+    const items = [];
+    if (S.display.ticker) items.push(`<span class="ti-msg">${esc(S.display.ticker)}</span>`);
+    (t.sponsors || []).forEach(sp => {
+      if (!sp.logo && !sp.name) return;
+      items.push(`<span class="ti-sp">${sp.logo ? `<img src="${sp.logo}" alt="">` : ''}${sp.name ? `<b>${esc(sp.name)}</b>` : ''}</span>`);
+    });
+    if (t.name) items.push(`<span class="ti-msg">${esc(t.name)} · ${esc(t.category)} ${esc(t.gender)}</span>`);
+    const run = items.join('<i class="ti-sep">✦</i>') + '<i class="ti-sep">✦</i>';
     const tk = $('#tickIn');
-    if (tk.dataset.msg !== msg) { tk.dataset.msg = msg; tk.innerHTML = `<span>${esc(msg)}</span><span>${esc(msg)}</span>`; tk.style.animationDuration = Math.max(20, msg.length * 0.32) + 's'; }
+    if (tk.dataset.msg !== run) { tk.dataset.msg = run; tk.innerHTML = `<div class="ti-run">${run}</div><div class="ti-run">${run}</div>`; tk.style.animationDuration = Math.max(22, items.length * 7) + 's'; }
     setupRotation();
     showView(currentView());
     [renderBracket, renderPoules, renderSchedule, renderLive, renderStandings, renderInfo, renderDraw].forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
@@ -55,12 +63,12 @@
 
   /* ---------- rotation ---------- */
   function rotList() {
-    const l = [];
-    if (S.matches.some(m => m.phase === 'TF')) l.push('bracket');
-    if (S.poules.length || S.matches.some(m => m.phase === 'Q')) l.push('poules');
-    l.push('schedule', 'live');
-    if (E.standings(S, R).length) l.push('standings');
-    return l;
+    // écrans choisis par le JA, sauf ceux qui n'ont rien à montrer
+    const want = S.display.rotateViews || ['bracket', 'poules', 'schedule', 'live', 'standings'];
+    const ok = { bracket: S.matches.some(m => m.phase === 'TF'), poules: S.poules.length || S.matches.some(m => m.phase === 'Q'),
+      schedule: true, live: true, standings: !!(S.draw && S.draw.built), info: true };
+    const l = want.filter(v => ok[v]);
+    return l.length ? l : ['schedule'];
   }
   function currentView() { return S.display.rotate ? rotList()[rotIdx % rotList().length] : S.display.tv; }
   function setupRotation() {
@@ -305,9 +313,15 @@
      ===================================================================== */
   function renderStandings() {
     const el = $('#standGrid');
-    const st = E.standings(S, R);
-    keyed(el, 'st:' + JSON.stringify(st), () => st.length ? st.map(x => `
-      <div class="srow p${x.place <= 3 ? x.place : ''}"><b>${x.place}</b><span>${esc(A.pairName(x.pair, 'initial'))}</span></div>`).join('') : '<div class="empty"><span class="band lime">Classement</span><small>à l\'issue des matchs</small></div>', () => ({}));
+    // classement en temps réel : blocs de places qui se scindent au fil des tours, avec les points FFT
+    const LS = E.liveStandings(S, R);
+    const pts = g => (g.ptsHi == null ? '' : g.exact || g.ptsHi === g.ptsLo ? `${g.ptsHi} pts` : `${g.ptsLo} à ${g.ptsHi} pts`);
+    el.style.setProperty('--fs', LS.N > 24 ? '18px' : LS.N > 16 ? '21px' : '25px');
+    keyed(el, 'st:' + JSON.stringify(LS.groups.map(g => [g.lo, g.hi, g.pairs])), () => LS.groups.length ? LS.groups.map(g => `
+      <div class="rkb ${g.exact ? 'exact' : ''} ${g.exact && g.lo <= 3 ? 'p' + g.lo : ''}">
+        <div class="rkb-h"><b>${g.exact ? g.lo + (g.lo === 1 ? 'er' : 'e') : `Places ${g.lo}–${g.hi}`}</b><span>${pts(g)}</span></div>
+        <div class="rkb-p">${g.pairs.map(p => `<div>${esc(A.pairName(p, 'initial'))}</div>`).join('')}</div></div>`).join('')
+      : '<div class="empty"><span class="band lime">Classement</span><small>après le tirage au sort</small></div>', () => ({}));
   }
 
   /* =====================================================================
@@ -322,7 +336,7 @@
     const rows = [['Date', d], ['Club', [t.club, t.address].filter(Boolean).join(' — ')], ['Juge-arbitre', [t.ja, t.jaNumber].filter(Boolean).join(' · ')],
       ['Formule', `${E.FORMULAS[f]} · ${sel.main.length} paires`],
       f.startsWith('poules') ? ['Poules', fmt(t.formatPoule || t.formatMain)] : null, f === 'qualif_tf' ? ['Qualifs', fmt(t.formatQualif || t.formatMain)] : null,
-      f !== 'poules' ? ['Tableau', fmt(t.formatMain)] : null, f !== 'poules' ? ['Finale', fmt(t.formatFinal || t.formatSemi || t.formatMain)] : null,
+      f !== 'poules' ? ['Tableau', fmt(t.formatMain)] : null, f !== 'poules' && t.formatQuarter ? ['1/4 de finale', fmt(t.formatQuarter)] : null, f !== 'poules' && t.formatSemi ? ['1/2 finales', fmt(t.formatSemi)] : null, f !== 'poules' ? ['Finale', fmt(t.formatFinal || t.formatSemi || t.formatMain)] : null,
       ['Balles', t.balls], ['Dotation', t.prize], ['Infos', t.notes]].filter(r => r && r[1]);
     keyed(el, 'info:' + JSON.stringify(rows) + t.name + t.category + (t.logo || '').length, () => `
       <div class="info-l">${t.logo ? `<img src="${t.logo}">` : '<img src="/img/ram-logo-rouge-blanc.png" class="ramimg">'}<h1>${esc(t.name)}</h1><div class="cat"><span class="band lime">${esc(t.category)}</span> <span class="band pink">${esc(t.gender)}</span></div></div>
