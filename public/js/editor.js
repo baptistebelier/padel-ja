@@ -64,7 +64,11 @@
   }));
   $$('[data-c]').forEach(el => el.addEventListener('change', () => send('tournament/update', { colors: Object.assign({}, S.tournament.colors, { [el.dataset.c]: el.value }) })));
   $$('[data-d]').forEach(el => el.addEventListener('change', () => send('tournament/update', { durations: Object.assign({}, S.tournament.durations, { [el.dataset.d]: +el.value }) })));
-  $('#ramColors').onclick = () => send('tournament/update', { colors: Object.assign({}, E.RAM_COLORS) });
+  $('#ramColors').onclick = () => send('tournament/update', { colors: Object.assign({}, E.RAM_COLORS), look: Object.assign({}, E.DEFAULT_LOOK) });
+  $$('[data-look]').forEach(el => el.addEventListener('change', () => {
+    const v = el.type === 'checkbox' ? el.checked : el.value;
+    send('tournament/update', { look: Object.assign({}, E.DEFAULT_LOOK, S.tournament.look, { [el.dataset.look]: v }) });
+  }));
   /* image réduite automatiquement (logos légers, quel que soit le fichier d'origine) */
   function loadImage(file, maxH, maxW) {
     return new Promise((resolve, reject) => {
@@ -189,6 +193,9 @@
     if ($('#rmLogo')) $('#rmLogo').onclick = () => send('tournament/update', { logo: '' });
     renderSponsors();
     renderProfileInfo();
+    const look = Object.assign({}, E.DEFAULT_LOOK, t.look);
+    $$('[data-look]').forEach(el => fill(el, look[el.dataset.look]));
+    const pf = $('#lookPrev'); if (!pf.src) pf.src = A.page + '/tv';
 
     const cat = E.CATEGORIES[t.category] || {};
     $('#ruleCat').textContent = t.category + ' ' + t.gender;
@@ -523,6 +530,7 @@
           <button class="ghost" data-undo ${m.points.length ? '' : 'disabled'}>↶ Annuler le point</button>
           <label class="inline">1er serveur <select data-srv><option value="A" ${m.firstServer === 'A' ? 'selected' : ''}>${esc(A.sideName(m, 'A'))}</option><option value="B" ${m.firstServer === 'B' ? 'selected' : ''}>${esc(A.sideName(m, 'B'))}</option></select></label>
           <label class="inline">Format <select data-fmt><option value="">Par défaut</option>${E.FORMAT_KEYS.map(k => `<option ${m.format === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
+          ${r.state !== 'done' && m.status !== 'live' ? `<label class="inline">Terrain <select data-court><option value="">Non programmé</option>${S.courts.map(c => `<option value="${c.id}" ${m.court === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>` : ''}
           <button class="ghost" data-stream>Envoyer sur l'overlay</button>
         </div>
         <details ${m.manual ? 'open' : ''}><summary>Saisie rapide du score final</summary>
@@ -543,6 +551,7 @@
       const u = $('[data-undo]', box); if (u) u.onclick = () => send('match/undoPoint', { id });
       $('[data-srv]', box).onchange = e => send('match/server', { id, team: e.target.value });
       $('[data-fmt]', box).onchange = e => send('match/format', { id, format: e.target.value || null });
+      const ct = $('[data-court]', box); if (ct) ct.onchange = e => send('schedule/move', { id, court: e.target.value || null });
       $('[data-stream]', box).onclick = () => { send('display/set', { stream: id }); A.toast('Match envoyé sur l\'overlay', 'ok'); };
       $('[data-man]', box).onsubmit = e => { e.preventDefault(); const f = e.target; send('match/manual', { id, sets: [0, 1, 2].map(i => [f['a' + i].value, f['b' + i].value]) }); };
       $$('[data-wo]', box).forEach(b => b.onclick = () => confirm('Déclarer le forfait (WO) de ' + A.sideName(m, b.dataset.wo) + ' ?') && send('match/wo', { id, team: b.dataset.wo }));

@@ -122,41 +122,45 @@
     const tl = E.timeline(S, R);
     const sizes = [...new Set(main.map(m => m.size))].sort((a, b) => b - a);
     // tableau classique de gauche à droite : 1er tour à gauche, finale à droite
+    // les cases grandissent d'un tour à l'autre jusqu'au bord droit de l'écran
     const final = main.find(m => m.size === 2);
     const nCols = sizes.length;
-    const top = 30, H = VIEW_H - 70, champW = final ? 300 : 0, gapX = 46;
-    const colW = (1920 - 56 - champW) / nCols;
-    const cardW = Math.min(460, colW - gapX);
+    const top = 34, H = VIEW_H - 80, gapX = 44;
+    const weights = sizes.map((sz, c) => 1 + 0.38 * c + (sz === 2 ? 0.25 : 0));
+    const sumW = weights.reduce((a, b) => a + b, 0);
+    const usable = 1920 - 56 - gapX * (nCols - 1);
+    const colWs = weights.map(w => usable * w / sumW);
     const n0 = main.filter(m => m.size === sizes[0]).length;
-    const ch = Math.max(44, Math.min(118, H / n0 - 36));
+    const ch0 = Math.max(44, Math.min(112, H / n0 - 38));
     const pos = {};
+    let x = 28;
     sizes.forEach((sz, c) => {
       const ms = main.filter(m => m.size === sz).sort((a, b) => a.idx - b.idx);
       const slot = H / ms.length;
-      const h = sz === 2 ? Math.max(ch, 150) : ch;
-      ms.forEach((m, i) => {
-        pos[m.id] = { x: 28 + c * colW, y: top + slot * (i + 0.5) - h / 2, w: cardW, h, left: true, final: sz === 2 };
-      });
+      const w = colWs[c];
+      const h = sz === 2 ? Math.min(260, H * 0.3) : Math.max(ch0, Math.min(slot - 46, ch0 * (1 + 0.5 * c), 220));
+      ms.forEach((m, i) => { pos[m.id] = { x, y: top + slot * (i + 0.5) - h / 2, w, h, left: true, final: sz === 2 }; });
+      x += w + gapX;
     });
-    const champPos = final ? { x: pos[final.id].x + cardW + 30, y: pos[final.id].y } : null;
+    const fsOf = p => Math.round(Math.max(15, Math.min(p.final ? 46 : 40, p.h * 0.3, p.w * 0.085)));
+    const champPos = final ? { x: pos[final.id].x, y: pos[final.id].y + pos[final.id].h + 70, w: pos[final.id].w } : null;
     const sig = S.draw.id + ':' + main.length;
     keyed(el, sig, () => {
-      const fs = Math.round(Math.max(15, Math.min(32, ch * 0.3, cardW * 0.085)));
       return main.map(m => {
         const p = pos[m.id]; if (!p) return '';
         const row = side => `<div class="bc-row" data-c="${m.id}${side}" data-base="bc-row"><span class="seed" data-k="${m.id}${side}s"></span><span class="nm" data-k="${m.id}${side}n"></span><span class="sets" data-h="${m.id}${side}h"></span></div>`;
-        return `<div class="bc ${p.final ? 'final' : ''}" data-c="${m.id}" data-base="bc ${p.final ? 'final' : ''}" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px;font-size:${p.final ? 30 : fs}px">
+        return `<div class="bc ${p.final ? 'final' : ''}" data-c="${m.id}" data-base="bc ${p.final ? 'final' : ''}" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px;font-size:${fsOf(p)}px">
           ${p.final ? `<div class="f-title"><span class="band pink">Finale</span></div>` : ''}${row('A')}${row('B')}<div class="bc-tag" data-h="${m.id}t"></div></div>`;
-      }).join('') + (final ? `<div class="champ" data-c="champ" data-base="champ" style="left:${champPos.x}px;top:${champPos.y - 20}px;width:${champW - 40}px"><small class="band lime">Vainqueurs</small><div data-k="champN"></div></div>` : '');
+      }).join('') + (final ? `<div class="champ" data-c="champ" data-base="champ" style="left:${champPos.x}px;top:${champPos.y}px;width:${champPos.w}px"><small class="band lime">Vainqueurs</small><div data-k="champN"></div></div>` : '');
     }, () => {
       const v = {};
       main.forEach(m => {
         const r = R[m.id];
         ['A', 'B'].forEach(s => {
           const id = r[s], fin = pos[m.id] && pos[m.id].final;
-          v[m.id + s + 'n'] = r.staticBye && id === 'BYE' ? 'Exempt' : (cardW >= 300 || fin ? A.sideName(m, s, 'last') : short(A.sideName(m, s, 'last')));
+          v[m.id + s + 'n'] = r.staticBye && id === 'BYE' ? 'Exempt' : ((pos[m.id] ? pos[m.id].w : 0) >= 280 || fin ? A.sideName(m, s, 'last') : short(A.sideName(m, s, 'last')));
           v[m.id + s + 's'] = A.seedOf(id) || '';
-          v[m.id + s + 'h'] = setsHtml(m, s, cardW < 330 && !fin);
+          v[m.id + s + 'h'] = setsHtml(m, s, (pos[m.id] ? pos[m.id].w : 0) < 320 && !fin);
           v['c:' + m.id + s] = rowCls(m, s);
         });
         v[m.id + 't'] = tagOf(m, tl);
@@ -379,10 +383,14 @@
         const tk = s.fill[`${L}:${r}`];
         return `<p class="${tk ? '' : 'empty'} ${lastPos === `${L}:${r}` ? 'new' : ''}">${tk ? esc(A.pairName(tk, 'last')) : '—'}</p>`; }).join('')}</div>`).join('')}</div></div>`;
     }
+    // premier tour du tableau, sous forme de matchs : on voit qui jouera contre qui
     const slots = E.sessionSlots(s);
-    return `<div class="rs"><h4>${esc(s.label)} · ${s.size} places</h4><div class="rs-lines" style="--rows:${Math.ceil(slots.length / (slots.length > 16 ? 2 : 1))}">${slots.map((tk, i) => {
-      const ts = tk && A.seedOf(tk);
-      return `<div class="${tk === 'BYE' ? 'bye' : ''} ${tk ? 'shown' : ''} ${lastPos === String(i) ? 'new' : ''}"><b>${i + 1}</b>${ts ? `<i>${ts}</i>` : '<i></i>'}<span>${tk ? esc(A.pairName(tk, 'last')) : ''}</span></div>`;
-    }).join('')}</div></div>`;
+    const nM = slots.length / 2, cols = nM > 16 ? 2 : 1;
+    const line = i => {
+      const tk = slots[i], ts = tk && A.seedOf(tk);
+      return `<div class="fr-l ${tk === 'BYE' ? 'bye' : ''} ${tk ? 'shown' : ''} ${lastPos === String(i) ? 'new' : ''}"><b>${i + 1}</b>${ts ? `<i>${ts}</i>` : ''}<span>${tk ? esc(A.pairName(tk, 'last')) : ''}</span></div>`;
+    };
+    return `<div class="rs"><h4>${esc(s.label)} · 1er tour</h4><div class="fr" style="--rows:${Math.ceil(nM / cols)};--cols:${cols}">${Array.from({ length: nM }, (_, k) =>
+      `<div class="fr-m">${line(2 * k)}${line(2 * k + 1)}</div>`).join('')}</div></div>`;
   }
 })();

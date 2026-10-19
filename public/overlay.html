@@ -47,7 +47,7 @@ body.green { background: #00FF00; } body.blue { background: #0047FF; } body.tran
 .hint { position: absolute; left: 70px; top: 60px; font: 700 22px var(--label); text-transform: uppercase; letter-spacing: .1em; color: #0009; }
 </style>
 </head>
-<body class="green">
+<body class="green" data-look>
 <div id="stage"><div class="hint" id="hint"></div><div id="sb" class="sb hide"></div></div>
 <script src="/js/engine.js"></script>
 <script src="/js/client.js"></script>
@@ -71,9 +71,10 @@ body.green { background: #00FF00; } body.blue { background: #0047FF; } body.tran
 
   A.connect(S => {
     const R = A.R;
-    document.body.className = qs.get('bg') || S.display.overlay || 'green';
+    const bgc = qs.get('bg') || S.display.overlay || 'green';
+    ['green', 'blue', 'transparent'].forEach(c => document.body.classList.toggle(c, c === bgc));
     const m = pickMatch(S, R);
-    document.getElementById('hint').textContent = m ? '' : (document.body.className === 'transparent' ? '' : 'Overlay Padel JA — choisissez un match dans l\'onglet « Écran TV & stream »');
+    document.getElementById('hint').textContent = m ? '' : (bgc === 'transparent' ? '' : 'Overlay Padel JA — choisissez un match dans l\'onglet « Écran TV & stream »');
     if (!m) { sb.classList.add('hide'); return; }
     const r = R[m.id];
     const sc = r.score;

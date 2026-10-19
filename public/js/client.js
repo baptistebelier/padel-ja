@@ -196,6 +196,15 @@
     if (c.primary) r.setProperty('--primary', c.primary);
     if (c.accent) r.setProperty('--accent', c.accent);
     if (c.accent2) r.setProperty('--accent2', c.accent2);
+    // habillage (écran TV, overlay, aperçu) : police des titres, style, ombres, contours, fond
+    const b = document.body;
+    if (!b || !b.hasAttribute('data-look')) return;
+    const L = Object.assign({}, Engine.DEFAULT_LOOK, (t && t.look) || {});
+    r.setProperty('--display', `"${Engine.LOOK_FONTS[L.font] || 'Anton'}", "Anton", "Impact", sans-serif`);
+    const cls = ['look-style-' + L.style, 'look-bg-' + L.bg, 'look-corners-' + L.corners, 'look-font-' + L.font,
+      L.shadows ? '' : 'look-noshadow', L.borders ? '' : 'look-noborder', L.deco ? '' : 'look-nodeco'].filter(Boolean);
+    b.className.split(/\s+/).filter(c => c.startsWith('look-')).forEach(c => b.classList.remove(c));
+    cls.forEach(c => b.classList.add(c));
   }
 
   window.App = App;

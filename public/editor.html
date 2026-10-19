@@ -16,13 +16,13 @@
   <div class="brand"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><div><b>PADEL JA</b><small>Juge-arbitre</small></div></div>
   <a href="/app" class="back">← Mes tournois</a>
   <nav id="nav">
-    <button data-tab="tournoi"><i>01</i>Tournoi</button>
-    <button data-tab="inscriptions"><i>02</i>Inscriptions</button>
-    <button data-tab="tirage"><i>03</i>Tirage au sort</button>
-    <button data-tab="tableaux"><i>04</i>Tableaux</button>
-    <button data-tab="programmation"><i>05</i>Programmation</button>
-    <button data-tab="direct"><i>06</i>Direct &amp; repos</button>
-    <button data-tab="diffusion"><i>07</i>Écran TV &amp; stream</button>
+    <button data-tab="tournoi"><i>01</i><span class="lg">Tournoi</span><span class="sh">Tournoi</span></button>
+    <button data-tab="inscriptions"><i>02</i><span class="lg">Inscriptions</span><span class="sh">Paires</span></button>
+    <button data-tab="tirage"><i>03</i><span class="lg">Tirage au sort</span><span class="sh">Tirage</span></button>
+    <button data-tab="tableaux"><i>04</i><span class="lg">Tableaux</span><span class="sh">Tableaux</span></button>
+    <button data-tab="programmation"><i>05</i><span class="lg">Programmation</span><span class="sh">Planning</span></button>
+    <button data-tab="direct"><i>06</i><span class="lg">Direct &amp; repos</span><span class="sh">Direct</span></button>
+    <button data-tab="diffusion"><i>07</i><span class="lg">Écran TV &amp; stream</span><span class="sh">TV</span></button>
   </nav>
   <div class="side-foot">
     <div id="conn" class="conn off">Hors ligne</div>
@@ -118,7 +118,21 @@
           <label>Surfaces<input type="color" data-c="primary"></label>
           <label>Accent (citron)<input type="color" data-c="accent"></label>
           <label>Accent 2 (rose)<input type="color" data-c="accent2"></label>
+          <label>Police des titres<select data-look="font">
+            <option value="anton">Anton (charte /RAM)</option><option value="bebas">Bebas Neue</option><option value="oswald">Oswald</option>
+            <option value="archivo">Archivo Black</option><option value="montserrat">Montserrat</option><option value="teko">Teko</option>
+            <option value="barlow">Barlow Condensed</option><option value="marker">Marqueur /RAM</option></select></label>
+          <label>Style des titres<select data-look="style"><option value="street">Street : incliné et surligné</option><option value="sobre">Sobre : droit, sans surlignage</option></select></label>
+          <label>Arrière-plan<select data-look="bg"><option value="dots">Trame de points</option><option value="grid">Quadrillage</option><option value="stripes">Rayures diagonales</option>
+            <option value="court">Lignes de terrain</option><option value="gradient">Dégradé coloré</option><option value="plain">Uni</option></select></label>
+          <label>Angles<select data-look="corners"><option value="square">Droits</option><option value="round">Arrondis</option></select></label>
+          <div class="span2 look-toggles">
+            <label class="chk"><input type="checkbox" data-look="shadows"> Ombres portées</label>
+            <label class="chk"><input type="checkbox" data-look="borders"> Contours des cases</label>
+            <label class="chk"><input type="checkbox" data-look="deco"> Bandes décoratives</label>
+          </div>
           <div class="span2 btns"><button class="ghost sm" id="ramColors">Remettre la charte /RAM</button></div>
+          <div class="span2 look-prev"><span class="muted small">Aperçu en direct de l'écran TV</span><div class="look-frame"><iframe id="lookPrev" title="Aperçu écran TV" loading="lazy"></iframe></div></div>
           <label class="span2">Logo du club / tournoi<input type="file" id="logoFile" accept="image/*"></label>
           <div class="span2 logo-prev" id="logoPrev"></div>
         </div>

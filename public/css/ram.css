@@ -67,3 +67,53 @@
 .rest.rest-playing::before { animation: blink 1s infinite; }
 .rest.rest-fresh, .rest.rest-idle { background: #ffffff0c; color: var(--mut); }
 @keyframes blink { 50% { opacity: .2; } }
+
+/* =========================================================================
+   HABILLAGE (écran TV, overlay) — classes posées sur <body data-look>
+   ========================================================================= */
+/* --- arrière-plans --- */
+body[data-look] #stage::before { transition: opacity .6s; }
+.look-bg-grid #stage::before { background: linear-gradient(#ffffff0e 1px, transparent 1px) 0 0 / 56px 56px, linear-gradient(90deg, #ffffff0e 1px, transparent 1px) 0 0 / 56px 56px; }
+.look-bg-stripes #stage::before { background: repeating-linear-gradient(-45deg, #ffffff08 0 3px, transparent 3px 26px); }
+.look-bg-court #stage::before { background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200' fill='none' stroke='%23ffffff' stroke-opacity='.07' stroke-width='1.6'%3E%3Crect x='4' y='4' width='392' height='192'/%3E%3Cpath d='M200 4v192M69 4v192M331 4v192M69 100h262'/%3E%3C/svg%3E") center / 92% auto no-repeat; }
+.look-bg-gradient #stage::before { background: radial-gradient(1200px 800px at 85% 0%, color-mix(in srgb, var(--accent2) 26%, transparent), transparent 70%),
+  radial-gradient(1100px 700px at 0% 100%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%); }
+.look-bg-plain #stage::before { background: none; }
+
+/* --- bandes décoratives --- */
+.look-nodeco .deco { display: none; }
+
+/* --- style sobre : titres droits, sans surlignage incliné --- */
+.look-style-sobre .band { transform: none; background: transparent !important; color: var(--accent) !important; padding: 0; }
+.look-style-sobre .band.pink { color: var(--accent2) !important; }
+.look-style-sobre .t-name, .look-style-sobre .view-title, .look-style-sobre .tag, .look-style-sobre .scol-h,
+.look-style-sobre .info-l h1, .look-style-sobre .dl-head .tag, .look-style-sobre .strip, .look-style-sobre .winner,
+.look-style-sobre .dcard .back .dest, .look-style-sobre .tvh-l .tag { transform: none !important; }
+.look-style-sobre .view-title { background: transparent; color: var(--accent); border: 3px solid var(--accent); }
+.look-style-sobre .t-name { font-style: normal; }
+
+/* --- sans ombres portées --- */
+.look-noshadow #stage *, .look-noshadow .sb * { box-shadow: none !important; text-shadow: none !important; }
+.look-noshadow .sb { filter: none !important; }
+
+/* --- sans contours --- */
+.look-noborder .bc, .look-noborder .smatch, .look-noborder .lpanel, .look-noborder .pcard, .look-noborder .rkb,
+.look-noborder .last-res, .look-noborder .dl-side, .look-noborder .qm, .look-noborder .qq, .look-noborder .dd-res .rs,
+.look-noborder .board, .look-noborder .dcard .front, .look-noborder .dcard .back { border-color: transparent !important; }
+.look-noborder .bc, .look-noborder .smatch, .look-noborder .lpanel, .look-noborder .pcard, .look-noborder .rkb, .look-noborder .qm { background-color: #ffffff10; }
+.look-noborder .bc.st-live, .look-noborder .smatch.st-live, .look-noborder .lpanel.st-live { background-color: color-mix(in srgb, var(--accent2) 22%, transparent); }
+
+/* --- angles arrondis --- */
+.look-corners-round .bc, .look-corners-round .smatch, .look-corners-round .lpanel, .look-corners-round .pcard, .look-corners-round .rkb,
+.look-corners-round .last-res, .look-corners-round .dl-side, .look-corners-round .qm, .look-corners-round .qq, .look-corners-round .dd-res .rs,
+.look-corners-round .view-title, .look-corners-round .tag, .look-corners-round .scol-h, .look-corners-round .sm-time,
+.look-corners-round .board, .look-corners-round .strip, .look-corners-round .info, .look-corners-round .dcard .face, .look-corners-round .tvf { border-radius: 14px; }
+.look-corners-round .band { border-radius: 8px; }
+.look-corners-round .bc-row:first-child { border-radius: 11px 11px 0 0; } .look-corners-round .bc-row:last-of-type { border-radius: 0 0 11px 11px; }
+.look-corners-round .rkb-h { border-radius: 11px 11px 0 0; } .look-corners-round .tvf { border-radius: 0; }
+.look-corners-round .strip, .look-corners-round .flag, .look-corners-round .view-title, .look-corners-round .sp-line { clip-path: none; }
+
+/* --- polices : petits ajustements de chasse --- */
+.look-font-montserrat .t-name, .look-font-archivo .t-name { font-size: 46px; }
+.look-font-marker .t-name { letter-spacing: .02em; }

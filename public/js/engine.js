@@ -988,7 +988,7 @@
   /* ---------------------------------------------------------------------
      RÉGLAGES DU COMPTE (club, terrains, logo, partenaires…)
      --------------------------------------------------------------------- */
-  const PROFILE_FIELDS = ['club', 'address', 'ja', 'jaNumber', 'jaPhone', 'balls', 'startTime', 'durations', 'colors', 'logo', 'sponsors'];
+  const PROFILE_FIELDS = ['club', 'address', 'ja', 'jaNumber', 'jaPhone', 'balls', 'startTime', 'durations', 'colors', 'look', 'logo', 'sponsors'];
   function profileFromState(T) {
     const p = { courts: T.courts.map(c => ({ name: c.name, start: c.start })) };
     PROFILE_FIELDS.forEach(k => { p[k] = JSON.parse(JSON.stringify(T.tournament[k] == null ? '' : T.tournament[k])); });
@@ -1004,6 +1004,9 @@
      ÉTAT INITIAL & MIGRATION
      --------------------------------------------------------------------- */
   const RAM_COLORS = { bg: '#0B0B0B', primary: '#151515', accent: '#E0F50A', accent2: '#F5104C' };
+  // habillage de l'écran TV et de l'overlay
+  const DEFAULT_LOOK = { font: 'anton', style: 'street', shadows: true, borders: true, bg: 'dots', corners: 'square', deco: true };
+  const LOOK_FONTS = { anton: 'Anton', bebas: 'Bebas Neue', oswald: 'Oswald', archivo: 'Archivo Black', montserrat: 'Montserrat', teko: 'Teko', barlow: 'Barlow Condensed', marker: 'RAM Marker' };
 
   function initialState() {
     const today = localNow().slice(0, 10);
@@ -1016,7 +1019,7 @@
         pouleSize: 4, pouleQualif: 2, pouleMethod: 'serpentin', tfDirect: 12, qualifCount: 4,
         formatMain: 'C2', formatQuarter: '', formatSemi: '', formatFinal: 'B2', formatClass: 'C2', formatPoule: '', formatQualif: '',
         startTime: '09:00', durations: Object.assign({}, DEFAULT_DUR), prize: '', notes: '',
-        colors: Object.assign({}, RAM_COLORS), logo: '', sponsors: []
+        colors: Object.assign({}, RAM_COLORS), look: Object.assign({}, DEFAULT_LOOK), logo: '', sponsors: []
       },
       courts: [{ id: 'c1', name: 'Terrain 1', start: '09:00' }, { id: 'c2', name: 'Terrain 2', start: '09:00' }, { id: 'c3', name: 'Terrain 3', start: '09:00' }],
       pairs: [], draw: null, matches: [], poules: [],
@@ -1030,6 +1033,7 @@
     if (!T.tournament.colors || T.tournament.colors.bg === '#0A0F2C') T.tournament.colors = Object.assign({}, RAM_COLORS);
     if (!Array.isArray(T.tournament.sponsors)) T.tournament.sponsors = T.tournament.sponsor ? [{ id: uid('s'), name: T.tournament.sponsor, logo: '' }] : [];
     delete T.tournament.sponsor;
+    T.tournament.look = Object.assign({}, DEFAULT_LOOK, T.tournament.look || {});
     T.display = Object.assign({}, base.display, T.display || {});
     T.courts = T.courts || base.courts;
     T.pairs = T.pairs || [];
@@ -1185,7 +1189,7 @@
   }
 
   return {
-    FORMATS, FORMAT_KEYS, CATEGORIES, FORMULAS, PRESETS, TEMPLATE_FIELDS, templateFromState, PROFILE_FIELDS, profileFromState, applyProfile, pointsFor, liveStandings, REST, DEFAULT_DUR, ROUND_NAMES, ROUND_SHORT, RAM_COLORS,
+    FORMATS, FORMAT_KEYS, CATEGORIES, FORMULAS, PRESETS, TEMPLATE_FIELDS, templateFromState, PROFILE_FIELDS, profileFromState, applyProfile, pointsFor, liveStandings, REST, DEFAULT_DUR, ROUND_NAMES, ROUND_SHORT, RAM_COLORS, DEFAULT_LOOK, LOOK_FONTS,
     computeScore, pointFlags, pointLabels, setsText, scoreText, winnerScoreText, manualToSets,
     weightOf, rankOf, isPair, tokenLabel, selection, plan, pouleSizes, seedOrder, nextPow2, defaultSeeds,
     prepareDraw, currentPot, sessionSlots, posLabel, buildAll, matchLabel, formatOf,
