@@ -853,8 +853,8 @@
       return `<div class="lcard st-${r.state}"><h4>${esc(c.name)} <span>M${cur.num} · ${esc(E.matchLabel(cur))} · ${r.fk}</span></h4>${line('A')}${line('B')}
         <div class="btns">${r.state === 'ready' ? `<button class="accent sm" data-st="${cur.id}">▶ Lancer</button>` : ''}<button class="ghost sm" data-u="${cur.id}">↶</button><button class="ghost sm" data-o="${cur.id}">Détails</button></div></div>`;
     }).join('');
-    $('#liveList [data-pt]').forEach(b => b.onclick = () => send('match/point', { id: b.dataset.id, team: b.dataset.pt }));
-    $('#liveList [data-gm]').forEach(b => b.onclick = () => send('match/game', { id: b.dataset.id, team: b.dataset.gm }));
+    $$('#liveList [data-pt]').forEach(b => b.onclick = () => send('match/point', { id: b.dataset.id, team: b.dataset.pt }));
+    $$('#liveList [data-gm]').forEach(b => b.onclick = () => send('match/game', { id: b.dataset.id, team: b.dataset.gm }));
     $$('#liveList [data-u]').forEach(b => b.onclick = () => send('match/undoPoint', { id: b.dataset.u }));
     $$('#liveList [data-o]').forEach(b => b.onclick = () => openMatchModal(b.dataset.o));
     $$('#liveList [data-st]').forEach(b => b.onclick = () => startMatch(b.dataset.st));
@@ -926,9 +926,9 @@
       $('#streamPad').innerHTML = `<div class="sp">${side('A')}${side('B')}</div>
         <div class="btns"><button class="ghost" id="spUndo">↶ Annuler (Retour arrière)</button><button class="ghost" id="spSrv">Changer 1er serveur (S)</button></div>
         <p class="muted small">Raccourcis : <b>←</b> ou <b>1</b> point équipe 1 · <b>→</b> ou <b>2</b> point équipe 2 · <b>Retour arrière</b> annuler · <b>S</b> serveur.</p>`;
-      $('[data-spt]').forEach(b => b.onclick = () => send('match/point', { id: m.id, team: b.dataset.spt }));
-      $('[data-sgm]').forEach(b => b.onclick = () => send('match/game', { id: m.id, team: b.dataset.sgm }));
-      $('[data-sugm]').forEach(b => b.onclick = () => send('match/ungame', { id: m.id, team: b.dataset.sugm }));
+      $$('[data-spt]').forEach(b => b.onclick = () => send('match/point', { id: m.id, team: b.dataset.spt }));
+      $$('[data-sgm]').forEach(b => b.onclick = () => send('match/game', { id: m.id, team: b.dataset.sgm }));
+      $$('[data-sugm]').forEach(b => b.onclick = () => send('match/ungame', { id: m.id, team: b.dataset.sugm }));
       $('#spUndo').onclick = () => send('match/undoPoint', { id: m.id });
       $('#spSrv').onclick = () => send('match/server', { id: m.id, team: m.firstServer === 'A' ? 'B' : 'A' });
     } else $('#streamPad').innerHTML = '<p class="muted">Choisissez un match à diffuser (« prêt » ou « en cours »).</p>';
