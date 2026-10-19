@@ -2,7 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0B0B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Padel JA">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/img/app-icon-180.png">
 <title>Padel JA — /RAM</title>
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <link rel="stylesheet" href="/css/ram.css">
@@ -12,18 +19,38 @@
 <div class="annonce"><div class="annonce-in" id="annonce"></div></div>
 <div class="closed-bar" id="closedBar" hidden>Tournoi clôturé <span id="closedAt"></span> — lecture seule. <button id="reopen2">Rouvrir le tournoi</button></div>
 <div class="guest" id="guestBar" hidden>Mode démo : ce tournoi sera effacé dans 24 h. <a href="/inscription">Créer mon compte gratuitement</a> pour garder vos tournois.</div>
+<header class="appbar" id="appbar">
+  <a href="/app" class="ab-back" aria-label="Retour à mes tournois"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Tournois</span></a>
+  <div class="ab-title"><b id="abTitle">Tournoi</b><small id="abSub"></small></div>
+  <button class="ab-btn" id="abTv" aria-label="Ouvrir l'écran TV"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/></svg></button>
+  <button class="ab-btn" id="abMore" aria-label="Plus d'actions"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
+</header>
+<div class="sheet" id="moreSheet" hidden><div class="sheet-box">
+  <i class="grab"></i>
+  <a href="/app" class="sh-item"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg>Mes tournois</a>
+  <button class="sh-item" data-act="btnUndo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Annuler la dernière action</button>
+  <button class="sh-item" data-act="btnTv"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/></svg>Ouvrir l'écran TV</button>
+  <button class="sh-item" data-act="btnOverlay"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12"/><path d="M6 14h6"/></svg>Overlay stream</button>
+  <button class="sh-item" data-act="btnPrint"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>Imprimer / PDF</button>
+  <button class="sh-item" data-act="btnExport"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Exporter le tournoi</button>
+  <button class="sh-item" data-act="btnImport"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V9M7 14l5-5 5 5M4 3h16"/></svg>Importer un tournoi</button>
+  <button class="sh-item" data-act="btnDemo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>Remplir avec des joueurs démo</button>
+  <button class="sh-item" data-act="btnHelp"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.5"/></svg>Aide & raccourcis</button>
+  <a href="/deconnexion" class="sh-item danger"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>Déconnexion</a>
+  <button class="sh-close" data-act="close">Fermer</button>
+</div></div>
 <div class="shell">
 <aside class="side">
   <div class="brand"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><div><b>PADEL JA</b><small>Juge-arbitre</small></div></div>
   <a href="/app" class="back">← Mes tournois</a>
   <nav id="nav">
-    <button data-tab="tournoi"><i>01</i><span class="lg">Tournoi</span><span class="sh">Tournoi</span></button>
-    <button data-tab="inscriptions"><i>02</i><span class="lg">Inscriptions</span><span class="sh">Paires</span></button>
-    <button data-tab="tirage"><i>03</i><span class="lg">Tirage au sort</span><span class="sh">Tirage</span></button>
-    <button data-tab="tableaux"><i>04</i><span class="lg">Tableaux</span><span class="sh">Tableaux</span></button>
-    <button data-tab="programmation"><i>05</i><span class="lg">Programmation</span><span class="sh">Planning</span></button>
-    <button data-tab="direct"><i>06</i><span class="lg">Direct &amp; repos</span><span class="sh">Direct</span></button>
-    <button data-tab="diffusion"><i>07</i><span class="lg">Écran TV &amp; stream</span><span class="sh">TV</span></button>
+    <button data-tab="tournoi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8 21h8M9 17h6"/></svg><i>01</i><span class="lg">Tournoi</span><span class="sh">Tournoi</span></button>
+    <button data-tab="inscriptions"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.2c2.6.2 4.4 1.8 5 4.8"/></svg><i>02</i><span class="lg">Inscriptions</span><span class="sh">Paires</span></button>
+    <button data-tab="tirage"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="9" height="13"/><rect x="12" y="4" width="9" height="13"/><path d="M16.5 8.5v4M14.5 10.5h4"/></svg><i>03</i><span class="lg">Tirage au sort</span><span class="sh">Tirage</span></button>
+    <button data-tab="tableaux"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h5v6H3zM3 14h5v6H3zM8 7h3v10H8M11 12h3M14 9h7v6h-7z"/></svg><i>04</i><span class="lg">Tableaux</span><span class="sh">Tableaux</span></button>
+    <button data-tab="programmation"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4M12 13v3l2 1.5"/></svg><i>05</i><span class="lg">Programmation</span><span class="sh">Planning</span></button>
+    <button data-tab="direct"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg><i>06</i><span class="lg">Direct &amp; repos</span><span class="sh">Direct</span></button>
+    <button data-tab="diffusion"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/></svg><i>07</i><span class="lg">Écran TV &amp; stream</span><span class="sh">TV</span></button>
   </nav>
   <div class="side-foot">
     <div id="conn" class="conn off">Hors ligne</div>

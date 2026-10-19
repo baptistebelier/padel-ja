@@ -2,7 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0B0B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Padel JA">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/img/app-icon-180.png">
 <title>Mes tournois — Padel JA /RAM</title>
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <link rel="stylesheet" href="/css/ram.css">
@@ -11,7 +18,7 @@
 <body class="dash">
 <div class="guest" id="guestBar" hidden>Mode démo : vos tournois seront effacés dans 24 h. <a href="/inscription">Créer mon compte gratuitement</a></div>
 <header class="nav"><a href="/" class="logo"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><b>Padel JA</b></a>
-  <div class="nav-r"><span id="who"></span><a href="/deconnexion" class="btn ghost sm">Déconnexion</a></div></header>
+  <div class="nav-r"><span id="who"></span><span id="plan" class="tag" hidden></span><a href="/admin" id="adminLink" class="btn ghost sm" hidden>Admin</a><a href="/deconnexion" class="btn ghost sm">Déconnexion</a></div></header>
 <main class="wrap">
   <h1 class="h1">Mes <span class="band lime">tournois</span></h1>
   <section class="newt">
@@ -42,6 +49,8 @@
   fetch('/api/me').then(r => r.json()).then(d => {
     if (!d.user) return location.href = '/connexion';
     $('#who').textContent = d.user.guest ? 'Visiteur (démo)' : (d.user.name || d.user.email);
+    if (!d.user.guest) { $('#plan').hidden = false; $('#plan').textContent = d.user.planLabel; $('#plan').className = 'tag ' + (d.user.admin ? 'pink' : d.user.free ? 'lime' : 'ink'); }
+    $('#adminLink').hidden = !d.user.admin;
     $('#guestBar').hidden = !d.user.guest;
   });
   async function create(body) {

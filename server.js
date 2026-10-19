@@ -53,7 +53,14 @@ function lanAddresses() {
   return out;
 }
 const origin = req => `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers['x-forwarded-host'] || req.headers.host}`;
-const publicUser = u => u && { id: u.id, email: u.email, name: u.name, club: u.club, guest: !!u.guest, plan: u.plan };
+/* administrateurs : e-mails listés dans ADMIN_EMAILS (Render), ou offre « admin » */
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'baptiste.belier@gmail.com').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email || '').toLowerCase()) || u.plan === 'admin'));
+// offres : essai, actif (abonnement payé), offert (accès gratuit), admin
+const PLANS = { essai: 'Essai', actif: 'Abonné', offert: 'Accès offert', admin: 'Administrateur' };
+const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
+const publicUser = u => u && { id: u.id, email: u.email, name: u.name, club: u.club, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
+  planLabel: PLANS[isAdmin(u) ? 'admin' : (u.plan || 'essai')], admin: isAdmin(u), free: freeAccess(u) };
 
 async function currentUser(req) {
   const id = Auth.sessionUserId(req);
@@ -206,6 +213,7 @@ const server = http.createServer(async (req, res) => {
     /* ---------- pages ---------- */
     if (p === '/') return sendFile(res, '/landing.html');
     if (p === '/connexion' || p === '/inscription') return sendFile(res, '/auth.html');
+    if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
     if (p === '/app') { if (!(await currentUser(req))) return redirect(res, '/connexion'); return sendFile(res, '/app.html'); }
     if (p === '/demo') {
       const u = { id: 'g' + Auth.randomId(10), email: null, name: 'Démo', guest: true, plan: 'demo', created_at: Date.now() };
@@ -249,6 +257,34 @@ const server = http.createServer(async (req, res) => {
       const u = await store.getUserByEmail(email);
       if (!u || !Auth.checkPassword(b.password, u.pass_hash)) return json(res, 401, { error: 'E-mail ou mot de passe incorrect.' });
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
+    }
+    /* ---------- API administration ---------- */
+    if (p.startsWith('/api/admin/')) {
+      const u = await currentUser(req);
+      if (!isAdmin(u)) return json(res, 403, { error: 'Réservé aux administrateurs' });
+      if (p === '/api/admin/users') {
+        const users = (await store.listUsers()).filter(x => !x.guest);
+        const tours = await store.listAllTournaments();
+        const count = {}; tours.forEach(t => { count[t.owner] = (count[t.owner] || 0) + 1; });
+        const guests = (await store.listUsers()).filter(x => x.guest).length;
+        return json(res, 200, { guests, tournaments: tours.length, plans: PLANS,
+          users: users.map(x => Object.assign(publicUser(x), { rawPlan: x.plan || 'essai', created_at: x.created_at, tournaments: count[x.id] || 0 }))
+            .sort((a, b) => (b.created_at || 0) - (a.created_at || 0)) });
+      }
+      let am = p.match(/^\/api\/admin\/users\/([\w-]+)$/);
+      if (am && req.method === 'POST') {
+        const b = await readBody(req);
+        if (!PLANS[b.plan]) return json(res, 400, { error: 'Offre inconnue' });
+        const x = await store.getUser(am[1]); if (!x) return json(res, 404, { error: 'Compte introuvable' });
+        x.plan = b.plan; await store.saveUser(x);
+        return json(res, 200, { ok: true, user: publicUser(x) });
+      }
+      am = p.match(/^\/api\/admin\/players\/([\w-]+)$/);
+      if (am && req.method === 'DELETE') {         // droit à l'effacement (RGPD)
+        await store.deletePlayer(am[1]);
+        return json(res, 200, { ok: true });
+      }
+      return json(res, 404, { error: 'Inconnu' });
     }
     if (p === '/api/me') {
       const u = await currentUser(req);

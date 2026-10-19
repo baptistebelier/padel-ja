@@ -160,3 +160,42 @@ h2 { font-size: clamp(36px, 6vw, 64px); transform: rotate(-1.5deg); transform-or
 .pk b { display: block; font-family: var(--display); font-weight: 400; font-size: 34px; color: var(--accent); line-height: 1; }
 .pk span { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 12px; color: var(--mut); }
 @media (max-width: 720px) { .pk { grid-template-columns: 1fr 1fr; } .pmodal { padding: 0; } .pmodal-box { max-height: 100vh; height: 100%; border: 0; box-shadow: none; } }
+
+/* ---------- administration ---------- */
+.appnav { display: grid; grid-template-columns: 1fr auto 1fr; }
+.nav-back { color: var(--accent); text-decoration: none; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 14px; }
+.h2s { font-size: 30px; transform: none; margin-bottom: 10px; }
+.ulist { display: grid; gap: 10px; margin-top: 14px; }
+.ucard { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 14px; align-items: center; background: var(--card); border: 2px solid var(--line2); padding: 14px 16px; }
+.ucard b { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 17px; }
+.ucard p { margin: 4px 0 0; }
+.ucard .tag { transform: rotate(-2deg); margin-left: 6px; }
+.ucard label { display: grid; gap: 4px; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--mut); }
+.ucard select { background: var(--ink); border: 2px solid var(--line2); color: var(--white); padding: 10px; font: 15px var(--body); border-radius: 0; }
+.prdel { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: default; }
+.nav-r .tag { transform: rotate(-2deg); }
+
+/* ---------- look « application » sur téléphone ---------- */
+@media (max-width: 720px) {
+  body.dash .nav { position: sticky; top: 0; z-index: 30; padding: calc(env(safe-area-inset-top) + 8px) 14px 8px; background: rgba(11, 11, 11, .9);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid #ffffff14; }
+  body.dash .nav .logo img { height: 30px; } body.dash .nav .logo b { font-size: 20px; }
+  body.dash .nav-r { gap: 6px; } body.dash .nav-r > span#who { display: none; }
+  body.dash .nav-r .btn { min-height: 38px; padding: 6px 10px; font-size: 12px; }
+  .wrap { padding-bottom: calc(30px + env(safe-area-inset-bottom)); }
+  .h1 { font-size: 40px; margin: 14px 0 22px; }
+  .tpls { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tpl { padding: 12px; } .tpl b { font-size: 16px; } .tpl small { display: none; }
+  .tlist { grid-template-columns: 1fr; gap: 10px; }
+  .tcard { padding: 16px 14px; } .tcard h3 { font-size: 26px; }
+  .tc-act .btn { flex: 1; min-height: 44px; }
+  .ucard { grid-template-columns: 1fr; }
+  .psearch input { font-size: 16px; min-height: 46px; }
+  .appnav { grid-template-columns: auto 1fr; } .appnav > span { display: none; } .appnav .logo { justify-self: end; }
+}
+@media (max-width: 720px) {
+  body.dash .nav { flex-wrap: nowrap; }
+  body.dash .nav .logo b { white-space: nowrap; }
+  body.dash .nav-r { flex-wrap: nowrap; }
+  body.dash .nav-r #plan { display: none; }
+}

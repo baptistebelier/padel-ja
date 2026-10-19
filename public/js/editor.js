@@ -40,6 +40,8 @@
     const t = S.tournament;
     $('#hName').textContent = t.name || 'Tournoi';
     $('#hTag').textContent = `${t.category} · ${t.gender}`;
+    $('#abTitle').textContent = t.name || 'Tournoi';
+    $('#abSub').textContent = `${t.category} ${t.gender}${t.closed ? ' · clôturé' : ''}`;
     $('#hSub').textContent = [E.FORMULAS[t.formula || 'tf'], t.club, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ');
     $('#btnUndo').disabled = !A.canUndo || !!t.closed;
     $('#closedBar').hidden = !t.closed;
@@ -995,6 +997,18 @@
   /* =====================================================================
      BOUTONS GÉNÉRAUX & RACCOURCIS
      ===================================================================== */
+  /* ---------- barre d'application (téléphone) + menu « ⋯ » ---------- */
+  const sheet = $('#moreSheet');
+  const closeSheet = () => { sheet.classList.remove('open'); setTimeout(() => { sheet.hidden = true; }, 220); };
+  $('#abMore').onclick = () => { sheet.hidden = false; requestAnimationFrame(() => sheet.classList.add('open')); };
+  $('#abTv').onclick = () => $('#btnTv').click();
+  sheet.addEventListener('click', e => {
+    if (e.target === sheet) return closeSheet();
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    closeSheet();
+    if (b.dataset.act !== 'close') setTimeout(() => $('#' + b.dataset.act).click(), 60);
+  });
+
   $('#btnUndo').onclick = () => A.undo();
   $('#btnExport').onclick = () => { location.href = A.base + '/export'; };
   $('#btnImport').onclick = () => $('#fileImport').click();

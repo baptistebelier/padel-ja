@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0B0B">
+<title>Administration — Padel JA /RAM</title>
+<link rel="icon" type="image/png" href="/img/favicon.png">
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="dash">
+<header class="nav appnav"><a href="/app" class="nav-back">‹ Mes tournois</a><a href="/" class="logo"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><b>Admin</b></a><span></span></header>
+<main class="wrap">
+  <h1 class="h1">Adminis<span class="band pink">tration</span></h1>
+  <section><div class="pk" id="stats"></div></section>
+  <section>
+    <span class="eyebrow">Comptes juges-arbitres</span>
+    <h2 class="h2s">Accès &amp; offres</h2>
+    <p class="muted small">« Accès offert » et « Administrateur » ne paient jamais l'abonnement. Les e-mails administrateurs sont aussi réglables dans Render (variable ADMIN_EMAILS).</p>
+    <div id="users" class="ulist"><p class="muted">Chargement…</p></div>
+  </section>
+  <section>
+    <span class="eyebrow">Base de joueurs</span>
+    <h2 class="h2s">Droit à l'effacement (RGPD)</h2>
+    <p class="muted small">Un joueur demande la suppression de ses données ? Recherchez-le puis supprimez sa fiche : son historique de tournois est effacé de la base partagée.</p>
+    <div class="psearch"><input id="pq" placeholder="Nom, prénom ou licence…" autocomplete="off"><div id="pres" class="pres"></div></div>
+  </section>
+</main>
+<script>
+(function () {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = s => document.querySelector(s);
+  const api = (u, o) => fetch(u, Object.assign({ headers: { 'Content-Type': 'application/json' } }, o || {})).then(r => r.json());
+  async function load() {
+    const d = await api('/api/admin/users');
+    if (d.error) { $('#users').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }
+    $('#stats').innerHTML = `<div><b>${d.users.length}</b><span>comptes</span></div><div><b>${d.tournaments}</b><span>tournois</span></div>
+      <div><b>${d.users.filter(u => u.free).length}</b><span>accès gratuits</span></div><div><b>${d.guests}</b><span>démos (24 h)</span></div>`;
+    $('#users').innerHTML = d.users.map(u => `<article class="ucard">
+      <div><b>${esc(u.name || '—')}</b> <span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(u.planLabel)}</span>
+        <p>${esc(u.email)}${u.club ? ' · ' + esc(u.club) : ''}</p>
+        <p class="muted small">Inscrit le ${u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '?'} · ${u.tournaments} tournoi(s)</p></div>
+      ${u.admin && u.rawPlan !== 'admin' ? '<p class="muted small">Administrateur via son e-mail (ADMIN_EMAILS) : accès gratuit permanent.</p>' : `<label>Offre<select data-u="${u.id}">${Object.keys(d.plans).map(k => `<option value="${k}" ${u.rawPlan === k ? 'selected' : ''}>${esc(d.plans[k])}</option>`).join('')}</select></label>`}
+    </article>`).join('') || '<p class="muted">Aucun compte.</p>';
+    document.querySelectorAll('[data-u]').forEach(s => s.onchange = async () => {
+      const r = await api('/api/admin/users/' + s.dataset.u, { method: 'POST', body: JSON.stringify({ plan: s.value }) });
+      if (r.error) alert(r.error); load();
+    });
+  }
+  load();
+  let qt = null;
+  const search = async () => {
+    const q = $('#pq').value.trim();
+    if (q.length < 2) { $('#pres').innerHTML = ''; return; }
+    const d = await api('/api/players?q=' + encodeURIComponent(q));
+    $('#pres').innerHTML = (d.players || []).map(p => `<div class="pr2 prdel"><span><b>${esc(p.last)}</b> ${esc(p.first)} <span>${p.licence ? 'Lic. ' + esc(p.licence) + ' · ' : ''}${p.tournaments} tournoi(s)</span></span>
+      <button class="btn ghost sm danger" data-del="${p.id}" data-n="${esc(p.last + ' ' + p.first)}">Supprimer</button></div>`).join('') || `<p class="muted small">${esc(d.error || 'Aucun joueur trouvé.')}</p>`;
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      if (!confirm('Supprimer définitivement ' + b.dataset.n + ' et tout son historique de la base partagée ?')) return;
+      const r = await api('/api/admin/players/' + b.dataset.del, { method: 'DELETE' });
+      if (r.error) alert(r.error); search();
+    });
+  };
+  $('#pq').oninput = () => { clearTimeout(qt); qt = setTimeout(search, 200); };
+})();
+</script>
+</body>
+</html>
