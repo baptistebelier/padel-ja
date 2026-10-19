@@ -41,7 +41,10 @@
     $('#hName').textContent = t.name || 'Tournoi';
     $('#hTag').textContent = `${t.category} · ${t.gender}`;
     $('#hSub').textContent = [E.FORMULAS[t.formula || 'tf'], t.club, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ');
-    $('#btnUndo').disabled = !A.canUndo;
+    $('#btnUndo').disabled = !A.canUndo || !!t.closed;
+    $('#closedBar').hidden = !t.closed;
+    if (t.closed) $('#closedAt').textContent = 'le ' + new Date(t.closedAt).toLocaleDateString('fr-FR');
+    document.body.classList.toggle('is-closed', !!t.closed);
     const ann = [`${t.name}`, `${t.category} ${t.gender}`, t.club, t.balls && 'Balles : ' + t.balls, t.prize].concat((t.sponsors || []).map(s => s.name)).concat('/RAM — Rise And Move').filter(Boolean).join('   ✦   ');
     A.marquee($('#annonce'), `<span>${esc(ann)}</span>`, 60);
     ({ tournoi: renderTournoi, inscriptions: renderInscriptions, tirage: renderTirage, tableaux: renderTableaux, programmation: renderSched,
@@ -94,6 +97,37 @@
     e.target.value = '';
   };
   $('#addCourt').onclick = () => send('court/add', {});
+
+  /* ---------- clôture, réouverture, remises à zéro ---------- */
+  const closeT = async () => {
+    const left = S.matches.filter(m => !R[m.id].staticBye && R[m.id].state !== 'done').length;
+    const msg = (left ? `⚠ ${left} match(s) ne sont pas terminés : les paires concernées seront classées à la place la moins favorable.\n\n` : '') +
+      'Clôturer le tournoi ?\n\nLes joueurs et leurs résultats seront enregistrés dans la base de joueurs (fiches, historiques, saisie semi-automatique). Le tournoi passera en lecture seule ; vous pourrez le rouvrir.';
+    if (!confirm(msg)) return;
+    const d = await A.api('/api/tournaments/' + A.tid + '/close', { method: 'POST' });
+    if (d.error) return A.toast(d.error, 'err');
+    A.toast(d.guest ? 'Tournoi clôturé (mode démo : aucun joueur enregistré)' : `Tournoi clôturé : ${d.saved} joueur(s) enregistré(s) dans la base`, 'ok');
+  };
+  const reopenT = () => confirm('Rouvrir le tournoi pour le modifier ? Les résultats seront réenregistrés à la prochaine clôture.') &&
+    A.api('/api/tournaments/' + A.tid + '/reopen', { method: 'POST' }).then(() => A.toast('Tournoi rouvert', 'ok'));
+  $('#reopen2').onclick = reopenT;
+  $('#rzScores').onclick = () => confirm('Effacer tous les scores ? Le tirage et la programmation sont conservés.') && send('tournament/reset', { level: 'scores' });
+  $('#rzDraw').onclick = () => confirm('Recommencer le tirage au sort ? Tous les matchs et scores seront supprimés ; les inscriptions sont conservées.') && send('tournament/reset', { level: 'draw' });
+  $('#rzAll').onclick = () => confirm('TOUT remettre à zéro ? Les paires inscrites, le tirage et les scores seront supprimés. Seule la configuration est conservée.') &&
+    confirm('Confirmez-vous la suppression de toutes les inscriptions ?') && send('tournament/reset', { level: 'all' });
+  function renderManage() {
+    const t = S.tournament, closed = !!t.closed;
+    const left = S.draw && S.draw.built ? S.matches.filter(m => !R[m.id].staticBye && R[m.id].state !== 'done').length : null;
+    $('#closeBox').innerHTML = closed
+      ? `<div class="alert ok">Tournoi clôturé le ${new Date(t.closedAt).toLocaleString('fr-FR')}. Les joueurs et leurs résultats sont dans la base.</div><div class="btns"><button class="ghost" id="reopenBtn">Rouvrir le tournoi</button></div>`
+      : `<p class="muted small">À la fin du tournoi, clôturez-le : il passe dans « Tournois clôturés » et chaque joueur est enregistré avec sa place et ses points FFT (fiche, historique, saisie semi-automatique dans vos prochains tournois et ceux des autres juges-arbitres Padel JA).</p>
+         ${left ? `<div class="alert warn">${left} match(s) restant(s) à jouer.</div>` : ''}
+         <div class="btns"><button class="accent" id="closeBtn" ${S.draw && S.draw.built ? '' : 'disabled title="Effectuez d\'abord le tirage"'}>Clôturer le tournoi</button></div>`;
+    if ($('#closeBtn')) $('#closeBtn').onclick = closeT;
+    if ($('#reopenBtn')) $('#reopenBtn').onclick = reopenT;
+    ['rzScores', 'rzDraw', 'rzAll'].forEach(k => { $('#' + k).disabled = closed; });
+    $('#rzScores').disabled = closed || !S.matches.length;
+  }
 
   /* ---------- partenaires ---------- */
   const sponsors = () => (S.tournament.sponsors || []).map(x => Object.assign({}, x));
@@ -193,6 +227,7 @@
     if ($('#rmLogo')) $('#rmLogo').onclick = () => send('tournament/update', { logo: '' });
     renderSponsors();
     renderProfileInfo();
+    renderManage();
     const look = Object.assign({}, E.DEFAULT_LOOK, t.look);
     $$('[data-look]').forEach(el => fill(el, look[el.dataset.look]));
     const pf = $('#lookPrev'); if (!pf.src) pf.src = A.page + '/tv';
@@ -234,12 +269,91 @@
   resetDate();
   form.onsubmit = async e => {
     e.preventDefault();
-    const pl = n => ({ last: form['l' + n].value.trim(), first: form['f' + n].value.trim(), rank: form['r' + n].value.trim(), licence: form['i' + n].value.trim() });
+    const pl = n => Object.assign({ last: form['l' + n].value.trim(), first: form['f' + n].value.trim(), rank: form['r' + n].value.trim(), licence: form['i' + n].value.trim() },
+      form['pid' + n].value ? { playerId: form['pid' + n].value } : {});
     await send('pair/add', { p1: pl(1), p2: pl(2), registeredAt: form.date.value || E.localNow(), wc: form.wc.checked });
-    form.reset(); resetDate(); form.l1.focus();
+    form.reset(); resetDate(); setKnown(1, null); setKnown(2, null); form.l1.focus();
     A.toast('Paire ajoutée', 'ok');
   };
-  $$('input', form).forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); form.requestSubmit(); } }));
+  $$('input', form).forEach(i => i.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (sug.open && sug.active >= 0) return pickSuggestion(sug.n, sug.items[sug.active]);
+    form.requestSubmit();
+  }));
+
+  /* ---------- saisie semi-automatique depuis la base de joueurs ---------- */
+  const sug = { open: false, n: 0, items: [], active: -1, timer: null, seq: 0 };
+  function setKnown(n, p) {
+    form['pid' + n].value = p ? p.id : '';
+    $('#known' + n).textContent = p ? `· connu (${p.tournaments || 0} tournoi${p.tournaments > 1 ? 's' : ''})` : '';
+  }
+  function closeSug() { [1, 2].forEach(n => { $('#sug' + n).hidden = true; }); sug.open = false; sug.active = -1; }
+  function pickSuggestion(n, p) {
+    form['l' + n].value = p.last || ''; form['f' + n].value = p.first || ''; form['r' + n].value = p.rank || ''; form['i' + n].value = p.licence || '';
+    setKnown(n, p); closeSug();
+    (n === 1 ? form.l2 : form.date).focus();
+  }
+  function showSug(n) {
+    const box = $('#sug' + n);
+    if (!sug.items.length) { box.hidden = true; sug.open = false; return; }
+    box.innerHTML = sug.items.map((p, i) => `<div class="sg ${i === sug.active ? 'on' : ''}" data-i="${i}"><b>${esc(p.last)}</b> ${esc(p.first)}
+      <span>${p.licence ? 'Lic. ' + esc(p.licence) : ''}${p.rank ? ' · Clt ' + esc(p.rank) : ''}</span><em>${p.tournaments} tournoi${p.tournaments > 1 ? 's' : ''}</em></div>`).join('');
+    box.hidden = false; sug.open = true; sug.n = n;
+    $$('.sg', box).forEach(el => el.onmousedown = e => { e.preventDefault(); pickSuggestion(n, sug.items[+el.dataset.i]); });
+  }
+  ['l', 'f', 'i'].forEach(k => [1, 2].forEach(n => {
+    const inp = form[k + n];
+    inp.addEventListener('input', () => {
+      setKnown(n, null);
+      const q = inp.value.trim();
+      clearTimeout(sug.timer);
+      if (q.length < 2) return closeSug();
+      sug.timer = setTimeout(async () => {
+        const my = ++sug.seq;
+        const d = await A.api('/api/players?q=' + encodeURIComponent(q)).catch(() => ({ players: [] }));
+        if (my !== sug.seq) return;
+        sug.items = d.players || []; sug.active = sug.items.length ? 0 : -1; showSug(n);
+      }, 180);
+    });
+    inp.addEventListener('keydown', e => {
+      if (!sug.open || sug.n !== n) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sug.active = (sug.active + (e.key === 'ArrowDown' ? 1 : -1) + sug.items.length) % sug.items.length; showSug(n); }
+      if (e.key === 'Escape') closeSug();
+    });
+    inp.addEventListener('blur', () => setTimeout(closeSug, 150));
+  }));
+
+  /* ---------- fiche joueur : statistiques et historique (tous clubs) ---------- */
+  async function openPlayer(pl) {
+    let id = pl.playerId;
+    if (!id && (pl.licence || pl.last)) {
+      const d = await A.api('/api/players?q=' + encodeURIComponent(pl.licence || pl.last)).catch(() => ({ players: [] }));
+      const hit = (d.players || []).find(x => (pl.licence && x.licence === pl.licence) || ((x.last || '').toUpperCase() === (pl.last || '').toUpperCase() && (x.first || '').toLowerCase() === (pl.first || '').toLowerCase()));
+      if (hit) id = hit.id;
+    }
+    if (!id) return A.toast('Joueur pas encore dans la base : il y sera ajouté à la clôture du tournoi', 'ok');
+    const d = await A.api('/api/players/' + id);
+    if (d.error) return A.toast(d.error, 'err');
+    openModal(() => playerHtml(d), null, { static: true });
+  }
+  A.openPlayer = openPlayer;
+  function playerHtml(d) {
+    const p = d.player, h = d.history;
+    const wins = h.filter(x => x.place === 1).length, pts = h.reduce((s, x) => s + (x.points || 0), 0);
+    const best = h.length ? Math.min(...h.map(x => x.place)) : null, clubs = new Set(h.map(x => x.club)).size;
+    const place = x => (x.place === 1 ? '🏆 1er' : x.placeLo && x.placeLo !== x.place ? `${x.placeLo}-${x.place}e` : x.place + 'e');
+    return `<span class="eyebrow">Fiche joueur</span><h3>${esc(p.last)} ${esc(p.first)}</h3>
+      <div class="muted">${p.licence ? 'Licence ' + esc(p.licence) : 'Licence non renseignée'}${p.rank ? ' · classement ' + esc(p.rank) : ''}</div>
+      <div class="kpis" style="margin-top:14px"><div><b>${h.length}</b><span>tournois</span></div><div><b>${wins}</b><span>victoire${wins > 1 ? 's' : ''}</span></div>
+        <div><b>${best ? best + (best === 1 ? 'er' : 'e') : '-'}</b><span>meilleur résultat</span></div><div><b>${clubs}</b><span>club${clubs > 1 ? 's' : ''}</span></div></div>
+      <h4>Historique</h4>
+      <table class="tbl"><thead><tr><th>Date</th><th>Tournoi</th><th>Club</th><th>Place</th><th>Points</th><th>Partenaire</th></tr></thead><tbody>
+      ${h.map(x => `<tr><td>${x.date ? new Date(x.date).toLocaleDateString('fr-FR') : ''}</td><td>${esc(x.tournament)} <span class="rk">${esc(x.category || '')}</span></td>
+        <td>${esc(x.club || '')} ${x.mine ? '' : '<span class="tag ghost">Autre club</span>'}</td><td><b>${place(x)}</b> <span class="rk">/ ${x.pairs}</span></td><td>${x.points ?? '-'}</td><td>${esc(x.partner || '')}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Aucun tournoi clôturé pour l\'instant.</td></tr>'}
+      </tbody></table><p class="muted small">Total : ${pts} points FFT estimés sur ces tournois (barème 2027).</p>
+      <div class="btns"><button class="accent" data-close>Fermer</button></div>`;
+  }
 
   $('#pasteBtn').onclick = () => {
     const lines = $('#pasteArea').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -260,7 +374,7 @@
   }
 
   const fmtDate = s => s ? new Date(s).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
-  const plCell = pl => `<b>${esc((pl.last || '').toUpperCase())}</b> ${esc(pl.first || '')} <span class="rk">${pl.rank ? esc(pl.rank) : 'NC'}</span>`;
+  const plCell = (pl, k) => `<span class="pl-link" data-pl="${k}" title="Fiche joueur"><b>${esc((pl.last || '').toUpperCase())}</b> ${esc(pl.first || '')}</span> <span class="rk">${pl.rank ? esc(pl.rank) : 'NC'}</span>${pl.playerId ? ' <span class="known-dot" title="Joueur connu de la base">●</span>' : ''}`;
 
   function pairRows(list, kind) {
     if (!list.length) return `<tr><td class="muted empty">Aucune paire</td></tr>`;
@@ -269,7 +383,7 @@
         const ts = A.seedOf(p.id);
         return `<tr data-id="${p.id}">
           <td class="num">${kind === 'main' && ts ? `<span class="ts">TS${ts}</span>` : i + 1}</td>
-          <td>${plCell(p.p1)}</td><td>${plCell(p.p2)}</td>
+          <td>${plCell(p.p1, 'p1')}</td><td>${plCell(p.p2, 'p2')}</td>
           <td class="num"><b>${E.weightOf(p) >= 99999 ? 'NC' : E.weightOf(p)}</b></td>
           <td>${fmtDate(p.registeredAt)} ${p.wc ? '<span class="tag">WC</span>' : ''}</td>
           <td class="acts">
@@ -291,6 +405,7 @@
     $('#tblWd').innerHTML = pairRows(sel.withdrawn, 'wd');
     $$('#tab-inscriptions tr[data-id]').forEach(tr => {
       const id = tr.dataset.id;
+      $$('[data-pl]', tr).forEach(el => el.onclick = () => openPlayer(A.pairs[id][el.dataset.pl]));
       $$('[data-a]', tr).forEach(b => b.onclick = () => {
         const a = b.dataset.a;
         if (a === 'edit') openPairModal(id);
@@ -511,6 +626,8 @@
             ${live && !live.winner ? `<span class="g">${live.mode === 'game' ? live.games[side] : ''}</span><span class="p">${live.labels[side]}</span>` : ''}</div>
           ${flags[side] ? `<div class="flag">${flags[side]}</div>` : ''}
           <button class="pt" data-pt="${side}" ${!can || r.state === 'done' ? 'disabled' : ''}>+ Point ${side === 'A' ? '(← ou 1)' : '(→ ou 2)'}</button>
+          <div class="games-row"><button class="ghost" data-gm="${side}" ${!can || r.state === 'done' ? 'disabled' : ''} title="Donne le jeu en cours (Maj + ${side === 'A' ? '←' : '→'})">+ Jeu</button>
+            <button class="ghost" data-ugm="${side}" ${!can ? 'disabled' : ''} title="Retire le dernier jeu gagné">− Jeu</button></div>
         </div>`;
       const replaceable = side => {
         const src = side === 'A' ? m.srcA : m.srcB;
@@ -548,6 +665,8 @@
     }, box => {
       const m = S.matches.find(x => x.id === id);
       $$('[data-pt]', box).forEach(b => b.onclick = () => send('match/point', { id, team: b.dataset.pt }));
+      $$('[data-gm]', box).forEach(b => b.onclick = () => send('match/game', { id, team: b.dataset.gm }));
+      $$('[data-ugm]', box).forEach(b => b.onclick = () => send('match/ungame', { id, team: b.dataset.ugm }));
       const u = $('[data-undo]', box); if (u) u.onclick = () => send('match/undoPoint', { id });
       $('[data-srv]', box).onchange = e => send('match/server', { id, team: e.target.value });
       $('[data-fmt]', box).onchange = e => send('match/format', { id, format: e.target.value || null });
@@ -730,11 +849,12 @@
       const line = side => `<div class="lc-row ${sc && sc.server === side && r.state === 'live' ? 'srv' : ''}"><span>${esc(A.sideName(cur, side))}</span>
         ${r.state !== 'live' ? A.restBadge(PS[r[side]]) : ''}
         <b>${sc ? sc.sets.map(s => s.stb ? s.stb[side] : s[side]).join(' ') : ''} ${r.state === 'live' && sc && !sc.manual ? `<em>${sc.mode === 'game' ? sc.games[side] : ''}</em> <u>${sc.labels[side]}</u>` : ''}</b>
-        <button class="pt sm" data-pt="${side}" data-id="${cur.id}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+1</button></div>`;
+        <button class="pt sm" data-pt="${side}" data-id="${cur.id}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'} title="+1 point">+1</button><button class="ghost sm" data-gm="${side}" data-id="${cur.id}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'} title="+1 jeu">+J</button></div>`;
       return `<div class="lcard st-${r.state}"><h4>${esc(c.name)} <span>M${cur.num} · ${esc(E.matchLabel(cur))} · ${r.fk}</span></h4>${line('A')}${line('B')}
         <div class="btns">${r.state === 'ready' ? `<button class="accent sm" data-st="${cur.id}">▶ Lancer</button>` : ''}<button class="ghost sm" data-u="${cur.id}">↶</button><button class="ghost sm" data-o="${cur.id}">Détails</button></div></div>`;
     }).join('');
-    $$('#liveList [data-pt]').forEach(b => b.onclick = () => send('match/point', { id: b.dataset.id, team: b.dataset.pt }));
+    $('#liveList [data-pt]').forEach(b => b.onclick = () => send('match/point', { id: b.dataset.id, team: b.dataset.pt }));
+    $('#liveList [data-gm]').forEach(b => b.onclick = () => send('match/game', { id: b.dataset.id, team: b.dataset.gm }));
     $$('#liveList [data-u]').forEach(b => b.onclick = () => send('match/undoPoint', { id: b.dataset.u }));
     $$('#liveList [data-o]').forEach(b => b.onclick = () => openMatchModal(b.dataset.o));
     $$('#liveList [data-st]').forEach(b => b.onclick = () => startMatch(b.dataset.st));
@@ -801,11 +921,14 @@
         <div class="sp-name">${esc(A.sideName(m, s, 'initial'))}</div>
         <div class="sp-score">${sc ? sc.sets.map(x => `<span>${x.stb ? x.stb[s] : x[s]}</span>`).join('') : ''}${sc && !sc.winner && !sc.manual ? `<span class="g">${sc.mode === 'game' ? sc.games[s] : ''}</span><span class="p">${sc.labels[s]}</span>` : ''}</div>
         ${fl[s] ? `<div class="flag">${fl[s]}</div>` : ''}
-        <button class="pt big" data-spt="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ Point</button></div>`;
+        <button class="pt big" data-spt="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ Point</button>
+        <div class="games-row"><button class="ghost" data-sgm="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ Jeu</button><button class="ghost" data-sugm="${s}">− Jeu</button></div></div>`;
       $('#streamPad').innerHTML = `<div class="sp">${side('A')}${side('B')}</div>
         <div class="btns"><button class="ghost" id="spUndo">↶ Annuler (Retour arrière)</button><button class="ghost" id="spSrv">Changer 1er serveur (S)</button></div>
         <p class="muted small">Raccourcis : <b>←</b> ou <b>1</b> point équipe 1 · <b>→</b> ou <b>2</b> point équipe 2 · <b>Retour arrière</b> annuler · <b>S</b> serveur.</p>`;
-      $$('[data-spt]').forEach(b => b.onclick = () => send('match/point', { id: m.id, team: b.dataset.spt }));
+      $('[data-spt]').forEach(b => b.onclick = () => send('match/point', { id: m.id, team: b.dataset.spt }));
+      $('[data-sgm]').forEach(b => b.onclick = () => send('match/game', { id: m.id, team: b.dataset.sgm }));
+      $('[data-sugm]').forEach(b => b.onclick = () => send('match/ungame', { id: m.id, team: b.dataset.sugm }));
       $('#spUndo').onclick = () => send('match/undoPoint', { id: m.id });
       $('#spSrv').onclick = () => send('match/server', { id: m.id, team: m.firstServer === 'A' ? 'B' : 'A' });
     } else $('#streamPad').innerHTML = '<p class="muted">Choisissez un match à diffuser (« prêt » ou « en cours »).</p>';
@@ -893,6 +1016,7 @@
       <tr><td><kbd>Entrée</kbd></td><td>Valider une inscription</td></tr>
       <tr><td><kbd>1</kbd>…<kbd>9</kbd> (pavé numérique)</td><td>Tirage au sort : retourner la carte portant ce numéro (plusieurs chiffres puis Entrée)</td></tr>
       <tr><td><kbd>←</kbd> / <kbd>1</kbd> · <kbd>→</kbd> / <kbd>2</kbd></td><td>Point équipe 1 / équipe 2 (fiche match ouverte, ou onglet 7)</td></tr>
+      <tr><td><kbd>Maj</kbd>+<kbd>←</kbd> · <kbd>Maj</kbd>+<kbd>→</kbd></td><td>Jeu pour l'équipe 1 / l'équipe 2 (score suivi aux jeux)</td></tr>
       <tr><td><kbd>Retour arrière</kbd></td><td>Annuler le dernier point</td></tr>
       <tr><td><kbd>S</kbd></td><td>Changer le premier serveur</td></tr>
       <tr><td><kbd>T</kbd> <kbd>O</kbd> <kbd>P</kbd> <kbd>D</kbd> <kbd>C</kbd> <kbd>I</kbd> <kbd>G</kbd></td><td>Écran TV : Tableau · Poules · Programmation · Direct · Classement · Infos · Tirage (onglet 7)</td></tr>
@@ -913,6 +1037,7 @@
     const target = modal && modal.opts.matchId ? modal.opts.matchId : (tab === 'diffusion' ? S.display.stream : null);
     if (target) {
       const m = S.matches.find(x => x.id === target);
+      if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); return send('match/game', { id: target, team: e.key === 'ArrowLeft' ? 'A' : 'B' }); }
       if (e.key === 'ArrowLeft' || e.key === '1') { e.preventDefault(); return send('match/point', { id: target, team: 'A' }); }
       if (e.key === 'ArrowRight' || e.key === '2') { e.preventDefault(); return send('match/point', { id: target, team: 'B' }); }
       if (e.key === 'Backspace') { e.preventDefault(); return send('match/undoPoint', { id: target }); }

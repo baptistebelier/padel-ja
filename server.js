@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const Engine = require('./public/js/engine.js');
-const { createStore } = require('./lib/store.js');
+const { createStore, norm } = require('./lib/store.js');
 const Auth = require('./lib/auth.js');
 
 const PORT = +process.env.PORT || 3737;
@@ -94,7 +94,7 @@ setInterval(() => {
 
 /* droits d'accès à un tournoi */
 const VIEW_ACTIONS = new Set(['noop', 'draw/flip', 'draw/flipRandom']);
-const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/server', 'match/start', 'display/set']);
+const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/game', 'match/ungame', 'match/server', 'match/start', 'display/set']);
 async function access(req, url, room) {
   const uid = Auth.sessionUserId(req);
   if (uid && uid === room.row.owner) return 'owner';
@@ -115,6 +115,64 @@ async function newTournament(owner, opts) {
   const row = { id: Auth.randomId(10), owner, key: Auth.randomId(16), pin: Auth.randomPin(), created_at: Date.now(), updated_at: Date.now(), state };
   await store.saveTournament(row);
   return row;
+}
+
+/* action appliquée par le serveur lui-même (clôture, réouverture) */
+function applyServerAction(room, action) {
+  const before = JSON.stringify(room.row.state);
+  const draft = JSON.parse(before);
+  Engine.reduce(draft, action);
+  room.history.push(before); if (room.history.length > 60) room.history.shift();
+  room.row.state = draft; room.rev++; saveRoom(room); broadcast(room);
+}
+
+/* ---------------------------------------------------------------------
+   base de joueurs : un joueur = une licence (ou, à défaut, NOM + prénom)
+   --------------------------------------------------------------------- */
+const publicPlayer = pl => ({ id: pl.id, last: pl.last, first: pl.first, licence: pl.licence, rank: pl.rank });
+async function upsertPlayerFrom(pl, owner) {
+  const licence = String(pl.licence || '').replace(/\s+/g, '');
+  const last = String(pl.last || '').trim().toUpperCase(), first = String(pl.first || '').trim();
+  const nameKey = norm(last) + '|' + norm(first);
+  let p = (pl.playerId && await store.getPlayer(pl.playerId)) || await store.findPlayer(licence, nameKey);
+  const now = Date.now();
+  if (!p) p = { id: 'j' + Auth.randomId(12), created_at: now, created_by: owner };
+  Object.assign(p, { last: last || p.last, first: first || p.first, licence: licence || p.licence || '', rank: pl.rank || p.rank || '', updated_at: now });
+  p.name_key = norm(p.last) + '|' + norm(p.first);
+  p.search = norm(`${p.last} ${p.first} ${p.licence}`);
+  await store.savePlayer(p);
+  return p;
+}
+
+async function closeTournament(room, u) {
+  const T = room.row.state;
+  if (!T.draw || !T.draw.built) return { error: 'Le tirage n\'a pas été fait : rien à clôturer.' };
+  const R = Engine.resolve(T);
+  const left = T.matches.filter(m => !R[m.id].staticBye && R[m.id].state !== 'done').length;
+  const results = Engine.finalResults(T, R);
+  const t = T.tournament;
+  let saved = 0, skipped = 0;
+  if (!u.guest) {
+    await store.deleteParticipationsForTournament(room.row.id);
+    const rows = [];
+    const pname = pl => `${String(pl.last || '').toUpperCase()} ${pl.first || ''}`.trim();
+    for (const res of results) {
+      const pair = T.pairs.find(x => x.id === res.pair);
+      if (!pair || pair.demo) { skipped++; continue; }
+      for (const [pl, mate] of [[pair.p1, pair.p2], [pair.p2, pair.p1]]) {
+        if (!pl || !String(pl.last || '').trim()) continue;
+        const player = await upsertPlayerFrom(pl, u.id);
+        pl.playerId = player.id;
+        rows.push({ id: 'pa' + Auth.randomId(12), player_id: player.id, tournament_id: room.row.id, owner: u.id,
+          t_name: t.name, t_club: t.club, t_category: t.category, t_gender: t.gender, t_date: t.dateStart,
+          place: res.place, place_lo: res.placeLo, points: res.points, partner: pname(mate || {}), n_pairs: results.length, closed_at: Date.now() });
+      }
+    }
+    await store.addParticipations(rows);
+    saved = rows.length;
+  }
+  applyServerAction(room, { type: 'tournament/setClosed', payload: { closed: true } });
+  return { ok: true, saved, skipped, unfinished: left, guest: !!u.guest };
 }
 
 /* comptes « démo » : effacés après 24 h */
@@ -212,12 +270,22 @@ const server = http.createServer(async (req, res) => {
       }
       return json(res, 200, { tournaments: await store.listTournaments(u.id), presets: Engine.PRESETS, mine: await store.getTemplates(u.id) });
     }
-    m = p.match(/^\/api\/tournaments\/([\w-]+)(\/duplicate)?$/);
+    m = p.match(/^\/api\/tournaments\/([\w-]+)(\/duplicate|\/close|\/reopen)?$/);
     if (m) {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
       const room = await getRoom(m[1]);
       if (!room || room.row.owner !== u.id) return json(res, 404, { error: 'Tournoi introuvable' });
-      if (m[2] && req.method === 'POST') {
+      if (m[2] === '/close' && req.method === 'POST') {
+        const r = await closeTournament(room, u);
+        return json(res, 200, r);
+      }
+      if (m[2] === '/reopen' && req.method === 'POST') {
+        // les résultats seront réenregistrés à la prochaine clôture
+        await store.deleteParticipationsForTournament(room.row.id).catch(() => {});
+        applyServerAction(room, { type: 'tournament/setClosed', payload: { closed: false } });
+        return json(res, 200, { ok: true });
+      }
+      if (m[2] === '/duplicate' && req.method === 'POST') {
         // dupliquer = même configuration, sans joueurs ni matchs
         const st = JSON.parse(JSON.stringify(room.row.state));
         Object.assign(st, { pairs: [], draw: null, matches: [], poules: [] });
@@ -229,6 +297,45 @@ const server = http.createServer(async (req, res) => {
         for (const c of room.clients) c.res.end();
         rooms.delete(m[1]); await store.deleteTournament(m[1]);
         return json(res, 200, { ok: true });
+      }
+    }
+
+    /* ---------- API base de joueurs (partagée entre tous les juges-arbitres) ---------- */
+    if (p === '/api/players' || p.startsWith('/api/players/') || p === '/api/club-players') {
+      const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
+      if (u.guest) return json(res, 200, { players: [], guest: true });
+      try {
+        if (p === '/api/players') {
+          const q = String(url.searchParams.get('q') || '').trim();
+          if (q.length < 2) return json(res, 200, { players: [] });
+          const players = await store.searchPlayers(q, 8);
+          const parts = await store.participationsOfPlayers(players.map(x => x.id));
+          return json(res, 200, { players: players.map(pl => Object.assign(publicPlayer(pl), { tournaments: parts.filter(x => x.player_id === pl.id).length })) });
+        }
+        if (p === '/api/club-players') {
+          // joueurs les plus fidèles aux tournois de ce juge-arbitre
+          const parts = await store.participationsOf('owner', u.id);
+          const agg = {};
+          parts.forEach(x => {
+            const a = agg[x.player_id] = agg[x.player_id] || { id: x.player_id, count: 0, best: null, points: 0, last: 0, wins: 0 };
+            a.count++; a.points += x.points || 0; a.last = Math.max(a.last, x.closed_at || 0);
+            if (a.best == null || x.place < a.best) a.best = x.place;
+            if (x.place === 1) a.wins++;
+          });
+          const top = Object.values(agg).sort((a, b) => b.count - a.count || b.points - a.points).slice(0, 60);
+          const players = await store.getPlayers(top.map(x => x.id));
+          const tours = new Set(parts.map(x => x.tournament_id)).size;
+          return json(res, 200, { tournaments: tours, players: top.map(a => Object.assign(a, publicPlayer(players.find(pl => pl.id === a.id) || {}))) });
+        }
+        const pid = p.split('/')[3];
+        const pl = await store.getPlayer(pid);
+        if (!pl) return json(res, 404, { error: 'Joueur introuvable' });
+        const parts = (await store.participationsOf('player_id', pid)).sort((a, b) => (b.closed_at || 0) - (a.closed_at || 0));
+        return json(res, 200, { player: publicPlayer(pl), history: parts.map(x => ({ tournament: x.t_name, club: x.t_club, category: x.t_category, gender: x.t_gender,
+          date: x.t_date, place: x.place, placeLo: x.place_lo, points: x.points, partner: x.partner, pairs: x.n_pairs, mine: x.owner === u.id })) });
+      } catch (e) {
+        if (/players|participations/.test(e.message) && /404|PGRST20|does not exist|relation/.test(e.message)) return json(res, 503, { error: 'Base de joueurs pas encore installée : exécutez supabase-v2.sql dans Supabase.', setup: true });
+        throw e;
       }
     }
 
@@ -290,6 +397,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (what === 'undo' && req.method === 'POST') {
         if (level !== 'owner') return json(res, 403, { error: 'Réservé au juge-arbitre' });
+        if (room.row.state.tournament.closed) return json(res, 403, { error: 'Tournoi clôturé : rouvrez-le pour le modifier.' });
         if (room.history.length) { room.row.state = JSON.parse(room.history.pop()); room.rev++; saveRoom(room); broadcast(room); }
         return json(res, 200, { ok: true });
       }
@@ -301,7 +409,7 @@ const server = http.createServer(async (req, res) => {
         const before = JSON.stringify(room.row.state);
         const draft = JSON.parse(before);
         try { Engine.reduce(draft, action); } catch (e) { return json(res, 400, { error: e.message }); }
-        if (!/^match\/(point|undoPoint)$/.test(action.type)) { room.history.push(before); if (room.history.length > 60) room.history.shift(); }
+        if (!/^match\/(point|undoPoint|game|ungame)$/.test(action.type)) { room.history.push(before); if (room.history.length > 60) room.history.shift(); }
         room.row.state = draft; room.rev++; saveRoom(room); broadcast(room);
         return json(res, 200, { ok: true, rev: room.rev });
       }

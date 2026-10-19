@@ -70,7 +70,8 @@ button { cursor: pointer; }
       const team = s => `<div class="team ${live && sc.server === s ? 'srv' : ''}"><div class="tn">${live && sc.server === s ? '● ' : ''}${esc(A.sideName(m, s, 'initial'))}</div>
         <div class="ts">${sc ? sc.sets.map(x => `<span class="${x.w === s ? 'w' : ''}">${x.stb ? x.stb[s] : x[s]}</span>`).join('') : ''}${live ? `${sc.mode === 'game' ? `<span class="g">${sc.games[s]}</span>` : ''}<span class="p">${sc.labels[s]}</span>` : ''}</div>
         <div class="flag">${fl[s] || ''}</div>
-        <button class="big" data-p="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ POINT</button></div>`;
+        <button class="big" data-p="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ POINT</button>
+        <div class="row"><button data-g="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ JEU</button><button data-ug="${s}">− JEU</button></div></div>`;
       h += `<div class="muted">${esc(E.matchLabel(m))} · Format ${r.fk}${r.state === 'done' ? ' · <b>Terminé</b>' : ''}${fl.decisive ? ' · <b style="color:var(--accent2)">POINT DÉCISIF</b>' : ''}</div>
         ${team('A')}${team('B')}
         <div class="row"><button id="undo">↶ Annuler</button><button id="srv">Changer serveur</button></div>
@@ -80,6 +81,8 @@ button { cursor: pointer; }
     document.getElementById('ms').onchange = e => { sel = e.target.value; try { localStorage.setItem('padelja-remote-match', sel); } catch (_) {} render(A.state); };
     if (m) {
       app.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { if (navigator.vibrate) navigator.vibrate(30); A.send('match/point', { id: m.id, team: b.dataset.p }); });
+      app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => A.send('match/game', { id: m.id, team: b.dataset.g }));
+      app.querySelectorAll('[data-ug]').forEach(b => b.onclick = () => A.send('match/ungame', { id: m.id, team: b.dataset.ug }));
       document.getElementById('undo').onclick = () => A.send('match/undoPoint', { id: m.id });
       document.getElementById('srv').onclick = () => A.send('match/server', { id: m.id, team: m.firstServer === 'A' ? 'B' : 'A' });
       document.getElementById('stream').onclick = () => A.send('display/set', { stream: m.id });

@@ -118,6 +118,18 @@
     };
   }
 
+  /* découpage de l'historique des points en jeux (pour ajouter / retirer un jeu) */
+  const gameKey = sc => `${sc.sets.length}:${sc.games.A}:${sc.games.B}`;
+  function gameSegments(fk, points, firstServer) {
+    const out = [];
+    let from = 0, prev = gameKey(computeScore(fk, [], firstServer));
+    for (let i = 1; i <= (points || []).length; i++) {
+      const k = gameKey(computeScore(fk, points.slice(0, i), firstServer));
+      if (k !== prev) { out.push({ from, to: i, w: points[i - 1] }); from = i; prev = k; }
+    }
+    return out;
+  }
+
   function pointLabels(p, mode, decisive) {
     if (mode !== 'game') return { A: String(p.A), B: String(p.B) };
     const L = ['0', '15', '30', '40'];
@@ -995,6 +1007,18 @@
      Chaque paire est placée dans la fourchette de places encore possible :
      au départ un seul bloc, qui se scinde au fil des tours.
      --------------------------------------------------------------------- */
+  /* résultats à la clôture : place exacte, sinon la moins favorable de la fourchette
+     (règle FFT pour les matchs de classement non disputés) */
+  function finalResults(T, R) {
+    const LS = liveStandings(T, R);
+    const out = [];
+    LS.groups.forEach(g => g.pairs.forEach(p => {
+      const place = g.exact ? g.lo : g.hi;
+      out.push({ pair: p, place, placeLo: g.lo, placeHi: g.hi, exact: g.exact, points: pointsFor(T, place, LS.N) });
+    }));
+    return out.sort((a, b) => a.place - b.place);
+  }
+
   function liveStandings(T, R) {
     R = R || resolve(T);
     const D = T.draw;
@@ -1130,6 +1154,8 @@
   function reduce(T, action, rand) {
     const p = action.payload || {};
     const now = Date.now();
+    if (T.tournament && T.tournament.closed && !['noop', 'display/set', 'tournament/setClosed'].includes(action.type))
+      throw new Error('Tournoi clôturé : rouvrez-le pour le modifier.');
     switch (action.type) {
       case 'noop': break;
       case 'tournament/update': Object.assign(T.tournament, p); break;
@@ -1165,6 +1191,12 @@
       case 'draw/flipRandom': flipCard(T, null, rand); if (T.draw.built && !T.matches.some(m => m.court)) autoSchedule(T); break;
       case 'draw/auto': while (currentPot(T.draw)) flipCard(T, null, rand); if (!T.draw.built) buildAll(T); if (!T.matches.some(m => m.court)) autoSchedule(T); break;
       case 'draw/reset': T.draw = null; T.matches = []; T.poules = []; T.pairs.forEach(x => { delete x.tie; }); break;
+      case 'tournament/reset':
+        if (p.level === 'scores') T.matches.forEach(m => Object.assign(m, { points: [], manual: null, wo: null, status: 'pending', startedAt: null, endedAt: null }));
+        if (p.level === 'draw' || p.level === 'all') { T.draw = null; T.matches = []; T.poules = []; T.pairs.forEach(x => { delete x.tie; }); }
+        if (p.level === 'all') T.pairs = [];
+        break;
+      case 'tournament/setClosed': T.tournament.closed = !!p.closed; T.tournament.closedAt = p.closed ? (p.at || now) : null; break;
       case 'draw/replace': replacePair(T, p.oldId, p.newId); break;
 
       case 'match/point': {
@@ -1174,6 +1206,30 @@
         m.manual = null; m.wo = null;
         m.points.push(p.team === 'B' ? 'B' : 'A');
         if (m.status === 'pending') { m.status = 'live'; m.startedAt = m.startedAt || now; }
+        afterScore(T, m); break;
+      }
+      case 'match/game': {          // donne le jeu en cours à une équipe (score suivi aux jeux)
+        const m = findMatch(T, p.id);
+        const r = resolve(T)[m.id];
+        if (r.state === 'done' || r.state === 'waiting' || r.state === 'bye') break;
+        m.manual = null; m.wo = null;
+        const team = p.team === 'B' ? 'B' : 'A';
+        const fk = r.fk, k0 = gameKey(computeScore(fk, m.points, m.firstServer));
+        for (let i = 0; i < 40; i++) {
+          m.points.push(team);
+          const sc = computeScore(fk, m.points, m.firstServer);
+          if (gameKey(sc) !== k0 || sc.winner) break;
+        }
+        if (m.status === 'pending') { m.status = 'live'; m.startedAt = m.startedAt || now; }
+        afterScore(T, m); break;
+      }
+      case 'match/ungame': {        // retire le dernier jeu gagné par une équipe
+        const m = findMatch(T, p.id);
+        const team = p.team === 'B' ? 'B' : 'A';
+        const seg = gameSegments(formatOf(T, m), m.points, m.firstServer).filter(g => g.w === team).pop();
+        if (!seg) throw new Error('Aucun jeu à retirer pour cette équipe.');
+        m.points.splice(seg.from, seg.to - seg.from);
+        if (m.status === 'done') m.status = 'live';
         afterScore(T, m); break;
       }
       case 'match/undoPoint': { const m = findMatch(T, p.id); m.points.pop(); if (m.status === 'done') m.status = 'live'; afterScore(T, m); break; }
@@ -1247,7 +1303,7 @@
         id: uid('p'),
         p1: { last: names[(i * 2) % names.length], first: first[(i * 2) % first.length], rank: String(300 + Math.floor(rand() * 4000)), licence: String(1000000 + Math.floor(rand() * 8999999)) },
         p2: { last: names[(i * 2 + 1) % names.length], first: first[(i * 2 + 1) % first.length], rank: String(300 + Math.floor(rand() * 4000)), licence: String(1000000 + Math.floor(rand() * 8999999)) },
-        registeredAt: d.toISOString().slice(0, 16), withdrawn: false, wc: false, note: ''
+        registeredAt: d.toISOString().slice(0, 16), withdrawn: false, wc: false, note: '', demo: true   // jamais enregistrée dans la base de joueurs
       });
     }
   }
@@ -1257,7 +1313,7 @@
     computeScore, pointFlags, pointLabels, setsText, scoreText, winnerScoreText, manualToSets,
     weightOf, rankOf, isPair, tokenLabel, selection, plan, pouleSizes, seedOrder, nextPow2, defaultSeeds,
     prepareDraw, currentPot, sessionSlots, posLabel, buildAll, matchLabel, formatOf,
-    resolve, pouleStandings, standings, matchKey, orderedMatches, orderIssues, previewStructure, timeline, autoSchedule, depsOf, pairsStatus, dayChecks, restMsAfter,
+    resolve, pouleStandings, standings, finalResults, matchKey, orderedMatches, orderIssues, previewStructure, timeline, autoSchedule, depsOf, pairsStatus, dayChecks, restMsAfter,
     checkRules, initialState, migrate, reduce, localNow
   };
 });

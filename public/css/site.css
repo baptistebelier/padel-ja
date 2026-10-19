@@ -133,3 +133,30 @@ h2 { font-size: clamp(36px, 6vw, 64px); transform: rotate(-1.5deg); transform-or
   .nav-r > a:not(.btn) { display: none; }
   .cards-demo { right: 0; }
 }
+
+/* ---------- joueurs (tableau de bord) ---------- */
+.closed-on { color: var(--accent) !important; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 12px !important; margin: 0 0 8px !important; }
+.psearch { position: relative; margin-bottom: 18px; }
+.psearch input { width: 100%; background: var(--ink); border: 2px solid var(--line2); padding: 12px 14px; font: 15px var(--body); color: var(--white); outline: none; }
+.psearch input:focus { border-color: var(--accent); }
+.pres { display: grid; gap: 4px; margin-top: 6px; }
+.pr2 { padding: 8px 12px; background: var(--card); border: 2px solid var(--line2); cursor: pointer; }
+.pr2:hover { border-color: var(--accent); }
+.pr2 span { color: var(--mut); font-size: 13px; margin-left: 6px; }
+.ptable { border: 2px solid var(--line2); overflow-x: auto; }
+.ptable .ph, .ptable .pr { display: grid; grid-template-columns: 44px minmax(160px, 2fr) 90px 90px 90px 80px; gap: 8px; padding: 8px 12px; align-items: center; min-width: 600px; }
+.ptable .ph { background: var(--white); color: var(--ink); font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; }
+.ptable .pr { border-top: 1px solid #ffffff10; cursor: pointer; font-size: 14px; }
+.ptable .pr:hover { background: #ffffff08; }
+.ptable.hist .ph, .ptable.hist .pr { grid-template-columns: 90px minmax(160px, 2fr) 1.4fr 90px 60px 1.4fr; cursor: default; }
+.ptable i { font-style: normal; color: var(--mut); font-size: 12px; }
+.ptable .oc { color: var(--accent2); }
+.pmodal { position: fixed; inset: 0; z-index: 60; background: #000000d0; display: grid; place-items: center; padding: 16px; }
+.pmodal[hidden] { display: none; }
+.pmodal-box { width: min(980px, 100%); max-height: 92vh; overflow: auto; background: var(--card); border: 2px solid var(--white); box-shadow: 10px 10px 0 var(--accent); padding: 24px; }
+.pmodal-box h2 { font-size: 40px; margin: 6px 0; transform: none; }
+.pk { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+.pk div { border: 2px solid var(--line2); padding: 10px 12px; }
+.pk b { display: block; font-family: var(--display); font-weight: 400; font-size: 34px; color: var(--accent); line-height: 1; }
+.pk span { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 12px; color: var(--mut); }
+@media (max-width: 720px) { .pk { grid-template-columns: 1fr 1fr; } .pmodal { padding: 0; } .pmodal-box { max-height: 100vh; height: 100%; border: 0; box-shadow: none; } }

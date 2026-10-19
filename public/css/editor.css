@@ -394,3 +394,28 @@ fieldset input { min-width: 0; width: 100%; }
 .ord.bad { border-color: var(--warn); }
 .ord.st-done { opacity: .5; } .ord.st-live { border-color: var(--accent2); }
 @media (max-width: 720px) { .order-list { grid-template-columns: 1fr; } }
+
+/* ---------- base de joueurs ---------- */
+.pl-fs { position: relative; }
+.pl-known { color: var(--accent); text-transform: none; letter-spacing: 0; font-weight: 600; }
+.suggest { position: absolute; left: 0; right: 0; top: 100%; z-index: 30; background: var(--card); border: 2px solid var(--accent); box-shadow: 6px 6px 0 #000; max-height: 320px; overflow: auto; }
+.sg { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #ffffff10; font-size: 13.5px; }
+.sg b { font-family: var(--label); letter-spacing: .04em; }
+.sg span { grid-column: 1 / 3; color: var(--mut); font-size: 12px; }
+.sg em { grid-row: 1 / 3; grid-column: 3; align-self: center; font-style: normal; font-family: var(--label); font-weight: 700; text-transform: uppercase; font-size: 11.5px; color: var(--accent); }
+.sg.on, .sg:hover { background: #E0F50A18; }
+.pl-link { cursor: pointer; border-bottom: 1px dashed #ffffff40; }
+.pl-link:hover { color: var(--accent); border-color: var(--accent); }
+.known-dot { color: var(--accent); font-size: 10px; }
+
+/* ---------- tournoi clôturé ---------- */
+.closed-bar { position: relative; z-index: 3; background: var(--white); color: var(--ink); text-align: center; padding: 7px 12px; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
+.closed-bar[hidden] { display: none; }
+.closed-bar button { margin-left: 10px; padding: 3px 10px; font-size: 12px; background: var(--ink); color: var(--white); border-color: var(--ink); }
+.is-closed #addPair, .is-closed .pairform { opacity: .45; pointer-events: none; }
+.manage h4 { margin-top: 20px; }
+
+/* ---------- ajout / retrait de jeux ---------- */
+.games-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.games-row button { padding: 8px; }
+.lc-row .ghost.sm[data-gm] { padding: 4px 8px; }
