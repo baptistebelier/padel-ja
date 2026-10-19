@@ -181,7 +181,7 @@ body.pointer { cursor: default; }
 /* ---------- bandeau ---------- */
 .tvf { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; background: var(--accent); color: var(--ink); overflow: hidden; display: flex; align-items: center; z-index: 2; }
 .tick { overflow: hidden; width: 100%; }
-.tick-in { display: inline-flex; white-space: nowrap; animation: tick 30s linear infinite; font-family: var(--label); font-size: 30px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
+.tick-in { display: inline-flex; white-space: nowrap; will-change: transform; font-family: var(--label); font-size: 30px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
 .ti-run { display: inline-flex; align-items: center; }
 .ti-msg, .ti-sp { display: inline-flex; align-items: center; gap: 14px; padding: 0 34px; }
 .ti-sp img { height: 46px; max-width: 220px; object-fit: contain; }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Padel JA — /RAM</title>
-<link rel="icon" href="/img/ram-logo-rouge-blanc.png">
+<link rel="icon" type="image/png" href="/img/favicon.png">
 <link rel="stylesheet" href="/css/ram.css">
 <link rel="stylesheet" href="/css/editor.css">
 </head>
@@ -202,6 +202,21 @@
   <!-- ===================== 05 PROGRAMMATION ===================== -->
   <section id="tab-programmation" class="tab">
     <h2 class="ptitle"><span class="band lime">Programmation</span></h2>
+    <div class="card" id="orderCard">
+      <div class="row-between">
+        <div><span class="eyebrow">Scénario</span><h3>Ordre des matchs <small class="muted" id="orderState"></small></h3></div>
+        <div class="btns" style="margin:0">
+          <button class="ghost" id="orderReset">Revenir à l'ordre standard</button>
+          <button class="ghost" id="orderTpl">Enregistrer dans un modèle</button>
+          <button class="ghost sq" id="orderFold" title="Replier / déplier">▾</button>
+        </div>
+      </div>
+      <div id="orderBody">
+        <p class="muted small">Glissez-déposez les matchs pour choisir le M1, le M2, etc. : quand commencer les matchs de classement, mettre la finale en dernier… Les terrains sont ensuite programmés dans cet ordre (avant le début du tournoi). Un match n'est jamais programmé avant ceux dont il dépend. Enregistrez l'ordre dans un modèle pour le retrouver à chaque tournoi.</p>
+        <div id="orderWarn"></div>
+        <div id="orderList" class="order-list"></div>
+      </div>
+    </div>
     <div class="card">
       <div class="row-between">
         <p class="muted" style="margin:0">Glissez-déposez les matchs entre terrains. Les horaires tiennent compte des durées et des repos obligatoires (A : 1h30, B : 1h, C/D : 30 min, F : 15 min).</p>

@@ -43,7 +43,7 @@
     $('#hSub').textContent = [E.FORMULAS[t.formula || 'tf'], t.club, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ');
     $('#btnUndo').disabled = !A.canUndo;
     const ann = [`${t.name}`, `${t.category} ${t.gender}`, t.club, t.balls && 'Balles : ' + t.balls, t.prize].concat((t.sponsors || []).map(s => s.name)).concat('/RAM — Rise And Move').filter(Boolean).join('   ✦   ');
-    const an = $('#annonce'); if (an.dataset.t !== ann) { an.dataset.t = ann; an.innerHTML = `<span>${esc(ann)}</span><span>${esc(ann)}</span>`; }
+    A.marquee($('#annonce'), `<span>${esc(ann)}</span>`, 60);
     ({ tournoi: renderTournoi, inscriptions: renderInscriptions, tirage: renderTirage, tableaux: renderTableaux, programmation: renderSched,
        direct: renderDirect, diffusion: renderDiffusion })[tab]();
     if (modal) modal.render();
@@ -613,7 +613,69 @@
         </span></div></div>`;
   }
 
+  /* ---------- ordre des matchs (M1, M2…) : glisser-déposer ---------- */
+  let orderDrag = null;
+  try { if (localStorage.getItem('padelja-order-fold') === '1') $('#orderBody').hidden = true; } catch (e) {}
+  $('#orderFold').onclick = () => { const b = $('#orderBody'); b.hidden = !b.hidden; try { localStorage.setItem('padelja-order-fold', b.hidden ? '1' : '0'); } catch (e) {} };
+  $('#orderReset').onclick = () => confirm('Revenir à l\'ordre standard des matchs ?') && send('order/reset');
+  $('#orderTpl').onclick = () => { setTab('tournoi'); setTimeout(() => $('#tplSave').click(), 50); };
+
+  function renderOrder() {
+    const real = !!(S.draw && S.draw.built);
+    const X = real ? S : E.previewStructure(S);
+    const box = $('#orderList');
+    if (!X) { box.innerHTML = '<p class="muted">Ajoutez des paires (ou réglez le nombre de paires) pour voir l\'ordre des matchs.</p>'; $('#orderWarn').innerHTML = ''; return; }
+    const RX = real ? R : E.resolve(X);
+    const list = E.orderedMatches(X, RX);
+    const byId = {}; X.matches.forEach(m => { byId[m.id] = m; });
+    const src = s => {
+      if (!s) return '';
+      if (s.poule) return (s.rank === 1 ? '1er' : s.rank + 'e') + ' poule ' + s.poule;
+      if (s.from) return (s.take === 'W' ? 'V. M' : 'P. M') + byId[s.from].num;
+      return real ? A.pairName(s.pair, 'last') : (s.pair === 'BYE' ? 'Exempt' : 'Tirage');
+    };
+    const custom = Array.isArray(S.order) && S.order.length;
+    $('#orderState').textContent = (custom ? '· ordre personnalisé' : '· ordre standard') + (real ? '' : ` · aperçu avant tirage (${list.length} matchs)`);
+    $('#orderReset').disabled = !custom;
+    const issues = E.orderIssues(X, RX);
+    $('#orderWarn').innerHTML = issues.length ? `<div class="alert warn">${issues.map(i => `M${i.num} est placé avant M${i.after.join(', M')} dont il dépend`).join(' · ')} : il sera programmé après eux sur les terrains.</div>` : '';
+    const bad = new Set(issues.map(i => i.id));
+    const sig = list.map(m => m.id + (RX[m.id].state) + (real ? (RX[m.id].A || '') + (RX[m.id].B || '') : '')).join(',') + custom + issues.length;
+    if (box.dataset.sig === sig) return;
+    box.dataset.sig = sig;
+    box.innerHTML = list.map((m, i) => {
+      const r = RX[m.id];
+      const who = real && r.A && r.B ? `${esc(A.pairName(r.A, 'last'))} – ${esc(A.pairName(r.B, 'last'))}` : `${esc(src(m.srcA))} – ${esc(src(m.srcB))}`;
+      return `<div class="ord ph-${m.phase} ${m.a === 1 && m.phase === 'TF' ? 'main' : ''} ${bad.has(m.id) ? 'bad' : ''} st-${r.state}" draggable="true" data-k="${E.matchKey(m)}">
+        <b>M${m.num}</b><div><span class="ord-l">${esc(E.matchLabel(m))}</span><span class="ord-w">${who}</span></div>
+        <span class="ord-btn"><button class="sm ghost" data-mv="-1" title="Avancer">▲</button><button class="sm ghost" data-mv="1" title="Reculer">▼</button></span></div>`;
+    }).join('');
+    const keysNow = () => $$('.ord', box).map(el => el.dataset.k);
+    const commit = keys => send('order/set', { keys });
+    $$('.ord', box).forEach(el => {
+      el.ondragstart = e => { orderDrag = el; dragging = true; el.classList.add('drag'); e.dataTransfer.setData('text/plain', el.dataset.k); };
+      el.ondragend = () => { dragging = false; el.classList.remove('drag'); $$('.ord.over', box).forEach(x => x.classList.remove('over')); };
+      el.ondragover = e => { e.preventDefault(); if (el !== orderDrag) el.classList.add('over'); };
+      el.ondragleave = () => el.classList.remove('over');
+      el.ondrop = e => {
+        e.preventDefault(); el.classList.remove('over');
+        if (!orderDrag || orderDrag === el) return;
+        const keys = keysNow().filter(k => k !== orderDrag.dataset.k);
+        const r = el.getBoundingClientRect();
+        const after = e.clientX > r.left + r.width / 2;
+        keys.splice(keys.indexOf(el.dataset.k) + (after ? 1 : 0), 0, orderDrag.dataset.k);
+        dragging = false; commit(keys);
+      };
+      $$('[data-mv]', el).forEach(b => b.onclick = () => {
+        const keys = keysNow(), i = keys.indexOf(el.dataset.k), j = i + +b.dataset.mv;
+        if (j < 0 || j >= keys.length) return;
+        [keys[i], keys[j]] = [keys[j], keys[i]]; commit(keys);
+      });
+    });
+  }
+
   function renderSched() {
+    renderOrder();
     if (!S.draw || !S.draw.built) { $('#sched').innerHTML = '<p class="muted">Effectuez le tirage au sort pour programmer les matchs.</p>'; $('#schedWarn').innerHTML = ''; return; }
     const tl = E.timeline(S, R), PS = E.pairsStatus(S, R, tl);
     const W = E.dayChecks(S, R, tl);

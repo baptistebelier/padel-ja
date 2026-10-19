@@ -117,3 +117,7 @@ body[data-look] #stage::before { transition: opacity .6s; }
 /* --- polices : petits ajustements de chasse --- */
 .look-font-montserrat .t-name, .look-font-archivo .t-name { font-size: 46px; }
 .look-font-marker .t-name { letter-spacing: .02em; }
+
+/* bandeau défilant continu (App.marquee) */
+.mq-u { display: inline-flex; align-items: center; flex: none; white-space: nowrap; }
+@keyframes mqx { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }

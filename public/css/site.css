@@ -23,7 +23,7 @@ h2 { font-size: clamp(36px, 6vw, 64px); transform: rotate(-1.5deg); transform-or
 
 /* bandeau défilant */
 .annonce { background: var(--accent); color: var(--ink); overflow: hidden; height: 34px; display: flex; align-items: center; font-family: var(--label); font-weight: 800; text-transform: uppercase; letter-spacing: .14em; font-size: 14px; }
-.annonce-in { white-space: nowrap; display: inline-flex; animation: mq 34s linear infinite; }
+.annonce-in { white-space: nowrap; display: inline-flex; animation: mq 60s linear infinite; will-change: transform; }
 .annonce-in span { padding-right: 60px; }
 @keyframes mq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 

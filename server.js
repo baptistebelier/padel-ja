@@ -143,7 +143,7 @@ const server = http.createServer(async (req, res) => {
   try {
     /* ---------- fichiers statiques ---------- */
     if (/^\/(css|js|img|fonts)\//.test(p) || p === '/manifest.webmanifest') return sendFile(res, p);
-    if (p === '/favicon.ico') return sendFile(res, '/img/ram-logo-rouge-blanc.png');
+    if (p === '/favicon.ico') return sendFile(res, '/img/favicon.png');
 
     /* ---------- pages ---------- */
     if (p === '/') return sendFile(res, '/landing.html');

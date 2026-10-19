@@ -471,11 +471,55 @@
     numberMatches(T);
   }
 
+  /* ---------------------------------------------------------------------
+     ORDRE DES MATCHS (M1, M2…) — standard ou personnalisé par le club.
+     Chaque match a une clé « structurelle » (phase, places, tour, rang) qui reste
+     la même d'un tournoi à l'autre : l'ordre peut donc être gardé dans un modèle.
+     --------------------------------------------------------------------- */
+  function matchKey(m) {
+    if (m.phase === 'P') return `P:${m.poule}:${m.depth}:${m.idx}`;
+    if (m.phase === 'Q') return `Q:${m.size}:${m.idx}`;
+    return `TF:${m.a}:${m.size}:${m.idx}`;
+  }
+  const standardCmp = (x, y) => PHASE_ORDER[x.phase] - PHASE_ORDER[y.phase] || x.depth - y.depth || x.a - y.a || x.idx - y.idx;
+  function orderedMatches(T, R) {
+    R = R || resolve(T);
+    const list = T.matches.filter(m => !R[m.id].staticBye);
+    if (!Array.isArray(T.order) || !T.order.length) return list.sort(standardCmp);
+    const pos = {}; T.order.forEach((k, i) => { pos[k] = i; });
+    const P = m => (matchKey(m) in pos ? pos[matchKey(m)] : 1e6);
+    return list.sort((x, y) => P(x) - P(y) || standardCmp(x, y));
+  }
   function numberMatches(T) {
-    const R = resolve(T);
-    T.matches.filter(m => !R[m.id].staticBye)
-      .sort((x, y) => PHASE_ORDER[x.phase] - PHASE_ORDER[y.phase] || x.depth - y.depth || x.a - y.a || x.idx - y.idx)
-      .forEach((m, i) => { m.num = i + 1; });
+    orderedMatches(T).forEach((m, i) => { m.num = i + 1; });
+  }
+  /* matchs placés avant un match dont ils dépendent */
+  function orderIssues(T, R) {
+    R = R || resolve(T);
+    const byId = {}; T.matches.forEach(m => { byId[m.id] = m; });
+    const out = [];
+    T.matches.forEach(m => {
+      if (R[m.id].staticBye) return;
+      const late = depsOf(T, m).map(id => byId[id]).filter(d => d && !R[d.id].staticBye && d.num > m.num);
+      if (late.length) out.push({ id: m.id, num: m.num, after: late.map(d => d.num) });
+    });
+    return out;
+  }
+  /* structure des matchs avant le tirage (simulation avec des paires fictives) */
+  function previewStructure(T) {
+    const t = T.tournament;
+    const N = selection(T).main.length || +t.maxPairs || 0;
+    if (N < 2) return null;
+    const X = { tournament: JSON.parse(JSON.stringify(t)), courts: T.courts, draw: null, matches: [], poules: [], order: T.order || null,
+      pairs: Array.from({ length: N }, (_, i) => ({ id: 'px' + i, p1: { last: 'Paire', first: '', rank: String(i + 1) }, p2: { last: String(i + 1), first: '', rank: '0' }, registeredAt: '', withdrawn: false })) };
+    X.tournament.maxPairs = N;
+    let seed = 7; const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    try {
+      X.draw = prepareDraw(X, { method: 'auto' }, rand);
+      while (currentPot(X.draw)) flipCard(X, null, rand);
+      if (!X.draw.built) buildAll(X);
+    } catch (e) { return null; }
+    return X;
   }
 
   function matchLabel(m) {
@@ -726,8 +770,16 @@
       end[id] = kept[id].end;
       const r = R[id]; [r.A, r.B].forEach(p => { if (p) pairFree[p] = Math.max(pairFree[p] || 0, kept[id].end + (r.state === 'done' ? restOf(r.fk) : restOf(r.fk))); });
     });
-    const todo = T.matches.filter(m => !R[m.id].staticBye && !m.court && R[m.id].state !== 'done').sort(sortKey);
-    // les poules se jouent tour par tour, en alternant les poules
+    const rest = T.matches.filter(m => !R[m.id].staticBye && !m.court && R[m.id].state !== 'done').sort((x, y) => x.num - y.num || sortKey(x, y));
+    // on suit l'ordre M1, M2… mais un match ne passe jamais avant ceux dont il dépend
+    const placed = new Set(Object.keys(end));
+    const needs = m => depsOf(T, m).filter(id => !R[id].staticBye && R[id].state !== 'done' && !placed.has(id));
+    const todo = [];
+    while (rest.length) {
+      const i = rest.findIndex(m => needs(m).every(id => !rest.some(x => x.id === id)));
+      const m = rest.splice(i < 0 ? 0 : i, 1)[0];
+      todo.push(m); placed.add(m.id);
+    }
     for (const m of todo) {
       const r = R[m.id];
       let ready = started ? now : 0;
@@ -903,7 +955,7 @@
   function templateFromState(T, name, desc) {
     const fields = {};
     TEMPLATE_FIELDS.forEach(k => { fields[k] = T.tournament[k]; });
-    return { id: uid('t'), name: name || 'Mon modèle', desc: desc || '', fields, courts: T.courts.map(c => ({ name: c.name, start: c.start })), createdAt: Date.now() };
+    return { id: uid('t'), name: name || 'Mon modèle', desc: desc || '', fields, courts: T.courts.map(c => ({ name: c.name, start: c.start })), order: Array.isArray(T.order) && T.order.length ? T.order.slice() : null, createdAt: Date.now() };
   }
 
   function applyTemplate(T, tpl) {
@@ -912,6 +964,7 @@
     TEMPLATE_FIELDS.forEach(k => { if (k in f) T.tournament[k] = f[k]; });
     ['formatQuarter', 'formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif'].forEach(k => { if (!(k in f)) T.tournament[k] = ''; });
     if (tpl.courts && tpl.courts.length) T.courts = tpl.courts.map((c, i) => ({ id: 'c' + (i + 1), name: c.name, start: c.start }));
+    T.order = Array.isArray(tpl.order) && tpl.order.length ? tpl.order.slice() : null;
     T.tournament.template = tpl.name;
   }
 
@@ -1022,7 +1075,7 @@
         colors: Object.assign({}, RAM_COLORS), look: Object.assign({}, DEFAULT_LOOK), logo: '', sponsors: []
       },
       courts: [{ id: 'c1', name: 'Terrain 1', start: '09:00' }, { id: 'c2', name: 'Terrain 2', start: '09:00' }, { id: 'c3', name: 'Terrain 3', start: '09:00' }],
-      pairs: [], draw: null, matches: [], poules: [],
+      pairs: [], draw: null, matches: [], poules: [], order: null,
       display: { tv: 'bracket', rotate: false, rotateSec: 20, rotateViews: ['bracket', 'poules', 'schedule', 'live', 'standings'], stream: null, overlay: 'green', ticker: '' }
     };
   }
@@ -1038,6 +1091,7 @@
     T.courts = T.courts || base.courts;
     T.pairs = T.pairs || [];
     T.poules = T.poules || [];
+    if (!Array.isArray(T.order)) T.order = null;
     T.matches = (T.matches || []).map(m => Object.assign(newMatch(m.id), m));
     if (T.draw && !T.draw.sessions) {
       const old = T.draw, fill = {};
@@ -1138,6 +1192,16 @@
       case 'match/format': { const m = findMatch(T, p.id); m.format = p.format || null; break; }
 
       case 'schedule/auto': autoSchedule(T); break;
+      case 'order/set':
+      case 'order/reset': {
+        T.order = action.type === 'order/set' && Array.isArray(p.keys) && p.keys.length ? p.keys.slice() : null;
+        if (T.matches.length) {
+          numberMatches(T);
+          const started = T.matches.some(m => m.status !== 'pending' || m.points.length);
+          if (!started && p.reschedule !== false) autoSchedule(T);
+        }
+        break;
+      }
       case 'schedule/move': moveMatch(T, p.id, p.court, p.index); break;
       case 'schedule/clear': T.matches.forEach(m => { if (m.status === 'pending') { m.court = null; m.order = null; } }); break;
 
@@ -1193,7 +1257,7 @@
     computeScore, pointFlags, pointLabels, setsText, scoreText, winnerScoreText, manualToSets,
     weightOf, rankOf, isPair, tokenLabel, selection, plan, pouleSizes, seedOrder, nextPow2, defaultSeeds,
     prepareDraw, currentPot, sessionSlots, posLabel, buildAll, matchLabel, formatOf,
-    resolve, pouleStandings, standings, timeline, autoSchedule, depsOf, pairsStatus, dayChecks, restMsAfter,
+    resolve, pouleStandings, standings, matchKey, orderedMatches, orderIssues, previewStructure, timeline, autoSchedule, depsOf, pairsStatus, dayChecks, restMsAfter,
     checkRules, initialState, migrate, reduce, localNow
   };
 });

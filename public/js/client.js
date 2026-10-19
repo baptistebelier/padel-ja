@@ -107,6 +107,30 @@
     return '';
   };
 
+  /* ---------- bandeau défilant continu ----------
+     Le contenu est répété autant de fois que nécessaire pour remplir le bandeau,
+     puis doublé : le défilement boucle sans trou et rien n'« apparaît » à l'écran. */
+  App.marquee = (el, html, speed) => {
+    speed = speed || 80;                                 // pixels par seconde
+    const box = el.parentElement;
+    const vw = box.clientWidth || 1920;
+    if (el.dataset.mq === html && +el.dataset.vw === vw) return;
+    el.dataset.mq = html; el.dataset.vw = vw;
+    el.innerHTML = `<div class="mq-u">${html}</div>`;
+    const build = () => {
+      const uw = el.firstElementChild.scrollWidth || 1;
+      const half = Array(Math.max(1, Math.ceil(vw / uw) + 1)).fill(html).join('');
+      el.innerHTML = `<div class="mq-u">${half}</div><div class="mq-u" aria-hidden="true">${half}</div>`;
+      const w = el.firstElementChild.scrollWidth;
+      el.style.animation = 'none'; void el.offsetWidth;
+      el.style.animation = `mqx ${Math.max(8, w / speed)}s linear infinite`;
+    };
+    // attendre les logos pour mesurer la vraie largeur
+    const imgs = [...el.querySelectorAll('img')].filter(i => !i.complete);
+    if (!imgs.length) build();
+    else Promise.all(imgs.map(i => new Promise(r => { i.onload = i.onerror = r; }))).then(() => { if (el.dataset.mq === html) build(); });
+  };
+
   /* ---------- texte animé : ne s'anime que si la valeur change ---------- */
   App.setText = (el, v, cls) => {
     if (!el) return;

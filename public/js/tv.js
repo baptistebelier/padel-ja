@@ -55,7 +55,7 @@
     if (t.name) items.push(`<span class="ti-msg">${esc(t.name)} · ${esc(t.category)} ${esc(t.gender)}</span>`);
     const run = items.join('<i class="ti-sep">✦</i>') + '<i class="ti-sep">✦</i>';
     const tk = $('#tickIn');
-    if (tk.dataset.msg !== run) { tk.dataset.msg = run; tk.innerHTML = `<div class="ti-run">${run}</div><div class="ti-run">${run}</div>`; tk.style.animationDuration = Math.max(22, items.length * 7) + 's'; }
+    A.marquee(tk, `<div class="ti-run">${run}</div>`, 90);
     setupRotation();
     showView(currentView());
     [renderBracket, renderPoules, renderSchedule, renderLive, renderStandings, renderInfo, renderDraw].forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
