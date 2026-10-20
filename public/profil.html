@@ -28,7 +28,8 @@
     <div class="grid" style="align-content:start">
       <section class="card">
         <span class="eyebrow">Identité</span>
-        <div class="who"><i class="avatar" id="av">JA</i><div><b id="wName">—</b><span class="muted" id="wMail"></span><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap" id="wPlan"></div></div></div>
+        <div class="who"><div class="av-wrap"><label class="avatar av-edit" id="av" title="Changer la photo de profil">JA<input type="file" accept="image/*" id="avFile" hidden></label>
+          <div class="av-acts"><label class="btn sm" for="avFile">Photo</label><button class="btn sm ghost" type="button" id="avRm" hidden>Retirer</button></div></div><div><b id="wName">—</b><span class="muted" id="wMail"></span><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap" id="wPlan"></div></div></div>
         <dl class="dl" id="wInfo"></dl>
       </section>
       <section class="card">
@@ -90,10 +91,23 @@
   const $ = s => document.querySelector(s);
   const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json());
   const say = (el, txt, ok) => { el.textContent = txt; el.className = 'msg ' + (ok ? 'ok' : 'err'); };
+  // avatar : photo si elle existe, sinon initiales du prénom et du nom (mises à jour pendant la saisie)
+  const initials = (first, last, email) => ((first || '').trim()[0] || '') + ((last || '').trim()[0] || '') || (email || 'JA').slice(0, 2);
+  let me = null;
+  function paintAvatar(first, last) {
+    const av = $('#av'), file = $('#avFile');
+    av.textContent = ''; av.style.backgroundImage = '';
+    if (me && me.avatar) { av.style.backgroundImage = `url("${me.avatar}")`; av.classList.add('has-img'); }
+    else { av.classList.remove('has-img'); av.textContent = initials(first, last, me && me.email).toUpperCase(); }
+    av.appendChild(file);
+    $('#avRm').hidden = !(me && me.avatar);
+    const r = document.getElementById('railAvatar');   // l'avatar du rail suit aussi
+    if (r) { r.textContent = me && me.avatar ? '' : av.textContent; r.style.backgroundImage = me && me.avatar ? `url("${me.avatar}")` : ''; r.classList.toggle('has-img', !!(me && me.avatar)); }
+  }
   function showUser(u) {
+    me = u;
     const full = [u.first, u.last].filter(Boolean).join(' ');
-    const ini = (full || u.email || 'JA').split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-    $('#av').textContent = ini;
+    paintAvatar(u.first, u.last);
     $('#wName').textContent = u.guest ? 'Visiteur (démo)' : (full || 'Nom à compléter');
     $('#wMail').textContent = u.email || '';
     $('#wPlan').innerHTML = u.guest ? '<span class="tag ghost">Démo 24 h</span>' : `<span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(u.planLabel)}</span>${u.admin ? '<span class="tag ghost">Accès gratuit</span>' : ''}`;
@@ -101,9 +115,25 @@
       .map(([k, v]) => `<dt>${k}</dt><dd>${v ? esc(v) : '<span class="muted">non renseigné</span>'}</dd>`).join('');
     const f = $('#fMe'); f.elements.first.value = u.first || ''; f.elements.last.value = u.last || ''; f.elements.club.value = u.club || '';
     $('#pwState').textContent = u.hasPassword ? 'Mot de passe défini' : 'Aucun mot de passe';
-    if (u.guest) document.querySelectorAll('#fMe input, #fMe button, #pwOpen').forEach(e => e.disabled = true);
+    if (u.guest) document.querySelectorAll('#fMe input, #fMe button, #pwOpen, #avFile').forEach(e => e.disabled = true);
   }
   fetch('/api/me').then(r => r.json()).then(d => { if (!d.user) return location.href = '/connexion'; showUser(d.user); });
+  ['first', 'last'].forEach(n => $('#fMe').elements[n].addEventListener('input', () => { if (!(me && me.avatar)) paintAvatar($('#fMe').elements.first.value, $('#fMe').elements.last.value); }));
+  // photo de profil : recadrée en carré et réduite avant l'envoi
+  $('#avFile').onchange = e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f || !/^image\//.test(f.type)) return say($('#mMe'), 'Choisissez une image (JPG, PNG…).');
+    const rd = new FileReader();
+    rd.onload = () => { const img = new Image(); img.onload = async () => {
+      const s = Math.min(img.width, img.height), c = document.createElement('canvas'); c.width = c.height = 320;
+      c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 320, 320);
+      const r = await post('/api/me', { avatar: c.toDataURL('image/jpeg', .85) });
+      if (r.error) return say($('#mMe'), r.error);
+      showUser(r.user); say($('#mMe'), 'Photo de profil enregistrée.', true);
+    }; img.onerror = () => say($('#mMe'), 'Image illisible.'); img.src = rd.result; };
+    rd.readAsDataURL(f);
+  };
+  $('#avRm').onclick = async () => { const r = await post('/api/me', { avatar: '' }); if (!r.error) showUser(r.user); };
   $('#fMe').onsubmit = async e => {
     e.preventDefault();
     const f = e.target.elements;

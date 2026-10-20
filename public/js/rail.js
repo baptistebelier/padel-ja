@@ -74,9 +74,10 @@
     });
     fetch('/api/me').then(r => r.json()).then(d => {
       const u = d.user; if (!u) return;
-      const n = (u.name || u.email || (u.guest ? 'Démo' : 'JA')).trim();
-      const ini = n.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'JA';
-      document.getElementById('railAvatar').textContent = ini;
+      const ini = (((u.first || '').trim()[0] || '') + ((u.last || '').trim()[0] || '') || (u.guest ? 'DÉ' : (u.email || 'JA').slice(0, 2))).toUpperCase();
+      const av = document.getElementById('railAvatar');
+      if (u.avatar) { av.textContent = ''; av.style.backgroundImage = `url("${u.avatar}")`; av.classList.add('has-img'); }
+      else av.textContent = ini;
       if (!u.guest && u.name) document.getElementById('railWho').textContent = u.name;
       nav.querySelector('[data-r="admin"]').hidden = !u.admin;
     }).catch(() => {});

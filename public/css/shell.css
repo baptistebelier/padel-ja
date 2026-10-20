@@ -347,3 +347,11 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 .pf-splogo { height: 48px; }
 .pf-splogo img { max-height: 36px; }
 @media (max-width: 720px) { .pf-row { grid-template-columns: minmax(0, 1fr) 96px auto; } .pf-row.sp { grid-template-columns: 80px minmax(0, 1fr) auto; } }
+
+/* ---------- photo de profil ---------- */
+.avatar.has-img { background-size: cover; background-position: center; color: transparent; }
+.av-wrap { display: grid; gap: 8px; justify-items: center; flex: none; }
+.av-edit { cursor: pointer; position: relative; }
+.av-edit:hover { box-shadow: 0 0 0 3px var(--ui-accent-line); }
+.av-acts { display: flex; gap: 6px; }
+.av-acts .btn { padding: 4px 10px; font-size: 11.5px; }

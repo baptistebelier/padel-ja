@@ -62,10 +62,10 @@ const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
 // prénom / nom : champs séparés, sinon déduits de l'ancien champ « nom et prénom »
 const splitName = u => {
   if (u.first != null || u.last != null) return { first: u.first || '', last: u.last || '' };
-  const w = String(u.name || '').trim().split(/s+/).filter(Boolean);
+  const w = String(u.name || '').trim().split(/\s+/).filter(Boolean);
   return { first: w[0] || '', last: w.slice(1).join(' ') };
 };
-const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), club: u.club, hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
+const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), avatar: u.avatar || '', club: u.club, hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
   planLabel: PLANS[isAdmin(u) ? 'admin' : (u.plan || 'essai')], admin: isAdmin(u), free: freeAccess(u) };
 
 async function currentUser(req) {
@@ -326,16 +326,22 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/me' && req.method === 'POST') {   // modifier son nom et son club
       const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour modifier votre profil.' });
       const b = await readBody(req);
-      let id = null;
+      // identité (prénom, nom, photo) rangée avec les données du compte ; on complète l'existant
+      const id = Object.assign({}, await store.getIdentity(u.id).catch(() => null));
+      let changed = false;
       if (b.first != null || b.last != null) {
-        id = { first: String(b.first || '').trim().slice(0, 40), last: String(b.last || '').trim().slice(0, 40) };
-        u.name = [id.first, id.last].filter(Boolean).join(' ');
+        id.first = String(b.first || '').trim().slice(0, 40); id.last = String(b.last || '').trim().slice(0, 40);
+        u.name = [id.first, id.last].filter(Boolean).join(' '); changed = true;
       } else if (b.name != null) u.name = String(b.name).trim().slice(0, 80);
+      if (b.avatar != null) {   // photo de profil : image réduite (data URL), ou '' pour la retirer
+        const a = String(b.avatar);
+        if (a && (!/^data:image\/(png|jpeg|webp);base64,/.test(a) || a.length > 400000)) return json(res, 400, { error: 'Image trop lourde ou format non reconnu.' });
+        id.avatar = a; changed = true;
+      }
       if (b.club != null) u.club = String(b.club).trim().slice(0, 120);
       await store.saveUser(u);
-      if (id) await store.saveIdentity(u.id, id);
-      else id = await store.getIdentity(u.id).catch(() => null);
-      return json(res, 200, { ok: true, user: publicUser(Object.assign({}, u, id || {})) });
+      if (changed) await store.saveIdentity(u.id, id);
+      return json(res, 200, { ok: true, user: publicUser(Object.assign({}, u, id)) });
     }
     if (p === '/api/me/password' && req.method === 'POST') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour choisir un mot de passe.' });
