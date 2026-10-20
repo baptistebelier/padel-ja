@@ -355,3 +355,22 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 .av-edit:hover { box-shadow: 0 0 0 3px var(--ui-accent-line); }
 .av-acts { display: flex; gap: 6px; }
 .av-acts .btn { padding: 4px 10px; font-size: 11.5px; }
+
+/* téléphone : logo /RAM JA au centre de la barre du haut */
+.ab-logo { display: none; }
+@media (max-width: 720px) {
+  .mtop { position: sticky; justify-content: space-between; }
+  .mtop-logo { position: absolute; left: 50%; transform: translateX(-50%); bottom: 8px; }
+  .mtop-logo b { display: none; }
+  body.editor-page .appbar { position: sticky; }
+  body.editor-page .ab-title { visibility: visible; position: absolute; left: 50%; transform: translateX(-50%); bottom: 8px; }
+  body.editor-page .ab-title b, body.editor-page .ab-title small { display: none; }
+  .ab-logo { display: block; }
+  .ab-logo img { height: 36px; display: block; }
+  .ab-logo .lg-j { display: none; }
+  :root[data-theme="light"] .ab-logo .lg-j { display: block; }
+  :root[data-theme="light"] .ab-logo .lg-n { display: none; }
+}
+@media (max-width: 720px) {
+  body.editor-page #abTv { grid-column: 3; } body.editor-page #abMore { grid-column: 4; } body.editor-page .ab-menu { grid-column: 1; }
+}
