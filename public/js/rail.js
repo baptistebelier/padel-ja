@@ -25,7 +25,7 @@
     const page = document.body.dataset.page || '';
     const nav = document.createElement('aside');
     nav.className = 'rail'; nav.setAttribute('role', 'navigation'); nav.setAttribute('aria-label', 'Navigation principale');
-    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="Padel JA — tableau de bord"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"></a>
+    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="Padel JA — tableau de bord"><img src="/img/ja-r-rouge-blanc.png" alt="Padel JA"></a>
       <div class="rail-group">${ITEMS.map(([k, href, label, title]) =>
         `<a href="${href}" data-r="${k}" class="${page === k ? 'on' : ''}" title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
       <div class="rail-group rail-bottom"><i class="sep"></i>
@@ -40,7 +40,7 @@
     if (!document.querySelector('[data-drawer-open]')) {   // pages sans barre d'application : on en ajoute une
       const top = document.createElement('header'); top.className = 'mtop';
       top.innerHTML = `<button type="button" class="mtop-btn" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
-        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><img class="lg-j" src="/img/ram-logo-rouge-noir.webp" alt=""><b>Padel JA</b></a><span class="mtop-sp"></span>`;
+        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/ja-ram-rouge-blanc.png" alt="Padel JA"><img class="lg-j" src="/img/ja-ram-rouge-noir.png" alt="Padel JA"></a><span class="mtop-sp"></span>`;
       nav.after(top);
     }
     const open = () => { document.body.classList.add('drawer-open'); };

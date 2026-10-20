@@ -11,8 +11,8 @@ body.has-rail { padding-left: var(--rail-w); }
 .rail { position: fixed; z-index: 60; left: 0; top: 0; bottom: 0; width: var(--rail-w); background: var(--ui-rail-bg); display: flex; flex-direction: column; align-items: center;
   padding: 16px 0 14px; gap: 4px; border-right: 1px solid #ffffff0d; overflow-y: auto; scrollbar-width: none; }
 .rail::-webkit-scrollbar { display: none; }
-.rail-logo { display: grid; place-items: center; width: 52px; height: 46px; margin-bottom: 14px; }
-.rail-logo img { width: 46px; }
+.rail-logo { display: grid; place-items: center; width: 64px; height: 66px; margin-bottom: 12px; }
+.rail-logo img { width: 60px; max-height: 64px; object-fit: contain; }
 .rail-group { display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center; }
 .rail-bottom { margin-top: auto; padding-top: 12px; }
 .rail a, .rail button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 68px; min-height: 58px; padding: 7px 2px; border: 0; border-radius: 14px;
@@ -253,7 +253,7 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   body.drawer-open .rail-veil { opacity: 1; pointer-events: auto; }
   body.drawer-open { overflow: hidden; }
   .rail-logo { width: auto; justify-content: flex-start; margin: 0 6px 18px; height: auto; }
-  .rail-logo img { width: 64px; }
+  .rail-logo img { width: auto; height: 72px; }
   .rail-group { align-items: stretch; gap: 2px; }
   .rail a, .rail button { flex-direction: row; justify-content: flex-start; gap: 14px; width: 100%; min-height: 50px; padding: 0 14px; font: 600 16px var(--body); }
   .rail .r-sh { display: none; } .rail .r-lg { display: inline; }
@@ -268,7 +268,7 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   .mtop-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--ui-border-2); background: var(--ui-surface); color: var(--ui-text); padding: 0; cursor: pointer; }
   .mtop-btn .ic { width: 24px; height: 24px; }
   .mtop-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ui-text); }
-  .mtop-logo img { height: 26px; } .mtop-logo b { font-family: var(--display); font-weight: 400; font-size: 20px; text-transform: uppercase; font-style: italic; }
+  .mtop-logo img { height: 36px; } .mtop-logo b { font-family: var(--display); font-weight: 400; font-size: 20px; text-transform: uppercase; font-style: italic; }
 
   /* éditeur : barre du haut sans nom du tournoi, menu à gauche */
   body.editor-page .appbar { grid-template-columns: 44px minmax(0, 1fr) 44px 44px; padding: calc(env(safe-area-inset-top) + 6px) 10px 8px; }
