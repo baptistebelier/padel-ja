@@ -741,8 +741,15 @@
 
   /* ---------- ordre des matchs (M1, M2…) : glisser-déposer ---------- */
   let orderDrag = null;
-  try { if (localStorage.getItem('padelja-order-fold') === '1') $('#orderBody').hidden = true; } catch (e) {}
-  $('#orderFold').onclick = () => { const b = $('#orderBody'); b.hidden = !b.hidden; try { localStorage.setItem('padelja-order-fold', b.hidden ? '1' : '0'); } catch (e) {} };
+  /* sections repliables, repliées par défaut : on voit le titre, un clic les déplie */
+  function foldable(card, body, key) {
+    const set = open => { body.hidden = !open; card.classList.toggle('open', open); try { localStorage.setItem(key, open ? '1' : '0'); } catch (e) {} };
+    let open = false; try { open = localStorage.getItem(key) === '1'; } catch (e) {}
+    set(open);
+    card.querySelector('.fold-h').addEventListener('click', e => { if (e.target.closest('button:not(.fold-tg), a, input, select')) return; set(body.hidden); });
+  }
+  foldable($('#orderCard'), $('#orderBody'), 'padelja-order-open');
+  foldable($('.tpl-card'), $('#tplBody'), 'padelja-tpl-open');
   $('#orderReset').onclick = () => confirm('Revenir à l\'ordre standard des matchs ?') && send('order/reset');
   $('#orderTpl').onclick = () => { setTab('tournoi'); setTimeout(() => $('#tplSave').click(), 50); };
 

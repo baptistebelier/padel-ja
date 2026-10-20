@@ -20,6 +20,7 @@ body.has-rail { padding-left: var(--rail-w); }
   position: relative; transition: background .15s, color .15s; box-shadow: none; }
 .rail a:hover, .rail button:hover { background: #ffffff0f; color: #fff; border: 0; transform: none; }
 .rail .ic { width: 22px; height: 22px; display: block; flex: none; }
+.rail .r-lg, .rail-veil, .mtop { display: none; }
 .rail a.on { background: var(--ui-rail-on); color: #fff; }
 .rail a.on .ic { color: var(--ui-accent); }
 .rail a.on::before { content: ''; position: absolute; left: -8px; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: var(--ui-accent); }
@@ -226,17 +227,7 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 
 /* ---------- téléphone : le rail devient la barre d'onglets du bas ---------- */
 @media (max-width: 720px) {
-  body.has-rail { padding-left: 0; }
-  body.acct { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
-  .rail { top: auto; right: 0; width: auto; height: calc(64px + env(safe-area-inset-bottom)); flex-direction: row; justify-content: space-around; padding: 0 4px env(safe-area-inset-bottom);
-    border-right: 0; border-top: 1px solid #ffffff14; overflow: visible; }
-  .rail-logo, .rail .sep, .rail [data-r="joueurs"], .rail [data-r="admin"], .rail [data-theme-toggle], .rail [data-r="logout"] { display: none !important; }
-  .rail-group { flex-direction: row; justify-content: space-around; width: auto; flex: 1; gap: 0; }
-  .rail-bottom { margin: 0; padding: 0; flex: 0; }
-  .rail a { width: auto; min-width: 58px; flex: 1; min-height: 56px; border-radius: 12px; }
-  .rail a.on::before { left: 30%; right: 30%; top: -1px; bottom: auto; width: auto; height: 3px; border-radius: 0 0 3px 3px; }
-  body.editor-page .rail { display: none; }   /* l'éditeur a déjà sa propre barre d'onglets */
-  .acct .page { padding-top: 16px; }
+  .acct .page { padding-top: 14px; padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
   .phead h1 { font-size: 38px; }
   .kpi { padding: 14px; } .kpi b { font-size: 34px; } .kpi .ico { display: none; }
   .form2 { grid-template-columns: 1fr; } .form2 .span2 { grid-column: span 1; }
@@ -248,3 +239,66 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   .ucard { grid-template-columns: 1fr; }
 }
 .acct input:disabled, .acct button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* =========================================================================
+   TÉLÉPHONE : volet de menu à gauche, barre du haut, onglets flottants
+   ========================================================================= */
+@media (max-width: 720px) {
+  body.has-rail { padding-left: 0; }
+  /* le rail devient un volet plein écran en hauteur, caché à gauche */
+  .rail { width: min(84vw, 320px); right: auto; align-items: stretch; padding: calc(env(safe-area-inset-top) + 18px) 14px calc(env(safe-area-inset-bottom) + 16px);
+    transform: translateX(-102%); transition: transform .28s cubic-bezier(.2, .9, .3, 1); z-index: 90; box-shadow: none; border-right: 0; }
+  body.drawer-open .rail { transform: none; box-shadow: 12px 0 0 var(--ui-accent); }
+  .rail-veil { display: block; position: fixed; inset: 0; z-index: 85; background: #0b0306b3; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  body.drawer-open .rail-veil { opacity: 1; pointer-events: auto; }
+  body.drawer-open { overflow: hidden; }
+  .rail-logo { width: auto; justify-content: flex-start; margin: 0 6px 18px; height: auto; }
+  .rail-logo img { width: 64px; }
+  .rail-group { align-items: stretch; gap: 2px; }
+  .rail a, .rail button { flex-direction: row; justify-content: flex-start; gap: 14px; width: 100%; min-height: 50px; padding: 0 14px; font: 600 16px var(--body); }
+  .rail .r-sh { display: none; } .rail .r-lg { display: inline; }
+  .rail a.on::before { display: none; }
+  .rail .live-dot { position: static; margin-left: auto; }
+  .rail .sep { width: 100%; }
+  body.editor-page .rail { display: flex; }
+
+  /* barre du haut des pages du compte : menu + logo, sous l'heure et la batterie */
+  .mtop { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 50; padding: calc(env(safe-area-inset-top) + 6px) 10px 8px;
+    background: color-mix(in srgb, var(--ui-bg) 88%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--ui-border); }
+  .mtop-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--ui-border-2); background: var(--ui-surface); color: var(--ui-text); padding: 0; cursor: pointer; }
+  .mtop-btn .ic { width: 24px; height: 24px; }
+  .mtop-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ui-text); }
+  .mtop-logo img { height: 26px; } .mtop-logo b { font-family: var(--display); font-weight: 400; font-size: 20px; text-transform: uppercase; font-style: italic; }
+
+  /* éditeur : barre du haut sans nom du tournoi, menu à gauche */
+  body.editor-page .appbar { grid-template-columns: 44px minmax(0, 1fr) 44px 44px; padding: calc(env(safe-area-inset-top) + 6px) 10px 8px; }
+  body.editor-page .ab-title { visibility: hidden; }
+  body.editor-page .ab-menu { border: 1px solid var(--ui-border-2); background: var(--ui-surface); }
+
+  /* éditeur : onglets dans une barre flottante qu'on fait défiler au doigt */
+  body.editor-page .side { left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); height: 64px; padding: 0; width: auto;
+    background: color-mix(in srgb, var(--ui-surface) 90%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    border: 1px solid var(--ui-border-2); box-shadow: 5px 5px 0 var(--ui-hard); overflow: hidden; }
+  body.editor-page nav#nav { display: flex; width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 0 4px; gap: 2px; }
+  body.editor-page nav#nav::-webkit-scrollbar { display: none; }
+  body.editor-page nav#nav button { flex: 1 0 auto; width: auto; min-width: 74px; scroll-snap-align: center; padding: 8px 6px 6px; font-size: 11px; }
+  body.editor-page main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  /* le contenu défile jusqu'en bas de l'écran, derrière la barre flottante */
+  html, body { min-height: 100%; background: var(--ui-bg); }
+}
+
+/* téléphone : bandeaux du haut sous l'heure et la batterie */
+@media (max-width: 720px) {
+  body.editor-page .guest:not([hidden]), body.editor-page .closed-bar:not([hidden]) { padding-top: calc(env(safe-area-inset-top) + 7px); }
+  body.editor-page .guest:not([hidden]) ~ .appbar, body.editor-page .closed-bar:not([hidden]) ~ .appbar { padding-top: 6px; }
+}
+@media (max-width: 720px) {
+  body.editor-page .side-t, body.editor-page .side-foot { display: none !important; }
+  .foldable .fold-h { flex-wrap: nowrap; align-items: flex-start; }
+  .foldable .fold-h .btns { margin-top: 0; flex-wrap: nowrap; }
+  .foldable .fold-hint { display: none; }
+}
+
+.mtop-logo .lg-j { display: none; }
+:root[data-theme="light"] .mtop-logo .lg-j { display: block; }
+:root[data-theme="light"] .mtop-logo .lg-n { display: none; }

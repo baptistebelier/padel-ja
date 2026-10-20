@@ -75,3 +75,15 @@
   :root:not([data-style="epure"]) .rail a.on { box-shadow: none; }
   :root:not([data-style="epure"]) .card { box-shadow: none; }
 }
+
+/* ---------- angles droits partout (boutons, cadres, champs, pastilles) ---------- */
+.chip, .pill, .side-st, .prog, .prog i, .kpi .ico, .seg, .seg button, .quick a, .row .d, a.row:hover, .cal .day, .cal .ev, .legend i, .pr2, .ptable, .pk div, .ucard,
+.acct .tpl, .acct .btn, .acct .tag, .acct input, .acct select, .acct textarea, .acct .card, .kpi, .tcard, .rail a, .rail button, .modal-box, .pmodal-box, .toast, .suggest,
+.side-t, nav button, .conn, .side-btns button, .card, button, input, select, textarea, .tag, .ts, kbd, .tbl th, .mm, .lteam, .lcard, .scol, .scard, .ord, .rk-block,
+.sp-team, .pgrid > div, .profile-box, .alert, .look-frame, .sp-logo, .plan span, fieldset, .lsets span, .sp-score span, .tvviews button b, .dcard .face,
+.sheet-box, .sh-item, .sh-close, .band, .scol-h, .rk-h, .tbl th:first-child, .tbl th:last-child { border-radius: 0 !important; }
+/* interrupteurs carrés */
+input[type=checkbox], input[type=checkbox]::before { border-radius: 0 !important; }
+/* mot de passe (profil) */
+.pw-now { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+.pw-dots { font-size: 22px; letter-spacing: .18em; color: var(--ui-text); }

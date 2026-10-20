@@ -26,20 +26,30 @@
   <div class="grid g-2">
     <div class="grid" style="align-content:start">
       <section class="card">
-        <div class="who"><i class="avatar" id="av">JA</i><div><b id="wName">—</b><span class="muted" id="wMail"></span><div style="margin-top:6px" id="wPlan"></div></div></div>
-        <form class="form2" id="fMe">
-          <label>Nom et prénom<input name="name" autocomplete="name"></label>
-          <label>Club<input name="club" autocomplete="organization"></label>
+        <span class="eyebrow">Identité</span>
+        <div class="who"><i class="avatar" id="av">JA</i><div><b id="wName">—</b><span class="muted" id="wMail"></span><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap" id="wPlan"></div></div></div>
+        <dl class="dl" id="wInfo"></dl>
+      </section>
+      <section class="card">
+        <span class="eyebrow">Modifier</span><h2>Mes informations</h2>
+        <form class="form2" id="fMe" autocomplete="on">
+          <label>Prénom<input name="first" autocomplete="given-name" placeholder="Ex : Baptiste"></label>
+          <label>Nom<input name="last" autocomplete="family-name" placeholder="Ex : Bélier"></label>
+          <label class="span2">Club<input name="club" autocomplete="organization" placeholder="Ex : Padel Club de Brive"></label>
           <div class="span2"><button class="btn primary">Enregistrer</button><p class="msg" id="mMe"></p></div>
         </form>
       </section>
       <section class="card">
         <span class="eyebrow">Sécurité</span><h2>Mot de passe</h2>
-        <form class="form2" id="fPw">
-          <label class="span2">Mot de passe actuel<input type="password" name="current" autocomplete="current-password"></label>
-          <label class="span2">Nouveau mot de passe <small class="muted">(8 caractères minimum)</small><input type="password" name="next" autocomplete="new-password" minlength="8"></label>
-          <div class="span2"><button class="btn">Changer le mot de passe</button><p class="msg" id="mPw"></p></div>
+        <div class="pw-now"><span class="pw-dots">••••••••••</span><span class="chip ok" id="pwState">Mot de passe défini</span></div>
+        <p class="muted small">Votre mot de passe est chiffré : personne ne peut le lire, pas même l'administrateur. Vous pouvez le remplacer ici.</p>
+        <button class="btn" id="pwOpen" type="button">Changer le mot de passe</button>
+        <form class="form2" id="fPw" hidden>
+          <label class="span2">Mot de passe actuel<input type="password" name="current" autocomplete="current-password" required></label>
+          <label class="span2">Nouveau mot de passe <small class="muted">(8 caractères minimum)</small><input type="password" name="next" autocomplete="new-password" minlength="8" required></label>
+          <div class="span2" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary">Valider</button><button class="btn ghost" type="button" id="pwCancel">Annuler</button></div>
         </form>
+        <p class="msg" id="mPw"></p>
       </section>
     </div>
     <div class="grid" style="align-content:start">
@@ -78,26 +88,34 @@
   const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json());
   const say = (el, txt, ok) => { el.textContent = txt; el.className = 'msg ' + (ok ? 'ok' : 'err'); };
   function showUser(u) {
-    const n = u.name || u.email || 'Démo';
-    $('#av').textContent = n.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-    $('#wName').textContent = u.guest ? 'Visiteur (démo)' : (u.name || 'Juge-arbitre');
+    const full = [u.first, u.last].filter(Boolean).join(' ');
+    const ini = (full || u.email || 'JA').split(/[s@._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+    $('#av').textContent = ini;
+    $('#wName').textContent = u.guest ? 'Visiteur (démo)' : (full || 'Nom à compléter');
     $('#wMail').textContent = u.email || '';
-    $('#wPlan').innerHTML = u.guest ? '<span class="tag ghost">Démo 24 h</span>' : `<span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(u.planLabel)}</span>`;
-    $('#fMe').name.value = u.name || ''; $('#fMe').club.value = u.club || '';
-    if (u.guest) document.querySelectorAll('#fMe input, #fMe button, #fPw input, #fPw button').forEach(e => e.disabled = true);
+    $('#wPlan').innerHTML = u.guest ? '<span class="tag ghost">Démo 24 h</span>' : `<span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(u.planLabel)}</span>${u.admin ? '<span class="tag ghost">Accès gratuit</span>' : ''}`;
+    $('#wInfo').innerHTML = [['Prénom', u.first], ['Nom', u.last], ['Club', u.club], ['E-mail', u.email]]
+      .map(([k, v]) => `<dt>${k}</dt><dd>${v ? esc(v) : '<span class="muted">non renseigné</span>'}</dd>`).join('');
+    const f = $('#fMe'); f.elements.first.value = u.first || ''; f.elements.last.value = u.last || ''; f.elements.club.value = u.club || '';
+    $('#pwState').textContent = u.hasPassword ? 'Mot de passe défini' : 'Aucun mot de passe';
+    if (u.guest) document.querySelectorAll('#fMe input, #fMe button, #pwOpen').forEach(e => e.disabled = true);
   }
   fetch('/api/me').then(r => r.json()).then(d => { if (!d.user) return location.href = '/connexion'; showUser(d.user); });
   $('#fMe').onsubmit = async e => {
     e.preventDefault();
-    const r = await post('/api/me', { name: e.target.name.value, club: e.target.club.value });
+    const f = e.target.elements;
+    const r = await post('/api/me', { first: f.first.value, last: f.last.value, club: f.club.value });
     if (r.error) return say($('#mMe'), r.error);
     showUser(r.user); say($('#mMe'), 'Profil enregistré.', true);
   };
+  $('#pwOpen').onclick = () => { $('#fPw').hidden = false; $('#pwOpen').hidden = true; $('#mPw').textContent = ''; $('#fPw').elements.current.focus(); };
+  $('#pwCancel').onclick = () => { $('#fPw').reset(); $('#fPw').hidden = true; $('#pwOpen').hidden = false; };
   $('#fPw').onsubmit = async e => {
     e.preventDefault();
-    const r = await post('/api/me/password', { current: e.target.current.value, next: e.target.next.value });
+    const f = e.target.elements;
+    const r = await post('/api/me/password', { current: f.current.value, next: f.next.value });
     if (r.error) return say($('#mPw'), r.error);
-    e.target.reset(); say($('#mPw'), 'Mot de passe modifié.', true);
+    e.target.reset(); e.target.hidden = true; $('#pwOpen').hidden = false; say($('#mPw'), 'Mot de passe modifié.', true);
   };
 
   // apparence : jour, nuit ou réglage du système
@@ -121,10 +139,10 @@
 
   fetch('/api/profile').then(r => r.json()).then(d => {
     const p = d.profile;
-    if (d.guest || !p) { $('#prof').innerHTML = '<dt style="grid-column:1/-1">Aucun réglage mémorisé pour l'instant.</dt>'; return; }
+    if (d.guest || !p) { $('#prof').innerHTML = '<dt style="grid-column:1/-1">Aucun réglage mémorisé pour le moment.</dt>'; return; }
     const rows = [['Club', p.club], ['Adresse', p.address], ['Juge-arbitre', [p.ja, p.jaNumber].filter(Boolean).join(' · ')], ['Téléphone', p.jaPhone], ['Balles', p.balls],
       ['Début', p.startTime], ['Terrains', (p.courts || []).map(c => c.name).join(', ')], ['Partenaires', (p.sponsors || []).filter(s => s && (s.name || s.logo)).length || ''], ['Logo', p.logo ? 'Oui' : '']];
-    $('#prof').innerHTML = rows.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('') || '<dt style="grid-column:1/-1">Aucun réglage mémorisé pour l'instant.</dt>';
+    $('#prof').innerHTML = rows.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('') || '<dt style="grid-column:1/-1">Aucun réglage mémorisé pour le moment.</dt>';
   });
   async function loadTpl() {
     const d = await fetch('/api/templates').then(r => r.json());

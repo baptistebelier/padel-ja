@@ -27,18 +27,57 @@
     nav.className = 'rail'; nav.setAttribute('role', 'navigation'); nav.setAttribute('aria-label', 'Navigation principale');
     nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="Padel JA — tableau de bord"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"></a>
       <div class="rail-group">${ITEMS.map(([k, href, label, title]) =>
-        `<a href="${href}" data-r="${k}" class="${page === k ? 'on' : ''}" title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span>${label}</span></a>`).join('')}</div>
+        `<a href="${href}" data-r="${k}" class="${page === k ? 'on' : ''}" title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
       <div class="rail-group rail-bottom"><i class="sep"></i>
-        <button type="button" data-theme-toggle title="Mode jour / nuit">${ICONS.moon}${ICONS.sun}<span>Thème</span></button>
-        <a href="/profil" data-r="profil" class="${page === 'profil' ? 'on' : ''}" title="Mon profil"><i class="avatar" id="railAvatar">JA</i><span>Profil</span></a>
-        <a href="/deconnexion" data-r="logout" title="Se déconnecter">${ICONS.logout}<span>Sortir</span></a></div>`;
+        <button type="button" data-theme-toggle title="Mode jour / nuit">${ICONS.moon}${ICONS.sun}<span class="r-sh">Thème</span><span class="r-lg">Mode jour / nuit</span></button>
+        <a href="/profil" data-r="profil" class="${page === 'profil' ? 'on' : ''}" title="Mon profil"><i class="avatar" id="railAvatar">JA</i><span class="r-sh">Profil</span><span class="r-lg" id="railWho">Mon profil</span></a>
+        <a href="/deconnexion" data-r="logout" title="Se déconnecter">${ICONS.logout}<span class="r-sh">Sortir</span><span class="r-lg">Se déconnecter</span></a></div>`;
     document.body.prepend(nav);
     document.body.classList.add('has-rail');
+
+    /* ---------- téléphone : le rail devient un volet qui sort de la gauche ---------- */
+    const veil = document.createElement('div'); veil.className = 'rail-veil'; document.body.appendChild(veil);
+    if (!document.querySelector('[data-drawer-open]')) {   // pages sans barre d'application : on en ajoute une
+      const top = document.createElement('header'); top.className = 'mtop';
+      top.innerHTML = `<button type="button" class="mtop-btn" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
+        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><img class="lg-j" src="/img/ram-logo-noir.png" alt=""><b>Padel JA</b></a><span class="mtop-sp"></span>`;
+      nav.after(top);
+    }
+    const open = () => { document.body.classList.add('drawer-open'); };
+    const close = () => { document.body.classList.remove('drawer-open'); nav.style.transform = ''; };
+    document.addEventListener('click', e => { if (e.target.closest('[data-drawer-open]')) { e.preventDefault(); open(); } });
+    veil.onclick = close;
+    nav.addEventListener('click', e => { if (e.target.closest('a')) close(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    // glisser du bord gauche vers la droite pour ouvrir, vers la gauche pour fermer
+    let sx = null, sy = 0, dx = 0, mode = '';
+    const mobile = () => matchMedia('(max-width: 720px)').matches;
+    document.addEventListener('touchstart', e => {
+      if (!mobile()) return;
+      const t = e.touches[0], isOpen = document.body.classList.contains('drawer-open');
+      if (!isOpen && t.clientX < 24) mode = 'open'; else if (isOpen) mode = 'close'; else return;
+      sx = t.clientX; sy = t.clientY; dx = 0;
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (sx == null) return;
+      const t = e.touches[0]; dx = t.clientX - sx;
+      if (Math.abs(t.clientY - sy) > Math.abs(dx) && Math.abs(dx) < 12) return;
+      const w = nav.offsetWidth;
+      const x = mode === 'open' ? Math.min(0, -w + Math.max(0, dx)) : Math.min(0, dx);
+      nav.style.transition = 'none'; nav.style.transform = `translateX(${x}px)`;
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+      if (sx == null) return;
+      nav.style.transition = ''; nav.style.transform = '';
+      if (mode === 'open' && dx > 60) open(); else if (mode === 'close' && dx < -60) close();
+      sx = null; mode = '';
+    });
     fetch('/api/me').then(r => r.json()).then(d => {
       const u = d.user; if (!u) return;
       const n = (u.name || u.email || (u.guest ? 'Démo' : 'JA')).trim();
       const ini = n.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'JA';
       document.getElementById('railAvatar').textContent = ini;
+      if (!u.guest && u.name) document.getElementById('railWho').textContent = u.name;
       nav.querySelector('[data-r="admin"]').hidden = !u.admin;
     }).catch(() => {});
     // point rose sur « En cours » quand des matchs sont en jeu

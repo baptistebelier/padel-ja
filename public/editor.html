@@ -25,7 +25,7 @@
 <div class="closed-bar" id="closedBar" hidden>Tournoi clôturé <span id="closedAt"></span> — lecture seule. <button id="reopen2">Rouvrir le tournoi</button></div>
 <div class="guest" id="guestBar" hidden>Mode démo : ce tournoi sera effacé dans 24 h. <a href="/inscription">Créer mon compte gratuitement</a> pour garder vos tournois.</div>
 <header class="appbar" id="appbar">
-  <a href="/app" class="ab-back" aria-label="Retour à mes tournois"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Tournois</span></a>
+  <button class="ab-btn ab-menu" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
   <div class="ab-title"><b id="abTitle">Tournoi</b><small id="abSub"></small></div>
   <button class="ab-btn" id="abTv" aria-label="Ouvrir l'écran TV"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/></svg></button>
   <button class="ab-btn" id="abMore" aria-label="Plus d'actions"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button>
@@ -84,10 +84,10 @@
   <!-- ===================== 01 TOURNOI ===================== -->
   <section id="tab-tournoi" class="tab">
     <h2 class="ptitle">Fiche <span class="band lime">tournoi</span></h2>
-    <div class="card tpl-card">
-      <div class="row-between"><div><span class="eyebrow">Modèles</span><h3>Formats préenregistrés</h3></div>
-        <div class="btns"><button class="ghost" id="tplSave">+ Enregistrer ce format comme modèle</button></div></div>
-      <div id="tplList" class="tpl-list"></div>
+    <div class="card tpl-card foldable">
+      <div class="row-between fold-h"><div><span class="eyebrow">Modèles</span><h3>Formats préenregistrés <small class="muted fold-hint">Appliquer un format tout prêt</small></h3></div>
+        <div class="btns"><button class="ghost fold-act" id="tplSave">+ Enregistrer ce format comme modèle</button><button class="ghost sq fold-tg" type="button" aria-label="Afficher / masquer">▾</button></div></div>
+      <div id="tplBody"><div id="tplList" class="tpl-list"></div></div>
     </div>
     <div class="grid2">
       <div class="card">
@@ -248,13 +248,13 @@
   <!-- ===================== 05 PROGRAMMATION ===================== -->
   <section id="tab-programmation" class="tab">
     <h2 class="ptitle"><span class="band lime">Programmation</span></h2>
-    <div class="card" id="orderCard">
-      <div class="row-between">
+    <div class="card foldable" id="orderCard">
+      <div class="row-between fold-h">
         <div><span class="eyebrow">Scénario</span><h3>Ordre des matchs <small class="muted" id="orderState"></small></h3></div>
         <div class="btns" style="margin:0">
-          <button class="ghost" id="orderReset">Revenir à l'ordre standard</button>
-          <button class="ghost" id="orderTpl">Enregistrer dans un modèle</button>
-          <button class="ghost sq" id="orderFold" title="Replier / déplier">▾</button>
+          <button class="ghost fold-act" id="orderReset">Revenir à l'ordre standard</button>
+          <button class="ghost fold-act" id="orderTpl">Enregistrer dans un modèle</button>
+          <button class="ghost sq fold-tg" type="button" aria-label="Afficher / masquer">▾</button>
         </div>
       </div>
       <div id="orderBody">

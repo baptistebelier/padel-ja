@@ -9,7 +9,7 @@
   --ui-accent: #E0F50A; --ui-on-accent: #1A0509; --ui-accent-text: #E0F50A; --ui-accent-line: #E0F50A;
   --ui-accent2: #FF3D6B; --ui-switch: #9BD43C;
   --ui-shadow: 0 1px 2px #0006, 0 8px 24px #0005; --ui-shadow-lg: 0 18px 50px #000a;
-  --ui-r: 9px; --ui-r-sm: 6px; --ui-tilt: -1.5deg; --ui-bw: 1px; --ui-hard: #00000080;
+  --ui-r: 0px; --ui-r-sm: 0px; --ui-tilt: -1.5deg; --ui-bw: 1px; --ui-hard: #00000080;
   color-scheme: dark;
 }
 /* ---------- jour ---------- */
@@ -33,5 +33,5 @@
 :root[data-theme="light"] [data-theme-toggle] .ic-moon { display: none !important; }
 
 /* ---------- style de l'interface : épuré, street dosé (par défaut), full street ---------- */
-:root[data-style="epure"] { --ui-r: 18px; --ui-r-sm: 11px; --ui-tilt: 0deg; }
+:root[data-style="epure"] { --ui-tilt: 0deg; }
 :root[data-style="street"] { --ui-r: 0px; --ui-r-sm: 0px; --ui-tilt: -2deg; --ui-bw: 2px; }

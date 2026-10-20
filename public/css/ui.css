@@ -179,3 +179,12 @@ fieldset input { padding: 8px 8px; }
   .side-st { justify-self: center; font-size: 9px; padding: 2px 6px; letter-spacing: .02em; }
   .side-btns { grid-template-columns: 1fr; } .side-btns #btnDemo { grid-column: auto; }
 }
+
+/* ---------- sections repliables (ordre des matchs, formats préenregistrés) ---------- */
+.foldable .fold-h { cursor: pointer; user-select: none; }
+.foldable .fold-h h3 { margin-bottom: 0; }
+.foldable.open .fold-h { margin-bottom: 14px; }
+.foldable:not(.open) .fold-act { display: none; }
+.fold-tg { font-size: 16px; transition: transform .2s; }
+.foldable.open .fold-tg { transform: rotate(180deg); }
+.foldable.open .fold-hint { display: none; }

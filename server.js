@@ -59,7 +59,13 @@ const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email |
 // offres : essai, actif (abonnement payé), offert (accès gratuit), admin
 const PLANS = { essai: 'Essai', actif: 'Abonné', offert: 'Accès offert', admin: 'Administrateur' };
 const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
-const publicUser = u => u && { id: u.id, email: u.email, name: u.name, club: u.club, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
+// prénom / nom : champs séparés, sinon déduits de l'ancien champ « nom et prénom »
+const splitName = u => {
+  if (u.first != null || u.last != null) return { first: u.first || '', last: u.last || '' };
+  const w = String(u.name || '').trim().split(/s+/).filter(Boolean);
+  return { first: w[0] || '', last: w.slice(1).join(' ') };
+};
+const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), club: u.club, hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
   planLabel: PLANS[isAdmin(u) ? 'admin' : (u.plan || 'essai')], admin: isAdmin(u), free: freeAccess(u) };
 
 async function currentUser(req) {
@@ -220,7 +226,11 @@ const server = http.createServer(async (req, res) => {
 
     /* ---------- pages ---------- */
     if (p === '/') return sendFile(res, '/landing.html');
-    if (p === '/connexion' || p === '/inscription') return sendFile(res, '/auth.html');
+    if (p === '/connexion' || p === '/inscription') {
+      const u = await currentUser(req);
+      if (u && !u.guest) return redirect(res, '/dashboard');   // déjà connecté : tableau de bord
+      return sendFile(res, '/auth.html');
+    }
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
     if (p === '/app') { if (!(await currentUser(req))) return redirect(res, '/connexion'); return sendFile(res, '/app.html'); }
     // espace du juge-arbitre : tableau de bord, calendrier, joueurs, profil
@@ -259,7 +269,8 @@ const server = http.createServer(async (req, res) => {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(res, 400, { error: 'Adresse e-mail invalide.' });
       if (String(b.password || '').length < 8) return json(res, 400, { error: 'Le mot de passe doit faire au moins 8 caractères.' });
       if (await store.getUserByEmail(email)) return json(res, 409, { error: 'Un compte existe déjà avec cette adresse.' });
-      const u = { id: 'u' + Auth.randomId(12), email, name: String(b.name || '').slice(0, 80), club: String(b.club || '').slice(0, 120),
+      const first = String(b.first || '').trim().slice(0, 40), last = String(b.last || '').trim().slice(0, 40);
+      const u = { id: 'u' + Auth.randomId(12), email, first, last, name: [first, last].filter(Boolean).join(' ') || String(b.name || '').slice(0, 80), club: String(b.club || '').slice(0, 120),
         pass_hash: Auth.hashPassword(b.password), plan: 'essai', guest: false, created_at: Date.now() };
       await store.saveUser(u);
       // premier tournoi d'exemple pour bien démarrer
@@ -305,7 +316,10 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/me' && req.method === 'POST') {   // modifier son nom et son club
       const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour modifier votre profil.' });
       const b = await readBody(req);
-      if (b.name != null) u.name = String(b.name).trim().slice(0, 80);
+      if (b.first != null || b.last != null) {
+        u.first = String(b.first || '').trim().slice(0, 40); u.last = String(b.last || '').trim().slice(0, 40);
+        u.name = [u.first, u.last].filter(Boolean).join(' ');
+      } else if (b.name != null) u.name = String(b.name).trim().slice(0, 80);
       if (b.club != null) u.club = String(b.club).trim().slice(0, 120);
       await store.saveUser(u);
       return json(res, 200, { ok: true, user: publicUser(u) });
