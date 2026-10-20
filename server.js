@@ -270,9 +270,10 @@ const server = http.createServer(async (req, res) => {
       if (String(b.password || '').length < 8) return json(res, 400, { error: 'Le mot de passe doit faire au moins 8 caractères.' });
       if (await store.getUserByEmail(email)) return json(res, 409, { error: 'Un compte existe déjà avec cette adresse.' });
       const first = String(b.first || '').trim().slice(0, 40), last = String(b.last || '').trim().slice(0, 40);
-      const u = { id: 'u' + Auth.randomId(12), email, first, last, name: [first, last].filter(Boolean).join(' ') || String(b.name || '').slice(0, 80), club: String(b.club || '').slice(0, 120),
+      const u = { id: 'u' + Auth.randomId(12), email, name: [first, last].filter(Boolean).join(' ') || String(b.name || '').slice(0, 80), club: String(b.club || '').slice(0, 120),
         pass_hash: Auth.hashPassword(b.password), plan: 'essai', guest: false, created_at: Date.now() };
       await store.saveUser(u);
+      if (first || last) await store.saveIdentity(u.id, { first, last });
       // premier tournoi d'exemple pour bien démarrer
       await newTournament(u.id, { demo: true, name: 'Tournoi d\'exemple' });
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
@@ -316,13 +317,16 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/me' && req.method === 'POST') {   // modifier son nom et son club
       const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour modifier votre profil.' });
       const b = await readBody(req);
+      let id = null;
       if (b.first != null || b.last != null) {
-        u.first = String(b.first || '').trim().slice(0, 40); u.last = String(b.last || '').trim().slice(0, 40);
-        u.name = [u.first, u.last].filter(Boolean).join(' ');
+        id = { first: String(b.first || '').trim().slice(0, 40), last: String(b.last || '').trim().slice(0, 40) };
+        u.name = [id.first, id.last].filter(Boolean).join(' ');
       } else if (b.name != null) u.name = String(b.name).trim().slice(0, 80);
       if (b.club != null) u.club = String(b.club).trim().slice(0, 120);
       await store.saveUser(u);
-      return json(res, 200, { ok: true, user: publicUser(u) });
+      if (id) await store.saveIdentity(u.id, id);
+      else id = await store.getIdentity(u.id).catch(() => null);
+      return json(res, 200, { ok: true, user: publicUser(Object.assign({}, u, id || {})) });
     }
     if (p === '/api/me/password' && req.method === 'POST') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour choisir un mot de passe.' });
@@ -334,7 +338,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/me') {
       const u = await currentUser(req);
-      return json(res, 200, { user: publicUser(u), storage: store.kind });
+      const id = u && !u.guest ? await store.getIdentity(u.id).catch(() => null) : null;
+      return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), storage: store.kind });
     }
 
     /* ---------- API tournois (tableau de bord) ---------- */
