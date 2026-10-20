@@ -288,8 +288,14 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   body.editor-page nav#nav button.on::before, body.editor-page nav#nav button::before { display: none !important; }
   .nav-ind { position: absolute; z-index: 0; top: 8px; bottom: 8px; left: 0; background: var(--ui-accent); box-shadow: 3px 3px 0 var(--ui-accent2);
     transition: transform .28s cubic-bezier(.2, .9, .3, 1.15); pointer-events: none; }
-  .nav-ind.drag { transition: none; }
+  /* appui : le carré grossit et vient sous le doigt, puis le suit sans retard */
+  .nav-ind.drag { transition: transform .12s ease-out; box-shadow: 5px 5px 0 var(--ui-accent2); }
+  .nav-ind.moving { transition: none; }
+  body.editor-page nav#nav { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   body.editor-page nav#nav.dragging button { color: var(--ui-text-mut); }
+  body.editor-page nav#nav.dragging button.hover { color: var(--ui-on-accent); }
+  body.editor-page nav#nav.dragging button.hover .ic { transform: scale(1.15); }
+  body.editor-page nav#nav button .ic { transition: transform .15s; }
 
   /* plein écran : la page défile en entier (et non une zone intérieure) pour descendre jusqu'en bas de l'écran,
      derrière la barre flottante et sous la barre d'accueil de l'iPhone */

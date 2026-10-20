@@ -100,25 +100,37 @@
     const sync = () => { if (!mobile()) return; const i = btns().findIndex(b => b.classList.contains('on')); if (i >= 0) place(i); };
     new MutationObserver(sync).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
     addEventListener('resize', sync); sync();
-    let drag = false, moved = false, startX = 0;
-    const xOf = e => e.touches[0].clientX - nav.getBoundingClientRect().left;
-    nav.addEventListener('touchstart', e => { if (!mobile()) return; drag = true; moved = false; startX = e.touches[0].clientX; }, { passive: true });
-    nav.addEventListener('touchmove', e => {
-      if (!drag) return;
-      if (!moved && Math.abs(e.touches[0].clientX - startX) < 6) return;
-      moved = true; nav.classList.add('dragging'); ind.classList.add('drag');
-      const w = size(), x = Math.max(0, Math.min(nav.clientWidth - w, xOf(e) - w / 2));
-      ind.style.transform = `translateX(${x + 4}px)`;
-    }, { passive: true });
-    nav.addEventListener('touchend', e => {
-      if (!drag) return; drag = false;
-      nav.classList.remove('dragging'); ind.classList.remove('drag');
-      if (!moved) return;   // simple appui : le clic normal ouvre l'onglet
-      e.preventDefault();
-      const w = size(), x = e.changedTouches[0].clientX - nav.getBoundingClientRect().left;
-      const i = Math.max(0, Math.min(btns().length - 1, Math.floor(x / w)));
-      btns()[i].click(); place(i);
+    // dès que le doigt touche la barre, le carré vient sous le doigt, grossit et le suit en temps réel ;
+    // au relâcher, il se cale sur l'onglet le plus proche et l'ouvre
+    let pid = null, last = -1, until = 0;
+    const xIn = e => e.clientX - nav.getBoundingClientRect().left;
+    const follow = e => {
+      const w = size(), x = Math.max(0, Math.min(nav.clientWidth - w, xIn(e) - w / 2));
+      ind.style.transform = `translateX(${x + 4}px) scale(1.18)`;
+      const i = Math.max(0, Math.min(btns().length - 1, Math.floor(xIn(e) / w)));
+      if (i !== last) { last = i; btns().forEach((b, k) => b.classList.toggle('hover', k === i)); if (navigator.vibrate) navigator.vibrate(6); }
+    };
+    nav.addEventListener('pointerdown', e => {
+      if (!mobile() || e.button > 0) return;
+      pid = e.pointerId; last = -1;
+      try { nav.setPointerCapture(pid); } catch (err) {}
+      nav.classList.add('dragging'); ind.classList.add('drag');
+      follow(e);
     });
+    nav.addEventListener('pointermove', e => { if (e.pointerId === pid) { ind.classList.add('moving'); follow(e); } });
+    const release = (e, open) => {
+      if (e.pointerId !== pid) return;
+      pid = null;
+      nav.classList.remove('dragging'); ind.classList.remove('drag', 'moving');
+      btns().forEach(b => b.classList.remove('hover'));
+      if (!open) return sync();
+      const w = size(), i = Math.max(0, Math.min(btns().length - 1, Math.floor(xIn(e) / w)));
+      until = Date.now() + 500;   // on ignore le clic natif qui suit
+      place(i); btns()[i].click();
+    };
+    nav.addEventListener('pointerup', e => release(e, true));
+    nav.addEventListener('pointercancel', e => release(e, false));
+    nav.addEventListener('click', e => { if (Date.now() < until && e.isTrusted) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); }); else { build(); navCursor(); }
