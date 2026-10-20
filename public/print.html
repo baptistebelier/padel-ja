@@ -71,7 +71,7 @@ td.n { font-family: var(--label); font-weight: 700; width: 40px; }
     const d = t.dateStart ? new Date(t.dateStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
     return `<div class="page ${portrait ? 'portrait' : ''}"><div class="head"><div><h1>${esc(t.name)} · <span class="band lime">${esc(title)}</span></h1>
       <div class="meta">${esc([t.category + ' ' + t.gender, t.club, d, t.ja && 'JA : ' + t.ja].filter(Boolean).join(' · '))}</div></div>
-      <div>${t.logo ? `<img src="${t.logo}">` : ''} <img src="/img/ram-logo-noir.png" style="height:34px"></div></div>${body}
+      <div>${t.logo ? `<img src="${t.logo}">` : ''} <img src="/img/ram-logo-rouge-noir.webp" style="height:34px"></div></div>${body}
       <div class="foot"><span>Padel JA · /RAM — Rise And Move</span><span>Édité le ${new Date().toLocaleString('fr-FR')}</span></div></div>`;
   }
   const mBox = m => {

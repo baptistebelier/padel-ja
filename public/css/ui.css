@@ -188,3 +188,6 @@ fieldset input { padding: 8px 8px; }
 .fold-tg { font-size: 16px; transition: transform .2s; }
 .foldable.open .fold-tg { transform: rotate(180deg); }
 .foldable.open .fold-hint { display: none; }
+
+/* éditeur : pas de bandeau défilant (il reste sur l'écran TV et son aperçu) */
+body.editor-page .annonce { display: none !important; }

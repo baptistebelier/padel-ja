@@ -40,7 +40,7 @@
     if (!document.querySelector('[data-drawer-open]')) {   // pages sans barre d'application : on en ajoute une
       const top = document.createElement('header'); top.className = 'mtop';
       top.innerHTML = `<button type="button" class="mtop-btn" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
-        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><img class="lg-j" src="/img/ram-logo-noir.png" alt=""><b>Padel JA</b></a><span class="mtop-sp"></span>`;
+        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><img class="lg-j" src="/img/ram-logo-rouge-noir.webp" alt=""><b>Padel JA</b></a><span class="mtop-sp"></span>`;
       nav.after(top);
     }
     const open = () => { document.body.classList.add('drawer-open'); };
