@@ -303,6 +303,10 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   body.editor-page { display: block; background: var(--ui-bg); }
   body.editor-page .shell { display: block; min-height: 0; }
   body.editor-page main { overflow: visible; padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  /* chaque onglet fait au moins toute la hauteur de l'écran : sur iPhone, une page plus courte que l'écran
+     faisait remonter la barre flottante (Tableaux, Planning, Direct) par rapport aux pages longues */
+  body.editor-page main { min-height: 100vh; min-height: 100lvh; }
+  body.acct .page { min-height: 100vh; min-height: 100lvh; }
   html, body { background: var(--ui-bg); }
 }
 

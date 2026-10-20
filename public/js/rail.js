@@ -98,39 +98,43 @@
     const mobile = () => matchMedia('(max-width: 720px)').matches;
     const size = () => { const b = btns(), w = nav.clientWidth / b.length; ind.style.width = (w - 8) + 'px'; return w; };
     const place = i => { const w = size(); ind.style.transform = `translateX(${i * w + 4}px)`; };
-    const sync = () => { if (!mobile()) return; const i = btns().findIndex(b => b.classList.contains('on')); if (i >= 0) place(i); };
+    let dragging = false, last = -1, until = 0;
+    // recale le carré sous l'onglet actif (jamais pendant que le doigt le déplace)
+    const sync = () => { if (!mobile() || dragging) return; const i = btns().findIndex(b => b.classList.contains('on')); if (i >= 0) place(i); };
     new MutationObserver(sync).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
     addEventListener('resize', sync); sync();
     // dès que le doigt touche la barre, le carré vient sous le doigt, grossit et le suit en temps réel ;
     // au relâcher, il se cale sur l'onglet le plus proche et l'ouvre
-    let pid = null, last = -1, until = 0;
-    const xIn = e => e.clientX - nav.getBoundingClientRect().left;
-    const follow = e => {
-      const w = size(), x = Math.max(0, Math.min(nav.clientWidth - w, xIn(e) - w / 2));
+    const xIn = clientX => clientX - nav.getBoundingClientRect().left;
+    const idx = clientX => Math.max(0, Math.min(btns().length - 1, Math.floor(xIn(clientX) / size())));
+    const follow = clientX => {
+      const w = size(), x = Math.max(0, Math.min(nav.clientWidth - w, xIn(clientX) - w / 2));
       ind.style.transform = `translateX(${x + 4}px) scale(1.18)`;
-      const i = Math.max(0, Math.min(btns().length - 1, Math.floor(xIn(e) / w)));
+      const i = idx(clientX);
       if (i !== last) { last = i; btns().forEach((b, k) => b.classList.toggle('hover', k === i)); if (navigator.vibrate) navigator.vibrate(6); }
     };
-    nav.addEventListener('pointerdown', e => {
-      if (!mobile() || e.button > 0) return;
-      pid = e.pointerId; last = -1;
-      try { nav.setPointerCapture(pid); } catch (err) {}
-      nav.classList.add('dragging'); ind.classList.add('drag');
-      follow(e);
-    });
-    nav.addEventListener('pointermove', e => { if (e.pointerId === pid) { ind.classList.add('moving'); follow(e); } });
-    const release = (e, open) => {
-      if (e.pointerId !== pid) return;
-      pid = null;
+    const begin = clientX => { dragging = true; last = -1; nav.classList.add('dragging'); ind.classList.add('drag'); follow(clientX); };
+    const move = clientX => { if (!dragging) return; ind.classList.add('moving'); follow(clientX); };
+    const end = (clientX, open) => {
+      if (!dragging) return;
+      dragging = false;
       nav.classList.remove('dragging'); ind.classList.remove('drag', 'moving');
       btns().forEach(b => b.classList.remove('hover'));
-      if (!open) return sync();
-      const w = size(), i = Math.max(0, Math.min(btns().length - 1, Math.floor(xIn(e) / w)));
-      until = Date.now() + 500;   // on ignore le clic natif qui suit
+      if (!open || clientX == null) return sync();
+      const i = idx(clientX);
+      until = Date.now() + 600;   // on ignore le clic natif qui suit
       place(i); btns()[i].click();
     };
-    nav.addEventListener('pointerup', e => release(e, true));
-    nav.addEventListener('pointercancel', e => release(e, false));
+    // doigt (iPhone, Android) : événements tactiles natifs, la page ne défile pas pendant le geste
+    let lastX = null;
+    nav.addEventListener('touchstart', e => { if (!mobile()) return; e.preventDefault(); lastX = e.touches[0].clientX; begin(lastX); }, { passive: false });
+    nav.addEventListener('touchmove', e => { if (!dragging) return; e.preventDefault(); lastX = e.touches[0].clientX; move(lastX); }, { passive: false });
+    nav.addEventListener('touchend', e => { const t = e.changedTouches[0]; end(t ? t.clientX : lastX, true); });
+    nav.addEventListener('touchcancel', () => end(null, false));
+    // souris (ordinateur en petite fenêtre)
+    nav.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || !mobile() || e.button > 0) return; try { nav.setPointerCapture(e.pointerId); } catch (err) {} begin(e.clientX); });
+    nav.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') move(e.clientX); });
+    nav.addEventListener('pointerup', e => { if (e.pointerType === 'mouse') end(e.clientX, true); });
     nav.addEventListener('click', e => { if (Date.now() < until && e.isTrusted) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
 
