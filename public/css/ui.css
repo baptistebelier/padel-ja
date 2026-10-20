@@ -201,3 +201,5 @@ body.editor-page .annonce { display: none !important; }
 .rd b { font-family: var(--display); font-weight: 400; font-size: 22px; color: var(--ui-accent-text); line-height: 1; }
 .rd strong { font-size: 16px; }
 .rd button { justify-self: start; margin-top: 4px; }
+.rd-live { display: inline-flex; align-items: center; gap: 6px; color: var(--ui-accent2); font-weight: 600; font-size: 13px; }
+.rd-live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1.2s infinite; flex: none; }

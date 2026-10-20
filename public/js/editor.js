@@ -224,22 +224,31 @@
 
   /* durée réelle moyenne par format (du lancement à la fin du match), recalculée à chaque match terminé */
   function renderRealDurs() {
-    const by = {};
+    if (!S || !$('#realDurs')) return;
+    const by = {}, now = Date.now(), add = (fk, key, v) => { const x = by[fk] = by[fk] || { done: [], live: [], quick: 0 }; if (key === 'quick') x.quick++; else x[key].push(v); };
     S.matches.forEach(m => {
-      const r = R[m.id]; if (!r || r.state !== 'done' || m.wo || !m.startedAt || !m.endedAt) return;
-      const min = (m.endedAt - m.startedAt) / 60000; if (min < 5 || min > 300) return;   // scores saisis d'un coup ou match oublié : exclus
-      (by[r.fk] = by[r.fk] || []).push(min);
+      const r = R[m.id]; if (!r || m.wo || !m.startedAt) return;
+      if (r.state === 'done' && m.endedAt) {
+        const min = (m.endedAt - m.startedAt) / 60000;
+        if (min < 1) add(r.fk, 'quick');            // score saisi d'un coup : pas de durée à mesurer
+        else if (min <= 300) add(r.fk, 'done', min);
+      } else if (m.status === 'live') add(r.fk, 'live', (now - m.startedAt) / 60000);
     });
     const keys = Object.keys(by).sort(), cur = S.tournament.durations || {};
-    $('#realDurs').innerHTML = `<h4>Durées réelles de ce tournoi <small class="muted">moyenne du lancement à la fin du match</small></h4>` + (keys.length
+    const avgOf = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
+    $('#realDurs').innerHTML = `<h4>Durées réelles de ce tournoi <small class="muted">du lancement ▶ à la fin du match, mise à jour en continu</small></h4>` + (keys.length
       ? `<div class="rd-list">${keys.map(k => {
-        const a = by[k], avg = Math.round(a.reduce((x, y) => x + y, 0) / a.length), g = k[0], est = cur[g] || E.DEFAULT_DUR[g];
-        return `<div class="rd"><b>${k}</b><span><strong>${avg} min</strong> en moyenne · ${a.length} match${a.length > 1 ? 's' : ''}</span>
-          <small class="muted">Prévu : ${est} min (format ${g})</small>${avg !== est ? `<button class="ghost sm" data-rd="${g}" data-v="${avg}">Prévoir ${avg} min</button>` : ''}</div>`;
+        const x = by[k], g = k[0], est = cur[g] || E.DEFAULT_DUR[g], avg = x.done.length ? avgOf(x.done) : null;
+        return `<div class="rd"><b>${k}</b>
+          ${avg != null ? `<span><strong>${avg} min</strong> en moyenne · ${x.done.length} match${x.done.length > 1 ? 's' : ''} terminé${x.done.length > 1 ? 's' : ''}</span>` : '<span class="muted">Pas encore de match terminé</span>'}
+          ${x.live.length ? `<span class="rd-live">${x.live.length} en cours · depuis ${x.live.map(v => Math.floor(v) + ' min').join(', ')}</span>` : ''}
+          ${x.quick ? `<small class="muted">${x.quick} score${x.quick > 1 ? 's' : ''} saisi${x.quick > 1 ? 's' : ''} en moins d'une minute, non compté${x.quick > 1 ? 's' : ''}</small>` : ''}
+          <small class="muted">Prévu : ${est} min (format ${g})</small>${avg != null && avg !== est ? `<button class="ghost sm" data-rd="${g}" data-v="${avg}">Prévoir ${avg} min</button>` : ''}</div>`;
       }).join('')}</div>`
-      : '<p class="muted small">Les moyennes s\'affichent dès le premier match terminé (lancé avec ▶, puis clôturé).</p>');
+      : '<p class="muted small">Lancez un match avec ▶ : sa durée s\'affiche ici en direct, puis la moyenne par format dès qu\'il est terminé.</p>');
     $$('[data-rd]').forEach(b => b.onclick = () => send('tournament/update', { durations: Object.assign({}, S.tournament.durations, { [b.dataset.rd]: +b.dataset.v }) }));
   }
+  setInterval(() => { if (tab === 'tournoi') renderRealDurs(); }, 30000);   // les chronos des matchs en cours avancent
 
   function renderTournoi() {
     const t = S.tournament;
