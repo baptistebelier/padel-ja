@@ -975,7 +975,11 @@
     const f = Object.assign({}, tpl.fields);
     TEMPLATE_FIELDS.forEach(k => { if (k in f) T.tournament[k] = f[k]; });
     ['formatQuarter', 'formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif'].forEach(k => { if (!(k in f)) T.tournament[k] = ''; });
-    if (tpl.courts && tpl.courts.length) T.courts = tpl.courts.map((c, i) => ({ id: 'c' + (i + 1), name: c.name, start: c.start }));
+    // le modèle fixe le nombre de terrains et leurs horaires ; les noms génériques (« Terrain 3 »)
+    // ne remplacent pas les noms déjà donnés (réglages mémorisés du compte ou saisis à la main)
+    const generic = n => /^terrain\s*\d+$/i.test(String(n || '').trim());
+    if (tpl.courts && tpl.courts.length) T.courts = tpl.courts.map((c, i) => ({ id: 'c' + (i + 1),
+      name: generic(c.name) && T.courts[i] && T.courts[i].name ? T.courts[i].name : c.name, start: c.start }));
     T.order = Array.isArray(tpl.order) && tpl.order.length ? tpl.order.slice() : null;
     T.tournament.template = tpl.name;
   }

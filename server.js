@@ -130,6 +130,15 @@ async function newTournament(owner, opts) {
   return row;
 }
 
+/* noms et horaires des terrains repris automatiquement dans les réglages du compte (hors démo) */
+async function rememberCourts(room) {
+  const u = await store.getUser(room.row.owner);
+  if (!u || u.guest) return;
+  const profile = (await store.getProfile(u.id)) || {};
+  profile.courts = room.row.state.courts.map(c => ({ name: c.name, start: c.start }));
+  await store.saveProfile(u.id, profile);
+}
+
 /* action appliquée par le serveur lui-même (clôture, réouverture) */
 function applyServerAction(room, action) {
   const before = JSON.stringify(room.row.state);
@@ -498,6 +507,8 @@ const server = http.createServer(async (req, res) => {
         try { Engine.reduce(draft, action); } catch (e) { return json(res, 400, { error: e.message }); }
         if (!/^match\/(point|undoPoint|game|ungame)$/.test(action.type)) { room.history.push(before); if (room.history.length > 60) room.history.shift(); }
         room.row.state = draft; room.rev++; saveRoom(room); broadcast(room);
+        // terrains renommés / ajoutés / supprimés : mémorisés aussitôt dans les réglages du compte
+        if (/^court\//.test(action.type)) rememberCourts(room).catch(e => console.error('terrains non mémorisés', e.message));
         return json(res, 200, { ok: true, rev: room.rev });
       }
     }
