@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#120A0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/img/app-icon-180.png">
+<link rel="icon" type="image/png" href="/img/favicon.png">
+<title>Tableau de bord — Padel JA</title>
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/shell.css">
+<link rel="stylesheet" href="/css/street.css">
+<script src="/js/theme.js"></script>
+<script src="/js/rail.js" defer></script>
+</head>
+<body class="acct" data-page="dashboard">
+<div class="guest" id="guestBar" hidden>Mode démo : vos tournois seront effacés dans 24 h. <a href="/inscription">Créer mon compte gratuitement</a></div>
+<main class="page">
+  <header class="phead">
+    <div><span class="eyebrow" id="hello">Bonjour</span><h1>Tableau <span class="band lime">de bord</span></h1></div>
+    <div class="phead-act"><a class="btn" href="/calendrier">Calendrier</a><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div>
+  </header>
+
+  <div class="kpi-row" id="kpis"></div>
+
+  <div class="grid g-main">
+    <div class="grid" style="align-content:start">
+      <section class="card hero-t" id="current"><span class="eyebrow">Tournoi en cours</span><p>Chargement…</p></section>
+      <section class="card">
+        <div class="card-h"><div><span class="eyebrow">Agenda</span><h2>Prochains tournois</h2></div><a class="btn sm ghost" href="/calendrier">Tout voir</a></div>
+        <div class="rows" id="next"></div>
+      </section>
+    </div>
+    <div class="grid" style="align-content:start">
+      <section class="card">
+        <span class="eyebrow">Raccourcis</span><h2>Aller vite</h2>
+        <div class="quick">
+          <a href="/app#nouveau"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Nouveau tournoi</a>
+          <a href="/app"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/></svg>Mes tournois</a>
+          <a href="/joueurs"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/></svg>Mes joueurs</a>
+          <a href="/profil"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Mon profil</a>
+        </div>
+      </section>
+      <section class="card" id="fansCard">
+        <div class="card-h"><div><span class="eyebrow">Fidélité</span><h2>Joueurs fidèles</h2></div><a class="btn sm ghost" href="/joueurs">Tous</a></div>
+        <div class="rows" id="fans"><p class="empty">Chargement…</p></div>
+      </section>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = s => document.querySelector(s);
+  const today = new Date().toISOString().slice(0, 10);
+  const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  const ico = d => `<i class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg></i>`;
+
+  fetch('/api/me').then(r => r.json()).then(d => {
+    if (!d.user) return location.href = '/connexion';
+    const first = (d.user.name || '').trim().split(/\s+/)[0];
+    $('#hello').textContent = d.user.guest ? 'Bienvenue dans la démo' : 'Bonjour' + (first ? ' ' + first : '');
+    $('#guestBar').hidden = !d.user.guest;
+  });
+
+  fetch('/api/tournaments').then(r => r.json()).then(d => {
+    const list = d.tournaments || [];
+    const open = list.filter(t => !t.closed), closed = list.filter(t => t.closed);
+    const live = open.filter(t => t.drawn && t.done < t.matches);
+    const upcoming = open.filter(t => !t.drawn && (!t.dateStart || t.dateStart >= today));
+    const pairs = open.reduce((n, t) => n + (t.pairs || 0), 0);
+    $('#kpis').innerHTML = [
+      ['En direct', live.length, 'tournois', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/>', '/en-cours'],
+      ['À venir', upcoming.length, 'tournois', '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>', '/calendrier'],
+      ['Inscrits', pairs, 'paires', '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/>', '/app'],
+      ['Clôturés', closed.length, 'tournois', '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>', '/app#clotures']
+    ].map(([l, n, u, i, h]) => `<a class="kpi" href="${h}"><div><small>${l}</small><b>${n}</b><span>${u}</span></div>${ico(i)}</a>`).join('');
+
+    // tournoi en cours : même règle que le raccourci /en-cours
+    const score = t => (t.drawn && t.done < t.matches ? 0 : 1) * 1e9 + Math.abs(Date.parse(t.dateStart || today) - Date.parse(today)) / 864e5;
+    const cur = open.slice().sort((a, b) => score(a) - score(b))[0];
+    if (cur) {
+      const pct = cur.matches ? Math.round(cur.done / cur.matches * 100) : 0;
+      const state = cur.drawn ? (cur.done < cur.matches ? '<span class="chip live">En direct</span>' : '<span class="chip ok">Matchs terminés</span>') : '<span class="chip">Inscriptions</span>';
+      $('#current').innerHTML = `<div style="position:relative;z-index:1">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="eyebrow" style="margin:0">Tournoi en cours</span>${state}</div>
+        <h2>${esc(cur.name || 'Sans nom')}</h2>
+        <p>${esc([cur.category, cur.gender, cur.club, cur.dateStart && new Date(cur.dateStart).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean).join(' · '))}</p>
+        <div class="hero-stats"><div><b>${cur.pairs || 0}</b><span>paires inscrites${cur.maxPairs ? ' · ' + cur.maxPairs + ' places' : ''}</span></div><div><b>${cur.done}/${cur.matches}</b><span>matchs joués</span></div><div><b>${pct}%</b><span>avancement</span></div></div>
+        ${cur.drawn ? `<div class="prog"><i style="width:${pct}%"></i></div>` : ''}
+        <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/t/${cur.id}">Ouvrir le tournoi</a><a class="btn" href="/t/${cur.id}/tv" target="_blank">Écran TV</a><a class="btn" href="/t/${cur.id}/remote" target="_blank">Saisie des scores</a></div></div>`;
+    } else {
+      $('#current').innerHTML = `<div style="position:relative;z-index:1"><span class="eyebrow">Tournoi en cours</span><h2>Aucun tournoi ouvert</h2><p>Créez votre prochain tournoi en partant d'un modèle.</p>
+        <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div></div>`;
+    }
+
+    const next = open.filter(t => t !== cur).sort((a, b) => (a.dateStart || '9') < (b.dateStart || '9') ? -1 : 1).slice(0, 5);
+    $('#next').innerHTML = next.map(t => {
+      const dt = t.dateStart ? new Date(t.dateStart) : null;
+      return `<a class="row" href="/t/${t.id}"><div class="d"><b>${dt ? dt.getDate() : '–'}</b><span>${dt ? MOIS[dt.getMonth()] : 'date ?'}</span></div>
+        <div><strong>${esc(t.name || 'Sans nom')}</strong><small>${esc([t.category, t.gender, t.club].filter(Boolean).join(' · '))}</small></div><span class="chip">${t.pairs} paires</span></a>`;
+    }).join('') || '<p class="empty">Aucun autre tournoi prévu.</p>';
+  });
+
+  fetch('/api/club-players').then(r => r.json()).then(d => {
+    if (d.guest) { $('#fansCard').hidden = true; return; }
+    const top = (d.players || []).slice(0, 5);
+    $('#fans').innerHTML = top.map((p, i) => `<a class="row" href="/joueurs#${p.id}"><div class="d"><b>${i + 1}</b><span>rang</span></div>
+      <div><strong>${esc(p.last)} ${esc(p.first)}</strong><small>${p.count} tournoi(s) · ${p.wins} victoire(s)</small></div><span class="chip">${p.points} pts</span></a>`).join('')
+      || `<p class="empty">${esc(d.error || 'Vos joueurs apparaîtront ici dès votre premier tournoi clôturé.')}</p>`;
+  }).catch(() => { $('#fans').innerHTML = '<p class="empty">Indisponible.</p>'; });
+})();
+</script>
+</body>
+</html>

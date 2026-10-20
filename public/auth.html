@@ -56,7 +56,7 @@
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { document.getElementById('err').textContent = d.error || 'Erreur'; return; }
     const back = qs.get('retour');
-    location.href = back && back.startsWith('/t/') ? back : '/app';
+    location.href = back && /^/(t/|dashboard|calendrier|joueurs|profil|app)/.test(back) ? back : '/dashboard';
   };
 })();
 </script>

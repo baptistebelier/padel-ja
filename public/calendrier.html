@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#120A0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/img/app-icon-180.png">
+<link rel="icon" type="image/png" href="/img/favicon.png">
+<title>Mon calendrier — Padel JA</title>
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/shell.css">
+<link rel="stylesheet" href="/css/street.css">
+<script src="/js/theme.js"></script>
+<script src="/js/rail.js" defer></script>
+</head>
+<body class="acct" data-page="calendrier">
+<main class="page">
+  <header class="phead">
+    <div><span class="eyebrow">Planning</span><h1>Mon <span class="band lime">calendrier</span></h1></div>
+    <div class="phead-act"><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div>
+  </header>
+  <div class="grid g-main">
+    <section class="card">
+      <div class="cal-head">
+        <h2 id="month"></h2>
+        <button class="btn sm" id="prev" aria-label="Mois précédent">‹</button>
+        <button class="btn sm" id="today">Aujourd'hui</button>
+        <button class="btn sm" id="next" aria-label="Mois suivant">›</button>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="legend"><span><i style="background:var(--ui-accent)"></i>En direct</span><span><i style="background:var(--ui-accent2)"></i>À venir</span><span><i style="background:var(--ui-text-mut2)"></i>Clôturé</span></div>
+    </section>
+    <section class="card" style="align-self:start">
+      <span class="eyebrow" id="listLabel">Ce mois-ci</span><h2>Tournois</h2>
+      <div class="rows" id="list"></div>
+    </section>
+  </div>
+</main>
+<script>
+(function () {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = s => document.querySelector(s);
+  const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const todayIso = iso(new Date());
+  let cur = new Date(); cur.setDate(1);
+  let tours = [];
+  const kind = t => t.closed ? 'closed' : t.drawn && t.done < t.matches ? 'live' : '';
+  const covers = (t, day) => t.dateStart && day >= t.dateStart && day <= (t.dateEnd && t.dateEnd >= t.dateStart ? t.dateEnd : t.dateStart);
+
+  function render() {
+    const y = cur.getFullYear(), m = cur.getMonth();
+    $('#month').textContent = MOIS[m] + ' ' + y;
+    const first = new Date(y, m, 1), start = new Date(first);
+    start.setDate(1 - ((first.getDay() + 6) % 7));   // lundi de la première semaine
+    let html = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => `<div class="dow">${d}</div>`).join('');
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const day = iso(d);
+      if (i >= 35 && d.getMonth() !== m) break;
+      const evs = tours.filter(t => covers(t, day));
+      html += `<div class="day ${d.getMonth() !== m ? 'out' : ''} ${day === todayIso ? 'today' : ''}"><i>${d.getDate()}</i>${evs.map(t =>
+        `<a class="ev ${kind(t)}" href="/t/${t.id}" title="${esc(t.name)}${t.startTime ? ' · ' + esc(t.startTime) : ''}">${esc(t.name || 'Tournoi')}</a>`).join('')}</div>`;
+    }
+    $('#cal').innerHTML = html;
+    const monthKey = iso(first).slice(0, 7);
+    const inMonth = tours.filter(t => t.dateStart && (t.dateStart.slice(0, 7) === monthKey || (t.dateEnd || '').slice(0, 7) === monthKey))
+      .sort((a, b) => a.dateStart < b.dateStart ? -1 : 1);
+    const undated = tours.filter(t => !t.dateStart && !t.closed);
+    $('#listLabel').textContent = MOIS[m] + ' ' + y;
+    $('#list').innerHTML = inMonth.map(row).join('') + (undated.length ? `<p class="small muted" style="margin:16px 4px 4px">Sans date</p>` + undated.map(row).join('') : '')
+      || '<p class="empty">Aucun tournoi ce mois-ci.</p>';
+  }
+  function row(t) {
+    const d = t.dateStart ? new Date(t.dateStart) : null;
+    const st = t.closed ? '<span class="chip">Clôturé</span>' : t.drawn && t.done < t.matches ? '<span class="chip live">Direct</span>' : `<span class="chip">${t.pairs} paires</span>`;
+    return `<a class="row" href="/t/${t.id}"><div class="d"><b>${d ? d.getDate() : '–'}</b><span>${d ? MOIS[d.getMonth()].slice(0, 4) : 'date ?'}</span></div>
+      <div><strong>${esc(t.name || 'Sans nom')}</strong><small>${esc([t.category, t.gender, t.club, t.startTime].filter(Boolean).join(' · '))}</small></div>${st}</a>`;
+  }
+  $('#prev').onclick = () => { cur.setMonth(cur.getMonth() - 1); render(); };
+  $('#next').onclick = () => { cur.setMonth(cur.getMonth() + 1); render(); };
+  $('#today').onclick = () => { cur = new Date(); cur.setDate(1); render(); };
+  render();
+  fetch('/api/tournaments').then(r => r.json()).then(d => {
+    if (d.error) return location.href = '/connexion';
+    tours = d.tournaments || []; render();
+  });
+})();
+</script>
+</body>
+</html>

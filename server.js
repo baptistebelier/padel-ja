@@ -202,6 +202,14 @@ setInterval(cleanupGuests, 3600000); setTimeout(cleanupGuests, 5000);
    --------------------------------------------------------------------- */
 const PAGES = { tv: 'tv.html', overlay: 'overlay.html', print: 'print.html', remote: 'remote.html' };
 
+/* « tournoi en cours » : non clôturé, tirage fait en priorité, puis le plus proche dans le temps */
+function currentTournament(list) {
+  const today = new Date().toISOString().slice(0, 10);
+  const open = list.filter(t => !t.closed);
+  const score = t => (t.drawn && t.done < t.matches ? 0 : 1) * 1e9 + Math.abs(Date.parse(t.dateStart || today) - Date.parse(today)) / 864e5;
+  return open.sort((a, b) => score(a) - score(b))[0] || null;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
@@ -215,6 +223,14 @@ const server = http.createServer(async (req, res) => {
     if (p === '/connexion' || p === '/inscription') return sendFile(res, '/auth.html');
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
     if (p === '/app') { if (!(await currentUser(req))) return redirect(res, '/connexion'); return sendFile(res, '/app.html'); }
+    // espace du juge-arbitre : tableau de bord, calendrier, joueurs, profil
+    const ACCOUNT_PAGES = { '/dashboard': 'dashboard.html', '/calendrier': 'calendrier.html', '/joueurs': 'joueurs.html', '/profil': 'profil.html' };
+    if (ACCOUNT_PAGES[p]) { if (!(await currentUser(req))) return redirect(res, '/connexion?retour=' + p); return sendFile(res, '/' + ACCOUNT_PAGES[p]); }
+    if (p === '/en-cours') {   // raccourci vers le tournoi en cours le plus récent
+      const u = await currentUser(req); if (!u) return redirect(res, '/connexion');
+      const cur = currentTournament(await store.listTournaments(u.id));
+      return redirect(res, cur ? '/t/' + cur.id : '/app');
+    }
     if (p === '/demo') {
       const u = { id: 'g' + Auth.randomId(10), email: null, name: 'Démo', guest: true, plan: 'demo', created_at: Date.now() };
       await store.saveUser(u);
@@ -285,6 +301,22 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { ok: true });
       }
       return json(res, 404, { error: 'Inconnu' });
+    }
+    if (p === '/api/me' && req.method === 'POST') {   // modifier son nom et son club
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour modifier votre profil.' });
+      const b = await readBody(req);
+      if (b.name != null) u.name = String(b.name).trim().slice(0, 80);
+      if (b.club != null) u.club = String(b.club).trim().slice(0, 120);
+      await store.saveUser(u);
+      return json(res, 200, { ok: true, user: publicUser(u) });
+    }
+    if (p === '/api/me/password' && req.method === 'POST') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour choisir un mot de passe.' });
+      const b = await readBody(req);
+      if (!Auth.checkPassword(b.current, u.pass_hash)) return json(res, 400, { error: 'Mot de passe actuel incorrect.' });
+      if (String(b.next || '').length < 8) return json(res, 400, { error: 'Le nouveau mot de passe doit faire au moins 8 caractères.' });
+      u.pass_hash = Auth.hashPassword(b.next); await store.saveUser(u);
+      return json(res, 200, { ok: true });
     }
     if (p === '/api/me') {
       const u = await currentUser(req);

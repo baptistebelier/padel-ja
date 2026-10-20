@@ -42,6 +42,11 @@
     $('#hTag').textContent = `${t.category} · ${t.gender}`;
     $('#abTitle').textContent = t.name || 'Tournoi';
     $('#abSub').textContent = `${t.category} ${t.gender}${t.closed ? ' · clôturé' : ''}`;
+    const nM = S.matches.length, nD = S.matches.filter(m => m.status === 'done').length;
+    $('#sName').textContent = t.name || 'Tournoi';
+    $('#sSub').textContent = [t.category, t.gender, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })].filter(Boolean).join(' · ');
+    $('#sState').textContent = t.closed ? 'Clôturé' : S.draw && nM ? (nD < nM ? `${nD}/${nM} matchs joués` : 'Matchs terminés') : `${S.pairs.filter(p => !p.withdrawn).length} paires inscrites`;
+    $('#sState').className = 'side-st' + (t.closed ? ' fin' : S.draw && nM && nD < nM ? ' live' : '');
     $('#hSub').textContent = [E.FORMULAS[t.formula || 'tf'], t.club, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ');
     $('#btnUndo').disabled = !A.canUndo || !!t.closed;
     $('#closedBar').hidden = !t.closed;

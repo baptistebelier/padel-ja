@@ -1,0 +1,77 @@
+/* =========================================================================
+   PADEL JA — touches « street » /RAM sur l'interface moderne
+   Street dosé par défaut, plus marqué avec <html data-style="street">,
+   désactivé avec <html data-style="epure"> (choix dans Mon profil).
+   ========================================================================= */
+
+/* ---------- arrondis pilotés par le style (valables pour les 3 styles) ---------- */
+.modal-box, .pmodal-box { border-radius: calc(var(--ui-r) + 4px); }
+.toast, .suggest, .side-t, .acct .tpl, .quick a, .ptable, .pk div, .ucard, .seg, .row .d, .cal .day, nav button, .rail a, .rail button { border-radius: var(--ui-r); }
+.pr2, .conn, .side-btns button, .side .btnlike, .seg button, .cal .ev, .tag, .acct .tag, .ts, kbd { border-radius: var(--ui-r-sm); }
+.dcard .front, .dcard .back { border-radius: var(--ui-r); }
+.tbl th:first-child { border-radius: var(--ui-r-sm) 0 0 0; } .tbl th:last-child { border-radius: 0 var(--ui-r-sm) 0 0; }
+.ptitle .band, .acct .band { border-radius: min(4px, var(--ui-r-sm)); }
+
+/* ---------- street dosé ---------- */
+/* titres de page inclinés, étiquettes de travers */
+:root:not([data-style="epure"]) .ptitle, :root:not([data-style="epure"]) .phead h1 { transform: rotate(var(--ui-tilt)); transform-origin: left; }
+:root:not([data-style="epure"]) .ptitle .band, :root:not([data-style="epure"]) .phead h1 .band { transform: rotate(-1deg); }
+:root:not([data-style="epure"]) .tag, :root:not([data-style="epure"]) .acct .tag, :root:not([data-style="epure"]) .top-t .tag { transform: rotate(var(--ui-tilt)); }
+:root:not([data-style="epure"]) .card h3, :root:not([data-style="epure"]) .acct .card h2, :root:not([data-style="epure"]) .tcard h3 { letter-spacing: .01em; }
+
+/* trame de points plus présente */
+:root:not([data-style="epure"]) body::before { opacity: .9; }
+
+/* boutons principaux : ombre dure rose, comme sur riseandmove.fr */
+:root:not([data-style="epure"]) button.accent, :root:not([data-style="epure"]) .pt:not(.sm), :root:not([data-style="epure"]) .acct .btn.primary {
+  box-shadow: 3px 3px 0 var(--ui-accent2); border-color: var(--ui-accent); }
+:root:not([data-style="epure"]) button.accent:hover:not(:disabled), :root:not([data-style="epure"]) .pt:not(.sm):hover:not(:disabled), :root:not([data-style="epure"]) .acct .btn.primary:hover {
+  transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ui-accent2); filter: none; }
+:root:not([data-style="epure"]) button.accent:active:not(:disabled), :root:not([data-style="epure"]) .acct .btn.primary:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ui-accent2); }
+
+/* cartes : ombre décalée nette au lieu du flou */
+:root:not([data-style="epure"]) .card, :root:not([data-style="epure"]) .acct .card, :root:not([data-style="epure"]) .kpi,
+:root:not([data-style="epure"]) .tcard, :root:not([data-style="epure"]) .acct .tpl { box-shadow: 5px 5px 0 var(--ui-hard); border-width: var(--ui-bw); }
+:root:not([data-style="epure"]) .acct .card.hero-t { box-shadow: 6px 6px 0 var(--ui-accent); }
+:root:not([data-style="epure"]) .acct .tpl:hover, :root:not([data-style="epure"]) a.kpi:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ui-accent-line); border-color: var(--ui-accent-line); }
+
+/* éléments sélectionnés / en direct : ombres pleines citron et rose */
+:root:not([data-style="epure"]) .tpl.cur, :root:not([data-style="epure"]) .lteam.win, :root:not([data-style="epure"]) .rk-block.p1 { box-shadow: 4px 4px 0 var(--ui-accent-line); border-color: var(--ui-accent-line); }
+:root:not([data-style="epure"]) .mm:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ui-accent-line); border-color: var(--ui-accent-line); }
+:root:not([data-style="epure"]) .mm.st-live, :root:not([data-style="epure"]) .lcard.st-live, :root:not([data-style="epure"]) .scard.st-live { box-shadow: 4px 4px 0 var(--ui-accent2); border-color: var(--ui-accent2); }
+:root:not([data-style="epure"]) .modal-box, :root:not([data-style="epure"]) .pmodal-box { box-shadow: 10px 10px 0 var(--ui-accent); }
+:root:not([data-style="epure"]) .toast { box-shadow: 5px 5px 0 var(--ui-hard); }
+:root:not([data-style="epure"]) .suggest { box-shadow: 6px 6px 0 var(--ui-hard); }
+
+/* colonne du tournoi : onglet actif sur bandeau citron incliné */
+:root:not([data-style="epure"]) nav button.on { background: var(--ui-accent); color: var(--ui-on-accent); border-color: var(--ui-accent); box-shadow: 3px 3px 0 var(--ui-accent2); transform: rotate(var(--ui-tilt)); }
+:root:not([data-style="epure"]) nav button.on .ic { opacity: 1; }
+:root:not([data-style="epure"]) .side-t b { transform: rotate(var(--ui-tilt)); transform-origin: left; }
+/* rail : icône active sur pastille citron */
+:root:not([data-style="epure"]) .rail a.on { background: var(--ui-accent); color: var(--ui-on-accent); box-shadow: 3px 3px 0 var(--ui-accent2); }
+:root:not([data-style="epure"]) .rail a.on .ic { color: var(--ui-on-accent); }
+:root:not([data-style="epure"]) .rail a.on::before { display: none; }
+
+/* champs : contour franc à la sélection */
+:root:not([data-style="epure"]) input:focus, :root:not([data-style="epure"]) select:focus, :root:not([data-style="epure"]) textarea:focus,
+:root:not([data-style="epure"]) .acct input:focus, :root:not([data-style="epure"]) .acct select:focus { box-shadow: 3px 3px 0 color-mix(in srgb, var(--ui-accent-line) 35%, transparent); }
+
+/* chiffres clés et titres en Anton penché */
+:root:not([data-style="epure"]) .kpi b, :root:not([data-style="epure"]) .kpis b { transform: skewX(-4deg); transform-origin: left bottom; }
+
+/* ---------- full street : encore plus proche de l'affiche /RAM ---------- */
+:root[data-style="street"] label, :root[data-style="street"] .acct label { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 12px; }
+:root[data-style="street"] nav button, :root[data-style="street"] .rail a span { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+:root[data-style="street"] nav button { font-size: 15px; }
+:root[data-style="street"] .card, :root[data-style="street"] .acct .card, :root[data-style="street"] .kpi, :root[data-style="street"] .tcard { box-shadow: 7px 7px 0 var(--ui-hard); }
+:root[data-style="street"] .ptitle .band, :root[data-style="street"] .phead h1 .band { transform: rotate(-2.5deg); }
+:root[data-style="street"] .eyebrow, :root[data-style="street"] .acct .eyebrow { display: inline-block; background: var(--ui-accent2); color: #fff; padding: 2px 8px; transform: rotate(var(--ui-tilt)); }
+:root[data-style="street"] .acct .card.hero-t .eyebrow { background: #fff; color: #5E0A1F; }
+:root[data-style="street"] input, :root[data-style="street"] select, :root[data-style="street"] textarea { border-width: 2px; }
+
+@media (max-width: 720px) {
+  /* téléphone : pas d'inclinaison sur la barre d'onglets du bas */
+  :root:not([data-style="epure"]) nav button.on { background: transparent; color: var(--ui-accent-text); box-shadow: none; transform: none; }
+  :root:not([data-style="epure"]) .rail a.on { box-shadow: none; }
+  :root:not([data-style="epure"]) .card { box-shadow: none; }
+}

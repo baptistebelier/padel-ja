@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0B0B">
+<meta name="theme-color" content="#120A0C">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,44 +13,41 @@
 <title>Mes tournois — Padel JA /RAM</title>
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <link rel="stylesheet" href="/css/ram.css">
-<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/shell.css">
+<link rel="stylesheet" href="/css/street.css">
+<script src="/js/theme.js"></script>
+<script src="/js/rail.js" defer></script>
 </head>
-<body class="dash">
+<body class="acct" data-page="tournois">
 <div class="guest" id="guestBar" hidden>Mode démo : vos tournois seront effacés dans 24 h. <a href="/inscription">Créer mon compte gratuitement</a></div>
-<header class="nav"><a href="/" class="logo"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><b>Padel JA</b></a>
-  <div class="nav-r"><span id="who"></span><span id="plan" class="tag" hidden></span><a href="/admin" id="adminLink" class="btn ghost sm" hidden>Admin</a><a href="/deconnexion" class="btn ghost sm">Déconnexion</a></div></header>
-<main class="wrap">
-  <h1 class="h1">Mes <span class="band lime">tournois</span></h1>
-  <section class="newt">
-    <span class="eyebrow">Nouveau tournoi</span>
-    <h2>Partir d'un modèle</h2>
-    <div class="tpls" id="tpls"></div>
-  </section>
+<main class="page">
+  <header class="phead">
+    <div><span class="eyebrow" id="who">Juge-arbitre</span><h1>Mes <span class="band lime">tournois</span></h1></div>
+    <div class="phead-act"><span id="plan" class="tag" hidden></span><a class="btn" href="/calendrier">Calendrier</a><a class="btn primary" href="#nouveau">+ Nouveau tournoi</a></div>
+  </header>
   <section>
     <span class="eyebrow">En cours</span>
     <div class="tlist" id="tlist"><p class="muted">Chargement…</p></div>
   </section>
+  <section class="card" id="nouveau">
+    <span class="eyebrow">Nouveau tournoi</span>
+    <h2 style="font-size:26px;margin-bottom:14px">Partir d'un modèle</h2>
+    <div class="tpls" id="tpls"></div>
+  </section>
   <section id="closedSec" hidden>
-    <span class="eyebrow">Tournois clôturés</span>
+    <span class="eyebrow" id="clotures">Tournois clôturés</span>
     <div class="tlist" id="tclosed"></div>
   </section>
-  <section id="playersSec">
-    <span class="eyebrow">Joueurs</span>
-    <h2>Les joueurs <span class="band lime">de mes tournois</span></h2>
-    <div class="psearch"><input id="pq" type="search" name="recherche-joueur" role="searchbox" inputmode="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Rechercher un joueur (nom, prénom, licence) dans toute la base Padel JA…"><div id="pres" class="pres"></div></div>
-    <div id="plist"><p class="muted">Chargement…</p></div>
-  </section>
 </main>
-<div class="pmodal" id="pmodal" hidden><div class="pmodal-box" id="pbox"></div></div>
 <script>
 (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = s => document.querySelector(s);
   fetch('/api/me').then(r => r.json()).then(d => {
     if (!d.user) return location.href = '/connexion';
-    $('#who').textContent = d.user.guest ? 'Visiteur (démo)' : (d.user.name || d.user.email);
+    $('#who').textContent = d.user.guest ? 'Visiteur (démo)' : (d.user.name || d.user.email) + (d.user.club ? ' · ' + d.user.club : '');
     if (!d.user.guest) { $('#plan').hidden = false; $('#plan').textContent = d.user.planLabel; $('#plan').className = 'tag ' + (d.user.admin ? 'pink' : d.user.free ? 'lime' : 'ink'); }
-    $('#adminLink').hidden = !d.user.admin;
     $('#guestBar').hidden = !d.user.guest;
   });
   async function create(body) {
@@ -84,45 +81,6 @@
   }
   load();
 
-  /* ---------- joueurs : fidélité, recherche, fiche ---------- */
-  const place = x => (x.place === 1 ? '🏆 1er' : x.placeLo && x.placeLo !== x.place ? `${x.placeLo}-${x.place}e` : x.place + 'e');
-  async function loadPlayers() {
-    const d = await fetch('/api/club-players').then(r => r.json()).catch(() => ({}));
-    if (d.guest) { $('#playersSec').hidden = true; return; }
-    if (d.error) { $('#plist').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }
-    $('#plist').innerHTML = d.players && d.players.length ? `<p class="muted small">${d.players.length} joueur(s) sur ${d.tournaments} tournoi(s) clôturé(s), classés par nombre de participations.</p>
-      <div class="ptable"><div class="ph"><span>#</span><span>Joueur</span><span>Tournois</span><span>Victoires</span><span>Meilleur</span><span>Points</span></div>
-      ${d.players.map((p, i) => `<div class="pr" data-p="${p.id}"><span>${i + 1}</span><span><b>${esc(p.last)}</b> ${esc(p.first)}</span><span>${p.count}</span><span>${p.wins}</span><span>${p.best ? p.best + (p.best === 1 ? 'er' : 'e') : '-'}</span><span>${p.points}</span></div>`).join('')}</div>`
-      : '<p class="muted">Les joueurs apparaîtront ici dès que vous clôturerez un tournoi (onglet Tournoi, section Gestion).</p>';
-    document.querySelectorAll('#plist [data-p]').forEach(el => el.onclick = () => openPlayer(el.dataset.p));
-  }
-  loadPlayers();
-  let qt = null;
-  $('#pq').oninput = e => {
-    clearTimeout(qt); const q = e.target.value.trim();
-    if (q.length < 2) { $('#pres').innerHTML = ''; return; }
-    qt = setTimeout(async () => {
-      const d = await fetch('/api/players?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => ({ players: [] }));
-      $('#pres').innerHTML = (d.players || []).map(p => `<div class="pr2" data-p="${p.id}"><b>${esc(p.last)}</b> ${esc(p.first)} <span>${p.licence ? 'Lic. ' + esc(p.licence) + ' · ' : ''}${p.tournaments} tournoi(s)</span></div>`).join('')
-        || (d.error ? `<p class="muted small">${esc(d.error)}</p>` : '<p class="muted small">Aucun joueur trouvé.</p>');
-      document.querySelectorAll('#pres [data-p]').forEach(el => el.onclick = () => openPlayer(el.dataset.p));
-    }, 200);
-  };
-  async function openPlayer(id) {
-    const d = await fetch('/api/players/' + id).then(r => r.json());
-    if (d.error) return alert(d.error);
-    const p = d.player, h = d.history;
-    const wins = h.filter(x => x.place === 1).length, best = h.length ? Math.min(...h.map(x => x.place)) : null, clubs = new Set(h.map(x => x.club)).size;
-    $('#pbox').innerHTML = `<span class="eyebrow">Fiche joueur</span><h2>${esc(p.last)} ${esc(p.first)}</h2>
-      <p class="muted">${p.licence ? 'Licence ' + esc(p.licence) : 'Licence non renseignée'}${p.rank ? ' · classement ' + esc(p.rank) : ''}</p>
-      <div class="pk"><div><b>${h.length}</b><span>tournois</span></div><div><b>${wins}</b><span>victoires</span></div><div><b>${best ? best + (best === 1 ? 'er' : 'e') : '-'}</b><span>meilleur</span></div><div><b>${clubs}</b><span>clubs</span></div></div>
-      <div class="ptable hist"><div class="ph"><span>Date</span><span>Tournoi</span><span>Club</span><span>Place</span><span>Pts</span><span>Partenaire</span></div>
-      ${h.map(x => `<div class="pr"><span>${x.date ? new Date(x.date).toLocaleDateString('fr-FR') : ''}</span><span>${esc(x.tournament)} <i>${esc(x.category || '')}</i></span><span>${esc(x.club || '')}${x.mine ? '' : ' <i class="oc">autre club</i>'}</span><span><b>${place(x)}</b> / ${x.pairs}</span><span>${x.points == null ? '-' : x.points}</span><span>${esc(x.partner || '')}</span></div>`).join('')}</div>
-      <button class="btn primary" id="pclose" style="margin-top:18px">Fermer</button>`;
-    $('#pmodal').hidden = false;
-    $('#pclose').onclick = () => { $('#pmodal').hidden = true; };
-  }
-  $('#pmodal').onclick = e => { if (e.target.id === 'pmodal') $('#pmodal').hidden = true; };
 })();
 </script>
 </body>

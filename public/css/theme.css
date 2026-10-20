@@ -1,0 +1,37 @@
+/* PADEL JA — variables d'interface (thèmes jour / nuit), partagées par l'éditeur et l'espace juge-arbitre */
+/* ---------- nuit (par défaut) ---------- */
+:root {
+  --ui-bg: #120A0C; --ui-surface: #1C1215; --ui-surface-2: #251A1D; --ui-sunken: #160D10;
+  --ui-border: #33242A; --ui-border-2: #45313A;
+  --ui-text: #F7EFF0; --ui-text-mut: #B5A0A6; --ui-text-mut2: #7E676D;
+  --ui-side-bg: linear-gradient(180deg, #2E0914 0%, #1A060C 100%); --ui-side-text: #E9D3D9; --ui-side-on: #ffffff1c;
+  --ui-inverse: #F7EFF0; --ui-on-inverse: #2A0A12; --ui-on-inverse-mut: #7E676D;
+  --ui-accent: #E0F50A; --ui-on-accent: #1A0509; --ui-accent-text: #E0F50A; --ui-accent-line: #E0F50A;
+  --ui-accent2: #FF3D6B; --ui-switch: #9BD43C;
+  --ui-shadow: 0 1px 2px #0006, 0 8px 24px #0005; --ui-shadow-lg: 0 18px 50px #000a;
+  --ui-r: 9px; --ui-r-sm: 6px; --ui-tilt: -1.5deg; --ui-bw: 1px; --ui-hard: #00000080;
+  color-scheme: dark;
+}
+/* ---------- jour ---------- */
+:root[data-theme="light"] {
+  --ui-bg: #F6F1F1; --ui-surface: #FFFFFF; --ui-surface-2: #F8F3F3; --ui-sunken: #FBF8F8;
+  --ui-border: #EDE2E4; --ui-border-2: #E0D0D4;
+  --ui-text: #2A0A12; --ui-text-mut: #86717A; --ui-text-mut2: #B6A4A9;
+  --ui-side-bg: linear-gradient(180deg, #74102A 0%, #4D0818 100%); --ui-side-text: #F6DDE3; --ui-side-on: #ffffff22;
+  --ui-inverse: #5E0A1F; --ui-on-inverse: #FFFFFF; --ui-on-inverse-mut: #F2C9D3;
+  --ui-accent: #DAF35C; --ui-on-accent: #2A0A12; --ui-accent-text: #A30F35; --ui-accent-line: #B3123D;
+  --ui-accent2: #D0103A; --ui-switch: #8CC63F;
+  --ui-shadow: 0 1px 2px #5e0a1f0d, 0 6px 22px #5e0a1f12; --ui-shadow-lg: 0 20px 60px #2a0a1233;
+  --ui-hard: #5e0a1f1f;
+  color-scheme: light;
+}
+
+
+/* icône du bouton jour / nuit : la lune la nuit, le soleil le jour */
+[data-theme-toggle] .ic-sun { display: none !important; }
+:root[data-theme="light"] [data-theme-toggle] .ic-sun { display: block !important; }
+:root[data-theme="light"] [data-theme-toggle] .ic-moon { display: none !important; }
+
+/* ---------- style de l'interface : épuré, street dosé (par défaut), full street ---------- */
+:root[data-style="epure"] { --ui-r: 18px; --ui-r-sm: 11px; --ui-tilt: 0deg; }
+:root[data-style="street"] { --ui-r: 0px; --ui-r-sm: 0px; --ui-tilt: -2deg; --ui-bw: 2px; }

@@ -3,24 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0B0B">
+<meta name="theme-color" content="#120A0C">
 <title>Administration — Padel JA /RAM</title>
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <link rel="stylesheet" href="/css/ram.css">
-<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/shell.css">
+<link rel="stylesheet" href="/css/street.css">
+<script src="/js/theme.js"></script>
+<script src="/js/rail.js" defer></script>
 </head>
-<body class="dash">
-<header class="nav appnav"><a href="/app" class="nav-back">‹ Mes tournois</a><a href="/" class="logo"><img src="/img/ram-logo-rouge-blanc.png" alt="/RAM"><b>Admin</b></a><span></span></header>
-<main class="wrap">
-  <h1 class="h1">Adminis<span class="band pink">tration</span></h1>
+<body class="acct" data-page="admin">
+<main class="page">
+  <header class="phead"><div><span class="eyebrow">Réservé aux administrateurs</span><h1>Adminis<span class="band pink">tration</span></h1></div></header>
   <section><div class="pk" id="stats"></div></section>
-  <section>
+  <section class="card">
     <span class="eyebrow">Comptes juges-arbitres</span>
     <h2 class="h2s">Accès &amp; offres</h2>
     <p class="muted small">« Accès offert » et « Administrateur » ne paient jamais l'abonnement. Les e-mails administrateurs sont aussi réglables dans Render (variable ADMIN_EMAILS).</p>
     <div id="users" class="ulist"><p class="muted">Chargement…</p></div>
   </section>
-  <section>
+  <section class="card">
     <span class="eyebrow">Base de joueurs</span>
     <h2 class="h2s">Droit à l'effacement (RGPD)</h2>
     <p class="muted small">Un joueur demande la suppression de ses données ? Recherchez-le puis supprimez sa fiche : son historique de tournois est effacé de la base partagée.</p>
@@ -55,7 +58,7 @@
     if (q.length < 2) { $('#pres').innerHTML = ''; return; }
     const d = await api('/api/players?q=' + encodeURIComponent(q));
     $('#pres').innerHTML = (d.players || []).map(p => `<div class="pr2 prdel"><span><b>${esc(p.last)}</b> ${esc(p.first)} <span>${p.licence ? 'Lic. ' + esc(p.licence) + ' · ' : ''}${p.tournaments} tournoi(s)</span></span>
-      <button class="btn ghost sm danger" data-del="${p.id}" data-n="${esc(p.last + ' ' + p.first)}">Supprimer</button></div>`).join('') || `<p class="muted small">${esc(d.error || 'Aucun joueur trouvé.')}</p>`;
+      <button class="btn sm danger" data-del="${p.id}" data-n="${esc(p.last + ' ' + p.first)}">Supprimer</button></div>`).join('') || `<p class="muted small">${esc(d.error || 'Aucun joueur trouvé.')}</p>`;
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
       if (!confirm('Supprimer définitivement ' + b.dataset.n + ' et tout son historique de la base partagée ?')) return;
       const r = await api('/api/admin/players/' + b.dataset.del, { method: 'DELETE' });
