@@ -43,7 +43,9 @@ function sendFile(res, rel) {
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Page introuvable'); }
     const ext = path.extname(file);
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': /\.(woff2|png|jpg)$/.test(ext) ? 'public, max-age=604800' : 'no-cache' });
+    // icônes (favicon, icône d'application) : toujours revérifiées pour que les changements de logo apparaissent
+    const longCache = /\.(woff2|png|webp|jpg)$/.test(ext) && !/favicon|app-icon/.test(rel);
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' });
     res.end(data);
   });
 }
