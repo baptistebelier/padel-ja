@@ -99,10 +99,19 @@
       rd.readAsDataURL(file);
     });
   }
-  $('#logoFile').onchange = e => {
-    loadImage(e.target.files[0], 260, 700).then(src => send('tournament/update', { logo: src })).catch(err => A.toast(err.message, 'err'));
-    e.target.value = '';
-  };
+  /* logo du club / tournoi en 3 versions : chaque écran prend la plus lisible sur son fond */
+  const LOGOS = [['logo', 'Couleur', 'Version principale'], ['logoLight', 'Claire / blanche', 'Sur fond sombre : écran TV, overlay'], ['logoDark', 'Sombre / noire', 'Sur fond clair : impressions et PDF']];
+  function renderLogos() {
+    const t = S.tournament;
+    $('#logos3').innerHTML = LOGOS.map(([k, l, h]) => `<div class="lg3">
+      <label class="lg3-box ${k}" title="Choisir une image">${t[k] ? `<img src="${t[k]}" alt="">` : '<em>+ Logo</em>'}<input type="file" accept="image/*" hidden data-lg="${k}"></label>
+      <b>${l}</b><small>${h}</small>${t[k] ? `<button class="ghost sm" data-lgrm="${k}">Retirer</button>` : ''}</div>`).join('');
+    $$('[data-lg]').forEach(inp => inp.onchange = e => {
+      loadImage(e.target.files[0], 260, 700).then(src => send('tournament/update', { [inp.dataset.lg]: src })).catch(err => A.toast(err.message, 'err'));
+      e.target.value = '';
+    });
+    $$('[data-lgrm]').forEach(b => b.onclick = () => send('tournament/update', { [b.dataset.lgrm]: '' }));
+  }
   $('#addCourt').onclick = () => send('court/add', {});
 
   /* ---------- clôture, réouverture, remises à zéro ---------- */
@@ -190,7 +199,7 @@
   };
 
   function renderTemplates() {
-    if (!templates) return;
+    if (!templates || !S) return;   // modèles reçus avant le tournoi : affichés au premier rendu
     const cur = S.tournament.template;
     const card = (t, mine) => `<div class="tpl ${cur === t.name ? 'cur' : ''}" data-id="${t.id}" data-mine="${mine ? 1 : ''}">
       <span class="tag ${mine ? 'lime' : ''}">${mine ? 'Mon modèle' : 'Prêt à l\'emploi'} · ${esc(t.fields.category || '')}</span>
@@ -259,8 +268,7 @@
     $$('[data-d]').forEach(el => fill(el, (t.durations || {})[el.dataset.d]));
     $$('#tab-tournoi [data-show]').forEach(el => el.classList.toggle('hide', !el.dataset.show.split(' ').includes(t.formula || 'tf')));
     $('#planBox').innerHTML = planChips(E.plan(S));
-    $('#logoPrev').innerHTML = t.logo ? `<img src="${t.logo}"><button class="ghost sm" id="rmLogo">Retirer</button>` : '';
-    if ($('#rmLogo')) $('#rmLogo').onclick = () => send('tournament/update', { logo: '' });
+    renderLogos();
     renderSponsors();
     renderProfileInfo();
     renderManage();
@@ -664,6 +672,7 @@
           <button class="pt" data-pt="${side}" ${!can || r.state === 'done' ? 'disabled' : ''}>+ Point ${side === 'A' ? '(← ou 1)' : '(→ ou 2)'}</button>
           <div class="games-row"><button class="ghost" data-gm="${side}" ${!can || r.state === 'done' ? 'disabled' : ''} title="Donne le jeu en cours (Maj + ${side === 'A' ? '←' : '→'})">+ Jeu</button>
             <button class="ghost" data-ugm="${side}" ${!can ? 'disabled' : ''} title="Retire le dernier jeu gagné">− Jeu</button></div>
+          <button class="win-btn" data-win="${side}" ${!can || (r.winner && r.winner === r[side]) ? 'disabled' : ''} title="Désigne le vainqueur sans saisir de score : le tableau avance">🏆 Vainqueur</button>
         </div>`;
       const replaceable = side => {
         const src = side === 'A' ? m.srcA : m.srcB;
@@ -686,6 +695,7 @@
           ${r.state !== 'done' && m.status !== 'live' ? `<label class="inline">Terrain <select data-court><option value="">Non programmé</option>${S.courts.map(c => `<option value="${c.id}" ${m.court === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>` : ''}
           <button class="ghost" data-stream>Envoyer sur l'overlay</button>
         </div>
+        ${m.manual && m.manual.noScore ? '<div class="alert info" style="margin-top:10px">Vainqueur désigné sans score. Vous pouvez saisir le score ci-dessous quand vous l\'avez.</div>' : ''}
         <details ${m.manual ? 'open' : ''}><summary>Saisie rapide du score final</summary>
           <form class="manual" data-man>${[0, 1, 2].map(i => `<span>Set ${i + 1}</span><input type="number" min="0" max="99" name="a${i}" value="${msets[i] ? msets[i][0] : ''}"><b>-</b><input type="number" min="0" max="99" name="b${i}" value="${msets[i] ? msets[i][1] : ''}">`).join('')}
           <button class="accent">Valider</button></form>
@@ -703,6 +713,11 @@
       $$('[data-pt]', box).forEach(b => b.onclick = () => send('match/point', { id, team: b.dataset.pt }));
       $$('[data-gm]', box).forEach(b => b.onclick = () => send('match/game', { id, team: b.dataset.gm }));
       $$('[data-ugm]', box).forEach(b => b.onclick = () => send('match/ungame', { id, team: b.dataset.ugm }));
+      $$('[data-win]', box).forEach(b => b.onclick = () => {
+        const done = R[id].state === 'done';
+        if (done && !confirm('Le match a déjà un vainqueur. Le remplacer par ' + A.sideName(m, b.dataset.win) + ' ?')) return;
+        send('match/winner', { id, team: b.dataset.win }).then(() => A.toast('Vainqueur : ' + A.sideName(m, b.dataset.win) + ' — score modifiable dans « Saisie rapide du score final »', 'ok'));
+      });
       const u = $('[data-undo]', box); if (u) u.onclick = () => send('match/undoPoint', { id });
       $('[data-srv]', box).onchange = e => send('match/server', { id, team: e.target.value });
       $('[data-fmt]', box).onchange = e => send('match/format', { id, format: e.target.value || null });

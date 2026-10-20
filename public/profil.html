@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/css/shell.css">
 <link rel="stylesheet" href="/css/street.css">
 <script src="/js/theme.js"></script>
+<script src="/js/engine.js"></script>
 <script src="/js/rail.js" defer></script>
 </head>
 <body class="acct" data-page="profil">
@@ -70,9 +71,10 @@
         <p class="muted small">L'écran TV et l'overlay gardent leur propre habillage, réglable dans chaque tournoi (onglet Tournoi).</p>
       </section>
       <section class="card">
-        <span class="eyebrow">Mes réglages</span><h2>Repris dans chaque nouveau tournoi</h2>
+        <span class="eyebrow">Mes préférences</span><h2>Reprises dans chaque nouveau tournoi</h2>
         <dl class="dl" id="prof"><dt>Chargement…</dt><dd></dd></dl>
-        <p class="muted small">Pour les modifier : ouvrez un tournoi, réglez-le, puis « Mémoriser pour mes prochains tournois » (onglet Tournoi).</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn primary" id="prefOpen" type="button">Modifier mes préférences</button></div>
+        <p class="muted small">Club, juge-arbitre, terrains, horaires, durées, logos, partenaires et habillage de l'écran TV. Les terrains renommés dans un tournoi sont aussi mémorisés automatiquement.</p>
       </section>
       <section class="card">
         <span class="eyebrow">Formats</span><h2>Mes modèles</h2>
@@ -81,6 +83,7 @@
     </div>
   </div>
 </main>
+<div class="pmodal" id="pmodal" hidden><div class="pmodal-box" id="pbox"></div></div>
 <script>
 (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -89,7 +92,7 @@
   const say = (el, txt, ok) => { el.textContent = txt; el.className = 'msg ' + (ok ? 'ok' : 'err'); };
   function showUser(u) {
     const full = [u.first, u.last].filter(Boolean).join(' ');
-    const ini = (full || u.email || 'JA').split(/[s@._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+    const ini = (full || u.email || 'JA').split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
     $('#av').textContent = ini;
     $('#wName').textContent = u.guest ? 'Visiteur (démo)' : (full || 'Nom à compléter');
     $('#wMail').textContent = u.email || '';
@@ -137,13 +140,96 @@
   markStyle();
   document.addEventListener('click', e => { if (e.target.closest('[data-theme-toggle]')) setTimeout(mark, 0); });
 
-  fetch('/api/profile').then(r => r.json()).then(d => {
-    const p = d.profile;
-    if (d.guest || !p) { $('#prof').innerHTML = '<dt style="grid-column:1/-1">Aucun réglage mémorisé pour le moment.</dt>'; return; }
+  /* ---------- mes préférences : résumé + éditeur complet ---------- */
+  let prefs = null, guest = false;
+  function showPrefs() {
+    const p = prefs;
+    if (guest) { $('#prof').innerHTML = '<dt style="grid-column:1/-1">Réservé aux comptes : créez votre compte pour mémoriser vos préférences.</dt>'; $('#prefOpen').disabled = true; return; }
+    if (!p) { $('#prof').innerHTML = '<dt style="grid-column:1/-1">Aucune préférence enregistrée pour le moment.</dt>'; return; }
+    const logos = [p.logo && 'couleur', p.logoLight && 'claire', p.logoDark && 'sombre'].filter(Boolean).join(', ');
     const rows = [['Club', p.club], ['Adresse', p.address], ['Juge-arbitre', [p.ja, p.jaNumber].filter(Boolean).join(' · ')], ['Téléphone', p.jaPhone], ['Balles', p.balls],
-      ['Début', p.startTime], ['Terrains', (p.courts || []).map(c => c.name).join(', ')], ['Partenaires', (p.sponsors || []).filter(s => s && (s.name || s.logo)).length || ''], ['Logo', p.logo ? 'Oui' : '']];
-    $('#prof').innerHTML = rows.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('') || '<dt style="grid-column:1/-1">Aucun réglage mémorisé pour le moment.</dt>';
+      ['Début', p.startTime], ['Terrains', (p.courts || []).map(c => c.name).join(', ')], ['Partenaires', (p.sponsors || []).filter(s => s && (s.name || s.logo)).map(s => s.name || 'logo').join(', ')], ['Logos', logos]];
+    $('#prof').innerHTML = rows.filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('') || '<dt style="grid-column:1/-1">Aucune préférence enregistrée pour le moment.</dt>';
+  }
+  fetch('/api/profile').then(r => r.json()).then(d => { prefs = d.profile; guest = !!d.guest; showPrefs(); });
+
+  // image réduite automatiquement (logos légers)
+  const loadImage = (file, maxH, maxW) => new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) return reject(new Error('Choisissez une image (PNG, JPG, SVG…)'));
+    const rd = new FileReader();
+    rd.onload = () => { const img = new Image(); img.onload = () => {
+      const k = Math.min(1, maxH / img.height, maxW / img.width), c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); resolve(c.toDataURL('image/png'));
+    }; img.onerror = () => reject(new Error('Image illisible')); img.src = rd.result; };
+    rd.readAsDataURL(file);
   });
+
+  const E = window.Engine;
+  const LOGOS = [['logo', 'Couleur', 'Version principale'], ['logoLight', 'Claire / blanche', 'Fond sombre : TV, overlay'], ['logoDark', 'Sombre / noire', 'Fond clair : PDF']];
+  let draft = null;
+  function openPrefs() {
+    draft = JSON.parse(JSON.stringify(prefs || {}));
+    draft.courts = draft.courts && draft.courts.length ? draft.courts : [{ name: 'Terrain 1', start: draft.startTime || '09:00' }, { name: 'Terrain 2', start: draft.startTime || '09:00' }];
+    draft.sponsors = draft.sponsors || []; draft.durations = Object.assign({}, E.DEFAULT_DUR, draft.durations);
+    draft.colors = Object.assign({}, E.RAM_COLORS, draft.colors); draft.look = Object.assign({}, E.DEFAULT_LOOK, draft.look);
+    renderPrefs(); $('#pmodal').hidden = false;
+  }
+  function renderPrefs() {
+    const d = draft, v = x => esc(x == null ? '' : x);
+    const txt = (k, l, ph = '') => `<label>${l}<input data-p="${k}" value="${v(d[k])}" placeholder="${ph}"></label>`;
+    $('#pbox').innerHTML = `<span class="eyebrow">Mes préférences</span><h2>Modifier</h2>
+      <p class="muted small">Reprises automatiquement dans chaque nouveau tournoi. Les tournois existants ne changent pas.</p>
+      <h3 class="pf-h">Club &amp; juge-arbitre</h3>
+      <div class="form2">${txt('club', 'Club')}${txt('address', 'Adresse')}${txt('ja', 'Juge-arbitre')}${txt('jaNumber', 'Qualification JA', 'JAP1, JAP2…')}${txt('jaPhone', 'Téléphone JA')}${txt('balls', 'Balles', 'Marque / modèle')}
+        <label>Heure de début<input type="time" data-p="startTime" value="${v(d.startTime)}"></label></div>
+      <h3 class="pf-h">Terrains</h3>
+      <div class="pf-rows">${d.courts.map((c, i) => `<div class="pf-row"><input data-court="${i}" data-k="name" value="${v(c.name)}"><input type="time" data-court="${i}" data-k="start" value="${v(c.start)}"><button type="button" class="btn sm danger" data-rmcourt="${i}">✕</button></div>`).join('')}</div>
+      <button type="button" class="btn sm" id="addCourtP">+ Ajouter un terrain</button>
+      <h3 class="pf-h">Durées estimées des matchs (min)</h3>
+      <div class="pf-durs">${Object.keys(E.DEFAULT_DUR).map(k => `<label>Format ${k}<input type="number" min="5" max="240" data-dur="${k}" value="${v(d.durations[k])}"></label>`).join('')}</div>
+      <h3 class="pf-h">Logo du club</h3>
+      <div class="logos3">${LOGOS.map(([k, l, h]) => `<div class="lg3"><label class="lg3-box ${k}">${d[k] ? `<img src="${d[k]}" alt="">` : '<em>+ Logo</em>'}<input type="file" accept="image/*" hidden data-lg="${k}"></label>
+        <b>${l}</b><small>${h}</small>${d[k] ? `<button type="button" class="btn sm ghost" data-lgrm="${k}">Retirer</button>` : ''}</div>`).join('')}</div>
+      <h3 class="pf-h">Partenaires (bandeau de l'écran TV)</h3>
+      <div class="pf-rows">${d.sponsors.map((s, i) => `<div class="pf-row sp"><label class="lg3-box logo pf-splogo">${s.logo ? `<img src="${s.logo}" alt="">` : '<em>+ Logo</em>'}<input type="file" accept="image/*" hidden data-splogo="${i}"></label>
+        <input data-sp="${i}" value="${v(s.name)}" placeholder="Nom du partenaire"><button type="button" class="btn sm danger" data-rmsp="${i}">✕</button></div>`).join('') || '<p class="muted small">Aucun partenaire.</p>'}</div>
+      <button type="button" class="btn sm" id="addSpP">+ Ajouter un partenaire</button>
+      <h3 class="pf-h">Habillage de l'écran TV</h3>
+      <div class="pf-durs">${[['bg', 'Fond'], ['primary', 'Surfaces'], ['accent', 'Accent (citron)'], ['accent2', 'Accent 2 (rose)']].map(([k, l]) => `<label>${l}<input type="color" data-col="${k}" value="${v(d.colors[k])}"></label>`).join('')}</div>
+      <div class="form2" style="margin-top:12px">
+        <label>Police des titres<select data-look="font">${Object.entries(E.LOOK_FONTS).map(([k, n]) => `<option value="${k}" ${d.look.font === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label>Style des titres<select data-look="style"><option value="street" ${d.look.style === 'street' ? 'selected' : ''}>Street : incliné et surligné</option><option value="sobre" ${d.look.style === 'sobre' ? 'selected' : ''}>Sobre : droit</option></select></label>
+        <label>Arrière-plan<select data-look="bg">${[['dots', 'Trame de points'], ['grid', 'Quadrillage'], ['stripes', 'Rayures diagonales'], ['court', 'Lignes de terrain'], ['gradient', 'Dégradé coloré'], ['plain', 'Uni']].map(([k, n]) => `<option value="${k}" ${d.look.bg === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+        <label>Angles<select data-look="corners"><option value="square" ${d.look.corners === 'square' ? 'selected' : ''}>Droits</option><option value="round" ${d.look.corners === 'round' ? 'selected' : ''}>Arrondis</option></select></label>
+      </div>
+      <div class="pf-checks">${[['shadows', 'Ombres portées'], ['borders', 'Contours des cases'], ['deco', 'Bandes décoratives']].map(([k, l]) => `<label class="pf-chk"><input type="checkbox" data-lookc="${k}" ${d.look[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div>
+      <p class="msg" id="mPref"></p>
+      <div class="pf-actions"><button type="button" class="btn primary" id="prefSave">Enregistrer mes préférences</button><button type="button" class="btn ghost" id="prefCancel">Annuler</button></div>`;
+    const all = s => document.querySelectorAll('#pbox ' + s);
+    all('[data-p]').forEach(i => i.oninput = () => { d[i.dataset.p] = i.value; });
+    all('[data-court]').forEach(i => i.oninput = () => { d.courts[+i.dataset.court][i.dataset.k] = i.value; });
+    all('[data-rmcourt]').forEach(b => b.onclick = () => { d.courts.splice(+b.dataset.rmcourt, 1); renderPrefs(); });
+    $('#addCourtP').onclick = () => { d.courts.push({ name: 'Terrain ' + (d.courts.length + 1), start: d.startTime || '09:00' }); renderPrefs(); };
+    all('[data-dur]').forEach(i => i.oninput = () => { d.durations[i.dataset.dur] = +i.value; });
+    all('[data-lg]').forEach(i => i.onchange = () => loadImage(i.files[0], 260, 700).then(src => { d[i.dataset.lg] = src; renderPrefs(); }).catch(e => say($('#mPref'), e.message)));
+    all('[data-lgrm]').forEach(b => b.onclick = () => { d[b.dataset.lgrm] = ''; renderPrefs(); });
+    all('[data-sp]').forEach(i => i.oninput = () => { d.sponsors[+i.dataset.sp].name = i.value; });
+    all('[data-splogo]').forEach(i => i.onchange = () => loadImage(i.files[0], 120, 480).then(src => { d.sponsors[+i.dataset.splogo].logo = src; renderPrefs(); }).catch(e => say($('#mPref'), e.message)));
+    all('[data-rmsp]').forEach(b => b.onclick = () => { d.sponsors.splice(+b.dataset.rmsp, 1); renderPrefs(); });
+    $('#addSpP').onclick = () => { d.sponsors.push({ id: 's' + Date.now().toString(36), name: '', logo: '' }); renderPrefs(); };
+    all('[data-col]').forEach(i => i.oninput = () => { d.colors[i.dataset.col] = i.value; });
+    all('[data-look]').forEach(i => i.onchange = () => { d.look[i.dataset.look] = i.value; });
+    all('[data-lookc]').forEach(i => i.onchange = () => { d.look[i.dataset.lookc] = i.checked; });
+    $('#prefCancel').onclick = () => { $('#pmodal').hidden = true; };
+    $('#prefSave').onclick = async () => {
+      const r = await post('/api/profile', { profile: d });
+      if (r.error) return say($('#mPref'), r.error);
+      prefs = r.profile; showPrefs(); $('#pmodal').hidden = true;
+    };
+  }
+  $('#prefOpen').onclick = openPrefs;
+  $('#pmodal').onclick = e => { if (e.target.id === 'pmodal') $('#pmodal').hidden = true; };
   async function loadTpl() {
     const d = await fetch('/api/templates').then(r => r.json());
     $('#tpls').innerHTML = (d.mine || []).map(t => `<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><div><strong>${esc(t.name)}</strong><small>${esc(t.desc || '')}</small></div>

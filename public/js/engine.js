@@ -1069,7 +1069,8 @@
   /* ---------------------------------------------------------------------
      RÉGLAGES DU COMPTE (club, terrains, logo, partenaires…)
      --------------------------------------------------------------------- */
-  const PROFILE_FIELDS = ['club', 'address', 'ja', 'jaNumber', 'jaPhone', 'balls', 'startTime', 'durations', 'colors', 'look', 'logo', 'sponsors'];
+  // logo = version couleur ; logoLight = version claire (fonds sombres : TV, overlay) ; logoDark = version sombre (fonds clairs : PDF)
+  const PROFILE_FIELDS = ['club', 'address', 'ja', 'jaNumber', 'jaPhone', 'balls', 'startTime', 'durations', 'colors', 'look', 'logo', 'logoLight', 'logoDark', 'sponsors'];
   function profileFromState(T) {
     const p = { courts: T.courts.map(c => ({ name: c.name, start: c.start })) };
     PROFILE_FIELDS.forEach(k => { p[k] = JSON.parse(JSON.stringify(T.tournament[k] == null ? '' : T.tournament[k])); });
@@ -1100,7 +1101,7 @@
         pouleSize: 4, pouleQualif: 2, pouleMethod: 'serpentin', tfDirect: 12, qualifCount: 4,
         formatMain: 'C2', formatQuarter: '', formatSemi: '', formatFinal: 'B2', formatClass: 'C2', formatPoule: '', formatQualif: '',
         startTime: '09:00', durations: Object.assign({}, DEFAULT_DUR), prize: '', notes: '',
-        colors: Object.assign({}, RAM_COLORS), look: Object.assign({}, DEFAULT_LOOK), logo: '', sponsors: []
+        colors: Object.assign({}, RAM_COLORS), look: Object.assign({}, DEFAULT_LOOK), logo: '', logoLight: '', logoDark: '', sponsors: []
       },
       courts: [{ id: 'c1', name: 'Terrain 1', start: '09:00' }, { id: 'c2', name: 'Terrain 2', start: '09:00' }, { id: 'c3', name: 'Terrain 3', start: '09:00' }],
       pairs: [], draw: null, matches: [], poules: [], order: null,
@@ -1246,6 +1247,12 @@
         if (!sets.length || a === b) throw new Error('Score incomplet : impossible de désigner un vainqueur.');
         m.manual = { sets, winner: a > b ? 'A' : 'B' }; m.wo = null; m.status = 'done';
         m.startedAt = m.startedAt || now; m.endedAt = m.endedAt || now; break;
+      }
+      case 'match/winner': {        // vainqueur désigné sans score (le score pourra être saisi plus tard)
+        const m = findMatch(T, p.id);
+        const team = p.team === 'B' ? 'B' : 'A';
+        m.manual = { sets: [], winner: team, noScore: true }; m.wo = null; m.status = 'done';
+        m.startedAt = m.startedAt || now; m.endedAt = now; break;
       }
       case 'match/wo': { const m = findMatch(T, p.id); m.wo = p.team; m.manual = null; m.status = 'done'; m.endedAt = m.endedAt || now; break; }
       case 'match/reset': { const m = findMatch(T, p.id); Object.assign(m, { points: [], manual: null, wo: null, status: 'pending', startedAt: null, endedAt: null }); break; }

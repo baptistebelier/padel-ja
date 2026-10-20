@@ -91,7 +91,7 @@ body.green { background: #00FF00; } body.blue { background: #0047FF; } body.tran
         ${sets.map((_, i) => `<div class="cell" id="s${side}${i}"></div>`).join('')}
         ${live && sc.mode === 'game' ? `<div class="cell cur" id="g${side}"></div>` : ''}${live ? `<div class="cell pts ${sc.mode !== 'game' ? 'tb' : ''}" id="p${side}"></div>` : ''}
         <div class="flag" id="f${side}"></div></div>`;
-      sb.innerHTML = `<div class="strip"><img src="/img/ram-logo-rouge-blanc.png">${t.logo ? `<img src="${t.logo}">` : ''}<span id="title"></span></div>
+      sb.innerHTML = `<div class="strip"><img src="/img/ram-logo-rouge-blanc.png">${(t.logoLight || t.logo) ? `<img src="${t.logoLight || t.logo}">` : ''}<span id="title"></span></div>
         <div class="board" style="position:relative"><div class="winner" id="win">VAINQUEURS</div>${row('A')}${row('B')}</div><div class="info" id="info"></div>`;
       if (first) { sb.classList.remove('enter'); void sb.offsetWidth; sb.classList.add('enter'); lastFlag = {}; }
     }

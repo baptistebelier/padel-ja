@@ -440,10 +440,20 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
       if (req.method === 'POST') {
         const b = await readBody(req);
-        const room = b.tid && await getRoom(b.tid);
-        if (!room || room.row.owner !== u.id) return json(res, 404, { error: 'Tournoi introuvable' });
         if (u.guest) return json(res, 403, { error: 'Créez un compte pour mémoriser vos réglages.' });
-        await store.saveProfile(u.id, Engine.profileFromState(room.row.state));
+        if (b.profile && typeof b.profile === 'object') {
+          // préférences modifiées depuis la page Mon profil : uniquement les champs prévus
+          const src = b.profile, p = {};
+          Engine.PROFILE_FIELDS.forEach(k => { if (src[k] !== undefined) p[k] = src[k]; });
+          p.courts = (Array.isArray(src.courts) ? src.courts : []).slice(0, 30)
+            .map(c => ({ name: String((c && c.name) || '').slice(0, 40) || 'Terrain', start: /^\d\d:\d\d$/.test(c && c.start) ? c.start : '09:00' }));
+          if (Array.isArray(p.sponsors)) p.sponsors = p.sponsors.slice(0, 40).map((s, i) => ({ id: String((s && s.id) || 's' + i), name: String((s && s.name) || '').slice(0, 60), logo: String((s && s.logo) || '') }));
+          await store.saveProfile(u.id, p);
+        } else {
+          const room = b.tid && await getRoom(b.tid);
+          if (!room || room.row.owner !== u.id) return json(res, 404, { error: 'Tournoi introuvable' });
+          await store.saveProfile(u.id, Engine.profileFromState(room.row.state));
+        }
       }
       return json(res, 200, { profile: await store.getProfile(u.id), guest: !!u.guest });
     }

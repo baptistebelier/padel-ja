@@ -44,7 +44,8 @@
     const t = S.tournament;
     $('#tName').textContent = t.name || '';
     $('#tSub').textContent = [t.category + ' ' + t.gender, t.club].filter(Boolean).join(' — ');
-    const logo = $('#logo'); if (t.logo) { logo.src = t.logo; logo.hidden = false; } else logo.hidden = true;
+    const lg = t.logoLight || t.logo;   // fond sombre : version claire si elle existe
+    const logo = $('#logo'); if (lg) { if (logo.src !== lg) logo.src = lg; logo.hidden = false; } else logo.hidden = true;
     // bandeau : message du JA, partenaires (logo et/ou nom), nom du tournoi
     const items = [];
     if (S.display.ticker) items.push(`<span class="ti-msg">${esc(S.display.ticker)}</span>`);
@@ -342,8 +343,9 @@
       f.startsWith('poules') ? ['Poules', fmt(t.formatPoule || t.formatMain)] : null, f === 'qualif_tf' ? ['Qualifs', fmt(t.formatQualif || t.formatMain)] : null,
       f !== 'poules' ? ['Tableau', fmt(t.formatMain)] : null, f !== 'poules' && t.formatQuarter ? ['1/4 de finale', fmt(t.formatQuarter)] : null, f !== 'poules' && t.formatSemi ? ['1/2 finales', fmt(t.formatSemi)] : null, f !== 'poules' ? ['Finale', fmt(t.formatFinal || t.formatSemi || t.formatMain)] : null,
       ['Balles', t.balls], ['Dotation', t.prize], ['Infos', t.notes]].filter(r => r && r[1]);
-    keyed(el, 'info:' + JSON.stringify(rows) + t.name + t.category + (t.logo || '').length, () => `
-      <div class="info-l">${t.logo ? `<img src="${t.logo}">` : '<img src="/img/ram-logo-rouge-blanc.png" class="ramimg">'}<h1>${esc(t.name)}</h1><div class="cat"><span class="band lime">${esc(t.category)}</span> <span class="band pink">${esc(t.gender)}</span></div></div>
+    const lg = t.logoLight || t.logo;
+    keyed(el, 'info:' + JSON.stringify(rows) + t.name + t.category + (lg || '').length, () => `
+      <div class="info-l">${lg ? `<img src="${lg}">` : '<img src="/img/ram-logo-rouge-blanc.png" class="ramimg">'}<h1>${esc(t.name)}</h1><div class="cat"><span class="band lime">${esc(t.category)}</span> <span class="band pink">${esc(t.gender)}</span></div></div>
       <div class="info-r">${rows.map(r => `<div class="ir"><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join('')}</div>`, () => ({}));
   }
 

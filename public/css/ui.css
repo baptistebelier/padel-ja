@@ -201,5 +201,22 @@ body.editor-page .annonce { display: none !important; }
 .rd b { font-family: var(--display); font-weight: 400; font-size: 22px; color: var(--ui-accent-text); line-height: 1; }
 .rd strong { font-size: 16px; }
 .rd button { justify-self: start; margin-top: 4px; }
+/* ---------- bouton « Vainqueur » (sans score) ---------- */
+.win-btn { width: 100%; background: transparent; border: 1px dashed var(--ui-accent-line); color: var(--ui-accent-text); }
+.win-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-accent) 18%, transparent); }
+
+/* ---------- logo du club en 3 versions ---------- */
+.lg3-title { font-size: 13px; color: var(--ui-text-mut); }
+.logos3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.lg3 { display: grid; gap: 3px; align-content: start; }
+.lg3-box { height: 84px; display: grid; place-items: center; border: 1px dashed var(--ui-border-2); cursor: pointer; padding: 8px; overflow: hidden; }
+.lg3-box:hover { border-color: var(--ui-accent-line); }
+.lg3-box img { max-width: 100%; max-height: 66px; object-fit: contain; }
+.lg3-box em { font-style: normal; color: var(--ui-text-mut); font-size: 13px; }
+.lg3-box.logo { background: var(--ui-surface-2); }
+.lg3-box.logoLight { background: #0B0B0B; } .lg3-box.logoLight em { color: #aaa; }
+.lg3-box.logoDark { background: #FCFCFC; } .lg3-box.logoDark em { color: #666; }
+.lg3 b { font-size: 13px; } .lg3 small { color: var(--ui-text-mut); font-size: 12px; line-height: 1.3; }
+.lg3 button { justify-self: start; }
 .rd-live { display: inline-flex; align-items: center; gap: 6px; color: var(--ui-accent2); font-weight: 600; font-size: 13px; }
 .rd-live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1.2s infinite; flex: none; }
