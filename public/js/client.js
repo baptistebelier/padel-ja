@@ -178,7 +178,7 @@
     el.style.setProperty('--dcols', cols); el.style.setProperty('--dw', dw + 'px'); el.style.setProperty('--dh', dw * 1.33 + 'px'); el.style.setProperty('--dgap', gap + 'px');
     if (el.dataset.key !== key) {
       el.dataset.key = key;
-      el.innerHTML = `<div class="dcards">${pot.cards.map(c => `<div class="dcard" data-n="${c.n}"><div class="face front"><img src="/img/ram-logo-rouge-blanc.png" alt=""><span class="num">${c.n}</span></div><div class="face back"></div></div>`).join('')}</div>`;
+      el.innerHTML = `<div class="dcards">${pot.cards.map(c => `<div class="dcard" data-n="${c.n}"><div class="face front"><span class="num">${c.n}</span></div><div class="face back"></div></div>`).join('')}</div>`;
       el.querySelectorAll('.dcard').forEach(card => card.addEventListener('click', () => {
         if (!card.classList.contains('flipped') && opts.onFlip) opts.onFlip(+card.dataset.n);
       }));

@@ -19,6 +19,8 @@ body.pointer { cursor: default; }
 .tvh-r { display: flex; gap: 30px; align-items: center; }
 .view-title { font-family: var(--display); font-size: 40px; text-transform: uppercase; padding: 2px 22px 0; background: var(--accent); color: var(--ink); transform: rotate(-2deg); box-shadow: 7px 7px 0 var(--accent2); }
 .clock { font-family: var(--display); font-size: 56px; font-variant-numeric: tabular-nums; }
+/* logo /R JA dans le coin supérieur droit, à droite de l'heure (sur toutes les vues) */
+.ja-mark { height: 84px; width: auto; display: block; }
 
 /* ---------- vues ---------- */
 .views { position: absolute; left: 0; top: 146px; width: 1920px; height: 860px; z-index: 1; }

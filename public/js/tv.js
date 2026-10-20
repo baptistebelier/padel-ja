@@ -345,7 +345,7 @@
       ['Balles', t.balls], ['Dotation', t.prize], ['Infos', t.notes]].filter(r => r && r[1]);
     const lg = t.logoLight || t.logo;
     keyed(el, 'info:' + JSON.stringify(rows) + t.name + t.category + (lg || '').length, () => `
-      <div class="info-l">${lg ? `<img src="${lg}">` : '<img src="/img/ram-logo-rouge-blanc.png" class="ramimg">'}<h1>${esc(t.name)}</h1><div class="cat"><span class="band lime">${esc(t.category)}</span> <span class="band pink">${esc(t.gender)}</span></div></div>
+      <div class="info-l">${lg ? `<img src="${lg}">` : ''}<h1>${esc(t.name)}</h1><div class="cat"><span class="band lime">${esc(t.category)}</span> <span class="band pink">${esc(t.gender)}</span></div></div>
       <div class="info-r">${rows.map(r => `<div class="ir"><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join('')}</div>`, () => ({}));
   }
 
