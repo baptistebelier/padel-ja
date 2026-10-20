@@ -21,19 +21,62 @@
   App.setPin = v => { pin = v; try { localStorage.setItem(pinKey, v); } catch (e) {} };
   App.pin = () => pin;
 
+  /* ---------- mode hors ligne ----------
+     Si le réseau coupe (wifi du club…), chaque action est mise en file d'attente sur l'appareil,
+     appliquée tout de suite à l'écran, puis envoyée dans l'ordre dès que la connexion revient.
+     Le dernier état connu est gardé pour pouvoir rouvrir la page sans réseau. */
+  const qKey = 'padelja-queue-' + App.tid, sKey = 'padelja-state-' + App.tid;
+  const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  let queue = lsGet(qKey, []), serverState = null, statusFn = null;
+  App.pending = () => queue.length;
+  const notify = () => { statusFn && statusFn(App.connected); document.dispatchEvent(new CustomEvent('padelja-queue', { detail: queue.length })); };
+  function show(state) {
+    // état du serveur + actions encore en attente
+    const s = JSON.parse(JSON.stringify(state));
+    queue.forEach(a => { try { Engine.reduce(s, a); } catch (e) {} });
+    App.state = s;
+    App.pairs = {}; s.pairs.forEach(p => { App.pairs[p.id] = p; });
+    App.R = Engine.resolve(s);
+    applyTheme(s.tournament);
+    listeners.forEach(fn => fn(s));
+  }
+  let flushing = false;
+  async function flush() {
+    if (flushing || !queue.length) return;
+    flushing = true;
+    try {
+      while (queue.length) {
+        let r;
+        try { r = await fetch(App.base + '/action', { method: 'POST', headers: authHeaders(), body: JSON.stringify(queue[0]) }); }
+        catch (e) { break; }                                   // toujours hors ligne : on réessaiera
+        if (r.status >= 500) break;
+        if (!r.ok) { const d = await r.json().catch(() => ({})); App.toast && App.toast('Action hors ligne refusée : ' + (d.error || r.status), 'err'); }
+        queue.shift(); lsSet(qKey, queue); notify();
+      }
+      if (!queue.length) App.toast && App.toast('Connexion rétablie : toutes les actions ont été envoyées', 'ok');
+    } finally { flushing = false; }
+  }
+  addEventListener('online', flush);
+  setInterval(flush, 8000);
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('/sw.js').catch(() => {});
+
   App.connect = function (onState, onStatus) {
     if (onState) listeners.push(onState);
+    if (onStatus) statusFn = onStatus;
+    const cached = lsGet(sKey, null);   // ouverture sans réseau : dernier état connu
+    if (cached && cached.state) { serverState = Engine.migrate(cached.state); App.rev = cached.rev || 0; show(serverState); }
     const open = () => {
       const es = new EventSource(App.base + '/events' + authQs());
+      es.onopen = flush;
       es.onmessage = ev => {
         const d = JSON.parse(ev.data);
         d.state = Engine.migrate(d.state);
-        App.state = d.state; App.rev = d.rev; App.canUndo = d.canUndo;
-        App.pairs = {}; d.state.pairs.forEach(p => { App.pairs[p.id] = p; });
-        App.R = Engine.resolve(d.state);
+        serverState = d.state; App.rev = d.rev; App.canUndo = d.canUndo;
+        lsSet(sKey, { rev: d.rev, state: d.state });
         App.connected = true; onStatus && onStatus(true);
-        applyTheme(d.state.tournament);
-        listeners.forEach(fn => fn(d.state));
+        show(d.state);
+        if (queue.length) flush();
       };
       es.onerror = () => { App.connected = false; onStatus && onStatus(false); };
     };
@@ -41,13 +84,24 @@
   };
 
   App.send = async function (type, payload) {
-    const r = await fetch(App.base + '/action', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ type, payload }) });
+    const action = { type, payload };
+    let r;
+    try { r = await fetch(App.base + '/action', { method: 'POST', headers: authHeaders(), body: JSON.stringify(action) }); }
+    catch (e) { r = null; }
+    if (!r || (r.status >= 502 && r.status <= 504)) {          // réseau coupé : file d'attente
+      if (type === 'noop') throw new Error('Hors ligne');
+      queue.push(action); lsSet(qKey, queue);
+      if (serverState) show(serverState);
+      notify();
+      App.toast && App.toast('Hors ligne : action gardée, envoi au retour du réseau', 'err');
+      return { queued: true };
+    }
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { App.toast && App.toast(d.error || 'Erreur', 'err'); throw new Error(d.error); }
     return d;
   };
   App.check = () => fetch(App.base + '/action', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ type: 'noop' }) }).then(r => r.status);
-  App.undo = () => fetch(App.base + '/undo', { method: 'POST', headers: authHeaders() });
+  App.undo = () => fetch(App.base + '/undo', { method: 'POST', headers: authHeaders() }).catch(() => { App.toast && App.toast('Hors ligne : « Annuler » sera possible au retour du réseau', 'err'); });
   App.api = (url, opts) => fetch(url, Object.assign({ headers: authHeaders() }, opts || {})).then(r => r.json());
 
   /* ---------- noms ---------- */

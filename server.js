@@ -10,6 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
 const { createStore, norm } = require('./lib/store.js');
 const Auth = require('./lib/auth.js');
@@ -98,8 +99,33 @@ function saveRoom(room) {
     store.saveTournament(room.row).catch(e => console.error('Sauvegarde impossible :', e.message));
   }, 700);
 }
+/* images (logos du club, des partenaires) : envoyées une seule fois, à part.
+   Dans l'état diffusé à chaque point, chaque image est remplacée par un lien court /api/img/<empreinte>
+   que le navigateur garde en cache ; l'état enregistré conserve les images complètes. */
+const IMG = new Map();   // empreinte → data URL
+const IMG_RE = /^\/api\/img\/([a-f0-9]{20})$/;
+function stripImages(v) {
+  if (typeof v === 'string') {
+    if (v.length > 300 && v.startsWith('data:image/')) {
+      const h = crypto.createHash('sha1').update(v).digest('hex').slice(0, 20);
+      IMG.set(h, v); return '/api/img/' + h;
+    }
+    return v;
+  }
+  if (Array.isArray(v)) return v.map(stripImages);
+  if (v && typeof v === 'object') { const o = {}; for (const k in v) o[k] = stripImages(v[k]); return o; }
+  return v;
+}
+// une action renvoyée par un écran peut contenir ces liens : on remet les images complètes avant de l'appliquer
+function restoreImages(v) {
+  if (typeof v === 'string') { const m = v.match(IMG_RE); return m && IMG.has(m[1]) ? IMG.get(m[1]) : v; }
+  if (Array.isArray(v)) return v.map(restoreImages);
+  if (v && typeof v === 'object') { const o = {}; for (const k in v) o[k] = restoreImages(v[k]); return o; }
+  return v;
+}
+const stateMsg = room => `data: ${JSON.stringify({ rev: room.rev, state: stripImages(room.row.state), canUndo: room.history.length > 0 })}\n\n`;
 function broadcast(room) {
-  const msg = `data: ${JSON.stringify({ rev: room.rev, state: room.row.state, canUndo: room.history.length > 0 })}\n\n`;
+  const msg = stateMsg(room);
   for (const c of room.clients) c.res.write(msg);
 }
 // libère la mémoire des tournois inactifs
@@ -110,13 +136,22 @@ setInterval(() => {
 /* droits d'accès à un tournoi */
 const VIEW_ACTIONS = new Set(['noop', 'draw/flip', 'draw/flipRandom']);
 const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/game', 'match/ungame', 'match/server', 'match/start', 'display/set']);
+// anti-force brute : au-delà de 10 codes PIN / clés faux en 15 min, l'appareil est bloqué pour ce tournoi
+const accessFails = new Map();
+const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+setInterval(() => { const now = Date.now(); for (const [k, f] of accessFails) if (now > f.until) accessFails.delete(k); }, 15 * 60000);
 async function access(req, url, room) {
   const uid = Auth.sessionUserId(req);
   if (uid && uid === room.row.owner) return 'owner';
   const pin = req.headers['x-pin'] || url.searchParams.get('pin');
-  if (pin && pin === room.row.pin) return 'score';
   const k = req.headers['x-key'] || url.searchParams.get('k');
+  if (!pin && !k) return null;
+  const fk = clientIp(req) + '|' + room.row.id, f = accessFails.get(fk);
+  if (f && f.n >= 10 && Date.now() < f.until) return 'blocked';
+  if (pin && pin === room.row.pin) return 'score';
   if (k && k === room.row.key) return 'view';
+  const n = f && Date.now() < f.until ? f.n + 1 : 1;
+  accessFails.set(fk, { n, until: Date.now() + 15 * 60000 });
   return null;
 }
 
@@ -234,6 +269,14 @@ const server = http.createServer(async (req, res) => {
     /* ---------- fichiers statiques ---------- */
     if (/^\/(css|js|img|fonts)\//.test(p) || p === '/manifest.webmanifest') return sendFile(res, p);
     if (p === '/favicon.ico') return sendFile(res, '/img/favicon.png');
+    if (p === '/sw.js') return sendFile(res, '/js/sw.js');   // service worker (mode hors ligne), servi à la racine
+    let im = p.match(IMG_RE);
+    if (im) {   // image d'un tournoi (logo, partenaire), mise en cache par le navigateur
+      const d = IMG.get(im[1]); if (!d) { res.writeHead(404); return res.end(); }
+      const [head, b64] = d.split(',');
+      res.writeHead(200, { 'Content-Type': (head.match(/^data:([^;]+)/) || [])[1] || 'image/png', 'Cache-Control': 'public, max-age=31536000, immutable' });
+      return res.end(Buffer.from(b64 || '', 'base64'));
+    }
 
     /* ---------- pages ---------- */
     if (p === '/') return sendFile(res, '/landing.html');
@@ -487,12 +530,13 @@ const server = http.createServer(async (req, res) => {
       const room = await getRoom(m[1]);
       if (!room) return json(res, 404, { error: 'Tournoi introuvable' });
       const level = await access(req, url, room);
+      if (level === 'blocked') return json(res, 429, { error: 'Trop de codes incorrects : réessayez dans 15 minutes.' });
       if (!level) return json(res, 401, { error: 'Accès refusé : connexion, clé de diffusion ou code PIN requis.' });
       const what = m[2];
 
       if (what === 'events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
-        res.write(`data: ${JSON.stringify({ rev: room.rev, state: room.row.state, canUndo: room.history.length > 0 })}\n\n`);
+        res.write(stateMsg(room));
         const c = { res, level };
         room.clients.add(c);
         const ka = setInterval(() => res.write(': ping\n\n'), 20000);
@@ -516,7 +560,7 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { ok: true });
       }
       if (what === 'action' && req.method === 'POST') {
-        const action = await readBody(req);
+        const action = restoreImages(await readBody(req));
         if (level === 'view' && !VIEW_ACTIONS.has(action.type)) return json(res, 403, { error: 'Action non autorisée depuis cet écran.' });
         if (level === 'score' && !SCORE_ACTIONS.has(action.type)) return json(res, 403, { error: 'Action non autorisée depuis la télécommande.' });
         if (action.type === 'noop') return json(res, 200, { ok: true, rev: room.rev });

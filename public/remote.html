@@ -44,12 +44,12 @@ button { cursor: pointer; }
 
   function askPin(msg) {
     app.innerHTML = `<div class="pin"><div>Code PIN affiché sur le PC (onglet « Écran TV &amp; stream ») :</div>
-      <input id="pin" inputmode="numeric" maxlength="4" placeholder="••••"><button class="big" id="go">Connexion</button><div class="err">${msg || ''}</div></div>`;
+      <input id="pin" inputmode="numeric" maxlength="6" placeholder="••••••"><button class="big" id="go">Connexion</button><div class="err">${msg || ''}</div></div>`;
     document.getElementById('go').onclick = () => { A.setPin(document.getElementById('pin').value.trim()); location.reload(); };
   }
 
   A.check()
-    .then(st => { if (st === 401) askPin(A.pin() ? 'Code incorrect' : ''); else if (st === 404) app.innerHTML = '<p class="err">Tournoi introuvable.</p>'; else start(); })
+    .then(st => { if (st === 429) askPin('Trop d\'essais : réessayez dans 15 minutes.'); else if (st === 401) askPin(A.pin() ? 'Code incorrect' : ''); else if (st === 404) app.innerHTML = '<p class="err">Tournoi introuvable.</p>'; else start(); })
     .catch(() => askPin('Serveur injoignable'));
 
   function start() {

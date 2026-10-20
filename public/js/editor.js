@@ -29,9 +29,17 @@
   }
   $$('#nav button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
 
-  A.connect(() => { S = A.state; R = A.R; render(); }, ok => {
-    const c = $('#conn'); c.className = 'conn ' + (ok ? 'on' : 'off'); c.textContent = ok ? 'Connecté · sauvegarde auto' : 'Hors ligne';
-  });
+  // état de la connexion : barre latérale + pastille visible partout (téléphone compris) quand on est hors ligne
+  const offPill = document.createElement('div'); offPill.className = 'offline-pill'; offPill.hidden = true; document.body.appendChild(offPill);
+  const showConn = ok => {
+    const n = A.pending(), c = $('#conn');
+    c.className = 'conn ' + (ok && !n ? 'on' : 'off');
+    c.textContent = ok ? (n ? `Envoi de ${n} action(s)…` : 'Connecté · sauvegarde auto') : (n ? `Hors ligne · ${n} en attente` : 'Hors ligne');
+    offPill.hidden = ok && !n;
+    offPill.textContent = ok ? `Envoi de ${n} action(s) en attente…` : `Hors ligne${n ? ` · ${n} action${n > 1 ? 's' : ''} en attente` : ''} — tout est gardé sur cet appareil`;
+  };
+  A.connect(() => { S = A.state; R = A.R; render(); }, showConn);
+  document.addEventListener('padelja-queue', () => showConn(A.connected));
   // rafraîchit les chronos de repos
   setInterval(() => { if (S && !dragging && !modal && (tab === 'direct' || tab === 'programmation')) render(); }, 15000);
 

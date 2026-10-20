@@ -201,6 +201,11 @@ body.editor-page .annonce { display: none !important; }
 .rd b { font-family: var(--display); font-weight: 400; font-size: 22px; color: var(--ui-accent-text); line-height: 1; }
 .rd strong { font-size: 16px; }
 .rd button { justify-self: start; margin-top: 4px; }
+/* ---------- hors ligne : pastille d'état ---------- */
+.offline-pill { position: fixed; z-index: 95; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 10px); max-width: calc(100vw - 24px);
+  background: var(--ui-accent2); color: #fff; font-weight: 600; font-size: 13px; padding: 7px 14px; box-shadow: 4px 4px 0 var(--ui-hard); text-align: center; }
+.offline-pill[hidden] { display: none; }
+
 /* ---------- bouton « Vainqueur » (sans score) ---------- */
 .win-btn { width: 100%; background: transparent; border: 1px dashed var(--ui-accent-line); color: var(--ui-accent-text); }
 .win-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-accent) 18%, transparent); }
