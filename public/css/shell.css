@@ -382,3 +382,29 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   /* profil : prénom, puis nom en dessous */
   #wName .w-first, #wName .w-last { display: block; }
 }
+
+/* =========================================================================
+   iPad / ordinateur : marge sous l'heure et la batterie, et pages jusqu'en bas de l'écran
+   (sur téléphone, voir plus haut : barre du haut et barre flottante)
+   ========================================================================= */
+@media (min-width: 721px) {
+  .rail { padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .acct .page { padding-top: calc(26px + env(safe-area-inset-top, 0px)); padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
+
+  /* éditeur : la page défile en entier (comme sur téléphone), la colonne bordeaux reste en place */
+  html:has(body.editor-page), body.editor-page { height: auto; min-height: 100%; }
+  html:has(body.editor-page) { background: var(--ui-bg); }
+  body.editor-page { display: block; }
+  body.editor-page .shell { display: flex; align-items: flex-start; min-height: 100vh; min-height: 100lvh; }
+  body.editor-page .side { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto;
+    padding-top: calc(18px + env(safe-area-inset-top, 0px)); padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  body.editor-page main { overflow: visible; min-height: 100vh; min-height: 100lvh; min-width: 0;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px)); }
+  body.editor-page .top { top: env(safe-area-inset-top, 0px); }
+  /* bande sous l'heure et la batterie : le contenu qui défile ne passe pas dessous */
+  body.editor-page::after { content: ''; position: fixed; z-index: 55; left: 0; right: 0; top: 0; height: env(safe-area-inset-top, 0px); background: var(--ui-bg); pointer-events: none; }
+  body.editor-page .guest:not([hidden]), body.editor-page .closed-bar:not([hidden]) { padding-top: calc(env(safe-area-inset-top, 0px) + 7px); }
+}
+@media (min-width: 721px) and (max-width: 1100px) {
+  body.editor-page .side { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+}
