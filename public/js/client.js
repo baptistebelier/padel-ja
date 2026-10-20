@@ -65,7 +65,8 @@
     if (onState) listeners.push(onState);
     if (onStatus) statusFn = onStatus;
     const cached = lsGet(sKey, null);   // ouverture sans réseau : dernier état connu
-    if (cached && cached.state) { serverState = Engine.migrate(cached.state); App.rev = cached.rev || 0; show(serverState); }
+    // affiché juste après l'initialisation de la page (jamais pendant), et seulement si le serveur n'a pas déjà répondu
+    if (cached && cached.state) setTimeout(() => { if (!serverState) { serverState = Engine.migrate(cached.state); App.rev = cached.rev || 0; show(serverState); } }, 0);
     const open = () => {
       const es = new EventSource(App.base + '/events' + authQs());
       es.onopen = flush;
