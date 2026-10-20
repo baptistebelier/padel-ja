@@ -191,3 +191,13 @@ fieldset input { padding: 8px 8px; }
 
 /* éditeur : pas de bandeau défilant (il reste sur l'écran TV et son aperçu) */
 body.editor-page .annonce { display: none !important; }
+
+/* ---------- durées estimées : les cases passent à la ligne selon la largeur de la carte ---------- */
+.durs { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)) !important; }
+.durs label, .durs input { min-width: 0; width: 100%; }
+.real-durs h4 { margin-top: 18px; }
+.rd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.rd { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--ui-border); background: var(--ui-surface-2); }
+.rd b { font-family: var(--display); font-weight: 400; font-size: 22px; color: var(--ui-accent-text); line-height: 1; }
+.rd strong { font-size: 16px; }
+.rd button { justify-self: start; margin-top: 4px; }

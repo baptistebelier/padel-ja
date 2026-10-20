@@ -222,9 +222,29 @@
     return c.join('');
   }
 
+  /* durée réelle moyenne par format (du lancement à la fin du match), recalculée à chaque match terminé */
+  function renderRealDurs() {
+    const by = {};
+    S.matches.forEach(m => {
+      const r = R[m.id]; if (!r || r.state !== 'done' || m.wo || !m.startedAt || !m.endedAt) return;
+      const min = (m.endedAt - m.startedAt) / 60000; if (min < 5 || min > 300) return;   // scores saisis d'un coup ou match oublié : exclus
+      (by[r.fk] = by[r.fk] || []).push(min);
+    });
+    const keys = Object.keys(by).sort(), cur = S.tournament.durations || {};
+    $('#realDurs').innerHTML = `<h4>Durées réelles de ce tournoi <small class="muted">moyenne du lancement à la fin du match</small></h4>` + (keys.length
+      ? `<div class="rd-list">${keys.map(k => {
+        const a = by[k], avg = Math.round(a.reduce((x, y) => x + y, 0) / a.length), g = k[0], est = cur[g] || E.DEFAULT_DUR[g];
+        return `<div class="rd"><b>${k}</b><span><strong>${avg} min</strong> en moyenne · ${a.length} match${a.length > 1 ? 's' : ''}</span>
+          <small class="muted">Prévu : ${est} min (format ${g})</small>${avg !== est ? `<button class="ghost sm" data-rd="${g}" data-v="${avg}">Prévoir ${avg} min</button>` : ''}</div>`;
+      }).join('')}</div>`
+      : '<p class="muted small">Les moyennes s\'affichent dès le premier match terminé (lancé avec ▶, puis clôturé).</p>');
+    $$('[data-rd]').forEach(b => b.onclick = () => send('tournament/update', { durations: Object.assign({}, S.tournament.durations, { [b.dataset.rd]: +b.dataset.v }) }));
+  }
+
   function renderTournoi() {
     const t = S.tournament;
     renderTemplates();
+    renderRealDurs();
     $$('[data-f]').forEach(el => fill(el, t[el.dataset.f]));
     $$('[data-c]').forEach(el => fill(el, (t.colors || {})[el.dataset.c]));
     $$('[data-d]').forEach(el => fill(el, (t.durations || {})[el.dataset.d]));

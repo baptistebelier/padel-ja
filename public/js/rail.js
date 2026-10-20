@@ -53,7 +53,7 @@
     let sx = null, sy = 0, dx = 0, mode = '';
     const mobile = () => matchMedia('(max-width: 720px)').matches;
     document.addEventListener('touchstart', e => {
-      if (!mobile()) return;
+      if (!mobile() || e.target.closest('#nav')) return;
       const t = e.touches[0], isOpen = document.body.classList.contains('drawer-open');
       if (!isOpen && t.clientX < 24) mode = 'open'; else if (isOpen) mode = 'close'; else return;
       sx = t.clientX; sy = t.clientY; dx = 0;
@@ -87,5 +87,39 @@
       }
     }).catch(() => {});
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+  /* téléphone, dans un tournoi : curseur citron sous l'onglet actif. En glissant le doigt sur la barre,
+     le curseur suit le doigt ; au relâcher, il se cale sur l'onglet le plus proche et l'ouvre. */
+  function navCursor() {
+    const nav = document.getElementById('nav');
+    if (!nav || !document.body.classList.contains('editor-page')) return;
+    const ind = document.createElement('i'); ind.className = 'nav-ind'; nav.prepend(ind);
+    const btns = () => [...nav.querySelectorAll('button[data-tab]')];
+    const mobile = () => matchMedia('(max-width: 720px)').matches;
+    const size = () => { const b = btns(), w = nav.clientWidth / b.length; ind.style.width = (w - 8) + 'px'; return w; };
+    const place = i => { const w = size(); ind.style.transform = `translateX(${i * w + 4}px)`; };
+    const sync = () => { if (!mobile()) return; const i = btns().findIndex(b => b.classList.contains('on')); if (i >= 0) place(i); };
+    new MutationObserver(sync).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    addEventListener('resize', sync); sync();
+    let drag = false, moved = false, startX = 0;
+    const xOf = e => e.touches[0].clientX - nav.getBoundingClientRect().left;
+    nav.addEventListener('touchstart', e => { if (!mobile()) return; drag = true; moved = false; startX = e.touches[0].clientX; }, { passive: true });
+    nav.addEventListener('touchmove', e => {
+      if (!drag) return;
+      if (!moved && Math.abs(e.touches[0].clientX - startX) < 6) return;
+      moved = true; nav.classList.add('dragging'); ind.classList.add('drag');
+      const w = size(), x = Math.max(0, Math.min(nav.clientWidth - w, xOf(e) - w / 2));
+      ind.style.transform = `translateX(${x + 4}px)`;
+    }, { passive: true });
+    nav.addEventListener('touchend', e => {
+      if (!drag) return; drag = false;
+      nav.classList.remove('dragging'); ind.classList.remove('drag');
+      if (!moved) return;   // simple appui : le clic normal ouvre l'onglet
+      e.preventDefault();
+      const w = size(), x = e.changedTouches[0].clientX - nav.getBoundingClientRect().left;
+      const i = Math.max(0, Math.min(btns().length - 1, Math.floor(x / w)));
+      btns()[i].click(); place(i);
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); }); else { build(); navCursor(); }
 })();

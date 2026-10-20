@@ -275,16 +275,29 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   body.editor-page .ab-title { visibility: hidden; }
   body.editor-page .ab-menu { border: 1px solid var(--ui-border-2); background: var(--ui-surface); }
 
-  /* éditeur : onglets dans une barre flottante qu'on fait défiler au doigt */
-  body.editor-page .side { left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); height: 64px; padding: 0; width: auto;
-    background: color-mix(in srgb, var(--ui-surface) 90%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-    border: 1px solid var(--ui-border-2); box-shadow: 5px 5px 0 var(--ui-hard); overflow: hidden; }
-  body.editor-page nav#nav { display: flex; width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 0 4px; gap: 2px; }
-  body.editor-page nav#nav::-webkit-scrollbar { display: none; }
-  body.editor-page nav#nav button { flex: 1 0 auto; width: auto; min-width: 74px; scroll-snap-align: center; padding: 8px 6px 6px; font-size: 11px; }
-  body.editor-page main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
-  /* le contenu défile jusqu'en bas de l'écran, derrière la barre flottante */
-  html, body { min-height: 100%; background: var(--ui-bg); }
+  /* éditeur : barre flottante façon réseau social, tous les pictos visibles, curseur qui suit le doigt */
+  body.editor-page .side { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); height: 60px; padding: 0; width: auto;
+    background: color-mix(in srgb, var(--ui-surface) 88%, transparent); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border: 1px solid var(--ui-border-2); box-shadow: 5px 5px 0 var(--ui-hard); overflow: hidden; touch-action: none; }
+  body.editor-page nav#nav { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; height: 100%; padding: 0; gap: 0; position: relative; overflow: visible; }
+  body.editor-page nav#nav button { position: relative; z-index: 1; min-width: 0; width: auto; height: 100%; padding: 0; margin: 0; border: 0; display: grid; place-items: center;
+    background: transparent !important; box-shadow: none !important; transform: none !important; color: var(--ui-text-mut); transition: color .2s; }
+  body.editor-page nav#nav button .lg, body.editor-page nav#nav button .sh, body.editor-page nav#nav button i { display: none !important; }
+  body.editor-page nav#nav button .ic { width: 24px; height: 24px; margin: 0; }
+  body.editor-page nav#nav button.on { color: var(--ui-on-accent); }
+  body.editor-page nav#nav button.on::before, body.editor-page nav#nav button::before { display: none !important; }
+  .nav-ind { position: absolute; z-index: 0; top: 8px; bottom: 8px; left: 0; background: var(--ui-accent); box-shadow: 3px 3px 0 var(--ui-accent2);
+    transition: transform .28s cubic-bezier(.2, .9, .3, 1.15); pointer-events: none; }
+  .nav-ind.drag { transition: none; }
+  body.editor-page nav#nav.dragging button { color: var(--ui-text-mut); }
+
+  /* plein écran : la page défile en entier (et non une zone intérieure) pour descendre jusqu'en bas de l'écran,
+     derrière la barre flottante et sous la barre d'accueil de l'iPhone */
+  html:has(body.editor-page), body.editor-page { height: auto; min-height: 100%; }
+  body.editor-page { display: block; background: var(--ui-bg); }
+  body.editor-page .shell { display: block; min-height: 0; }
+  body.editor-page main { overflow: visible; padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  html, body { background: var(--ui-bg); }
 }
 
 /* téléphone : bandeaux du haut sous l'heure et la batterie */
