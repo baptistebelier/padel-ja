@@ -29,7 +29,7 @@
       <section class="card">
         <span class="eyebrow">Identité</span>
         <div class="who"><div class="av-wrap"><label class="avatar av-edit" id="av" title="Changer la photo de profil">JA<input type="file" accept="image/*" id="avFile" hidden></label>
-          <div class="av-acts"><label class="btn sm" for="avFile">Photo</label><button class="btn sm ghost" type="button" id="avRm" hidden>Retirer</button></div></div><div><b id="wName">—</b><span class="muted" id="wMail"></span><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap" id="wPlan"></div></div></div>
+          <div class="av-acts"><label class="btn sm" for="avFile">Photo</label><button class="btn sm ghost" type="button" id="avRm" hidden>Retirer</button></div></div><div><b id="wName">—</b><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap" id="wPlan"></div></div></div>
         <dl class="dl" id="wInfo"></dl>
       </section>
       <section class="card">
@@ -108,8 +108,8 @@
     me = u;
     const full = [u.first, u.last].filter(Boolean).join(' ');
     paintAvatar(u.first, u.last);
-    $('#wName').textContent = u.guest ? 'Visiteur (démo)' : (full || 'Nom à compléter');
-    $('#wMail').textContent = u.email || '';
+    // prénom puis nom (sur téléphone, le nom passe en dessous du prénom) ; l'e-mail est déjà dans la liste en dessous
+    $('#wName').innerHTML = u.guest ? 'Visiteur (démo)' : full ? `<span class="w-first">${esc(u.first || '')}</span> <span class="w-last">${esc(u.last || '')}</span>` : 'Nom à compléter';
     $('#wPlan').innerHTML = u.guest ? '<span class="tag ghost">Démo 24 h</span>' : `<span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(u.planLabel)}</span>${u.admin ? '<span class="tag ghost">Accès gratuit</span>' : ''}`;
     $('#wInfo').innerHTML = [['Prénom', u.first], ['Nom', u.last], ['Club', u.club], ['E-mail', u.email]]
       .map(([k, v]) => `<dt>${k}</dt><dd>${v ? esc(v) : '<span class="muted">non renseigné</span>'}</dd>`).join('');

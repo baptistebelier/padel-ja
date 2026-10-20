@@ -378,3 +378,7 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 @media (max-width: 720px) {
   body.editor-page #abTv { grid-column: 3; } body.editor-page #abMore { grid-column: 4; } body.editor-page .ab-menu { grid-column: 1; }
 }
+@media (max-width: 720px) {
+  /* profil : prénom, puis nom en dessous */
+  #wName .w-first, #wName .w-last { display: block; }
+}
