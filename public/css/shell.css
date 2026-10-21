@@ -497,3 +497,4 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 .acc-bar-stop { border: 2px solid var(--ui-accent2); background: color-mix(in srgb, var(--ui-accent2) 12%, var(--ui-surface)); box-shadow: 4px 4px 0 var(--ui-accent2); }
 .acc-bar .acc-go { flex: none; padding: 8px 14px; background: var(--ui-accent); color: var(--ui-on-accent) !important; text-decoration: none !important; font-family: var(--label); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
 body.editor-page main > .acc-bar { margin: 12px 0 6px; }
+.acc-pass { color: var(--ui-accent-text); }

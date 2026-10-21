@@ -17,11 +17,12 @@ const Backup = require('./lib/backup.js');
 const Retention = require('./lib/retention.js');
 const Mail = require('./lib/mail.js');
 const Access = require('./lib/access.js');
+const Shopify = require('./lib/shopify.js');
 const Auth = require('./lib/auth.js');
 
 const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
-const store = createStore(path.join(__dirname, 'data'));
+const store = createStore(process.env.DATA_DIR || path.join(__dirname, 'data'));   // DATA_DIR : dossier de test
 const ONLINE = store.kind === 'supabase';
 
 /* ---------------------------------------------------------------------
@@ -40,6 +41,15 @@ function readBody(req) {
     let b = '';
     req.on('data', d => { b += d; if (b.length > 20e6) req.destroy(); });
     req.on('end', () => { try { resolve(b ? JSON.parse(b) : {}); } catch (e) { reject(new Error('JSON invalide')); } });
+  });
+}
+// corps brut (octets exacts) : nécessaire pour vérifier la signature des webhooks Shopify
+function readRaw(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = []; let n = 0;
+    req.on('data', d => { chunks.push(d); n += d.length; if (n > 5e6) req.destroy(); });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
   });
 }
 function sendFile(res, rel) {
@@ -399,6 +409,39 @@ const server = http.createServer(async (req, res) => {
       if (!u || !Auth.checkPassword(b.password, u.pass_hash)) return json(res, 401, { error: 'E-mail ou mot de passe incorrect.' });
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
     }
+    /* ---------- boutique Shopify : commande payée → accès activé ou prolongé (création du compte si besoin) ---------- */
+    if (p === '/api/shopify/webhook' && req.method === 'POST') {
+      const raw = await readRaw(req);
+      const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+      if (!secret) { console.error('Webhook Shopify reçu, mais SHOPIFY_WEBHOOK_SECRET est absente dans Render'); return json(res, 503, { error: 'Non configuré' }); }
+      if (!Shopify.verify(raw, req.headers['x-shopify-hmac-sha256'], secret)) return json(res, 401, { error: 'Signature invalide' });
+      if (req.headers['x-shopify-topic'] !== 'orders/paid') return json(res, 200, { ignored: true });
+      let order; try { order = JSON.parse(raw.toString('utf8')); } catch (e) { return json(res, 400, { error: 'JSON invalide' }); }
+      const email = Shopify.orderEmail(order);
+      if (!email) { console.error(`Shopify : commande ${order.name || order.id} sans e-mail, accès non activé`); return json(res, 200, { ok: false }); }
+      let u = await store.getUserByEmail(email);
+      const r = Shopify.applyOrder(u ? await store.getBilling(u.id) : null, order);
+      if (!r.changed) return json(res, 200, { ok: true, reason: r.reason });
+      let link = null;
+      const c = order.customer || {}, first = String(c.first_name || '').trim().slice(0, 40), last = String(c.last_name || '').trim().slice(0, 40);
+      if (!u) {
+        // premier achat sans compte : le compte est créé, le client choisit son mot de passe depuis l'e-mail
+        u = { id: 'u' + Auth.randomId(12), email, name: [first, last].filter(Boolean).join(' '), club: String((order.billing_address && order.billing_address.company) || '').slice(0, 120),
+          pass_hash: null, plan: 'actif', guest: false, created_at: Date.now() };
+        await store.saveUser(u);
+        if (first || last) await store.saveIdentity(u.id, { first, last });
+        await newTournament(u.id, { demo: true, example: true, name: 'Tournoi d\'exemple' });
+      } else if ((u.plan || 'essai') === 'essai') { u.plan = 'actif'; await store.saveUser(u); }
+      if (!u.pass_hash) link = appUrl(req) + '/reinitialiser?t=' + encodeURIComponent(Auth.makeResetToken(u, Date.now(), 7 * 864e5));
+      await store.saveBilling(u.id, r.billing);
+      accessCache.delete(u.id);
+      console.log(`  Shopify : commande ${order.name || order.id} payée (${r.items.join(', ')}) → ${email}, accès jusqu'au ${new Date(r.billing.until).toISOString().slice(0, 10)}`);
+      const id = await store.getIdentity(u.id).catch(() => null);
+      Mail.send(Object.assign({ to: email }, Mail.accessMail({ first: (id && id.first) || first, items: r.items, until: r.billing.until, link, appUrl: appUrl(req) })))
+        .catch(e => console.error('E-mail d\'activation :', e.message));
+      return json(res, 200, { ok: true });
+    }
+
     /* ---------- mot de passe oublié : lien par e-mail, valable 1 h et une seule fois ---------- */
     if (p === '/api/auth/forgot' && req.method === 'POST') {
       const b = await readBody(req);

@@ -64,6 +64,7 @@
   const fr = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   const accTxt = a => ({
     trial: `Essai : encore ${a.daysLeft} jour${a.daysLeft > 1 ? 's' : ''} (jusqu'au ${fr(a.until)}) · ${a.tournamentsLeft ? a.tournamentsLeft + ' tournoi possible' : 'tournoi d\'essai utilisé'}`,
+    pass: `Pass tournoi jusqu'au ${fr(a.until)} · ${a.tournamentsLeft ? a.tournamentsLeft + ' tournoi à créer' : 'tournoi du pass créé'}`,
     paid: a.grace ? `Paiement en retard : délai de grâce (accès payé jusqu'au ${fr(a.until)})` : `Abonné jusqu'au ${fr(a.until)}`,
     expired: `Accès terminé le ${fr(a.until)} : lecture seule`
   }[a.state] || '');

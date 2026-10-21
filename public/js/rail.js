@@ -94,11 +94,13 @@
   /* bandeau d'accès : discret pendant l'essai, bien visible quand le compte est en lecture seule */
   function accessBar(a) {
     window.PadelAccess = a;
-    if (!a || (a.state !== 'trial' && a.state !== 'expired' && !(a.state === 'paid' && a.grace))) return;
+    if (!a || (a.state !== 'trial' && a.state !== 'pass' && a.state !== 'expired' && !(a.state === 'paid' && a.grace))) return;
     const bar = document.createElement('div');
-    bar.className = 'acc-bar acc-bar-' + (a.state === 'trial' ? 'trial' : 'stop');
+    bar.className = 'acc-bar acc-bar-' + (a.state === 'trial' || a.state === 'pass' ? 'trial' : 'stop');
+    const days = `encore ${a.daysLeft} jour${a.daysLeft > 1 ? 's' : ''}`;
     const txt = a.state === 'trial'
-      ? `<b>Essai gratuit</b> : encore ${a.daysLeft} jour${a.daysLeft > 1 ? 's' : ''}${a.tournamentsLeft ? ` · ${a.tournamentsLeft} tournoi à créer` : ' · tournoi d\'essai utilisé'}`
+      ? `<b>Essai gratuit</b> : ${days}${a.tournamentsLeft ? ` · ${a.tournamentsLeft} tournoi à créer` : ' · tournoi d\'essai utilisé'}`
+      : a.state === 'pass' ? `<b>Pass tournoi</b> : ${days}${a.tournamentsLeft ? ` · ${a.tournamentsLeft} tournoi à créer` : ' · tournoi du pass créé'}`
       : a.state === 'expired' ? '<b>Lecture seule</b> : votre accès est terminé. Vos tournois restent consultables et exportables.'
       : '<b>Paiement en attente</b> : renouvelez votre abonnement pour garder l\'accès.';
     bar.innerHTML = `<span>${txt}</span><a class="acc-go" href="${a.shop}" target="_blank" rel="noopener">${a.state === 'trial' ? 'Voir les offres' : 'S\'abonner'}</a>`;
