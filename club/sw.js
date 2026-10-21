@@ -1,9 +1,9 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION='2026-10-21-ram3';
+const VERSION='2026-10-21-ram4';
 const CACHE='appli-club-'+VERSION;
 /* Fichiers de l'appli mis en cache dès l'installation */
-const CORE=['index.html','app.css','ram.css','ram-account.js','img/ram-club-blanc.png','img/ram-club-noir.png','img/favicon.png','icon-192.png','logo.js','data.js','ui.js','sons.js','trophees.js','app.js','manifest.webmanifest','icon-180.png','icon-512.png'];
+const CORE=['index.html','app.css','ram.css','ram-sync.js','img/ram-club-blanc.png','img/ram-club-noir.png','img/favicon.png','icon-192.png','logo.js','data.js','ui.js','sons.js','trophees.js','app.js','manifest.webmanifest','icon-180.png','icon-512.png'];
 
 self.addEventListener('install',e=>{
  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));
@@ -17,6 +17,8 @@ self.addEventListener('activate',e=>{
    css, js, icônes, polices : cache d'abord, réseau sinon (et on garde la réponse pour la prochaine fois). */
 self.addEventListener('fetch',e=>{
  const req=e.request;if(req.method!=='GET')return;
+ /* données du club (API du serveur) : jamais en cache, toujours fraîches */
+ if(new URL(req.url).pathname.includes('/api/'))return;
  const url=new URL(req.url),page=req.mode==='navigate'||url.pathname.endsWith('/index.html')||url.pathname.endsWith('/');
  if(page){
   e.respondWith(fetch(req).then(res=>{if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put('index.html',copy))}return res})

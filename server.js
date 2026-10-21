@@ -23,6 +23,7 @@ const Auth = require('./lib/auth.js');
 const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
 const store = createStore(process.env.DATA_DIR || path.join(__dirname, 'data'));   // DATA_DIR : dossier de test
+const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || path.join(__dirname, 'data'));   // RAM Club : clubs, publications, groupes…
 const ONLINE = store.kind === 'supabase';
 
 /* ---------------------------------------------------------------------
@@ -585,6 +586,34 @@ const server = http.createServer(async (req, res) => {
       // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (Padel JA + RAM Club)
       const renew = u && !u.guest ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) } : undefined;
       return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access: u ? await accessFor(u) : null, storage: store.kind }, renew);
+    }
+
+    /* ---------- API RAM Club (même compte /RAM, mêmes données Supabase) ---------- */
+    if (p.startsWith('/api/ram/')) {
+      const u = await currentUser(req);
+      if (!u || u.guest) return json(res, 401, { error: 'Connectez-vous avec votre compte /RAM.' });
+      const fail = e => json(res, 400, { error: e.message });
+      if (p === '/api/ram/clubs' && req.method === 'GET') return json(res, 200, { clubs: await ram.myClubs(u.id) });
+      if (p === '/api/ram/clubs' && req.method === 'POST') {
+        const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
+        return ram.create({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, b).then(c => json(res, 200, c), fail);
+      }
+      if (p === '/api/ram/join' && req.method === 'POST') {
+        const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
+        return ram.join({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, b.code).then(c => json(res, 200, c), fail);
+      }
+      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove)$/);
+      if (m && m[2] === 'sync') {
+        const out = await ram.sync(u.id, m[1], url.searchParams.get('since'));
+        return out ? json(res, 200, out) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
+      }
+      if (m && req.method === 'POST') {
+        const b = await readBody(req);
+        if (m[2] === 'ops') return ram.ops(u.id, m[1], b.ops).then(r => json(res, 200, r), fail);
+        if (m[2] === 'role') return ram.setRole(u.id, m[1], b.key, b.role).then(r => json(res, 200, r), fail);
+        if (m[2] === 'remove') return ram.remove(u.id, m[1], b.key).then(r => json(res, 200, r), fail);
+      }
+      return json(res, 404, { error: 'Introuvable' });
     }
 
     /* ---------- API tournois (tableau de bord) ---------- */

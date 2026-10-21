@@ -13,7 +13,7 @@ image:'<path d="M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6"/><circle cx="8.500" cy="9" r
 link:'<path d="M10 14a4 4 0 005.700 0l3-3a4 4 0 00-5.700-5.700l-1 1M14 10a4 4 0 00-5.700 0l-3 3a4 4 0 005.700 5.700l1-1"/>',shield:'<path d="M12 3l8 3v6c0 5-3.500 8-8 9-4.500-1-8-4-8-9V6z"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'};
 const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]||''}</svg>`;
 
-const TODAY='2026-10-13';
+let TODAY='2026-10-13';
 const RANKS=['NC','40','30/5','30/4','30/3','30/2','30/1','30','15/5','15/4','15/3','15/2','15/1','15','5/6','4/6','3/6','2/6','1/6','0'];
 const LV=[1,2,3,4,5,6,7,8,9,10].map(n=>'Niveau '+n);
 const DAYS=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],DA=['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'],MO=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
@@ -160,14 +160,14 @@ const S={ecTab:'mine',ag:'all',tab:'home',stack:[],club:0,role:'admin',liked:new
 const club=()=>CLUBS[S.club];
 /* logo /RAM Club lisible sur les couleurs du club : blanc sur fond sombre, noir sur fond clair */
 const ramLogo=()=>club().dark?'img/ram-club-blanc.png':'img/ram-club-noir.png';
-const ME=()=>S.role==='wait'?'lucas':S.role==='kid'?'leo':S.role==='coach'?'sarah':'me';
+const ME=()=>window.RAM_KEY||(S.role==='wait'?'lucas':S.role==='kid'?'leo':S.role==='coach'?'sarah':'me');
 /* L'enseignant a les pouvoirs du bureau, sauf les commissions ; le bureau seul gère les commissions */
 const isAdmin=()=>S.role==='admin'||S.role==='coach';
 const isBureau=()=>S.role==='admin';
-const canTeam=g=>isAdmin()||(S.role==='cap'&&g&&g.cap==='me');
+const canTeam=g=>isAdmin()||(!!g&&g.cap===ME()&&(S.role==='cap'||!!window.RAM_KEY));
 const name=id=>id==='club'?club().name:M[id].n;
 const first=id=>name(id).split(' ')[0];
-const age=id=>{const [y,m,d]=M[id].bd.split('-').map(Number),[Y,Mo,D]=TODAY.split('-').map(Number);return Y-y-((Mo<m||(Mo===m&&D<d))?1:0)};
+const age=id=>{if(!M[id]||!M[id].bd)return 30;const [y,m,d]=M[id].bd.split('-').map(Number),[Y,Mo,D]=TODAY.split('-').map(Number);return Y-y-((Mo<m||(Mo===m&&D<d))?1:0)};
 /* Équipes et championnats des saisons clôturées : retirés de l'appli, gardés pour les archives */
 const OLDG=[],OLDC=[];
 const grp=id=>GROUPS.find(g=>g.id===id)||OLDG.find(g=>g.id===id);

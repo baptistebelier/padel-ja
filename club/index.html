@@ -32,11 +32,12 @@
 <script src="sons.js"></script>
 <script src="trophees.js"></script>
 <script src="app.js"></script>
-<script src="ram-account.js"></script>
+<script src="ram-sync.js"></script>
 <script>
 /* Service worker : appli hors connexion + notifications push (voir sw.js). Sans support, l'appli marche normalement. */
 /* écran de lancement /RAM Club : retiré dès que l'appli est prête */
-setTimeout(()=>{const s=document.getElementById('ramSplash');if(s){s.classList.add('out');setTimeout(()=>s.remove(),400)}},700);
+/* il attend aussi le chargement du club (4 s au plus) pour ne pas montrer la démo avant le vrai club */
+Promise.all([new Promise(r=>setTimeout(r,700)),Promise.race([window.ramReady||Promise.resolve(),new Promise(r=>setTimeout(r,4000))])]).then(()=>{const s=document.getElementById('ramSplash');if(s){s.classList.add('out');setTimeout(()=>s.remove(),400)}});
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
