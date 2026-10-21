@@ -450,3 +450,27 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   .seg button { padding: 8px 6px; font-size: 13px; gap: 5px; justify-content: center; min-width: 0; }
   .cal-head .btn.sm { padding-left: 10px; padding-right: 10px; }
 }
+
+/* =========================================================================
+   STATISTIQUES : top 10 joueurs (tournois, points, matchs)
+   ========================================================================= */
+.st-badge { font-style: normal; font-size: 26px; width: 48px; height: 48px; display: grid; place-items: center; background: var(--ui-surface-2); border: 1px solid var(--ui-border); transform: rotate(-4deg); flex: none; }
+.st-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.st-list li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "rk who num" "rk more more"; column-gap: 12px; row-gap: 4px; align-items: center;
+  padding: 10px 12px; background: var(--ui-surface-2); border: 1px solid var(--ui-border); border-left: 4px solid var(--ui-border-2); }
+.st-rk { grid-area: rk; font-family: var(--display); font-style: italic; font-size: 28px; line-height: 1; text-align: center; color: var(--ui-text-mut); }
+.st-who { grid-area: who; min-width: 0; overflow-wrap: anywhere; }
+.st-who b { font-family: var(--label); font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
+.st-who small { display: block; color: var(--ui-text-mut); font-size: 12.5px; }
+.st-nums { grid-area: num; text-align: right; }
+.st-nums b { display: block; font-family: var(--display); font-style: italic; font-weight: 400; font-size: 30px; line-height: 1; color: var(--ui-text); }
+.st-nums span { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 10.5px; color: var(--ui-text-mut); }
+.st-more { grid-area: more; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.st-more em { font-style: normal; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border: 1px solid var(--ui-border); color: var(--ui-text-mut); }
+.st-list li.pod { border-left-color: var(--ui-accent); }
+.st-list li.p1 { background: color-mix(in srgb, var(--ui-accent) 14%, var(--ui-surface-2)); box-shadow: 4px 4px 0 var(--ui-accent); }
+.st-list li.p1 .st-rk { color: var(--ui-accent-text); font-size: 36px; }
+.st-list li.p2 .st-rk, .st-list li.p3 .st-rk { color: var(--ui-accent2); }
+.st-grid { margin-bottom: 20px; }
+@media (max-width: 1000px) { .st-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .st-list li { grid-template-columns: 34px minmax(0, 1fr) auto; padding: 9px 10px; } .st-nums b { font-size: 26px; } }

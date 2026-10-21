@@ -119,6 +119,14 @@
       e.target.value = '';
     });
     $$('[data-lgrm]').forEach(b => b.onclick = () => send('tournament/update', { [b.dataset.lgrm]: '' }));
+    // sponsor principal du tournoi (mis en avant sur la fiche tournoi de l'écran TV)
+    $('#spmLogo').innerHTML = `<label class="lg3-box spm-box" title="Choisir le logo du sponsor">${t.sponsorLogo ? `<img src="${t.sponsorLogo}" alt="">` : '<em>+ Logo du sponsor</em>'}<input type="file" accept="image/*" hidden id="spmFile"></label>
+      ${t.sponsorLogo ? '<button class="ghost sm" id="spmRm">Retirer le logo</button>' : ''}`;
+    $('#spmFile').onchange = e => {
+      loadImage(e.target.files[0], 300, 800).then(src => send('tournament/update', { sponsorLogo: src })).catch(err => A.toast(err.message, 'err'));
+      e.target.value = '';
+    };
+    if ($('#spmRm')) $('#spmRm').onclick = () => send('tournament/update', { sponsorLogo: '' });
   }
   $('#addCourt').onclick = () => send('court/add', {});
 
@@ -329,7 +337,7 @@
   resetDate();
   form.onsubmit = async e => {
     e.preventDefault();
-    const pl = n => Object.assign({ last: form['l' + n].value.trim(), first: form['f' + n].value.trim(), rank: form['r' + n].value.trim(), licence: form['i' + n].value.trim() },
+    const pl = n => Object.assign({ last: form['l' + n].value.trim(), first: form['f' + n].value.trim(), rank: form['r' + n].value.trim(), licence: form['i' + n].value.trim(), club: form['k' + n].value.trim() },
       form['pid' + n].value ? { playerId: form['pid' + n].value } : {});
     await send('pair/add', { p1: pl(1), p2: pl(2), registeredAt: form.date.value || E.localNow(), wc: form.wc.checked });
     form.reset(); resetDate(); setKnown(1, null); setKnown(2, null); form.l1.focus();
@@ -350,7 +358,7 @@
   }
   function closeSug() { [1, 2].forEach(n => { $('#sug' + n).hidden = true; }); sug.open = false; sug.active = -1; }
   function pickSuggestion(n, p) {
-    form['l' + n].value = p.last || ''; form['f' + n].value = p.first || ''; form['r' + n].value = p.rank || ''; form['i' + n].value = p.licence || '';
+    form['l' + n].value = p.last || ''; form['f' + n].value = p.first || ''; form['r' + n].value = p.rank || ''; form['i' + n].value = p.licence || ''; if (p.club != null) form['k' + n].value = p.club || '';
     setKnown(n, p); closeSug();
     (n === 1 ? form.l2 : form.date).focus();
   }
@@ -482,7 +490,7 @@
       <form id="pf" class="form">
         ${[1, 2].map(n => { const pl = p['p' + n]; return `
           <label>NOM ${n}<input name="l${n}" value="${esc(pl.last)}"></label><label>Prénom ${n}<input name="f${n}" value="${esc(pl.first)}"></label>
-          <label>Classement ${n}<input name="r${n}" value="${esc(pl.rank)}"></label><label>Licence ${n}<input name="i${n}" value="${esc(pl.licence)}"></label>`; }).join('')}
+          <label>Classement ${n}<input name="r${n}" value="${esc(pl.rank)}"></label><label>Licence ${n}<input name="i${n}" value="${esc(pl.licence)}"></label><label>Club ${n}<input name="k${n}" value="${esc(pl.club || '')}"></label>`; }).join('')}
         <label>Date d'inscription<input type="datetime-local" name="date" value="${esc(p.registeredAt)}"></label>
         <label class="chk"><input type="checkbox" name="wc" ${p.wc ? 'checked' : ''}> Wild-card</label>
         <label class="span2">Note<input name="note" value="${esc(p.note)}"></label>
@@ -490,7 +498,7 @@
       </form>`, box => {
       $('#pf', box).onsubmit = e => {
         e.preventDefault(); const f = e.target;
-        const pl = n => ({ last: f['l' + n].value.trim(), first: f['f' + n].value.trim(), rank: f['r' + n].value.trim(), licence: f['i' + n].value.trim() });
+        const pl = n => ({ last: f['l' + n].value.trim(), first: f['f' + n].value.trim(), rank: f['r' + n].value.trim(), licence: f['i' + n].value.trim(), club: f['k' + n].value.trim() });
         send('pair/update', { id, fields: { p1: pl(1), p2: pl(2), registeredAt: f.date.value, wc: f.wc.checked, note: f.note.value } });
         closeModal();
       };
@@ -810,6 +818,49 @@
   }
   foldable($('#orderCard'), $('#orderBody'), 'padelja-order-open');
   foldable($('.tpl-card'), $('#tplBody'), 'padelja-tpl-open');
+
+  /* page Tournoi : chaque section se replie (choix mémorisé sur l'appareil) ;
+     sur ordinateur (souris, pavé tactile), une seule carte avec des onglets */
+  (function tournSections() {
+    const wrap = $('#tsecs'), tabs = $('#tsecTabs');
+    if (!wrap) return;
+    const secs = $$('.tsec', wrap), KEY = 'padelja-sec-', TAB = 'padelja-sec-tab';
+    const tabMode = () => matchMedia('(hover: hover) and (pointer: fine) and (min-width: 721px)').matches;
+    const pick = id => {
+      secs.forEach(c => c.classList.toggle('cur', c.dataset.sec === id));
+      $$('.tsec-tab', tabs).forEach(b => b.classList.toggle('on', b.dataset.sec === id));
+      try { localStorage.setItem(TAB, id); } catch (e) {}
+    };
+    secs.forEach(card => {
+      const id = card.dataset.sec, head = document.createElement('div'), title = document.createElement('div'), body = document.createElement('div');
+      head.className = 'row-between fold-h'; body.className = 'fold-b';
+      card.insertBefore(head, card.firstChild);
+      title.append(card.querySelector('.eyebrow'), card.querySelector('h3'));
+      head.append(title);
+      head.insertAdjacentHTML('beforeend', '<button class="ghost sq fold-tg" type="button" aria-label="Afficher / masquer">▾</button>');
+      while (head.nextSibling) body.append(head.nextSibling);
+      card.append(body);
+      if (id === 'formule') {  // deux colonnes sur grand écran : réglages à gauche, formats et durées à droite
+        const cols = document.createElement('div'), l = document.createElement('div'), r = document.createElement('div');
+        cols.className = 'fcols'; l.className = 'fcol-l'; r.className = 'fcol-r';
+        [...body.children].forEach(n => (n.matches('.form, #planBox') ? l : r).append(n));
+        cols.append(l, r); body.append(cols);
+      }
+      card.classList.add('foldable');
+      let open = true; try { open = localStorage.getItem(KEY + id) !== '0'; } catch (e) {}
+      card.classList.toggle('open', open);
+      head.addEventListener('click', e => {
+        if (tabMode() || e.target.closest('button:not(.fold-tg), a, input, select')) return;
+        const o = !card.classList.contains('open');
+        card.classList.toggle('open', o);
+        try { localStorage.setItem(KEY + id, o ? '1' : '0'); } catch (e) {}
+      });
+      tabs.insertAdjacentHTML('beforeend', `<button type="button" role="tab" class="tsec-tab" data-sec="${id}"><span>${card.querySelector('.eyebrow').textContent.split('/')[0].trim()}</span>${card.dataset.label}</button>`);
+    });
+    $$('.tsec-tab', tabs).forEach(b => b.onclick = () => pick(b.dataset.sec));
+    let cur = ''; try { cur = localStorage.getItem(TAB) || ''; } catch (e) {}
+    pick(secs.some(c => c.dataset.sec === cur) ? cur : secs[0].dataset.sec);
+  })();
 
   /* tableaux de données : jamais plus larges que leur carte, on fait défiler à l'intérieur */
   const wrapTables = () => document.querySelectorAll('table.tbl').forEach(t => {

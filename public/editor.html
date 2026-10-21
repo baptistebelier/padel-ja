@@ -89,8 +89,9 @@
         <div class="btns"><button class="ghost fold-act" id="tplSave">+ Enregistrer ce format comme modèle</button><button class="ghost sq fold-tg" type="button" aria-label="Afficher / masquer">▾</button></div></div>
       <div id="tplBody"><div id="tplList" class="tpl-list"></div></div>
     </div>
-    <div class="grid2">
-      <div class="card">
+    <div class="tsecs" id="tsecs">
+      <div class="tsec-tabs" id="tsecTabs" role="tablist"></div>
+      <div class="card tsec" data-sec="infos" data-label="Informations">
         <span class="eyebrow">01 / Infos</span><h3>Informations</h3>
         <div class="form">
           <label class="span2">Nom du tournoi<input data-f="name"></label>
@@ -109,7 +110,7 @@
           <label class="span2">Notes / règlement particulier<textarea data-f="notes" rows="2"></textarea></label>
         </div>
       </div>
-      <div class="card">
+      <div class="card tsec" data-sec="formule" data-label="Formule">
         <span class="eyebrow">02 / Formule</span><h3>Formule sportive</h3>
         <div class="form">
           <label class="span2">Formule<select data-f="formula"><option value="tf">Tableau final direct</option><option value="qualif_tf">Qualifications + tableau final</option><option value="poules_tf">Poules + tableau final</option><option value="poules">Poules uniquement</option></select></label>
@@ -138,15 +139,17 @@
         <div class="durs" id="durs"></div>
         <div class="real-durs" id="realDurs"></div>
       </div>
-      <div class="card">
+      <div class="card tsec" data-sec="regles" data-label="Règles FFT">
         <span class="eyebrow">03 / Règlement</span><h3>Règles FFT <span class="tag" id="ruleCat"></span></h3>
         <div id="rules"></div>
       </div>
-      <div class="card">
+      <div class="card tsec" data-sec="terrains" data-label="Terrains">
         <span class="eyebrow">04 / Terrains</span><h3>Terrains</h3>
         <div id="courts"></div>
         <button id="addCourt" class="ghost">+ Ajouter un terrain</button>
-        <span class="eyebrow" style="margin-top:22px">05 / Habillage</span><h3>Écran TV &amp; stream</h3>
+      </div>
+      <div class="card tsec" data-sec="habillage" data-label="Habillage TV">
+        <span class="eyebrow">05 / Habillage</span><h3>Écran TV &amp; stream</h3>
         <div class="form">
           <label>Fond<input type="color" data-c="bg"></label>
           <label>Surfaces<input type="color" data-c="primary"></label>
@@ -170,7 +173,16 @@
           <div class="span2"><span class="lg3-title">Logo du club / tournoi</span><p class="muted small" style="margin:2px 0 8px">Ajoutez une ou plusieurs versions : le logiciel choisit la plus lisible selon le fond. Sans version claire ou sombre, la version couleur est utilisée partout.</p>
             <div class="logos3" id="logos3"></div></div>
         </div>
-        <span class="eyebrow" style="margin-top:22px">06 / Partenaires</span><h3>Bandeau partenaires</h3>
+      </div>
+      <div class="card tsec" data-sec="partenaires" data-label="Sponsor &amp; partenaires">
+        <span class="eyebrow">06 / Partenaires</span><h3>Sponsor &amp; partenaires</h3>
+        <h4>Sponsor principal du tournoi</h4>
+        <p class="muted small" style="margin-top:0">Mis en avant en grand sur la fiche tournoi de l'écran TV.</p>
+        <div class="spm">
+          <div id="spmLogo"></div>
+          <label>Nom du sponsor<input data-f="sponsorName" placeholder="Ex. : Intersport Brive"></label>
+        </div>
+        <h4>Bandeau partenaires</h4>
         <p class="muted small">Ils défilent en bas de l'écran TV. Pour chaque partenaire, mettez un nom, un logo, ou les deux : seul ce qui est rempli s'affiche.</p>
         <div id="sponsors" class="sponsors"></div>
         <button id="addSponsor" class="ghost">+ Ajouter un partenaire</button>
@@ -181,7 +193,7 @@
           <div class="muted small" id="profInfo"></div>
         </div>
       </div>
-      <div class="card manage">
+      <div class="card manage tsec" data-sec="gestion" data-label="Gestion">
         <span class="eyebrow">07 / Gestion</span><h3>Clôture &amp; remise à zéro</h3>
         <div id="closeBox"></div>
         <h4>Remettre à zéro</h4>
@@ -203,11 +215,11 @@
       <h3>Saisie rapide <small class="muted">Entrée pour valider : le curseur revient sur le premier champ</small></h3>
       <form id="addPair" class="pairform" autocomplete="off">
         <fieldset class="pl-fs" data-n="1"><legend>Joueur 1 <span class="pl-known" id="known1"></span></legend>
-          <input name="l1" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="NOM" required><input name="f1" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Prénom"><input name="r1" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Classement" inputmode="numeric"><input name="i1" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Licence">
+          <input name="l1" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="NOM" required><input name="f1" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Prénom"><input name="r1" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Classement" inputmode="numeric"><input name="i1" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Licence"><input name="k1" autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Club">
           <input type="hidden" name="pid1"><div class="suggest" id="sug1" hidden></div>
         </fieldset>
         <fieldset class="pl-fs" data-n="2"><legend>Joueur 2 <span class="pl-known" id="known2"></span></legend>
-          <input name="l2" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="NOM" required><input name="f2" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Prénom"><input name="r2" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Classement" inputmode="numeric"><input name="i2" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Licence">
+          <input name="l2" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="NOM" required><input name="f2" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Prénom"><input name="r2" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Classement" inputmode="numeric"><input name="i2" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="Licence"><input name="k2" autocomplete="off" data-1p-ignore data-lpignore="true" placeholder="Club">
           <input type="hidden" name="pid2"><div class="suggest" id="sug2" hidden></div>
         </fieldset>
         <fieldset class="narrow"><legend>Inscription</legend>

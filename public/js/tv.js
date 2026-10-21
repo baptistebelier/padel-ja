@@ -330,23 +330,47 @@
   }
 
   /* =====================================================================
-     FICHE TOURNOI
+     FICHE TOURNOI — tuiles avec pictogrammes + sponsor principal
      ===================================================================== */
+  const ICO = {
+    date: '<rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    lieu: '<path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>',
+    ja: '<circle cx="12" cy="7" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/><path d="M16 4l3-2"/>',
+    formule: '<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/>',
+    format: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 12h18M12 3v18"/>',
+    balles: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8"/>',
+    dotation: '<path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7"/><path d="M12 7H8a2.5 2.5 0 0 1 0-5c2.5 0 4 5 4 5zM12 7h4a2.5 2.5 0 0 0 0-5c-2.5 0-4 5-4 5z"/>',
+    heure: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+    terrains: '<rect x="4" y="3" width="16" height="18"/><path d="M4 12h16M12 3v18"/>',
+    infos: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'
+  };
+  const ico = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICO[k]}</svg>`;
   function renderInfo() {
     const t = S.tournament, el = $('#infoBox');
     const fmt = k => (k ? `${k} — ${E.FORMATS[k].name}` : '');
     const sel = E.selection(S);
-    const d = t.dateStart ? new Date(t.dateStart).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const d = t.dateStart ? new Date(t.dateStart).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+    const d2 = t.dateEnd && t.dateEnd !== t.dateStart ? new Date(t.dateEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '';
     const f = t.formula || 'tf';
-    const rows = [['Date', d], ['Club', [t.club, t.address].filter(Boolean).join(' — ')], ['Juge-arbitre', [t.ja, t.jaNumber].filter(Boolean).join(' · ')],
-      ['Formule', `${E.FORMULAS[f]} · ${sel.main.length} paires`],
-      f.startsWith('poules') ? ['Poules', fmt(t.formatPoule || t.formatMain)] : null, f === 'qualif_tf' ? ['Qualifs', fmt(t.formatQualif || t.formatMain)] : null,
-      f !== 'poules' ? ['Tableau', fmt(t.formatMain)] : null, f !== 'poules' && t.formatQuarter ? ['1/4 de finale', fmt(t.formatQuarter)] : null, f !== 'poules' && t.formatSemi ? ['1/2 finales', fmt(t.formatSemi)] : null, f !== 'poules' ? ['Finale', fmt(t.formatFinal || t.formatSemi || t.formatMain)] : null,
-      ['Balles', t.balls], ['Dotation', t.prize], ['Infos', t.notes]].filter(r => r && r[1]);
-    const lg = t.logoLight || t.logo;
-    keyed(el, 'info:' + JSON.stringify(rows) + t.name + t.category + (lg || '').length, () => `
-      <div class="info-l">${lg ? `<img src="${lg}">` : ''}<h1>${esc(t.name)}</h1><div class="cat"><span class="band lime">${esc(t.category)}</span> <span class="band pink">${esc(t.gender)}</span></div></div>
-      <div class="info-r">${rows.map(r => `<div class="ir"><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join('')}</div>`, () => ({}));
+    const formats = [f.startsWith('poules') ? 'Poules : ' + fmt(t.formatPoule || t.formatMain) : '', f === 'qualif_tf' ? 'Qualifs : ' + fmt(t.formatQualif || t.formatMain) : '',
+      f !== 'poules' ? 'Tableau : ' + fmt(t.formatMain) : '', f !== 'poules' ? 'Finale : ' + fmt(t.formatFinal || t.formatSemi || t.formatMain) : ''].filter(Boolean);
+    const tiles = [['date', 'Date', d + (d2 ? ' → ' + d2 : '')], ['heure', 'Début', t.startTime ? t.startTime.replace(':', 'h') : ''],
+      ['lieu', 'Club', [t.club, t.address].filter(Boolean).join(' · ')], ['ja', 'Juge-arbitre', [t.ja, t.jaNumber].filter(Boolean).join(' · ')],
+      ['formule', 'Formule', `${E.FORMULAS[f]}`], ['format', 'Formats', formats.join('\n')],
+      ['terrains', 'Terrains', S.courts.length ? `${S.courts.length} terrain${S.courts.length > 1 ? 's' : ''}` : ''], ['balles', 'Balles', t.balls],
+      ['dotation', 'Dotation', t.prize], ['infos', 'Infos', t.notes]].filter(r => r[2]);
+    const lg = t.logoLight || t.logo, sp = t.sponsorLogo, spn = t.sponsorName;
+    const kpi = [[sel.main.length, 'paires'], [S.courts.length, 'terrains'], [S.matches.filter(m => !R[m.id].staticBye).length, 'matchs']].filter(x => x[0]);
+    keyed(el, 'info2:' + JSON.stringify(tiles) + t.name + t.category + t.gender + (lg || '').length + (sp || '').length + spn + JSON.stringify(kpi), () => `
+      <div class="info-l">
+        ${lg ? `<img class="info-logo" src="${lg}" alt="">` : ''}
+        <h1>${esc(t.name)}</h1>
+        <div class="cat"><span class="band lime">${esc(t.category)}</span> <span class="band pink">${esc(t.gender)}</span></div>
+        ${kpi.length ? `<div class="info-kpi">${kpi.map(k => `<div><b>${k[0]}</b><span>${k[1]}</span></div>`).join('')}</div>` : ''}
+        ${sp || spn ? `<div class="info-sp"><span class="sp-tag">Partenaire officiel</span>
+          <div class="sp-plate">${sp ? `<img src="${sp}" alt="">` : `<b>${esc(spn)}</b>`}</div>${sp && spn ? `<div class="sp-name">${esc(spn)}</div>` : ''}</div>` : ''}
+      </div>
+      <div class="info-r ${tiles.length > 8 ? 'dense' : ''}">${tiles.map(r => `<div class="it it-${r[0]}"><i>${ico(r[0])}</i><div><span>${esc(r[1])}</span><b>${esc(r[2]).replace(/\n/g, '<br>')}</b></div></div>`).join('')}</div>`, () => ({}));
   }
 
   /* =====================================================================

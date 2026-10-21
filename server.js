@@ -288,7 +288,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
     if (p === '/app') { if (!(await currentUser(req))) return redirect(res, '/connexion'); return sendFile(res, '/app.html'); }
     // espace du juge-arbitre : tableau de bord, calendrier, joueurs, profil
-    const ACCOUNT_PAGES = { '/dashboard': 'dashboard.html', '/calendrier': 'calendrier.html', '/joueurs': 'joueurs.html', '/profil': 'profil.html' };
+    const ACCOUNT_PAGES = { '/dashboard': 'dashboard.html', '/calendrier': 'calendrier.html', '/joueurs': 'joueurs.html', '/statistiques': 'statistiques.html', '/profil': 'profil.html' };
     if (ACCOUNT_PAGES[p]) { if (!(await currentUser(req))) return redirect(res, '/connexion?retour=' + p); return sendFile(res, '/' + ACCOUNT_PAGES[p]); }
     if (p === '/en-cours') {   // raccourci vers le tournoi en cours le plus récent
       const u = await currentUser(req); if (!u) return redirect(res, '/connexion');
@@ -445,6 +445,46 @@ const server = http.createServer(async (req, res) => {
         rooms.delete(m[1]); await store.deleteTournament(m[1]);
         return json(res, 200, { ok: true });
       }
+    }
+
+    /* ---------- API statistiques du compte : joueurs (individuellement) sur tous mes tournois ---------- */
+    if (p === '/api/stats') {
+      const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
+      const list = (await store.listTournaments(u.id)).slice(0, 300);
+      const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+      const agg = {};
+      let nT = 0, nM = 0;
+      for (const meta of list) {
+        const row = rooms.has(meta.id) ? rooms.get(meta.id).row : await store.getTournament(meta.id);
+        const T = row && row.state;
+        if (!T || !T.draw || !T.draw.built) continue;
+        const R = Engine.resolve(T);
+        const done = T.matches.filter(m => !R[m.id].staticBye && R[m.id].state === 'done');
+        const finished = T.tournament.closed || T.matches.every(m => R[m.id].staticBye || R[m.id].state === 'done');
+        const FR = finished ? Engine.finalResults(T, R) : [], pts = {};
+        FR.forEach(x => { pts[x.pair] = x.points || 0; });
+        let counted = false;
+        for (const pair of T.pairs) {
+          if (pair.demo || !T.draw.entrants.includes(pair.id)) continue;
+          const played = done.filter(m => !m.wo && (R[m.id].A === pair.id || R[m.id].B === pair.id));
+          const won = played.filter(m => R[m.id].winner === pair.id).length;
+          for (const pl of [pair.p1, pair.p2]) {
+            if (!pl || !String(pl.last || '').trim()) continue;
+            const key = pl.licence ? 'l:' + pl.licence : 'n:' + norm(pl.last) + '|' + norm(pl.first);
+            const a = agg[key] = agg[key] || { last: '', first: '', club: '', tournaments: 0, matches: 0, wins: 0, points: 0, titles: 0, lastAt: 0 };
+            const at = Date.parse(T.tournament.dateStart || '') || meta.updated_at || 0;
+            if (at >= a.lastAt) { a.last = String(pl.last).toUpperCase(); a.first = pl.first || ''; if (pl.club) a.club = pl.club; a.lastAt = at; } else if (!a.club && pl.club) a.club = pl.club;
+            a.tournaments++; a.matches += played.length; a.wins += won; a.points += pts[pair.id] || 0;
+            if (FR[0] && FR[0].place === 1 && FR[0].pair === pair.id) a.titles++;
+            counted = true;
+          }
+        }
+        if (counted) { nT++; nM += done.length; }
+      }
+      const players = Object.values(agg).map(({ lastAt, ...x }) => x);
+      const top = (k, k2) => players.slice().sort((a, b) => b[k] - a[k] || b[k2] - a[k2] || a.last.localeCompare(b.last)).slice(0, 10);
+      return json(res, 200, { tournaments: nT, matches: nM, players: players.length, guest: !!u.guest,
+        byTournaments: top('tournaments', 'points'), byPoints: top('points', 'tournaments'), byMatches: top('matches', 'wins') });
     }
 
     /* ---------- API base de joueurs (partagée entre tous les juges-arbitres) ---------- */

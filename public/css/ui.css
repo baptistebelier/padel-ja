@@ -248,4 +248,52 @@ label.chk > input { flex: none; }
 .c-logo-pick:has(img) { border-style: solid; background: #fff; }
 .c-logo-rm { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; min-height: 0 !important; padding: 0; display: grid; place-items: center; font-size: 10px; line-height: 1;
   border-radius: 50% !important; background: var(--ui-accent2); color: #fff; border: 0; box-shadow: none; z-index: 1; }
-@media (max-width: 720px) { .court-row { grid-template-columns: 54px minmax(0, 1fr) 92px auto; } }
+@media (max-width: 720px) { .court-row { grid-template-columns: 48px minmax(0, 1fr) 108px auto; gap: 6px; } }
+
+/* =========================================================================
+   PAGE TOURNOI : sections l'une sous l'autre, repliables ; onglets sur ordinateur
+   ========================================================================= */
+.tsecs { display: flex; flex-direction: column; }
+.tsec-tabs { display: none; }
+.tsec:not(.open) > .fold-b { display: none; }
+.tsec:not(.open) .fold-h { margin-bottom: 0; }
+.tsec .fold-h h3 { margin-bottom: 0; }
+.tsec.open .fold-h { margin-bottom: 14px; }
+
+/* écrans larges : on profite de toute la largeur à l'intérieur des cartes */
+@media (min-width: 721px) {
+  #tsecs .form { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  #tsecs .form .span2 { grid-column: 1 / -1; }
+  #tsecs .look-frame { max-width: 720px; }
+  #tsecs .tsec[data-sec="terrains"] #courts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr)); gap: 0 18px; }
+  #tsecs .sponsors { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 0 18px; }
+}
+@media (min-width: 1100px) {
+  #tsecs .fcols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0 30px; align-items: start; }
+  #tsecs .fcol-r > h4:first-child { margin-top: 0; }
+  #tsecs .fcol-l .form { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+}
+
+/* sponsor principal du tournoi */
+.spm { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 14px; align-items: start; margin-bottom: 10px; }
+.spm #spmLogo { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.spm-box { width: 200px; height: 90px; }
+.spm label { display: flex; flex-direction: column; }
+@media (max-width: 520px) { .spm { grid-template-columns: 1fr; } }
+
+/* ordinateur (souris / pavé tactile) : une seule carte, des onglets */
+@media (hover: hover) and (pointer: fine) and (min-width: 721px) {
+  .tsec-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 0 0; background: var(--ui-bg); border-bottom: 2px solid var(--ui-accent); }
+  .tsec-tab { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border: 2px solid var(--ui-border); border-bottom: 0; background: var(--ui-surface-2); color: var(--ui-text-mut);
+    font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; box-shadow: none; transform: none; }
+  .tsec-tab span { font-size: 11px; color: var(--ui-accent-text); opacity: .8; }
+  .tsec-tab:hover { color: var(--ui-text); background: var(--ui-surface); }
+  .tsec-tab.on { background: var(--ui-accent); color: var(--ui-on-accent); border-color: var(--ui-accent); }
+  .tsec-tab.on span { color: var(--ui-on-accent); }
+  .tsec { display: none; }
+  .tsec.cur { display: block; border-top: 0; }
+  #tsecs .tsec.cur > .fold-b { display: block; }
+  .tsec .fold-tg { display: none; }
+  #tsecs .tsec .fold-h { cursor: default; margin-bottom: 14px; }
+}
+.pl-fs input[name="k1"], .pl-fs input[name="k2"] { grid-column: 1 / -1; }

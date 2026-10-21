@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#120A0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja2">
+<link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
+<title>Statistiques — Padel JA</title>
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/shell.css">
+<link rel="stylesheet" href="/css/street.css">
+<script src="/js/theme.js"></script>
+<script src="/js/rail.js" defer></script>
+</head>
+<body class="acct" data-page="stats">
+<main class="page">
+  <header class="phead">
+    <div><span class="eyebrow">Mes tournois</span><h1>Statis<span class="band lime">tiques</span></h1>
+      <p>Les joueurs de vos tournois, comptés un par un (les paires changent d'un tournoi à l'autre). Mis à jour à chaque tournoi.</p></div>
+  </header>
+  <div class="kpi-row" id="kpis"></div>
+  <div class="grid g-2 st-grid">
+    <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Tournois joués</h2></div><i class="st-badge">🎾</i></div><div id="topT"><p class="muted">Chargement…</p></div></section>
+    <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Points gagnés</h2></div><i class="st-badge">🏆</i></div><div id="topP"><p class="muted">Chargement…</p></div></section>
+  </div>
+  <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Matchs joués</h2></div><i class="st-badge">⚡</i></div><div id="topM"><p class="muted">Chargement…</p></div></section>
+  <p class="muted small">Points : barème FFT des tournois terminés ou clôturés. Matchs : matchs disputés (hors forfaits et exempts). Le club d'un joueur se renseigne à l'inscription de la paire.</p>
+</main>
+<script>
+(function () {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = s => document.querySelector(s);
+  const ico = d => `<i class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg></i>`;
+  const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+  // une ligne du classement : rang, joueur, club, puis la valeur mise en avant et les autres chiffres
+  const list = (rows, key, unit) => rows.length ? `<ol class="st-list">${rows.map((p, i) => `
+    <li class="${i < 3 ? 'pod p' + (i + 1) : ''}">
+      <span class="st-rk">${i + 1}</span>
+      <div class="st-who"><b>${esc(p.last)}</b> ${esc(p.first)}<small>${p.club ? esc(p.club) : 'Club non renseigné'}</small></div>
+      <div class="st-nums"><b>${p[key]}</b><span>${unit}</span></div>
+      <div class="st-more">${[key !== 'tournaments' ? plural(p.tournaments, 'tournoi') : '', key !== 'points' && p.points ? p.points + ' pts' : '', key !== 'matches' && p.matches ? plural(p.matches, 'match') : '', p.wins ? plural(p.wins, 'victoire') : '', p.titles ? '🏆 ' + p.titles : ''].filter(Boolean).map(x => `<em>${x}</em>`).join('')}</div>
+    </li>`).join('')}</ol>` : '<p class="muted">Pas encore de données : elles apparaîtront après vos premiers tournois (tirage fait, matchs joués).</p>';
+  fetch('/api/stats').then(r => r.json()).then(d => {
+    if (d.error) throw new Error(d.error);
+    $('#kpis').innerHTML = [
+      ['Tournois', d.tournaments, 'comptés', '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>'],
+      ['Joueurs', d.players, 'différents', '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/>'],
+      ['Matchs', d.matches, 'disputés', '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8"/>'],
+      ['Moyenne', d.tournaments ? Math.round(d.players / d.tournaments) : 0, 'joueurs / tournoi', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>']
+    ].map(([l, n, u, i]) => `<div class="kpi"><div><small>${l}</small><b>${n}</b><span>${u}</span></div>${ico(i)}</div>`).join('');
+    $('#topT').innerHTML = list(d.byTournaments, 'tournaments', 'tournois');
+    $('#topP').innerHTML = list(d.byPoints.filter(p => p.points > 0), 'points', 'points');
+    $('#topM').innerHTML = list(d.byMatches.filter(p => p.matches > 0), 'matches', 'matchs');
+  }).catch(e => { ['#topT', '#topP', '#topM'].forEach(s => { $(s).innerHTML = `<p class="muted">${esc(e.message || 'Statistiques indisponibles')}</p>`; }); });
+})();
+</script>
+</body>
+</html>

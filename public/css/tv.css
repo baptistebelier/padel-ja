@@ -240,3 +240,35 @@ body.pointer { cursor: default; }
 .lp-h:has(.c-plate) b { grid-column: 2; grid-row: 1; }
 .lp-h:has(.c-plate) span { grid-column: 2; grid-row: 2; font-size: 15px; }
 .lp-h:has(.c-plate) em { grid-column: 3; grid-row: 1 / 3; align-self: center; }
+
+/* =========================================================================
+   FICHE TOURNOI : titre, chiffres clés, partenaire officiel, tuiles à pictogrammes
+   ========================================================================= */
+.info-box { inset: 14px 60px 24px; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr); gap: 56px; align-items: center; }
+.info-l { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.info-l .info-logo { max-height: 120px; max-width: 360px; margin-bottom: 18px; object-fit: contain; }
+.info-l h1 { font-size: 92px; overflow-wrap: break-word; max-width: 100%; }
+.info-l .cat { margin-top: 22px; } .info-l .cat .band { font-size: 46px; }
+.info-kpi { display: flex; gap: 14px; margin-top: 28px; }
+.info-kpi div { background: var(--ink); border: 3px solid #ffffff22; padding: 8px 20px 10px; transform: rotate(-1deg); box-shadow: 6px 6px 0 var(--accent2); }
+.info-kpi div:nth-child(2) { transform: rotate(1deg); box-shadow: 6px 6px 0 var(--accent); }
+.info-kpi b { display: block; font-family: var(--display); font-weight: 400; font-size: 64px; line-height: 1; color: var(--accent); }
+.info-kpi span { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; font-size: 17px; color: var(--mut); }
+.info-sp { margin-top: 34px; display: flex; flex-direction: column; align-items: flex-start; }
+.sp-tag { font-family: var(--label); font-weight: 800; text-transform: uppercase; letter-spacing: .2em; font-size: 18px; background: var(--accent2); color: #fff; padding: 4px 14px; transform: rotate(-2deg); position: relative; z-index: 1; margin-bottom: -6px; margin-left: -8px; }
+.sp-plate { background: #fff; padding: 18px 34px; min-width: 380px; max-width: 640px; height: 170px; display: grid; place-items: center; box-shadow: 10px 10px 0 var(--accent); transform: rotate(-1deg); }
+.sp-plate img { max-width: 100%; max-height: 134px; object-fit: contain; display: block; }
+.sp-plate b { font-family: var(--display); font-weight: 400; font-size: 64px; color: var(--ink); text-transform: uppercase; line-height: 1; text-align: center; }
+.sp-name { margin-top: 16px; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 22px; color: var(--white); }
+.info-r { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-content: center; min-width: 0; }
+.it { display: flex; gap: 18px; align-items: center; background: color-mix(in srgb, var(--ink) 88%, transparent); border: 2px solid #ffffff18; border-left: 6px solid var(--accent); padding: 16px 20px; min-width: 0; }
+.it:nth-child(4n+2), .it:nth-child(4n+3) { border-left-color: var(--accent2); }
+.it i { flex: none; width: 62px; height: 62px; display: grid; place-items: center; background: var(--accent); color: var(--ink); transform: rotate(-3deg); }
+.it:nth-child(4n+2) i, .it:nth-child(4n+3) i { background: var(--accent2); color: #fff; }
+.it i svg { width: 34px; height: 34px; }
+.it > div { min-width: 0; }
+.it span { display: block; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .16em; font-size: 16px; color: var(--mut); }
+.it b { display: block; font-size: 26px; line-height: 1.2; font-weight: 700; overflow-wrap: break-word; }
+.it-format b { font-size: 21px; } .it-infos, .it-format { grid-column: span 2; }
+.info-r.dense .it { padding: 12px 18px; } .info-r.dense .it b { font-size: 23px; } .info-r.dense .it i { width: 52px; height: 52px; }
+.info-r { grid-auto-flow: row dense; }
