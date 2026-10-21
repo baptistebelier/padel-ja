@@ -819,6 +819,15 @@
   foldable($('#orderCard'), $('#orderBody'), 'padelja-order-open');
   foldable($('.tpl-card'), $('#tplBody'), 'padelja-tpl-open');
 
+  /* RGPD : texte prêt à afficher pour informer les joueurs */
+  if ($('#rgpdCopy')) $('#rgpdCopy').onclick = () => {
+    const txt = 'Information : vos nom, prénom, numéro de licence, classement, club et résultats sont enregistrés par le juge-arbitre dans le logiciel Padel JA '
+      + 'pour organiser ce tournoi, puis conservés dans sa base de joueurs pendant 3 ans après votre dernier tournoi (historique, inscriptions plus rapides). '
+      + 'Vous pouvez à tout moment demander à les consulter, les corriger ou les supprimer auprès du juge-arbitre ou de Padel JA (ja.riseandmove.fr).';
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => A.toast('Texte copié : collez-le sur la fiche ou l\'affiche du tournoi', 'ok'))
+      .catch(() => window.prompt('Copiez ce texte :', txt));
+  };
+
   /* page Tournoi : chaque section se replie (choix mémorisé sur l'appareil) ;
      sur ordinateur (souris, pavé tactile), une seule carte avec des onglets */
   (function tournSections() {

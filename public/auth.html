@@ -25,37 +25,54 @@
       <label data-only="signup">Prénom<input name="first" autocomplete="given-name"></label>
       <label data-only="signup">Nom<input name="last" autocomplete="family-name"></label>
       <label data-only="signup">Club / structure<input name="club" autocomplete="organization"></label>
-      <label>E-mail<input name="email" type="email" required autocomplete="email"></label>
-      <label>Mot de passe<input name="password" type="password" required minlength="8" autocomplete="current-password"></label>
+      <label data-hide="reset">E-mail<input name="email" type="email" required autocomplete="email"></label>
+      <label data-hide="forgot"><span id="pwLabel">Mot de passe</span><input name="password" type="password" required minlength="8" autocomplete="current-password"></label>
+      <p class="hint" data-only="forgot">Indiquez l'adresse de votre compte : vous recevrez un lien pour choisir un nouveau mot de passe (valable 1 heure).</p>
+      <p class="hint" data-only="reset">8 caractères minimum. Vous serez connecté juste après.</p>
       <p class="hint" data-only="signup">8 caractères minimum. Un tournoi d'exemple sera créé pour vous aider à démarrer.</p>
       <div class="err" id="err"></div>
+      <div class="ok" id="ok" hidden></div>
       <button class="btn primary" id="go"></button>
+      <p class="alt" data-only="login"><a href="/mot-de-passe-oublie">Mot de passe oublié ?</a></p>
+      <p class="alt" data-only="forgot reset"><a href="/connexion">Retour à la connexion</a></p>
     </form>
   </div>
 </main>
 <script>
 (function () {
   const qs = new URLSearchParams(location.search);
-  let mode = location.pathname === '/inscription' ? 'signup' : 'login';
+  const MODES = { '/inscription': 'signup', '/mot-de-passe-oublie': 'forgot', '/reinitialiser': 'reset' };
+  let mode = MODES[location.pathname] || 'login';
   const f = document.getElementById('f');
   function setMode(m) {
     mode = m;
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
-    document.querySelectorAll('[data-only]').forEach(el => { el.hidden = el.dataset.only !== m; });
-    document.getElementById('title').innerHTML = m === 'signup' ? 'Créer <span class="band lime">mon compte</span>' : 'Espace <span class="band lime">juge-arbitre</span>';
-    document.getElementById('go').textContent = m === 'signup' ? 'Créer mon compte' : 'Se connecter';
-    f.password.autocomplete = m === 'signup' ? 'new-password' : 'current-password';
-    history.replaceState(null, '', (m === 'signup' ? '/inscription' : '/connexion') + location.search);
+    document.querySelectorAll('[data-only]').forEach(el => { el.hidden = !el.dataset.only.split(' ').includes(m); });
+    document.querySelectorAll('[data-hide]').forEach(el => { el.hidden = el.dataset.hide === m; el.querySelectorAll('input').forEach(i => { i.required = el.dataset.hide !== m; }); });
+    document.querySelector('.tabs').hidden = m === 'forgot' || m === 'reset';
+    document.getElementById('ok').hidden = true;
+    document.getElementById('pwLabel').textContent = m === 'reset' ? 'Nouveau mot de passe' : 'Mot de passe';
+    document.getElementById('title').innerHTML = { signup: 'Créer <span class="band lime">mon compte</span>', forgot: 'Mot de passe <span class="band lime">oublié</span>', reset: 'Nouveau <span class="band lime">mot de passe</span>' }[m] || 'Espace <span class="band lime">juge-arbitre</span>';
+    document.getElementById('go').textContent = { signup: 'Créer mon compte', forgot: 'Recevoir le lien', reset: 'Enregistrer et me connecter' }[m] || 'Se connecter';
+    f.password.autocomplete = m === 'login' ? 'current-password' : 'new-password';
+    if (m === 'login' || m === 'signup') history.replaceState(null, '', (m === 'signup' ? '/inscription' : '/connexion') + location.search);
     document.getElementById('err').textContent = '';
   }
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setMode(b.dataset.m));
   setMode(mode);
   f.onsubmit = async e => {
     e.preventDefault();
-    const body = { email: f.email.value, password: f.password.value, first: f.first.value, last: f.last.value, club: f.club.value };
-    const r = await fetch('/api/auth/' + (mode === 'signup' ? 'signup' : 'login'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const body = mode === 'reset' ? { token: qs.get('t') || '', password: f.password.value } : mode === 'forgot' ? { email: f.email.value }
+      : { email: f.email.value, password: f.password.value, first: f.first.value, last: f.last.value, club: f.club.value };
+    document.getElementById('err').textContent = '';
+    const r = await fetch('/api/auth/' + mode, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { document.getElementById('err').textContent = d.error || 'Erreur'; return; }
+    if (mode === 'forgot') {
+      const ok = document.getElementById('ok'); ok.hidden = false;
+      ok.textContent = 'Si un compte existe avec cette adresse, un e-mail vient de partir. Pensez à regarder dans les indésirables.';
+      return;
+    }
     const back = qs.get('retour');
     location.href = '/dashboard';   // après connexion : toujours le tableau de bord
   };

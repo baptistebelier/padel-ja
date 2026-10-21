@@ -14,6 +14,8 @@ const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
 const { createStore, norm } = require('./lib/store.js');
 const Backup = require('./lib/backup.js');
+const Retention = require('./lib/retention.js');
+const Mail = require('./lib/mail.js');
 const Auth = require('./lib/auth.js');
 
 const PORT = +process.env.PORT || 3737;
@@ -56,6 +58,8 @@ function lanAddresses() {
   Object.values(os.networkInterfaces()).forEach(l => (l || []).forEach(i => { if (i.family === 'IPv4' && !i.internal) out.push(i.address); }));
   return out;
 }
+// adresse publique du logiciel pour les liens envoyés par e-mail (jamais déduite de l'en-tête Host en ligne)
+const appUrl = req => process.env.APP_URL || (ONLINE ? 'https://ja.riseandmove.fr' : origin(req));
 const origin = req => `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers['x-forwarded-host'] || req.headers.host}`;
 /* administrateurs : e-mails listés dans ADMIN_EMAILS (Render), ou offre « admin » */
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'baptiste.belier@gmail.com').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
@@ -316,6 +320,7 @@ const server = http.createServer(async (req, res) => {
 
     /* ---------- pages ---------- */
     if (p === '/') return sendFile(res, '/landing.html');
+    if (p === '/mot-de-passe-oublie' || p === '/reinitialiser') return sendFile(res, '/auth.html');
     if (p === '/connexion' || p === '/inscription') {
       const u = await currentUser(req);
       if (u && !u.guest) return redirect(res, '/dashboard');   // déjà connecté : tableau de bord
@@ -366,6 +371,8 @@ const server = http.createServer(async (req, res) => {
       if (first || last) await store.saveIdentity(u.id, { first, last });
       // premier tournoi d'exemple pour bien démarrer
       await newTournament(u.id, { demo: true, name: 'Tournoi d\'exemple' });
+      // e-mail de bienvenue (sans bloquer l'inscription si l'envoi échoue)
+      Mail.send(Object.assign({ to: email }, Mail.welcomeMail({ first, appUrl: appUrl(req) }))).catch(e => console.error('E-mail de bienvenue :', e.message));
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
     }
     if (p === '/api/auth/login' && req.method === 'POST') {
@@ -375,6 +382,30 @@ const server = http.createServer(async (req, res) => {
       const u = await store.getUserByEmail(email);
       if (!u || !Auth.checkPassword(b.password, u.pass_hash)) return json(res, 401, { error: 'E-mail ou mot de passe incorrect.' });
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
+    }
+    /* ---------- mot de passe oublié : lien par e-mail, valable 1 h et une seule fois ---------- */
+    if (p === '/api/auth/forgot' && req.method === 'POST') {
+      const b = await readBody(req);
+      const email = String(b.email || '').trim().toLowerCase();
+      if (Auth.tooManyAttempts('forgot|' + clientIp(req))) return json(res, 429, { error: 'Trop de demandes : réessayez dans 15 minutes.' });
+      if (!Mail.enabled()) return json(res, 503, { error: 'L\'envoi d\'e-mails n\'est pas encore activé : écrivez-nous pour réinitialiser votre mot de passe.' });
+      const u = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? await store.getUserByEmail(email) : null;
+      if (u && !u.guest) {
+        const link = appUrl(req) + '/reinitialiser?t=' + encodeURIComponent(Auth.makeResetToken(u));
+        const id = await store.getIdentity(u.id).catch(() => null);
+        await Mail.send(Object.assign({ to: u.email }, Mail.resetMail({ first: (id && id.first) || splitName(u).first, link }))).catch(e => console.error('E-mail de réinitialisation :', e.message));
+      }
+      // même réponse que le compte existe ou non (on ne révèle pas quelles adresses sont inscrites)
+      return json(res, 200, { ok: true });
+    }
+    if (p === '/api/auth/reset' && req.method === 'POST') {
+      const b = await readBody(req);
+      const t = Auth.readResetToken(b.token);
+      const u = t ? await store.getUser(t.userId) : null;
+      if (!u || !Auth.resetMatches(u, t)) return json(res, 400, { error: 'Lien expiré ou déjà utilisé : refaites une demande.' });
+      if (String(b.password || '').length < 8) return json(res, 400, { error: 'Le mot de passe doit faire au moins 8 caractères.' });
+      u.pass_hash = Auth.hashPassword(b.password); await store.saveUser(u);
+      return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
     }
     /* ---------- API administration ---------- */
     if (p.startsWith('/api/admin/')) {
@@ -659,6 +690,7 @@ server.listen(PORT, '0.0.0.0', () => {
   if (!ONLINE) lanAddresses().forEach(ip => console.log(`   Réseau   : http://${ip}:${PORT}/`));
   console.log('\n   Laissez cette fenêtre ouverte pendant le tournoi.\n');
   Backup.schedule(store, msg => console.log('  ' + msg));
+  Retention.schedule(store, msg => console.log('  ' + msg));
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : Padel JA est sans doute déjà lancé.\n`);

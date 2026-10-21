@@ -206,3 +206,7 @@ h2 { font-size: clamp(36px, 6vw, 64px); transform: rotate(-1.5deg); transform-or
 @media (orientation: landscape) and (max-height: 500px) {
   body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); box-sizing: border-box; }
 }
+/* connexion : mot de passe oublié */
+.auth .ok { color: #c9f26a; font-weight: 600; margin: 4px 0 10px; }
+.auth .alt { margin: 14px 0 0; font-size: 14px; text-align: center; }
+.auth .alt a { color: var(--accent); }
