@@ -691,6 +691,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('\n   Laissez cette fenêtre ouverte pendant le tournoi.\n');
   Backup.schedule(store, msg => console.log('  ' + msg));
   Retention.schedule(store, msg => console.log('  ' + msg));
+  Mail.keepAlive(msg => console.log('  ' + msg));
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : Padel JA est sans doute déjà lancé.\n`);
