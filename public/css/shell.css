@@ -408,3 +408,23 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 @media (min-width: 721px) and (max-width: 1100px) {
   body.editor-page .side { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
 }
+
+/* =========================================================================
+   TÉLÉPHONE EN PAYSAGE : marges à gauche et à droite pour l'encoche / la caméra
+   (côté gauche ou droit selon le sens de rotation ; l'iPad n'est pas concerné : hauteur > 500px)
+   ========================================================================= */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --sa-l: env(safe-area-inset-left, 0px); --sa-r: env(safe-area-inset-right, 0px); }
+  html { background: var(--ui-bg); }
+  body { padding-left: var(--sa-l); padding-right: var(--sa-r); box-sizing: border-box; }
+}
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 721px) {
+  body.has-rail { padding-left: calc(var(--rail-w) + var(--sa-l)); }
+  .rail { width: calc(var(--rail-w) + var(--sa-l)); padding-left: var(--sa-l); }
+  body.has-rail .modal, body.has-rail .sheet { left: calc(var(--rail-w) + var(--sa-l)); }
+}
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 720px) {
+  body.has-rail { padding-left: var(--sa-l); }
+  .rail { padding-left: calc(14px + var(--sa-l)); width: calc(min(84vw, 320px) + var(--sa-l)); }
+  body.editor-page .side { left: calc(12px + var(--sa-l)); right: calc(12px + var(--sa-r)); }
+}
