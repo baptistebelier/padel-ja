@@ -277,7 +277,9 @@
     chans.forEach(c => {
       c.mute = mute.includes(c.id);
       const v = view(); if (v.v === 'chan' && v.id === c.id) { c.un = 0; return; }
-      c.un = read[c.id] ? (c.msgs || []).filter(m => m.at > read[c.id] && m.by !== R.key).length : (c.un || 0);
+      // non lus : messages des autres arrivés après ma dernière lecture (ou après l'ouverture de l'appli)
+      const since = read[c.id] || R.loadAt || 0;
+      c.un = (c.msgs || []).filter(m => m.at > since && m.by !== R.key).length;
     });
     posts.forEach(p => { if (p.at) p.t = rel(p.at); });
   }
@@ -334,6 +336,13 @@
   }
   async function pull() {
     const d = await api('/api/ram/c/' + R.club + '/sync?since=' + R.rev);
+    // accès validé par le bureau ou rôle changé : ce qu'on a le droit de voir change, on recharge tout le club
+    if (d.me && (d.me.valid !== R.valid || d.me.role !== R.role)) {
+      const opened = d.me.valid && !R.valid;
+      await start(R.club);
+      if (opened) toast('Ton accès au club est validé : bienvenue !');
+      return;
+    }
     if (!d.items.length) { R.rev = d.rev; return; }
     const local = new Map(collect().map(([coll, id, s]) => [coll + '/' + id, J(s)]));
     fresh = [];
@@ -347,7 +356,7 @@
     derive();
     fresh.forEach(([kind, o, ref]) => {
       if (kind === 'post' && canSee(o)) notify(o.by === 'club' ? 'club' : 'follow', o.by, o.kind === 'perf' || o.kind === 'padel' ? 'a publié un résultat' : 'a publié sur le mur', { v: 'post', id: o.id });
-      if (kind === 'msg' && ref.startsWith('c:')) { const c = chans.find(x => x.id === ref.slice(2)); const v = view(); if (c && !(v.v === 'chan' && v.id === c.id)) { c.un = (c.un || 0) + 1; if (!c.mute && chanOk(c)) notify('chan', o.by, 'a écrit dans ' + c.name, { v: 'chan', id: c.id }, false); } }
+      if (kind === 'msg' && ref.startsWith('c:')) { const c = chans.find(x => x.id === ref.slice(2)); const v = view(); if (c && !(v.v === 'chan' && v.id === c.id)) { if (!c.mute && chanOk(c)) notify('chan', o.by, 'a écrit dans ' + c.name, { v: 'chan', id: c.id }, false); } }
     });
     safeRender();
   }
@@ -387,7 +396,7 @@
   async function start(id) {
     const d = await api('/api/ram/c/' + id + '/sync?since=0');
     stop(); wipe();
-    R.club = id; R.key = d.me.key; R.role = d.me.role; R.code = d.club.code; R.fol = d.fol || {}; R.roles = d.roles || {}; R.base = new Map(); R.bad = new Map();
+    R.club = id; R.key = d.me.key; R.role = d.me.role; R.valid = d.me.valid; R.loadAt = Date.now(); R.code = d.club.code; R.fol = d.fol || {}; R.roles = d.roles || {}; R.base = new Map(); R.bad = new Map();
     window.RAM_KEY = R.key;
     const order = ['conf', 'member', 'prefs', 'stats', 'chan', 'group', 'champ', 'rec', 'post', 'art', 'partner', 'comm', 'claim', 'msg', 'report'];
     d.items.sort((a, b) => order.indexOf(a.coll) - order.indexOf(b.coll)).forEach(it => applyItem(it, true));
