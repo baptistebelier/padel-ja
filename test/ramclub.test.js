@@ -145,3 +145,18 @@ test('API : créer un compte puis un club, synchroniser', async () => {
     assert.equal((await fetch(B + '/api/ram/c/inconnu/sync', { headers: H })).status, 404);
   } finally { srv.kill(); }
 });
+
+test('direct : chaque appareil du club est prévenu aussitôt, un adhérent retiré est coupé', async () => {
+  const seenA = [], seenO = [];
+  const offA = await ram.listen(adh.id, club.id, rev => seenA.push(rev));
+  const offO = await ram.listen(autre.id, club.id, rev => seenO.push(rev));
+  assert.equal(await ram.listen('U-inconnu', club.id, () => {}), null, 'pas d\'écoute hors du club');
+  const r = await ram.ops(bureau.id, club.id, [{ coll: 'msg', id: 'm-direct', op: 'put', data: { ref: 'c:general', by: kB, x: 'Instantané', at: 2 } }]);
+  assert.deepEqual(seenA, [r.rev]);
+  assert.deepEqual(seenO, [r.rev]);
+  await ram.remove(bureau.id, club.id, kO);
+  assert.equal(seenO[seenO.length - 1], -1, 'le retiré reçoit -1');
+  offA(); offO();
+  await ram.ops(bureau.id, club.id, [{ coll: 'msg', id: 'm-apres', op: 'put', data: { ref: 'c:general', by: kB, x: 'Plus écouté', at: 3 } }]);
+  assert.equal(seenA.length, 2, 'plus rien après avoir arrêté d\'écouter');
+});

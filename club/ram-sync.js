@@ -371,14 +371,30 @@
   function schedule() {
     clearTimeout(timer);
     const v = view(), hot = (v.v === 'chan') || (v.v === 'rec') || recs.some(r => r.st === 'live');
-    timer = setTimeout(() => { tick().finally(schedule); }, document.hidden ? 60000 : hot ? 3000 : 10000);
+    // connexion en direct ouverte : les nouveautés arrivent aussitôt, la vérification régulière n'est qu'un filet de sécurité
+    const direct = es && es.readyState === 1;
+    timer = setTimeout(() => { tick().finally(schedule); }, document.hidden ? 60000 : direct ? 30000 : hot ? 3000 : 10000);
+  }
+  /* connexion en direct avec le serveur (comme une messagerie) : prévenu à chaque changement du club */
+  let es = null;
+  function listen() {
+    if (es) es.close();
+    if (!window.EventSource) return;
+    es = new EventSource('/api/ram/c/' + R.club + '/events', { withCredentials: true });
+    es.onmessage = ev => {
+      let d = {}; try { d = JSON.parse(ev.data); } catch (x) {}
+      if (d.rev < 0) { stop(); toast("Tu ne fais plus partie de ce club"); return; }
+      if (d.rev > R.rev) tick();
+    };
+    es.onopen = () => { tick(); schedule(); };        // reconnecté : on rattrape ce qui a pu être manqué
+    es.onerror = () => schedule();                    // coupé : vérification rapprochée en attendant la reconnexion
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && R.live) { tick(); schedule(); } });
-  function stop() { R.live = false; clearTimeout(timer); }
+  function stop() { R.live = false; clearTimeout(timer); if (es) { es.close(); es = null; } }
 
   /* chaque affichage peut suivre une action : on envoie les changements juste après */
   const ramRender = render;
-  render = function (keep) { ramRender(keep); if (R.live) { clearTimeout(pushT); pushT = setTimeout(tick, 250); } };
+  render = function (keep) { ramRender(keep); if (R.live) { clearTimeout(pushT); pushT = setTimeout(tick, 120); } };
 
   /* ---------- démarrage dans un vrai club ---------- */
   function wipe() {
@@ -402,7 +418,7 @@
     d.items.sort((a, b) => order.indexOf(a.coll) - order.indexOf(b.coll)).forEach(it => applyItem(it, true));
     if (!M[R.key]) M[R.key] = { n: 'Moi', r: 'NC', team: '', fol: 0, g: 'H', bd: '', res: [] };
     R.rev = d.rev; R.live = true; LS.set('ram-club', id);
-    derive(); ramRender(); schedule();
+    derive(); ramRender(); schedule(); listen();
   }
 
   /* ---------- actions propres au vrai club ---------- */
