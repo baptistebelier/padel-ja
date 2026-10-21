@@ -5,7 +5,7 @@ services:
     runtime: node
     region: frankfurt
     plan: starter
-    buildCommand: "echo 'Aucune dépendance à installer'"
+    buildCommand: "npm test"   # tests automatiques : si un test échoue, la mise en ligne est annulée
     startCommand: node server.js
     healthCheckPath: /
     envVars:

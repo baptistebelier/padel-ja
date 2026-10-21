@@ -1,0 +1,5 @@
+#!/bin/sh
+# Avant chaque envoi vers GitHub (donc avant chaque mise en ligne) : tests automatiques du logiciel.
+# Si un test échoue, l'envoi est bloqué.
+echo "Padel JA : tests automatiques avant envoi…"
+node --test || { echo "Envoi annulé : corrigez les tests en échec ci-dessus."; exit 1; }

@@ -1,0 +1,12 @@
+# Tests automatiques du moteur (tirage, formats FFT, scores, programmation) à chaque envoi sur GitHub
+name: Tests
+on: [push, pull_request]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --test

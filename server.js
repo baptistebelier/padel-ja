@@ -62,12 +62,7 @@ const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email |
 // offres : essai, actif (abonnement payé), offert (accès gratuit), admin
 const PLANS = { essai: 'Essai', actif: 'Abonné', offert: 'Accès offert', admin: 'Administrateur' };
 const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
-// prénom / nom : champs séparés, sinon déduits de l'ancien champ « nom et prénom »
-const splitName = u => {
-  if (u.first != null || u.last != null) return { first: u.first || '', last: u.last || '' };
-  const w = String(u.name || '').trim().split(/\s+/).filter(Boolean);
-  return { first: w[0] || '', last: w.slice(1).join(' ') };
-};
+const { splitName } = require('./lib/names');
 const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), avatar: u.avatar || '', club: u.club, hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
   planLabel: PLANS[isAdmin(u) ? 'admin' : (u.plan || 'essai')], admin: isAdmin(u), free: freeAccess(u) };
 

@@ -4,7 +4,8 @@
   "description": "Logiciel du juge-arbitre de padel : inscriptions, tirage, tableaux, programmation, écran TV, overlay stream",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "license": "UNLICENSED",
   "private": true,
