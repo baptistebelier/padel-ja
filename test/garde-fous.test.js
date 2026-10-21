@@ -53,3 +53,18 @@ test('tous les scripts du logiciel sont du JavaScript valide', () => {
     assert.doesNotThrow(() => execFileSync(process.execPath, ['--check', f], { stdio: 'pipe' }), path.basename(f));
   });
 });
+
+test('compte /RAM : session partagée sur riseandmove.fr, cookie simple en local', () => {
+  const Auth = require('../lib/auth');
+  const req = h => ({ headers: { host: h, 'x-forwarded-proto': 'https' } });
+  const ja = Auth.sessionCookie(req('ja.riseandmove.fr'), 'jeton');
+  assert.ok(Array.isArray(ja) && ja.length === 2, 'ancien cookie effacé + cookie commun');
+  assert.match(ja[1], /Domain=\.riseandmove\.fr/);
+  assert.match(ja[0], /Max-Age=0/);
+  assert.match(Auth.sessionCookie(req('club.riseandmove.fr'), 'jeton')[1], /Domain=\.riseandmove\.fr/);
+  const local = Auth.sessionCookie({ headers: { host: 'localhost:3737' } }, 'jeton');
+  assert.equal(typeof local, 'string');
+  assert.ok(!/Domain=/.test(local));
+  assert.ok(Auth.sessionCookie(req('ja.riseandmove.fr'), null).every(c => /Max-Age=0/.test(c)), 'déconnexion : les deux effacés');
+  assert.equal(typeof Auth.sessionCookie(req('evil-riseandmove.fr'), 'x'), 'string', 'un autre domaine ne reçoit pas le cookie commun');
+});

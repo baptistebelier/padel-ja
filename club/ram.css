@@ -1,0 +1,151 @@
+/* =========================================================================
+   /RAM Club — charte /RAM JA (21/10/2026)
+   Même famille que le logiciel Padel JA : angles droits, ombres dures décalées,
+   barre du bas flottante foncée avec curseur citron qui suit le doigt.
+   Les couleurs restent celles du club (réglées dans app.js) : ce fichier ne
+   change que les formes, les ombres et la navigation. Chargé après app.css.
+   ========================================================================= */
+:root { --r: 0px; --rb: 0px; --ram-hard: rgba(0, 0, 0, .55); }
+
+/* ---------- angles droits partout (sauf avatars et petites pastilles) ---------- */
+*, *::before, *::after { border-radius: 0 !important; }
+.av, .cam, .avbtn, .dot, .live i, .dots i, .tabs .cnt, .medal { border-radius: 50% !important; }
+
+/* ---------- titres d'affiche ---------- */
+.top h1 { transform: rotate(-1.2deg); transform-origin: left center; }
+
+/* ---------- boutons « sticker » : ombre dure rose, qui s'écrase à l'appui ---------- */
+.btn:not(.ghost), .addfab, .ib.acc {
+  box-shadow: 4px 4px 0 var(--hot);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn.hot { box-shadow: 4px 4px 0 var(--accent); }
+.btn:not(.ghost):active, .addfab:active, .ib.acc:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--hot); }
+.btn.ghost { box-shadow: inset 0 0 0 1.5px var(--line); }
+
+/* ---------- cartes : bord fin et ombre dure, comme les fiches de Padel JA ---------- */
+.card { border: 1px solid var(--line); box-shadow: 5px 5px 0 var(--ram-hard); }
+.sheet { border-top: 3px solid var(--accent); }
+
+/* ---------- pastilles d'en-tête (crest du club) et stories : carrés penchés ---------- */
+.crest { transform: rotate(-3deg); box-shadow: 3px 3px 0 var(--hot); }
+.ring { transform: rotate(-2deg); box-shadow: 4px 4px 0 var(--ram-hard); }
+.story:nth-child(even) .ring { transform: rotate(2deg); }
+
+/* ---------- barre du bas façon Padel JA ----------
+   Plus foncée que les cartes pour bien ressortir, curseur citron carré avec ombre rose,
+   et toute la barre grossit un peu pendant qu'on glisse le doigt dessus. */
+.tabs {
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, color-mix(in srgb, var(--bg) 45%, #000) 92%, transparent);
+  box-shadow: 5px 5px 0 var(--ram-hard);
+  transform-origin: 50% 100%;
+  transition: transform .22s cubic-bezier(.2, .9, .3, 1.25), box-shadow .22s;
+}
+.tabs.drag { transform: scale(1.07) translateY(-3px); box-shadow: 7px 7px 0 var(--ram-hard); }
+/* club aux couleurs claires (app.js pose color-scheme: light sur la page) : barre claire, un ton sous les cartes */
+:root[style*="color-scheme: light"] { --ram-hard: rgba(0, 0, 0, .16); }
+:root[style*="color-scheme: light"] .tabs { background: color-mix(in srgb, color-mix(in srgb, var(--card) 84%, var(--fg)) 94%, transparent); }
+.pill { background: var(--accent) !important; box-shadow: 3px 3px 0 var(--hot); top: 6px; bottom: 6px; }
+.tabs button { z-index: 1; transition: color .2s; }
+.tabs button[aria-current="page"] { color: var(--on-accent); }
+.tabs.drag button[aria-current="page"] { color: var(--muted); }
+.tabs.drag button.hov { color: var(--on-accent); }
+.tabs button svg { transition: transform .15s; }
+.tabs.drag button.hov svg { transform: scale(1.15); }
+.tabs .cnt { box-shadow: 0 0 0 2px var(--bg); }
+
+/* ---------- logo /RAM Club ---------- */
+.powered img { background: transparent; padding: 0; height: 46px; }
+.ram-logo { display: block; height: 52px; width: auto; }
+.ram-about { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 0 6px; color: var(--muted); font-size: 13px; text-align: center; }
+.ram-about b { font-family: var(--f-sub); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 12px; color: var(--fg); }
+
+/* écran de lancement : logo /RAM Club pendant le chargement */
+.ram-splash { position: absolute; inset: 0; z-index: 50; display: grid; place-items: center; background: #0B0B0B; transition: opacity .35s ease, visibility .35s; }
+.ram-splash img { width: min(62%, 260px); transform: rotate(-2deg); animation: ram-in .5s cubic-bezier(.2, .9, .3, 1.2) both; }
+.ram-splash.out { opacity: 0; visibility: hidden; }
+@keyframes ram-in { from { opacity: 0; transform: rotate(-6deg) scale(.86); } to { opacity: 1; transform: rotate(-2deg) scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs, .btn, .addfab, .ram-splash img { transition: none !important; animation: none !important; }
+}
+
+/* =========================================================================
+   VERSION ORDINATEUR (1024 px et plus) : menu latéral à gauche, contenu centré,
+   fenêtres au centre de l'écran. Pratique pour écrire des articles, créer des
+   sondages et administrer le club au clavier et à la souris.
+   ========================================================================= */
+@media (min-width: 1024px) {
+  :root { --side: 248px; }
+  body { display: block; padding: 0; background: var(--bg); }
+  .phone { width: 100%; height: 100%; border: 0; border-radius: 0; padding-left: var(--side); }
+
+  /* menu latéral : la barre du bas devient un rail vertical foncé */
+  .tabs, :root[style*="color-scheme: light"] .tabs {
+    position: absolute; left: 0; top: 0; bottom: 0; right: auto; width: var(--side);
+    flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 4px;
+    padding: calc(132px + env(safe-area-inset-top, 0px)) 14px 96px;
+    border: 0; border-right: 1px solid var(--line); box-shadow: none; transform: none !important;
+    background: color-mix(in srgb, var(--bg) 40%, #000);
+    -webkit-backdrop-filter: none; backdrop-filter: none; touch-action: auto;
+  }
+  :root[style*="color-scheme: light"] .tabs { background: color-mix(in srgb, var(--card) 90%, var(--fg)); }
+  .tabs::before {
+    content: ""; position: absolute; left: 22px; top: calc(26px + env(safe-area-inset-top, 0px)); width: 176px; height: 80px;
+    background: url("img/ram-club-blanc.png") left center / contain no-repeat;
+  }
+  :root[style*="color-scheme: light"] .tabs::before { background-image: url("img/ram-club-noir.png"); }
+  .tabs button {
+    flex: none; flex-direction: row; justify-content: flex-start; gap: 14px; min-height: 50px; padding: 0 16px;
+    font-size: 17px; letter-spacing: .03em; color: var(--muted);
+  }
+  .tabs button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 6%, transparent); }
+  .tabs button[aria-current="page"], .tabs button[aria-current="page"]:hover { color: var(--on-accent); background: transparent; }
+  .tabs .cnt { position: static; margin-left: auto; }
+  .tabs .pill { left: 14px !important; right: 14px; top: 0 !important; bottom: auto !important; width: auto !important; }
+
+  /* barre du haut, bandeaux et bouton « Ajouter du contenu » : dans la colonne de droite */
+  .top { left: var(--side); padding-left: max(28px, calc((100% - var(--side) - 760px) / 2)); padding-right: max(20px, calc((100% - var(--side) - 760px) / 2)); }
+  .nstack { left: calc(var(--side) + 24px); right: 24px; max-width: 520px; margin-left: auto; }
+  .addfab { left: 14px; right: auto; width: calc(var(--side) - 28px); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .phone.fab #main { padding-bottom: 40px; }
+  #main { padding-bottom: 40px; }
+
+  /* contenu centré sur une colonne lisible */
+  #main > * { max-width: 760px; margin-left: auto; margin-right: auto; }
+  .pad { padding: 16px 24px 40px; gap: 22px; }
+
+  /* fenêtres : au centre de l'écran, plus de feuille qui monte du bas */
+  .back { position: fixed; left: var(--side); align-items: center; justify-content: center; padding: 32px; }
+  .back .sheet { width: min(640px, 100%); max-height: 86vh; border: 1px solid var(--line); border-top: 3px solid var(--accent); box-shadow: 8px 8px 0 var(--ram-hard); }
+  .back .grab { display: none; }
+  .back.viewer { left: 0; padding: 0; }
+  .foot { padding-left: max(24px, calc((100% - 760px) / 2)); padding-right: max(24px, calc((100% - 760px) / 2)); }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  .back.anim .sheet { animation: ram-pop .22s cubic-bezier(.2, .9, .3, 1.2); }
+}
+@keyframes ram-pop { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* ---------- tablette (481 à 1023 px) : plein écran, contenu centré, barre du bas centrée ---------- */
+@media (min-width: 481px) and (max-width: 1023px) {
+  body { display: block; padding: 0; background: var(--bg); }
+  .phone { width: 100%; height: 100%; border: 0; border-radius: 0; }
+  #main > * { max-width: 680px; margin-left: auto; margin-right: auto; }
+  .tabs, .addfab { left: max(16px, calc(50% - 300px)); right: max(16px, calc(50% - 300px)); }
+  .top { padding-left: max(16px, calc(50% - 340px)); padding-right: max(12px, calc(50% - 340px)); }
+  .back { align-items: center; justify-content: center; padding: 24px; }
+  .back .sheet { width: min(600px, 100%); max-height: 86%; border: 1px solid var(--line); border-top: 3px solid var(--accent); box-shadow: 8px 8px 0 var(--ram-hard); }
+  .back .grab { display: none; }
+  .back.viewer { padding: 0; }
+}
+
+/* ---------- bloc « Compte /RAM » en haut du profil ---------- */
+.ram-acc { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); box-shadow: 5px 5px 0 var(--ram-hard); }
+.ram-acc[hidden] { display: none; }
+.ram-acc .grow { min-width: 160px; display: flex; flex-direction: column; gap: 2px; }
+.ram-acc b { font-family: var(--f-sub); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; color: var(--muted); }
+.ram-acc span { font-weight: 600; overflow-wrap: anywhere; }
+.ram-acc small { color: var(--muted); font-size: 12px; }
+.ram-acc-logo { height: 34px; width: auto; flex: none; }

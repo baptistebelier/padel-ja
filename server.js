@@ -64,6 +64,21 @@ function sendFile(res, rel) {
     res.end(data);
   });
 }
+// RAM Club : fichiers de l'appli (dossier club/). Pages, scripts et icônes toujours revérifiés,
+// le service worker de l'appli gère le hors-ligne.
+const CLUB_ROOT = path.join(__dirname, 'club');
+function sendClub(res, rel) {
+  if (!rel || rel.endsWith('/')) rel = (rel || '/') + 'index.html';
+  const file = path.normalize(path.join(CLUB_ROOT, rel));
+  if (!file.startsWith(CLUB_ROOT)) { res.writeHead(403); return res.end(); }
+  fs.readFile(file, (err, data) => {
+    if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Page introuvable'); }
+    const ext = path.extname(file);
+    const longCache = /\.(png|webp|jpg|woff2)$/.test(ext) && !/icon|favicon/.test(rel);
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' });
+    res.end(data);
+  });
+}
 function lanAddresses() {
   const out = [];
   Object.values(os.networkInterfaces()).forEach(l => (l || []).forEach(i => { if (i.family === 'IPv4' && !i.internal) out.push(i.address); }));
@@ -332,6 +347,14 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   try {
+    /* ---------- RAM Club (club.riseandmove.fr) : même serveur, mêmes comptes, même base ----------
+       Sur le sous-domaine club., tout ce qui n'est pas l'API est l'appli RAM Club (dossier club/).
+       Ailleurs (ja., localhost), elle reste accessible sous /club/ pour les essais. */
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
+    if (/^club\./.test(host) && !p.startsWith('/api/')) return sendClub(res, p);
+    if (p === '/club') return redirect(res, '/club/');
+    if (p.startsWith('/club/')) return sendClub(res, p.slice(5));
+
     /* ---------- fichiers statiques ---------- */
     if (/^\/(css|js|img|fonts)\//.test(p) || p === '/manifest.webmanifest') return sendFile(res, p);
     if (p === '/favicon.ico') return sendFile(res, '/img/favicon.png');
@@ -349,7 +372,9 @@ const server = http.createServer(async (req, res) => {
     if (p === '/mot-de-passe-oublie' || p === '/reinitialiser') return sendFile(res, '/auth.html');
     if (p === '/connexion' || p === '/inscription') {
       const u = await currentUser(req);
-      if (u && !u.guest) return redirect(res, '/dashboard');   // déjà connecté : tableau de bord
+      // déjà connecté : tableau de bord, ou retour direct vers RAM Club si l'on en vient
+      const back = String(url.searchParams.get('retour') || '');
+      if (u && !u.guest) return redirect(res, /^(https:\/\/club\.riseandmove\.fr\/|\/club\/)/.test(back) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
       return sendFile(res, '/auth.html');
     }
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
@@ -557,7 +582,9 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/me') {
       const u = await currentUser(req);
       const id = u && !u.guest ? await store.getIdentity(u.id).catch(() => null) : null;
-      return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access: u ? await accessFor(u) : null, storage: store.kind });
+      // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (Padel JA + RAM Club)
+      const renew = u && !u.guest ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) } : undefined;
+      return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access: u ? await accessFor(u) : null, storage: store.kind }, renew);
     }
 
     /* ---------- API tournois (tableau de bord) ---------- */

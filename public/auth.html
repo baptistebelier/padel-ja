@@ -73,8 +73,9 @@
       ok.textContent = 'Si un compte existe avec cette adresse, un e-mail vient de partir. Pensez à regarder dans les indésirables.';
       return;
     }
-    const back = qs.get('retour');
-    location.href = '/dashboard';   // après connexion : toujours le tableau de bord
+    // après connexion : le tableau de bord, sauf si l'on vient de RAM Club (même compte /RAM)
+    const back = qs.get('retour') || '';
+    location.href = /^(https:\/\/club\.riseandmove\.fr\/|\/club\/)/.test(back) ? back : '/dashboard';
   };
 })();
 </script>
