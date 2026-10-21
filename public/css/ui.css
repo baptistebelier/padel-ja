@@ -225,3 +225,9 @@ body.editor-page .annonce { display: none !important; }
 .lg3 button { justify-self: start; }
 .rd-live { display: inline-flex; align-items: center; gap: 6px; color: var(--ui-accent2); font-weight: 600; font-size: 13px; }
 .rd-live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1.2s infinite; flex: none; }
+
+/* tableau final : zoom au pincement (le reste de l'interface ne zoome pas) */
+#bracketEd { --bz: 1; }
+#bracketEd > * { zoom: var(--bz); }
+#cardTf { position: relative; }
+.bz-reset { position: absolute; top: 16px; right: 16px; z-index: 2; }

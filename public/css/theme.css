@@ -35,3 +35,6 @@
 /* ---------- style de l'interface : épuré, street dosé (par défaut), full street ---------- */
 :root[data-style="epure"] { --ui-tilt: 0deg; }
 :root[data-style="street"] { --ui-r: 0px; --ui-r-sm: 0px; --ui-tilt: -2deg; --ui-bw: 2px; }
+
+/* pas de zoom au pincement ni au double-tap : on garde le défilement */
+html { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

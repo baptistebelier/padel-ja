@@ -802,6 +802,29 @@
   }
   foldable($('#orderCard'), $('#orderBody'), 'padelja-order-open');
   foldable($('.tpl-card'), $('#tplBody'), 'padelja-tpl-open');
+
+  /* tableau final : zoom au pincement à deux doigts (le reste de l'interface ne zoome pas) */
+  (function bracketZoom() {
+    const el = $('#bracketEd'), reset = $('#bzReset');
+    if (!el) return;
+    let z = 1, start = null;
+    const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    function set(nz, cx) {
+      nz = Math.min(2.5, Math.max(0.4, nz));
+      const mx = cx - el.getBoundingClientRect().left, sl = el.scrollLeft, k = nz / z;
+      z = nz; el.style.setProperty('--bz', z);
+      el.scrollLeft = (sl + mx) * k - mx; // garde le point entre les doigts sous les doigts
+      if (reset) reset.hidden = Math.abs(z - 1) < 0.03;
+    }
+    el.addEventListener('touchstart', e => { if (e.touches.length === 2) start = { d: dist(e.touches), z }; }, { passive: true });
+    el.addEventListener('touchmove', e => {
+      if (e.touches.length !== 2 || !start) return;
+      e.preventDefault();
+      set(start.z * dist(e.touches) / start.d, (e.touches[0].clientX + e.touches[1].clientX) / 2);
+    }, { passive: false });
+    el.addEventListener('touchend', e => { if (e.touches.length < 2) start = null; });
+    if (reset) reset.addEventListener('click', () => set(1, el.getBoundingClientRect().left));
+  })();
   $('#orderReset').onclick = () => confirm('Revenir à l\'ordre standard des matchs ?') && send('order/reset');
   $('#orderTpl').onclick = () => { setTab('tournoi'); setTimeout(() => $('#tplSave').click(), 50); };
 

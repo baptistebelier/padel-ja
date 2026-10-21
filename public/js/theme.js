@@ -23,3 +23,12 @@
   document.addEventListener('click', e => { const b = e.target.closest('[data-theme-toggle]'); if (b) { e.preventDefault(); UITheme.toggle(); } });
   document.addEventListener('DOMContentLoaded', () => apply(root.dataset.theme));
 })();
+
+/* pas de zoom au pincement ni au double-tap dans l'interface (téléphone, iPad) ;
+   seules les zones .pinch-zoom (tableau final) gèrent leur propre zoom */
+(function () {
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length > 1 && !(e.target.closest && e.target.closest('.pinch-zoom'))) e.preventDefault();
+  }, { passive: false });
+})();
