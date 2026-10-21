@@ -32,7 +32,7 @@ files.push(path.join(__dirname, '..', 'server.js'), ...fs.readdirSync(path.join(
 
 test('aucune expression régulière avec un \\s, \\d ou \\w perdu', () => {
   const bad = [];
-  const re = /(split|replace|test|match)\(\/(\[[sdw][^\]]*\]|[sdw])[+*]?\//g;
+  const re = /(split|replace|test|match)\(\/(\[\^?[sdw][^\]]*\]|[sdw])[+*]?\//g;
   files.forEach(f => fs.readFileSync(f, 'utf8').split('\n').forEach((l, i) => {
     if (re.test(l)) bad.push(`${path.relative(path.join(__dirname, '..'), f)}:${i + 1}  ${l.trim().slice(0, 90)}`);
     re.lastIndex = 0;

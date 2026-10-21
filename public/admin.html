@@ -24,6 +24,12 @@
     <div id="users" class="ulist"><p class="muted">Chargement…</p></div>
   </section>
   <section class="card">
+    <div class="card-h"><div><span class="eyebrow">Sécurité des données</span><h2 class="h2s">Sauvegardes</h2></div>
+      <button class="btn sm" id="bkNow" type="button">Sauvegarder maintenant</button></div>
+    <p class="muted small">Export complet (comptes, tournois, réglages, joueurs) fait automatiquement chaque semaine. Les 12 dernières sont gardées. Téléchargez-en une de temps en temps pour garder une copie hors ligne.</p>
+    <div id="backups"><p class="muted">Chargement…</p></div>
+  </section>
+  <section class="card">
     <span class="eyebrow">Base de joueurs</span>
     <h2 class="h2s">Droit à l'effacement (RGPD)</h2>
     <p class="muted small">Un joueur demande la suppression de ses données ? Recherchez-le puis supprimez sa fiche : son historique de tournois est effacé de la base partagée.</p>
@@ -35,6 +41,25 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = s => document.querySelector(s);
   const api = (u, o) => fetch(u, Object.assign({ headers: { 'Content-Type': 'application/json' } }, o || {})).then(r => r.json());
+  // sauvegardes hebdomadaires : liste, téléchargement, sauvegarde immédiate
+  const ago = t => { const d = Math.floor((Date.now() - t) / 864e5); return d <= 0 ? "aujourd'hui" : d === 1 ? 'hier' : `il y a ${d} jours`; };
+  async function loadBackups() {
+    const d = await api('/api/admin/backups').catch(e => ({ error: e.message }));
+    if (d.error) { $('#backups').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }
+    const last = d.backups[0];
+    const warn = !last || Date.now() - last.at > 8 * 864e5;
+    $('#backups').innerHTML = `<p class="small ${warn ? 'bk-warn' : 'bk-ok'}">${last ? `Dernière sauvegarde : <b>${new Date(last.at).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</b> (${ago(last.at)})` : 'Aucune sauvegarde pour le moment.'}</p>
+      <p class="muted small">Rangées dans : ${esc(d.storage)}</p>
+      ${d.backups.length ? `<div class="bk-list">${d.backups.map(b => `<a class="bk" href="/api/admin/backups/${encodeURIComponent(b.name)}" download><span>${new Date(b.at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span><small>${Math.max(1, Math.round(b.size / 1024))} Ko</small><em>Télécharger</em></a>`).join('')}</div>` : ''}`;
+  }
+  $('#bkNow').onclick = async () => {
+    const b = $('#bkNow'); b.disabled = true; b.textContent = 'Sauvegarde…';
+    const d = await api('/api/admin/backups', { method: 'POST' }).catch(e => ({ error: e.message }));
+    b.disabled = false; b.textContent = 'Sauvegarder maintenant';
+    if (d.error) alert('Sauvegarde impossible : ' + d.error);
+    loadBackups();
+  };
+  loadBackups();
   async function load() {
     const d = await api('/api/admin/users');
     if (d.error) { $('#users').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }

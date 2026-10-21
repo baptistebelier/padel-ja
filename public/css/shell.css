@@ -478,3 +478,11 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 /* pictogrammes maison (jamais d'emojis) */
 .pic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -.2em; flex: none; }
 .st-badge .pic { width: 26px; height: 26px; vertical-align: 0; color: var(--ui-accent-text); }
+
+/* admin : sauvegardes */
+.bk-ok b { color: var(--ui-text); } .bk-warn { color: var(--ui-accent2); font-weight: 600; }
+.bk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 8px; margin-top: 10px; }
+.acct .page a.bk { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 12px; background: var(--ui-surface-2); border: 1px solid var(--ui-border); color: var(--ui-text); text-decoration: none; }
+.bk span { font-weight: 700; text-transform: capitalize; } .bk small { color: var(--ui-text-mut); text-align: right; }
+.bk em { grid-column: 1 / -1; font-style: normal; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 11px; color: var(--ui-accent-text); }
+.acct .page a.bk:hover { border-color: var(--ui-accent); }

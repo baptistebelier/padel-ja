@@ -13,6 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
 const { createStore, norm } = require('./lib/store.js');
+const Backup = require('./lib/backup.js');
 const Auth = require('./lib/auth.js');
 
 const PORT = +process.env.PORT || 3737;
@@ -388,6 +389,23 @@ const server = http.createServer(async (req, res) => {
           users: users.map(x => Object.assign(publicUser(x), { rawPlan: x.plan || 'essai', created_at: x.created_at, tournaments: count[x.id] || 0 }))
             .sort((a, b) => (b.created_at || 0) - (a.created_at || 0)) });
       }
+      // sauvegardes : liste, sauvegarde immédiate, téléchargement
+      if (p === '/api/admin/backups' && req.method === 'GET') {
+        const list = await store.listBackups();
+        return json(res, 200, { keep: Backup.KEEP, storage: ONLINE ? 'Supabase Storage (bucket privé « sauvegardes »)' : 'dossier data/sauvegardes',
+          backups: list.map(b => Object.assign(b, { at: Backup.dateOf(b.name) })) });
+      }
+      if (p === '/api/admin/backups' && req.method === 'POST') {
+        const b = await Backup.createBackup(store, 'manuel');
+        return json(res, 200, { ok: true, backup: b });
+      }
+      let bm = p.match(/^\/api\/admin\/backups\/([\w.-]+\.json)$/);
+      if (bm && req.method === 'GET') {
+        const text = await store.getBackup(bm[1]);
+        if (!text) return json(res, 404, { error: 'Sauvegarde introuvable' });
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="${bm[1]}"`, 'Cache-Control': 'no-store' });
+        return res.end(text);
+      }
       let am = p.match(/^\/api\/admin\/users\/([\w-]+)$/);
       if (am && req.method === 'POST') {
         const b = await readBody(req);
@@ -640,6 +658,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   Ouvrir   : http://localhost:${PORT}/`);
   if (!ONLINE) lanAddresses().forEach(ip => console.log(`   Réseau   : http://${ip}:${PORT}/`));
   console.log('\n   Laissez cette fenêtre ouverte pendant le tournoi.\n');
+  Backup.schedule(store, msg => console.log('  ' + msg));
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : Padel JA est sans doute déjà lancé.\n`);
