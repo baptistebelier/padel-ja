@@ -17,7 +17,7 @@
     if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen();
   });
 
-  const TITLES = { bracket: 'Tableau final', poules: 'Poules', schedule: 'Programmation', live: 'En direct', standings: 'Classement live', info: 'Le tournoi', draw: 'Tirage au sort' };
+  const TITLES = { bracket: 'Tableau final', poules: 'Poules', schedule: 'Programmation', live: 'En direct', standings: 'Classement live', info: 'Le tournoi', stats: 'Stats du club', draw: 'Tirage au sort' };
 
   A.connect(st => { S = st; R = A.R; $('#waiting').hidden = true; update(); }, ok => { if (!ok) $('#waiting').hidden = false; });
   setInterval(() => { $('#clock').textContent = A.hhmm(Date.now()); }, 1000);
@@ -67,7 +67,7 @@
     // écrans choisis par le JA, sauf ceux qui n'ont rien à montrer
     const want = S.display.rotateViews || ['bracket', 'poules', 'schedule', 'live', 'standings'];
     const ok = { bracket: S.matches.some(m => m.phase === 'TF'), poules: S.poules.length || S.matches.some(m => m.phase === 'Q'),
-      schedule: true, live: true, standings: !!(S.draw && S.draw.built), info: true };
+      schedule: true, live: true, standings: !!(S.draw && S.draw.built), info: true, stats: true };
     const l = want.filter(v => ok[v]);
     return l.length ? l : ['schedule'];
   }
@@ -83,6 +83,7 @@
     view = v;
     document.querySelectorAll('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
     document.body.classList.toggle('pointer', v === 'draw');
+    if (v === 'stats') loadStats();
     let title = TITLES[v] || '';
     if (v === 'poules' && !S.poules.length) title = 'Qualifications';
     A.setText($('#viewTitle'), title, 'slide');
@@ -342,9 +343,36 @@
     dotation: '<path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7"/><path d="M12 7H8a2.5 2.5 0 0 1 0-5c2.5 0 4 5 4 5zM12 7h4a2.5 2.5 0 0 0 0-5c-2.5 0-4 5-4 5z"/>',
     heure: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
     terrains: '<rect x="4" y="3" width="16" height="18"/><path d="M4 12h16M12 3v18"/>',
-    infos: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'
+    infos: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+    points: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'
   };
   const ico = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICO[k]}</svg>`;
+  /* =====================================================================
+     STATS DU CLUB — statistiques générales du compte (tous ses tournois), pas seulement ce tournoi
+     ===================================================================== */
+  let stats = null, statsAt = 0;
+  function loadStats() {
+    if (Date.now() - statsAt < 60000 && stats) return renderStats();
+    statsAt = Date.now();
+    A.api(A.base + '/stats').then(d => { if (!d.error) { stats = d; renderStats(); } }).catch(() => {});
+  }
+  setInterval(() => { if (view === 'stats') loadStats(); }, 61000);
+  function renderStats() {
+    const el = $('#statsBox'), d = stats;
+    if (!d) return;
+    if (!d.players) { keyed(el, 'st:none', () => '<div class="empty"><span class="band lime">Stats du club</span><small>après les premiers tournois</small></div>', () => ({})); return; }
+    const col = (title, k, unit, rows, icoKey) => `<div class="sx-col"><h3><i>${ico(icoKey)}</i><span class="band ${k === 'points' ? 'pink' : 'lime'}">${title}</span></h3>
+      ${rows.length ? rows.map((p, i) => `<div class="sx-r ${i < 3 ? 'p' + (i + 1) : ''}"><b class="sx-rk">${i + 1}</b><div class="sx-who"><b>${esc(p.last)}</b> ${esc(p.first)}<small>${esc(p.club || '')}</small></div><div class="sx-v"><b>${p[k]}</b><small>${unit}</small></div></div>`).join('')
+        : '<div class="sx-empty">À venir</div>'}</div>`;
+    keyed(el, 'st:' + JSON.stringify(d), () => `
+      <div class="sx-kpi">${[[d.tournaments, 'tournois'], [d.players, 'joueurs'], [d.matches, 'matchs disputés']].map(x => `<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
+      <div class="sx-cols">
+        ${col('Tournois joués', 'tournaments', 'tournois', d.byTournaments.slice(0, 8), 'formule')}
+        ${col('Points gagnés', 'points', 'points', d.byPoints.filter(p => p.points > 0).slice(0, 8), 'points')}
+        ${col('Matchs joués', 'matches', 'matchs', d.byMatches.filter(p => p.matches > 0).slice(0, 8), 'balles')}
+      </div>`, () => ({}));
+  }
+
   function renderInfo() {
     const t = S.tournament, el = $('#infoBox');
     const fmt = k => (k ? `${k} — ${E.FORMATS[k].name}` : '');

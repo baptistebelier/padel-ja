@@ -25,10 +25,10 @@
   </header>
   <div class="kpi-row" id="kpis"></div>
   <div class="grid g-2 st-grid">
-    <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Tournois joués</h2></div><i class="st-badge">🎾</i></div><div id="topT"><p class="muted">Chargement…</p></div></section>
-    <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Points gagnés</h2></div><i class="st-badge">🏆</i></div><div id="topP"><p class="muted">Chargement…</p></div></section>
+    <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Tournois joués</h2></div><i class="st-badge"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8"/></svg></i></div><div id="topT"><p class="muted">Chargement…</p></div></section>
+    <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Points gagnés</h2></div><i class="st-badge"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg></i></div><div id="topP"><p class="muted">Chargement…</p></div></section>
   </div>
-  <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Matchs joués</h2></div><i class="st-badge">⚡</i></div><div id="topM"><p class="muted">Chargement…</p></div></section>
+  <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Matchs joués</h2></div><i class="st-badge"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></i></div><div id="topM"><p class="muted">Chargement…</p></div></section>
   <p class="muted small">Points : barème FFT des tournois terminés ou clôturés. Matchs : matchs disputés (hors forfaits et exempts). Le club d'un joueur se renseigne à l'inscription de la paire.</p>
 </main>
 <script>
@@ -37,13 +37,14 @@
   const $ = s => document.querySelector(s);
   const ico = d => `<i class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg></i>`;
   const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+  const TROPHY = '<svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg>';
   // une ligne du classement : rang, joueur, club, puis la valeur mise en avant et les autres chiffres
   const list = (rows, key, unit) => rows.length ? `<ol class="st-list">${rows.map((p, i) => `
     <li class="${i < 3 ? 'pod p' + (i + 1) : ''}">
       <span class="st-rk">${i + 1}</span>
       <div class="st-who"><b>${esc(p.last)}</b> ${esc(p.first)}<small>${p.club ? esc(p.club) : 'Club non renseigné'}</small></div>
       <div class="st-nums"><b>${p[key]}</b><span>${unit}</span></div>
-      <div class="st-more">${[key !== 'tournaments' ? plural(p.tournaments, 'tournoi') : '', key !== 'points' && p.points ? p.points + ' pts' : '', key !== 'matches' && p.matches ? plural(p.matches, 'match') : '', p.wins ? plural(p.wins, 'victoire') : '', p.titles ? '🏆 ' + p.titles : ''].filter(Boolean).map(x => `<em>${x}</em>`).join('')}</div>
+      <div class="st-more">${[key !== 'tournaments' ? plural(p.tournaments, 'tournoi') : '', key !== 'points' && p.points ? p.points + ' pts' : '', key !== 'matches' && p.matches ? plural(p.matches, 'match') : '', p.wins ? plural(p.wins, 'victoire') : '', p.titles ? `${TROPHY} ${plural(p.titles, 'titre')}` : ''].filter(Boolean).map(x => `<em>${x}</em>`).join('')}</div>
     </li>`).join('')}</ol>` : '<p class="muted">Pas encore de données : elles apparaîtront après vos premiers tournois (tirage fait, matchs joués).</p>';
   fetch('/api/stats').then(r => r.json()).then(d => {
     if (d.error) throw new Error(d.error);

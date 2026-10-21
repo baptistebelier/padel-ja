@@ -37,7 +37,7 @@
 (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = s => document.querySelector(s);
-  const place = x => (x.place === 1 ? '🏆 1er' : x.placeLo && x.placeLo !== x.place ? `${x.placeLo}-${x.place}e` : x.place + 'e');
+  const place = x => (x.place === 1 ? '1er' : x.placeLo && x.placeLo !== x.place ? `${x.placeLo}-${x.place}e` : x.place + 'e');
   async function loadPlayers() {
     const d = await fetch('/api/club-players').then(r => r.json()).catch(() => ({}));
     if (d.guest) { $('#plist').innerHTML = '<p class="muted">La base de joueurs est réservée aux comptes : <a href="/inscription">créez votre compte</a>.</p>'; return; }

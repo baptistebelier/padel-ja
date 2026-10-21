@@ -133,7 +133,7 @@
   /* ---------- clôture, réouverture, remises à zéro ---------- */
   const closeT = async () => {
     const left = S.matches.filter(m => !R[m.id].staticBye && R[m.id].state !== 'done').length;
-    const msg = (left ? `⚠ ${left} match(s) ne sont pas terminés : les paires concernées seront classées à la place la moins favorable.\n\n` : '') +
+    const msg = (left ? `Attention : ${left} match(s) ne sont pas terminés : les paires concernées seront classées à la place la moins favorable.\n\n` : '') +
       'Clôturer le tournoi ?\n\nLes joueurs et leurs résultats seront enregistrés dans la base de joueurs (fiches, historiques, saisie semi-automatique). Le tournoi passera en lecture seule ; vous pourrez le rouvrir.';
     if (!confirm(msg)) return;
     const d = await A.api('/api/tournaments/' + A.tid + '/close', { method: 'POST' });
@@ -410,7 +410,7 @@
     const p = d.player, h = d.history;
     const wins = h.filter(x => x.place === 1).length, pts = h.reduce((s, x) => s + (x.points || 0), 0);
     const best = h.length ? Math.min(...h.map(x => x.place)) : null, clubs = new Set(h.map(x => x.club)).size;
-    const place = x => (x.place === 1 ? '🏆 1er' : x.placeLo && x.placeLo !== x.place ? `${x.placeLo}-${x.place}e` : x.place + 'e');
+    const place = x => (x.place === 1 ? '1er' : x.placeLo && x.placeLo !== x.place ? `${x.placeLo}-${x.place}e` : x.place + 'e');
     return `<span class="eyebrow">Fiche joueur</span><h3>${esc(p.last)} ${esc(p.first)}</h3>
       <div class="muted">${p.licence ? 'Licence ' + esc(p.licence) : 'Licence non renseignée'}${p.rank ? ' · classement ' + esc(p.rank) : ''}</div>
       <div class="kpis" style="margin-top:14px"><div><b>${h.length}</b><span>tournois</span></div><div><b>${wins}</b><span>victoire${wins > 1 ? 's' : ''}</span></div>
@@ -696,7 +696,7 @@
           <button class="pt" data-pt="${side}" ${!can || r.state === 'done' ? 'disabled' : ''}>+ Point ${side === 'A' ? '(← ou 1)' : '(→ ou 2)'}</button>
           <div class="games-row"><button class="ghost" data-gm="${side}" ${!can || r.state === 'done' ? 'disabled' : ''} title="Donne le jeu en cours (Maj + ${side === 'A' ? '←' : '→'})">+ Jeu</button>
             <button class="ghost" data-ugm="${side}" ${!can ? 'disabled' : ''} title="Retire le dernier jeu gagné">− Jeu</button></div>
-          <button class="win-btn" data-win="${side}" ${!can || (r.winner && r.winner === r[side]) ? 'disabled' : ''} title="Désigne le vainqueur sans saisir de score : le tableau avance">🏆 Vainqueur</button>
+          <button class="win-btn" data-win="${side}" ${!can || (r.winner && r.winner === r[side]) ? 'disabled' : ''} title="Désigne le vainqueur sans saisir de score : le tableau avance"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg> Vainqueur</button>
         </div>`;
       const replaceable = side => {
         const src = side === 'A' ? m.srcA : m.srcB;
@@ -1041,7 +1041,7 @@
      ===================================================================== */
   $$('#tvViews [data-tv]').forEach(b => b.onclick = () => send('display/set', { tv: b.dataset.tv, rotate: false }));
   $('#rotate').onchange = e => send('display/set', { rotate: e.target.checked });
-  const VIEWS = [['bracket', 'Tableau final'], ['poules', 'Poules / qualifs'], ['schedule', 'Programmation'], ['live', 'Scores en direct'], ['standings', 'Classement'], ['info', 'Fiche tournoi']];
+  const VIEWS = [['bracket', 'Tableau final'], ['poules', 'Poules / qualifs'], ['schedule', 'Programmation'], ['live', 'Scores en direct'], ['standings', 'Classement'], ['info', 'Fiche tournoi'], ['stats', 'Stats du club']];
   $('#rotViews').innerHTML = VIEWS.map(([k, l]) => `<label class="chk"><input type="checkbox" value="${k}"> ${l}</label>`).join('');
   $$('#rotViews input').forEach(cb => cb.onchange = () => {
     const sel = $$('#rotViews input').filter(x => x.checked).map(x => x.value);
@@ -1187,7 +1187,7 @@
       <tr><td><kbd>Maj</kbd>+<kbd>←</kbd> · <kbd>Maj</kbd>+<kbd>→</kbd></td><td>Jeu pour l'équipe 1 / l'équipe 2 (score suivi aux jeux)</td></tr>
       <tr><td><kbd>Retour arrière</kbd></td><td>Annuler le dernier point</td></tr>
       <tr><td><kbd>S</kbd></td><td>Changer le premier serveur</td></tr>
-      <tr><td><kbd>T</kbd> <kbd>O</kbd> <kbd>P</kbd> <kbd>D</kbd> <kbd>C</kbd> <kbd>I</kbd> <kbd>G</kbd></td><td>Écran TV : Tableau · Poules · Programmation · Direct · Classement · Infos · Tirage (onglet 7)</td></tr>
+      <tr><td><kbd>T</kbd> <kbd>O</kbd> <kbd>P</kbd> <kbd>D</kbd> <kbd>C</kbd> <kbd>I</kbd> <kbd>S</kbd> <kbd>G</kbd></td><td>Écran TV : Tableau · Poules · Programmation · Direct · Classement · Infos · Stats du club · Tirage (onglet 7)</td></tr>
       <tr><td><kbd>R</kbd></td><td>Rotation automatique de l'écran TV (onglet 7)</td></tr>
       <tr><td><kbd>Échap</kbd></td><td>Fermer la fenêtre</td></tr>
       </tbody></table><div class="btns"><button class="accent" data-close>OK</button></div>`, null, { static: true });
@@ -1213,7 +1213,7 @@
     }
     if (modal) return;
     if (tab === 'diffusion') {
-      const map = { t: 'bracket', o: 'poules', p: 'schedule', d: 'live', c: 'standings', i: 'info', g: 'draw' };
+      const map = { t: 'bracket', o: 'poules', p: 'schedule', d: 'live', c: 'standings', i: 'info', s: 'stats', g: 'draw' };
       const k = e.key.toLowerCase();
       if (map[k]) return send('display/set', { tv: map[k], rotate: false });
       if (k === 'r') return send('display/set', { rotate: !S.display.rotate });

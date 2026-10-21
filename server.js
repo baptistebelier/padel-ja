@@ -234,6 +234,46 @@ async function closeTournament(room, u) {
   return { ok: true, saved, skipped, unfinished: left, guest: !!u.guest };
 }
 
+/* statistiques d'un compte : chaque joueur compté individuellement sur tous ses tournois tirés au sort */
+const statsCache = new Map();
+async function accountStats(owner) {
+  const list = (await store.listTournaments(owner)).slice(0, 300);
+  const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  const agg = {};
+  let nT = 0, nM = 0;
+  for (const meta of list) {
+    const row = rooms.has(meta.id) ? rooms.get(meta.id).row : await store.getTournament(meta.id);
+    const T = row && row.state;
+    if (!T || !T.draw || !T.draw.built) continue;
+    const R = Engine.resolve(T);
+    const done = T.matches.filter(m => !R[m.id].staticBye && R[m.id].state === 'done');
+    const finished = T.tournament.closed || T.matches.every(m => R[m.id].staticBye || R[m.id].state === 'done');
+    const FR = finished ? Engine.finalResults(T, R) : [], pts = {};
+    FR.forEach(x => { pts[x.pair] = x.points || 0; });
+    let counted = false;
+    for (const pair of T.pairs) {
+      if (pair.demo || !T.draw.entrants.includes(pair.id)) continue;
+      const played = done.filter(m => !m.wo && (R[m.id].A === pair.id || R[m.id].B === pair.id));
+      const won = played.filter(m => R[m.id].winner === pair.id).length;
+      for (const pl of [pair.p1, pair.p2]) {
+        if (!pl || !String(pl.last || '').trim()) continue;
+        const key = pl.licence ? 'l:' + pl.licence : 'n:' + norm(pl.last) + '|' + norm(pl.first);
+        const a = agg[key] = agg[key] || { last: '', first: '', club: '', tournaments: 0, matches: 0, wins: 0, points: 0, titles: 0, lastAt: 0 };
+        const at = Date.parse(T.tournament.dateStart || '') || meta.updated_at || 0;
+        if (at >= a.lastAt) { a.last = String(pl.last).toUpperCase(); a.first = pl.first || ''; if (pl.club) a.club = pl.club; a.lastAt = at; } else if (!a.club && pl.club) a.club = pl.club;
+        a.tournaments++; a.matches += played.length; a.wins += won; a.points += pts[pair.id] || 0;
+        if (FR[0] && FR[0].place === 1 && FR[0].pair === pair.id) a.titles++;
+        counted = true;
+      }
+    }
+    if (counted) { nT++; nM += done.length; }
+  }
+  const players = Object.values(agg).map(({ lastAt, ...x }) => x);
+  const top = (k, k2) => players.slice().sort((a, b) => b[k] - a[k] || b[k2] - a[k2] || a.last.localeCompare(b.last)).slice(0, 10);
+  return { tournaments: nT, matches: nM, players: players.length,
+    byTournaments: top('tournaments', 'points'), byPoints: top('points', 'tournaments'), byMatches: top('matches', 'wins') };
+}
+
 /* comptes « démo » : effacés après 24 h */
 async function cleanupGuests() {
   try {
@@ -447,44 +487,10 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    /* ---------- API statistiques du compte : joueurs (individuellement) sur tous mes tournois ---------- */
+    /* ---------- API statistiques du compte (page Statistiques) ---------- */
     if (p === '/api/stats') {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
-      const list = (await store.listTournaments(u.id)).slice(0, 300);
-      const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
-      const agg = {};
-      let nT = 0, nM = 0;
-      for (const meta of list) {
-        const row = rooms.has(meta.id) ? rooms.get(meta.id).row : await store.getTournament(meta.id);
-        const T = row && row.state;
-        if (!T || !T.draw || !T.draw.built) continue;
-        const R = Engine.resolve(T);
-        const done = T.matches.filter(m => !R[m.id].staticBye && R[m.id].state === 'done');
-        const finished = T.tournament.closed || T.matches.every(m => R[m.id].staticBye || R[m.id].state === 'done');
-        const FR = finished ? Engine.finalResults(T, R) : [], pts = {};
-        FR.forEach(x => { pts[x.pair] = x.points || 0; });
-        let counted = false;
-        for (const pair of T.pairs) {
-          if (pair.demo || !T.draw.entrants.includes(pair.id)) continue;
-          const played = done.filter(m => !m.wo && (R[m.id].A === pair.id || R[m.id].B === pair.id));
-          const won = played.filter(m => R[m.id].winner === pair.id).length;
-          for (const pl of [pair.p1, pair.p2]) {
-            if (!pl || !String(pl.last || '').trim()) continue;
-            const key = pl.licence ? 'l:' + pl.licence : 'n:' + norm(pl.last) + '|' + norm(pl.first);
-            const a = agg[key] = agg[key] || { last: '', first: '', club: '', tournaments: 0, matches: 0, wins: 0, points: 0, titles: 0, lastAt: 0 };
-            const at = Date.parse(T.tournament.dateStart || '') || meta.updated_at || 0;
-            if (at >= a.lastAt) { a.last = String(pl.last).toUpperCase(); a.first = pl.first || ''; if (pl.club) a.club = pl.club; a.lastAt = at; } else if (!a.club && pl.club) a.club = pl.club;
-            a.tournaments++; a.matches += played.length; a.wins += won; a.points += pts[pair.id] || 0;
-            if (FR[0] && FR[0].place === 1 && FR[0].pair === pair.id) a.titles++;
-            counted = true;
-          }
-        }
-        if (counted) { nT++; nM += done.length; }
-      }
-      const players = Object.values(agg).map(({ lastAt, ...x }) => x);
-      const top = (k, k2) => players.slice().sort((a, b) => b[k] - a[k] || b[k2] - a[k2] || a.last.localeCompare(b.last)).slice(0, 10);
-      return json(res, 200, { tournaments: nT, matches: nM, players: players.length, guest: !!u.guest,
-        byTournaments: top('tournaments', 'points'), byPoints: top('points', 'tournaments'), byMatches: top('matches', 'wins') });
+      return json(res, 200, Object.assign(await accountStats(u.id), { guest: !!u.guest }));
     }
 
     /* ---------- API base de joueurs (partagée entre tous les juges-arbitres) ---------- */
@@ -566,7 +572,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     /* ---------- API d'un tournoi ---------- */
-    m = p.match(/^\/api\/t\/([\w-]+)\/(events|action|undo|export|info)$/);
+    m = p.match(/^\/api\/t\/([\w-]+)\/(events|action|undo|export|info|stats)$/);
     if (m) {
       const room = await getRoom(m[1]);
       if (!room) return json(res, 404, { error: 'Tournoi introuvable' });
@@ -574,6 +580,14 @@ const server = http.createServer(async (req, res) => {
       if (level === 'blocked') return json(res, 429, { error: 'Trop de codes incorrects : réessayez dans 15 minutes.' });
       if (!level) return json(res, 401, { error: 'Accès refusé : connexion, clé de diffusion ou code PIN requis.' });
       const what = m[2];
+      // écran TV : statistiques générales du compte organisateur (pas seulement ce tournoi), gardées 1 min
+      if (what === 'stats') {
+        const c = statsCache.get(room.row.owner);
+        if (c && Date.now() - c.at < 60000) return json(res, 200, c.data);
+        const data = await accountStats(room.row.owner);
+        statsCache.set(room.row.owner, { at: Date.now(), data });
+        return json(res, 200, data);
+      }
 
       if (what === 'events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });

@@ -8,6 +8,7 @@
 <title>Padel JA — Télécommande</title>
 <link rel="stylesheet" href="/css/ram.css">
 <style>
+.pic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -.2em; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; min-height: 100%; background: var(--ink); color: #fff; font-family: var(--body); }
 body::before { content: ""; position: fixed; inset: 0; background: var(--dots); pointer-events: none; }
@@ -75,7 +76,7 @@ button { cursor: pointer; }
       h += `<div class="muted">${esc(E.matchLabel(m))} · Format ${r.fk}${r.state === 'done' ? ' · <b>Terminé</b>' : ''}${fl.decisive ? ' · <b style="color:var(--accent2)">POINT DÉCISIF</b>' : ''}</div>
         ${team('A')}${team('B')}
         <div class="row"><button id="undo">↶ Annuler</button><button id="srv">Changer serveur</button></div>
-        <div class="row"><button id="stream">🎥 Mettre en overlay</button><button id="refresh">⟳</button></div>`;
+        <div class="row"><button id="stream"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="1"/><path d="M16 10l6-3v10l-6-3z"/></svg> Mettre en overlay</button><button id="refresh">⟳</button></div>`;
     }
     app.innerHTML = h;
     document.getElementById('ms').onchange = e => { sel = e.target.value; try { localStorage.setItem('padelja-remote-match', sel); } catch (_) {} render(A.state); };

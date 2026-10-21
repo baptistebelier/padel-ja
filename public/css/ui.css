@@ -297,3 +297,7 @@ label.chk > input { flex: none; }
   #tsecs .tsec .fold-h { cursor: default; margin-bottom: 14px; }
 }
 .pl-fs input[name="k1"], .pl-fs input[name="k2"] { grid-column: 1 / -1; }
+
+/* pictogrammes maison (jamais d'emojis) */
+.pic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -.2em; flex: none; }
+.st-badge .pic { width: 26px; height: 26px; vertical-align: 0; color: var(--ui-accent-text); }

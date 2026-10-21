@@ -272,3 +272,33 @@ body.pointer { cursor: default; }
 .it-format b { font-size: 21px; } .it-infos, .it-format { grid-column: span 2; }
 .info-r.dense .it { padding: 12px 18px; } .info-r.dense .it b { font-size: 23px; } .info-r.dense .it i { width: 52px; height: 52px; }
 .info-r { grid-auto-flow: row dense; }
+
+/* =========================================================================
+   STATS DU CLUB : chiffres du compte + 3 tops (tournois, points, matchs)
+   ========================================================================= */
+.stats-box { position: absolute; inset: 6px 44px 18px; display: flex; flex-direction: column; gap: 18px; }
+.sx-kpi { display: flex; gap: 18px; }
+.sx-kpi div { display: flex; align-items: baseline; gap: 12px; background: var(--ink); border: 3px solid #ffffff22; padding: 4px 22px 6px; transform: rotate(-1deg); box-shadow: 6px 6px 0 var(--accent2); }
+.sx-kpi div:nth-child(2) { transform: rotate(1deg); box-shadow: 6px 6px 0 var(--accent); }
+.sx-kpi b { font-family: var(--display); font-weight: 400; font-size: 54px; line-height: 1; color: var(--accent); }
+.sx-kpi span { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; font-size: 18px; color: var(--mut); }
+.sx-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
+.sx-col { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.sx-col h3 { display: flex; align-items: center; gap: 12px; margin: 0 0 6px; }
+.sx-col h3 i { width: 50px; height: 50px; display: grid; place-items: center; background: var(--accent); color: var(--ink); transform: rotate(-4deg); flex: none; }
+.sx-col:nth-child(2) h3 i { background: var(--accent2); color: #fff; }
+.sx-col h3 i svg { width: 30px; height: 30px; }
+.sx-col h3 .band { font-family: var(--display); font-weight: 400; font-size: 36px; text-transform: uppercase; }
+.sx-r { display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 6px 14px; background: color-mix(in srgb, var(--ink) 88%, transparent); border: 2px solid #ffffff14; border-left: 5px solid #ffffff30; }
+.sx-rk { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1; text-align: center; color: var(--mut); }
+.sx-who { min-width: 0; font-size: 22px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sx-who b { font-family: var(--label); font-weight: 800; text-transform: uppercase; letter-spacing: .02em; }
+.sx-who small { display: block; font-size: 15px; color: var(--mut); overflow: hidden; text-overflow: ellipsis; }
+.sx-v { text-align: right; }
+.sx-v b { display: block; font-family: var(--display); font-weight: 400; font-size: 38px; line-height: 1; color: var(--white); }
+.sx-v small { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--mut); }
+.sx-r.p1 { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--ink)); box-shadow: 5px 5px 0 var(--accent); }
+.sx-r.p1 .sx-rk, .sx-r.p1 .sx-v b { color: var(--accent); }
+.sx-r.p2, .sx-r.p3 { border-left-color: var(--accent2); }
+.sx-r.p2 .sx-rk, .sx-r.p3 .sx-rk { color: var(--accent2); }
+.sx-empty { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--mut); font-size: 20px; padding: 20px 0; }
