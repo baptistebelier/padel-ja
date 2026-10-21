@@ -486,3 +486,14 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 .bk span { font-weight: 700; text-transform: capitalize; } .bk small { color: var(--ui-text-mut); text-align: right; }
 .bk em { grid-column: 1 / -1; font-style: normal; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 11px; color: var(--ui-accent-text); }
 .acct .page a.bk:hover { border-color: var(--ui-accent); }
+/* admin : accès (essai, abonné, lecture seule) */
+.ucard .acc { display: grid; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--ui-border); }
+.ucard .acc p { margin: 0; font-weight: 600; }
+.acc-trial { color: var(--ui-accent-text); } .acc-paid { color: var(--ui-text); } .acc-expired { color: var(--ui-accent2); }
+.acc-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+/* bandeau d'accès (essai, lecture seule) */
+.acc-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 10px 14px; margin: 0 0 18px; font-size: 14px; border: 1px solid var(--ui-border); background: var(--ui-surface); }
+.acc-bar-trial { border-left: 4px solid var(--ui-accent); }
+.acc-bar-stop { border: 2px solid var(--ui-accent2); background: color-mix(in srgb, var(--ui-accent2) 12%, var(--ui-surface)); box-shadow: 4px 4px 0 var(--ui-accent2); }
+.acc-bar .acc-go { flex: none; padding: 8px 14px; background: var(--ui-accent); color: var(--ui-on-accent) !important; text-decoration: none !important; font-family: var(--label); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
+body.editor-page main > .acc-bar { margin: 12px 0 6px; }

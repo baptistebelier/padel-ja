@@ -60,6 +60,13 @@
     loadBackups();
   };
   loadBackups();
+  const ymd = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const fr = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const accTxt = a => ({
+    trial: `Essai : encore ${a.daysLeft} jour${a.daysLeft > 1 ? 's' : ''} (jusqu'au ${fr(a.until)}) · ${a.tournamentsLeft ? a.tournamentsLeft + ' tournoi possible' : 'tournoi d\'essai utilisé'}`,
+    paid: a.grace ? `Paiement en retard : délai de grâce (accès payé jusqu'au ${fr(a.until)})` : `Abonné jusqu'au ${fr(a.until)}`,
+    expired: `Accès terminé le ${fr(a.until)} : lecture seule`
+  }[a.state] || '');
   async function load() {
     const d = await api('/api/admin/users');
     if (d.error) { $('#users').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }
@@ -70,7 +77,18 @@
         <p>${esc(u.email)}${u.club ? ' · ' + esc(u.club) : ''}</p>
         <p class="muted small">Inscrit le ${u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '?'} · ${u.tournaments} tournoi(s)</p></div>
       ${u.admin && u.rawPlan !== 'admin' ? '<p class="muted small">Administrateur via son e-mail (ADMIN_EMAILS) : accès gratuit permanent.</p>' : `<label>Offre<select data-u="${u.id}">${Object.keys(d.plans).map(k => `<option value="${k}" ${u.rawPlan === k ? 'selected' : ''}>${esc(d.plans[k])}</option>`).join('')}</select></label>`}
+      ${u.free ? '' : `<div class="acc"><p class="small acc-${u.access.state}">${accTxt(u.access)}</p>
+        <label>Accès payé jusqu'au<input type="date" data-until="${u.id}" value="${u.billing && u.billing.until ? ymd(u.billing.until) : ''}"></label>
+        <div class="acc-btns"><button class="btn sm" type="button" data-add="${u.id}" data-m="1">+ 1 mois</button><button class="btn sm" type="button" data-add="${u.id}" data-m="12">+ 1 an</button>${u.billing && u.billing.until ? `<button class="btn sm danger" type="button" data-stop="${u.id}">Retirer</button>` : ''}</div></div>`}
     </article>`).join('') || '<p class="muted">Aucun compte.</p>';
+    // date de fin d'accès : saisie directe, ou prolongation d'un mois / d'un an à partir d'aujourd'hui ou de la fin actuelle
+    const setUntil = async (id, until) => { const r = await api('/api/admin/users/' + id + '/access', { method: 'POST', body: JSON.stringify({ until }) }); if (r.error) alert(r.error); load(); };
+    document.querySelectorAll('[data-until]').forEach(i => i.onchange = () => setUntil(i.dataset.until, i.value));
+    document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
+      const cur = d.users.find(x => x.id === b.dataset.add).billing, base = new Date(Math.max(Date.now(), (cur && cur.until) || 0));
+      base.setMonth(base.getMonth() + +b.dataset.m); setUntil(b.dataset.add, ymd(base));
+    });
+    document.querySelectorAll('[data-stop]').forEach(b => b.onclick = () => confirm('Retirer l\'accès payé de ce compte ?') && setUntil(b.dataset.stop, ''));
     document.querySelectorAll('[data-u]').forEach(s => s.onchange = async () => {
       const r = await api('/api/admin/users/' + s.dataset.u, { method: 'POST', body: JSON.stringify({ plan: s.value }) });
       if (r.error) alert(r.error); load();

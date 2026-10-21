@@ -16,6 +16,7 @@ const { createStore, norm } = require('./lib/store.js');
 const Backup = require('./lib/backup.js');
 const Retention = require('./lib/retention.js');
 const Mail = require('./lib/mail.js');
+const Access = require('./lib/access.js');
 const Auth = require('./lib/auth.js');
 
 const PORT = +process.env.PORT || 3737;
@@ -70,6 +71,20 @@ const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
 const { splitName } = require('./lib/names');
 const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), avatar: u.avatar || '', club: u.club, hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
   planLabel: PLANS[isAdmin(u) ? 'admin' : (u.plan || 'essai')], admin: isAdmin(u), free: freeAccess(u) };
+
+/* droits d'accès d'un compte (essai, abonné, lecture seule), gardés 1 min par compte */
+const accessCache = new Map();
+async function accessFor(u) {
+  if (!u) return Access.accessOf(null);
+  const c = accessCache.get(u.id);
+  if (c && Date.now() - c.at < 60000) return c.a;
+  const billing = u.guest ? null : await store.getBilling(u.id).catch(() => null);
+  const tours = u.guest ? [] : await store.listTournaments(u.id).catch(() => []);
+  const a = Access.accessOf(u, billing, tours, freeAccess(u));
+  accessCache.set(u.id, { at: Date.now(), a });
+  return a;
+}
+const accessOfOwner = async id => accessFor(await store.getUser(id));
 
 async function currentUser(req) {
   const id = Auth.sessionUserId(req);
@@ -161,6 +176,7 @@ async function newTournament(owner, opts) {
   if (opts.profile) Engine.reduce(state, { type: 'profile/apply', payload: { profile: opts.profile } });
   if (opts.template) Engine.reduce(state, { type: 'template/apply', payload: { template: opts.template } });
   if (opts.name) state.tournament.name = opts.name;
+  if (opts.example) state.tournament.example = true;   // tournoi d'exemple de l'inscription : hors limite de l'essai
   if (opts.state) Object.assign(state, Engine.migrate(JSON.parse(JSON.stringify(opts.state))));
   const row = { id: Auth.randomId(10), owner, key: Auth.randomId(16), pin: Auth.randomPin(), created_at: Date.now(), updated_at: Date.now(), state };
   await store.saveTournament(row);
@@ -370,7 +386,7 @@ const server = http.createServer(async (req, res) => {
       await store.saveUser(u);
       if (first || last) await store.saveIdentity(u.id, { first, last });
       // premier tournoi d'exemple pour bien démarrer
-      await newTournament(u.id, { demo: true, name: 'Tournoi d\'exemple' });
+      await newTournament(u.id, { demo: true, example: true, name:'Tournoi d\'exemple' });
       // e-mail de bienvenue (sans bloquer l'inscription si l'envoi échoue)
       Mail.send(Object.assign({ to: email }, Mail.welcomeMail({ first, appUrl: appUrl(req) }))).catch(e => console.error('E-mail de bienvenue :', e.message));
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
@@ -416,9 +432,23 @@ const server = http.createServer(async (req, res) => {
         const tours = await store.listAllTournaments();
         const count = {}; tours.forEach(t => { count[t.owner] = (count[t.owner] || 0) + 1; });
         const guests = (await store.listUsers()).filter(x => x.guest).length;
-        return json(res, 200, { guests, tournaments: tours.length, plans: PLANS,
-          users: users.map(x => Object.assign(publicUser(x), { rawPlan: x.plan || 'essai', created_at: x.created_at, tournaments: count[x.id] || 0 }))
-            .sort((a, b) => (b.created_at || 0) - (a.created_at || 0)) });
+        const list = await Promise.all(users.map(async x => Object.assign(publicUser(x), { rawPlan: x.plan || 'essai', created_at: x.created_at, tournaments: count[x.id] || 0,
+          access: await accessFor(x), billing: await store.getBilling(x.id).catch(() => null) })));
+        return json(res, 200, { guests, tournaments: tours.length, plans: PLANS, trialDays: Access.TRIAL_DAYS,
+          users: list.sort((a, b) => (b.created_at || 0) - (a.created_at || 0)) });
+      }
+      // date de fin d'accès payé (réglée à la main en attendant l'activation automatique par Shopify)
+      let ac = p.match(/^\/api\/admin\/users\/([\w-]+)\/access$/);
+      if (ac && req.method === 'POST') {
+        const b = await readBody(req);
+        const x = await store.getUser(ac[1]); if (!x) return json(res, 404, { error: 'Compte introuvable' });
+        const until = b.until ? Date.parse(String(b.until).slice(0, 10) + 'T23:59:59') : 0;
+        if (b.until && !until) return json(res, 400, { error: 'Date invalide' });
+        await store.saveBilling(x.id, until ? { until, source: 'admin', at: Date.now() } : null);
+        if (until && (x.plan || 'essai') === 'essai') { x.plan = 'actif'; await store.saveUser(x); }
+        if (!until && x.plan === 'actif') { x.plan = 'essai'; await store.saveUser(x); }
+        accessCache.delete(x.id);
+        return json(res, 200, { ok: true, access: await accessFor(x) });
       }
       // sauvegardes : liste, sauvegarde immédiate, téléchargement
       if (p === '/api/admin/backups' && req.method === 'GET') {
@@ -443,6 +473,7 @@ const server = http.createServer(async (req, res) => {
         if (!PLANS[b.plan]) return json(res, 400, { error: 'Offre inconnue' });
         const x = await store.getUser(am[1]); if (!x) return json(res, 404, { error: 'Compte introuvable' });
         x.plan = b.plan; await store.saveUser(x);
+        accessCache.delete(x.id);
         return json(res, 200, { ok: true, user: publicUser(x) });
       }
       am = p.match(/^\/api\/admin\/players\/([\w-]+)$/);
@@ -483,13 +514,16 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/me') {
       const u = await currentUser(req);
       const id = u && !u.guest ? await store.getIdentity(u.id).catch(() => null) : null;
-      return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), storage: store.kind });
+      return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access: u ? await accessFor(u) : null, storage: store.kind });
     }
 
     /* ---------- API tournois (tableau de bord) ---------- */
     if (p === '/api/tournaments') {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
       if (req.method === 'POST') {
+        const acc = await accessFor(u);
+        if (!acc.canCreate) return json(res, 402, { error: Access.message(acc), access: acc });
+        accessCache.delete(u.id);
         const b = await readBody(req);
         let opts = { name: b.name, demo: !!b.demo, profile: u.guest ? null : await store.getProfile(u.id) };
         if (b.template) {
@@ -518,7 +552,11 @@ const server = http.createServer(async (req, res) => {
       }
       if (m[2] === '/duplicate' && req.method === 'POST') {
         // dupliquer = même configuration, sans joueurs ni matchs
+        const acc = await accessFor(u);
+        if (!acc.canCreate) return json(res, 402, { error: Access.message(acc), access: acc });
+        accessCache.delete(u.id);
         const st = JSON.parse(JSON.stringify(room.row.state));
+        delete st.tournament.example;
         Object.assign(st, { pairs: [], draw: null, matches: [], poules: [] });
         st.tournament.name = st.tournament.name + ' (copie)';
         const row = await newTournament(u.id, { state: st });
@@ -655,12 +693,19 @@ const server = http.createServer(async (req, res) => {
       if (what === 'undo' && req.method === 'POST') {
         if (level !== 'owner') return json(res, 403, { error: 'Réservé au juge-arbitre' });
         if (room.row.state.tournament.closed) return json(res, 403, { error: 'Tournoi clôturé : rouvrez-le pour le modifier.' });
+        const acc = await accessOfOwner(room.row.owner);
+        if (!acc.canEdit) return json(res, 402, { error: Access.message(acc) });
         if (room.history.length) { room.row.state = JSON.parse(room.history.pop()); room.rev++; saveRoom(room); broadcast(room); }
         return json(res, 200, { ok: true });
       }
       if (what === 'action' && req.method === 'POST') {
         const action = restoreImages(await readBody(req));
         if (level === 'view' && !VIEW_ACTIONS.has(action.type)) return json(res, 403, { error: 'Action non autorisée depuis cet écran.' });
+        // accès terminé : le tournoi reste visible mais n'est plus modifiable
+        if (!Access.READONLY_OK.has(action.type)) {
+          const acc = await accessOfOwner(room.row.owner);
+          if (!acc.canEdit) return json(res, 402, { error: Access.message(acc) || 'Lecture seule.' });
+        }
         if (level === 'score' && !SCORE_ACTIONS.has(action.type)) return json(res, 403, { error: 'Action non autorisée depuis la télécommande.' });
         if (action.type === 'noop') return json(res, 200, { ok: true, rev: room.rev });
         const before = JSON.stringify(room.row.state);

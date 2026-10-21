@@ -82,6 +82,7 @@
       else av.textContent = ini;
       if (!u.guest && u.name) document.getElementById('railWho').textContent = u.name;
       nav.querySelector('[data-r="admin"]').hidden = !u.admin;
+      accessBar(d.access);
     }).catch(() => {});
     // point rose sur « En cours » quand des matchs sont en jeu
     fetch('/api/tournaments').then(r => r.json()).then(d => {
@@ -90,6 +91,21 @@
       }
     }).catch(() => {});
   }
+  /* bandeau d'accès : discret pendant l'essai, bien visible quand le compte est en lecture seule */
+  function accessBar(a) {
+    window.PadelAccess = a;
+    if (!a || (a.state !== 'trial' && a.state !== 'expired' && !(a.state === 'paid' && a.grace))) return;
+    const bar = document.createElement('div');
+    bar.className = 'acc-bar acc-bar-' + (a.state === 'trial' ? 'trial' : 'stop');
+    const txt = a.state === 'trial'
+      ? `<b>Essai gratuit</b> : encore ${a.daysLeft} jour${a.daysLeft > 1 ? 's' : ''}${a.tournamentsLeft ? ` · ${a.tournamentsLeft} tournoi à créer` : ' · tournoi d\'essai utilisé'}`
+      : a.state === 'expired' ? '<b>Lecture seule</b> : votre accès est terminé. Vos tournois restent consultables et exportables.'
+      : '<b>Paiement en attente</b> : renouvelez votre abonnement pour garder l\'accès.';
+    bar.innerHTML = `<span>${txt}</span><a class="acc-go" href="${a.shop}" target="_blank" rel="noopener">${a.state === 'trial' ? 'Voir les offres' : 'S\'abonner'}</a>`;
+    const host = document.querySelector('main.page') || document.querySelector('body.editor-page main') || document.body;
+    host.prepend(bar);
+  }
+
   /* téléphone, dans un tournoi : curseur citron sous l'onglet actif. En glissant le doigt sur la barre,
      le curseur suit le doigt ; au relâcher, il se cale sur l'onglet le plus proche et l'ouvre. */
   function navCursor() {

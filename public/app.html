@@ -53,6 +53,13 @@
   async function create(body) {
     const r = await fetch('/api/tournaments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const d = await r.json(); if (d.id) location.href = '/t/' + d.id;
+    else blocked(d);
+  }
+  // essai terminé ou tournoi d'essai déjà utilisé : on explique et on propose les offres
+  function blocked(d) {
+    const shop = (d.access && d.access.shop) || (window.PadelAccess && window.PadelAccess.shop);
+    if (shop && confirm((d.error || 'Création impossible.') + '\n\nVoir les offres Padel JA ?')) window.open(shop, '_blank', 'noopener');
+    else if (!shop) alert(d.error || 'Création impossible.');
   }
   async function load() {
     const d = await fetch('/api/tournaments').then(r => r.json());
@@ -76,7 +83,7 @@
     $('#tlist').innerHTML = open.length ? open.map(card).join('') : '<p class="muted">Aucun tournoi en cours : choisissez un modèle ci-dessus.</p>';
     $('#closedSec').hidden = !closed.length;
     $('#tclosed').innerHTML = closed.map(card).join('');
-    document.querySelectorAll('[data-dup]').forEach(b => b.onclick = async () => { const r = await fetch('/api/tournaments/' + b.dataset.dup + '/duplicate', { method: 'POST' }).then(r => r.json()); if (r.id) load(); });
+    document.querySelectorAll('[data-dup]').forEach(b => b.onclick = async () => { const r = await fetch('/api/tournaments/' + b.dataset.dup + '/duplicate', { method: 'POST' }).then(r => r.json()); if (r.id) load(); else blocked(r); });
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (confirm('Supprimer définitivement ce tournoi ?')) { await fetch('/api/tournaments/' + b.dataset.del, { method: 'DELETE' }); load(); } });
   }
   load();
