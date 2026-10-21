@@ -172,7 +172,7 @@ async function rememberCourts(room) {
   const u = await store.getUser(room.row.owner);
   if (!u || u.guest) return;
   const profile = (await store.getProfile(u.id)) || {};
-  profile.courts = room.row.state.courts.map(c => ({ name: c.name, start: c.start }));
+  profile.courts = room.row.state.courts.map(c => ({ name: c.name, start: c.start, logo: c.logo || '' }));
   await store.saveProfile(u.id, profile);
 }
 
@@ -497,7 +497,8 @@ const server = http.createServer(async (req, res) => {
           const src = b.profile, p = {};
           Engine.PROFILE_FIELDS.forEach(k => { if (src[k] !== undefined) p[k] = src[k]; });
           p.courts = (Array.isArray(src.courts) ? src.courts : []).slice(0, 30)
-            .map(c => ({ name: String((c && c.name) || '').slice(0, 40) || 'Terrain', start: /^\d\d:\d\d$/.test(c && c.start) ? c.start : '09:00' }));
+            .map(c => ({ name: String((c && c.name) || '').slice(0, 40) || 'Terrain', start: /^\d\d:\d\d$/.test(c && c.start) ? c.start : '09:00',
+              logo: (l => /^data:image\//.test(l) && l.length < 400000 ? l : '')(restoreImages(String((c && c.logo) || ''))) }));
           if (Array.isArray(p.sponsors)) p.sponsors = p.sponsors.slice(0, 40).map((s, i) => ({ id: String((s && s.id) || 's' + i), name: String((s && s.name) || '').slice(0, 60), logo: String((s && s.logo) || '') }));
           await store.saveProfile(u.id, p);
         } else {

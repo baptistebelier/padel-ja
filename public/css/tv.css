@@ -219,3 +219,24 @@ body.pointer { cursor: default; }
 .fr-l.bye span { color: var(--mut); font-style: italic; text-transform: none; font-weight: 400; }
 .fr-l.new { background: var(--accent2); color: #fff; animation: flash 1.2s; }
 .dd-res .fr-l { font-size: 20px; }
+
+/* logo du partenaire du terrain (naming) */
+.scol-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.scol-h span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scol-h .c-logo { height: 46px; max-width: 45%; object-fit: contain; flex: none; transform: rotate(1deg); margin: 2px 0 4px; }
+.lp-h:has(.c-plate) { align-items: center; }
+.c-plate { flex: none; display: grid; place-items: center; height: 56px; max-width: 190px; padding: 5px 12px; background: #fff; box-shadow: 4px 4px 0 var(--accent); transform: rotate(-1.5deg); }
+.c-plate img { max-height: 100%; max-width: 100%; object-fit: contain; display: block; }
+.scol-h span { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1; padding: 4px 0 2px; }
+.scol-h:has(.c-logo) span { font-size: .8em; }
+.lpanel { min-width: 0; }
+.lp-h { min-width: 0; flex-wrap: wrap; }
+.lp-h b { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-h span { min-width: 0; }
+.live-grid { grid-template-columns: repeat(min(var(--n), 2), minmax(0, 1fr)); }
+.sched-grid { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+.lp-h:has(.c-plate) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 16px; row-gap: 0; }
+.lp-h:has(.c-plate) .c-plate { grid-row: 1 / 3; }
+.lp-h:has(.c-plate) b { grid-column: 2; grid-row: 1; }
+.lp-h:has(.c-plate) span { grid-column: 2; grid-row: 2; font-size: 15px; }
+.lp-h:has(.c-plate) em { grid-column: 3; grid-row: 1 / 3; align-self: center; }

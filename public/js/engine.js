@@ -967,7 +967,7 @@
   function templateFromState(T, name, desc) {
     const fields = {};
     TEMPLATE_FIELDS.forEach(k => { fields[k] = T.tournament[k]; });
-    return { id: uid('t'), name: name || 'Mon modèle', desc: desc || '', fields, courts: T.courts.map(c => ({ name: c.name, start: c.start })), order: Array.isArray(T.order) && T.order.length ? T.order.slice() : null, createdAt: Date.now() };
+    return { id: uid('t'), name: name || 'Mon modèle', desc: desc || '', fields, courts: T.courts.map(c => ({ name: c.name, start: c.start, logo: c.logo || '' })), order: Array.isArray(T.order) && T.order.length ? T.order.slice() : null, createdAt: Date.now() };
   }
 
   function applyTemplate(T, tpl) {
@@ -979,7 +979,8 @@
     // ne remplacent pas les noms déjà donnés (réglages mémorisés du compte ou saisis à la main)
     const generic = n => /^terrain\s*\d+$/i.test(String(n || '').trim());
     if (tpl.courts && tpl.courts.length) T.courts = tpl.courts.map((c, i) => ({ id: 'c' + (i + 1),
-      name: generic(c.name) && T.courts[i] && T.courts[i].name ? T.courts[i].name : c.name, start: c.start }));
+      name: generic(c.name) && T.courts[i] && T.courts[i].name ? T.courts[i].name : c.name, start: c.start,
+      logo: generic(c.name) && T.courts[i] ? T.courts[i].logo || '' : c.logo || '' }));
     T.order = Array.isArray(tpl.order) && tpl.order.length ? tpl.order.slice() : null;
     T.tournament.template = tpl.name;
   }
@@ -1072,14 +1073,14 @@
   // logo = version couleur ; logoLight = version claire (fonds sombres : TV, overlay) ; logoDark = version sombre (fonds clairs : PDF)
   const PROFILE_FIELDS = ['club', 'address', 'ja', 'jaNumber', 'jaPhone', 'balls', 'startTime', 'durations', 'colors', 'look', 'logo', 'logoLight', 'logoDark', 'sponsors'];
   function profileFromState(T) {
-    const p = { courts: T.courts.map(c => ({ name: c.name, start: c.start })) };
+    const p = { courts: T.courts.map(c => ({ name: c.name, start: c.start, logo: c.logo || '' })) };
     PROFILE_FIELDS.forEach(k => { p[k] = JSON.parse(JSON.stringify(T.tournament[k] == null ? '' : T.tournament[k])); });
     return p;
   }
   function applyProfile(T, p) {
     if (!p) return;
     PROFILE_FIELDS.forEach(k => { if (p[k] !== undefined && p[k] !== '') T.tournament[k] = JSON.parse(JSON.stringify(p[k])); });
-    if (p.courts && p.courts.length) T.courts = p.courts.map((c, i) => ({ id: 'c' + (i + 1), name: c.name, start: c.start }));
+    if (p.courts && p.courts.length) T.courts = p.courts.map((c, i) => ({ id: 'c' + (i + 1), name: c.name, start: c.start, logo: c.logo || '' }));
   }
 
   /* ---------------------------------------------------------------------

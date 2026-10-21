@@ -247,10 +247,10 @@
       const done = q.filter(m => R[m.id].state === 'done');
       return { c, last: done[done.length - 1], todo: q.filter(m => R[m.id].state !== 'done').slice(0, 5) };
     });
-    const sig = 'sch:' + cols.map(x => x.c.id + x.c.name + '|' + (x.last ? x.last.id : '') + '|' + x.todo.map(m => m.id + R[m.id].state).join(',')).join(';');
+    const sig = 'sch:' + cols.map(x => x.c.id + x.c.name + (x.c.logo || '') + '|' + (x.last ? x.last.id : '') + '|' + x.todo.map(m => m.id + R[m.id].state).join(',')).join(';');
     keyed(el, sig, () => cols.map(({ c, last, todo }) => `
       <div class="scol">
-        <div class="scol-h">${esc(c.name)}</div>
+        <div class="scol-h"><span>${esc(c.name)}</span>${c.logo ? `<img class="c-logo" src="${esc(c.logo)}" alt="">` : ''}</div>
         ${last ? `<div class="sres"><span>Dernier :</span> <b data-k="${last.id}rw"></b> <i data-k="${last.id}rs"></i></div>` : ''}
         ${todo.map((m, i) => `
           <div class="smatch ${i === 0 ? 'first' : ''}" data-c="${m.id}" data-base="smatch ${i === 0 ? 'first' : ''}">
@@ -289,10 +289,10 @@
       const m = q.find(x => R[x.id].state === 'live') || q.find(x => R[x.id].state === 'ready');
       if (m) items.push({ c, m });
     });
-    const sig = 'live:' + items.map(x => x.c.id + x.m.id).join(',');
+    const sig = 'live:' + items.map(x => x.c.id + x.m.id + x.c.name + (x.c.logo || '')).join(',');
     keyed(el, sig, () => items.length ? items.map(({ c, m }) => `
       <div class="lpanel" data-c="${m.id}" data-base="lpanel">
-        <div class="lp-h"><b>${esc(c.name)}</b><span>${esc(E.matchLabel(m))} · ${R[m.id].fk}</span><em data-h="${m.id}st"></em></div>
+        <div class="lp-h">${c.logo ? `<i class="c-plate"><img src="${esc(c.logo)}" alt=""></i>` : ''}<b>${esc(c.name)}</b><span>${esc(E.matchLabel(m))} · ${R[m.id].fk}</span><em data-h="${m.id}st"></em></div>
         ${['A', 'B'].map(s => `<div class="lp-row" data-c="${m.id}${s}" data-base="lp-row"><span class="ball"></span><span class="nm" data-k="${m.id}${s}n"></span><span class="flag" data-k="${m.id}${s}f"></span><span class="sets" data-h="${m.id}${s}h"></span></div>`).join('')}
       </div>`).join('') : '<div class="empty"><span class="band pink">Aucun match</span><small>en cours pour le moment</small></div>', () => {
       const v = {};

@@ -304,11 +304,19 @@
 
     $('#courts').innerHTML = S.courts.map(c => `
       <div class="court-row" data-id="${c.id}">
+        <span class="c-logo"><label class="c-logo-pick" title="Logo du partenaire du terrain (naming)">${c.logo ? `<img src="${esc(c.logo)}" alt="">` : '<em>+ Logo</em>'}<input type="file" accept="image/*" hidden data-clogo></label>${c.logo ? '<button class="c-logo-rm" data-clogorm title="Retirer le logo" aria-label="Retirer le logo">✕</button>' : ''}</span>
         <input value="${esc(c.name)}" data-k="name"><input type="time" value="${esc(c.start)}" data-k="start">
         <button class="ghost sm danger" data-rm>✕</button>
       </div>`).join('');
     $$('#courts .court-row').forEach(row => {
-      $$('input', row).forEach(inp => inp.onchange = () => send('court/update', { id: row.dataset.id, fields: { [inp.dataset.k]: inp.value } }));
+      $$('input[data-k]', row).forEach(inp => inp.onchange = () => send('court/update', { id: row.dataset.id, fields: { [inp.dataset.k]: inp.value } }));
+      // logo du partenaire du terrain (naming) : affiché sur l'écran TV (programmation, direct)
+      $('[data-clogo]', row).onchange = e => {
+        const f = e.target.files[0]; e.target.value = '';
+        loadImage(f, 200, 500).then(src => send('court/update', { id: row.dataset.id, fields: { logo: src } })).catch(err => A.toast(err.message, 'err'));
+      };
+      const rmLogo = $('[data-clogorm]', row);
+      if (rmLogo) rmLogo.onclick = () => send('court/update', { id: row.dataset.id, fields: { logo: '' } });
       $('[data-rm]', row).onclick = () => confirm('Supprimer ce terrain ?') && send('court/remove', { id: row.dataset.id });
     });
   }
@@ -802,6 +810,14 @@
   }
   foldable($('#orderCard'), $('#orderBody'), 'padelja-order-open');
   foldable($('.tpl-card'), $('#tplBody'), 'padelja-tpl-open');
+
+  /* tableaux de données : jamais plus larges que leur carte, on fait défiler à l'intérieur */
+  const wrapTables = () => document.querySelectorAll('table.tbl').forEach(t => {
+    if (t.parentElement.classList.contains('tbl-wrap')) return;
+    const w = document.createElement('div'); w.className = 'tbl-wrap'; t.before(w); w.appendChild(t);
+  });
+  wrapTables();
+  new MutationObserver(wrapTables).observe(document.querySelector('main') || document.body, { childList: true, subtree: true });
 
   /* tableau final : zoom au pincement à deux doigts (le reste de l'interface ne zoome pas) */
   (function bracketZoom() {

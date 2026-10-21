@@ -428,3 +428,25 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   .rail { padding-left: calc(14px + var(--sa-l)); width: calc(min(84vw, 320px) + var(--sa-l)); }
   body.editor-page .side { left: calc(12px + var(--sa-l)); right: calc(12px + var(--sa-r)); }
 }
+
+/* =========================================================================
+   TÉLÉPHONE : barre flottante plus foncée, qui grossit légèrement pendant qu'on glisse le doigt dessus
+   ========================================================================= */
+:root { --ui-navbar: color-mix(in srgb, var(--ui-bg) 50%, #000); }
+:root[data-theme="light"] { --ui-navbar: color-mix(in srgb, var(--ui-surface) 84%, var(--ui-text)); }
+@media (max-width: 720px) {
+  body.editor-page .side { background: color-mix(in srgb, var(--ui-navbar) 94%, transparent); transform-origin: 50% 100%;
+    transition: transform .22s cubic-bezier(.2, .9, .3, 1.25), box-shadow .22s; }
+  body.editor-page .side.navdrag { transform: scale(1.07) translateY(-3px); box-shadow: 7px 7px 0 var(--ui-hard); }
+}
+
+/* ---------- rien ne sort des cartes (téléphone, iPad) ---------- */
+.acct .card, .acct .kpi, .acct .tpl { min-width: 0; overflow-wrap: break-word; }
+.acct .card > * { min-width: 0; }
+.cal-head { flex-wrap: wrap; } .cal-head h2 { min-width: 0; }
+.seg { max-width: 100%; }
+@media (max-width: 400px) {
+  .seg { display: grid; grid-auto-columns: minmax(0, 1fr); width: 100%; }
+  .seg button { padding: 8px 6px; font-size: 13px; gap: 5px; justify-content: center; min-width: 0; }
+  .cal-head .btn.sm { padding-left: 10px; padding-right: 10px; }
+}

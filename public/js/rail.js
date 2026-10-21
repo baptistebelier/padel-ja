@@ -93,6 +93,7 @@
   function navCursor() {
     const nav = document.getElementById('nav');
     if (!nav || !document.body.classList.contains('editor-page')) return;
+    const bar = nav.closest('.side') || nav;
     const ind = document.createElement('i'); ind.className = 'nav-ind'; nav.prepend(ind);
     const btns = () => [...nav.querySelectorAll('button[data-tab]')];
     const mobile = () => matchMedia('(max-width: 720px)').matches;
@@ -105,7 +106,8 @@
     addEventListener('resize', sync); sync();
     // dès que le doigt touche la barre, le carré vient sous le doigt, grossit et le suit en temps réel ;
     // au relâcher, il se cale sur l'onglet le plus proche et l'ouvre
-    const xIn = clientX => clientX - nav.getBoundingClientRect().left;
+    // la barre grossit pendant le geste : on ramène la position du doigt à l'échelle de la barre
+    const xIn = clientX => { const r = nav.getBoundingClientRect(); return (clientX - r.left) * nav.clientWidth / (r.width || 1); };
     const idx = clientX => Math.max(0, Math.min(btns().length - 1, Math.floor(xIn(clientX) / size())));
     const follow = clientX => {
       const w = size(), x = Math.max(0, Math.min(nav.clientWidth - w, xIn(clientX) - w / 2));
@@ -113,12 +115,12 @@
       const i = idx(clientX);
       if (i !== last) { last = i; btns().forEach((b, k) => b.classList.toggle('hover', k === i)); if (navigator.vibrate) navigator.vibrate(6); }
     };
-    const begin = clientX => { dragging = true; last = -1; nav.classList.add('dragging'); ind.classList.add('drag'); follow(clientX); };
+    const begin = clientX => { dragging = true; last = -1; nav.classList.add('dragging'); bar.classList.add('navdrag'); ind.classList.add('drag'); follow(clientX); };
     const move = clientX => { if (!dragging) return; ind.classList.add('moving'); follow(clientX); };
     const end = (clientX, open) => {
       if (!dragging) return;
       dragging = false;
-      nav.classList.remove('dragging'); ind.classList.remove('drag', 'moving');
+      nav.classList.remove('dragging'); bar.classList.remove('navdrag'); ind.classList.remove('drag', 'moving');
       btns().forEach(b => b.classList.remove('hover'));
       if (!open || clientX == null) return sync();
       const i = idx(clientX);
