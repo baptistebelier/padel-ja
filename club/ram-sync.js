@@ -8,6 +8,7 @@
       les autres ont changé.
    Sans serveur (GitHub Pages) ou sans club, l'appli reste la démo. */
 (function () {
+  if (window.RAM) return;   // déjà chargé (jamais deux synchronisations dans la même page)
   const JA = 'https://ja.riseandmove.fr';
   const onClubHost = /^club\./.test(location.hostname);
   const served = onClubHost || location.pathname.startsWith('/club');   // sinon : démo sans serveur
@@ -19,7 +20,7 @@
   const isObj = o => o && typeof o === 'object' && !Array.isArray(o);
   const LS = { get(k) { try { return localStorage.getItem(k); } catch (x) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (x) {} } };
 
-  const R = window.RAM = { user: undefined, clubs: [], club: null, key: null, role: null, rev: 0, base: new Map(), bad: new Map(), fol: {}, roles: {}, live: false };
+  const R = window.RAM = { user: undefined, clubs: [], club: null, key: null, role: null, rev: 0, base: new Map(), bad: new Map(), notified: new Set(), fol: {}, roles: {}, live: false };
   let readyFn; window.ramReady = new Promise(r => { readyFn = r; });
 
   async function api(path, body) {
@@ -355,6 +356,8 @@
     R.rev = d.rev;
     derive();
     fresh.forEach(([kind, o, ref]) => {
+      // une seule notification par message ou publication, même s'il arrive deux fois
+      const nk = kind + '/' + (o._id || o.id); if (R.notified.has(nk)) return; R.notified.add(nk);
       if (kind === 'post' && canSee(o)) notify(o.by === 'club' ? 'club' : 'follow', o.by, o.kind === 'perf' || o.kind === 'padel' ? 'a publié un résultat' : 'a publié sur le mur', { v: 'post', id: o.id });
       if (kind === 'msg' && ref.startsWith('c:')) { const c = chans.find(x => x.id === ref.slice(2)); const v = view(); if (c && !(v.v === 'chan' && v.id === c.id)) { if (!c.mute && chanOk(c)) notify('chan', o.by, 'a écrit dans ' + c.name, { v: 'chan', id: c.id }, false); } }
     });
