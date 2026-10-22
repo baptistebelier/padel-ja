@@ -53,15 +53,33 @@ function readRaw(req) {
     req.on('error', reject);
   });
 }
-function sendFile(res, rel) {
+/* Fichiers CSS et JS versionnés : les pages et feuilles de style citent « /css/x.css?v=empreinte ».
+   Avec l'empreinte, le navigateur garde le fichier un an sans redemander (il change d'adresse quand
+   son contenu change) ; sans elle, chaque page retéléchargeait tous les fichiers. */
+const versions = new Map();   // chemin → { mtime, v }
+function assetVersion(rel) {
+  const file = path.join(ROOT, rel);
+  try {
+    const st = fs.statSync(file), c = versions.get(rel);
+    if (c && c.mtime === st.mtimeMs) return c.v;
+    const v = crypto.createHash('sha1').update(fs.readFileSync(file)).digest('hex').slice(0, 10);
+    versions.set(rel, { mtime: st.mtimeMs, v }); return v;
+  } catch (e) { return ''; }
+}
+const ASSET_REF = /(["'(])(\/(?:css|js|fonts)\/[\w.-]+\.(?:css|js))(?=["')])/g;
+const withVersions = text => text.replace(ASSET_REF, (m, q, rel) => { const v = assetVersion(rel); return v ? `${q}${rel}?v=${v}` : m; });
+function sendFile(res, rel, versioned) {
   const file = path.normalize(path.join(ROOT, rel));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Page introuvable'); }
     const ext = path.extname(file);
+    // pages et feuilles de style : les fichiers qu'elles citent reçoivent leur empreinte de version
+    if (ext === '.html' || ext === '.css') data = withVersions(data.toString('utf8'));
     // icônes (favicon, icône d'application) : toujours revérifiées pour que les changements de logo apparaissent
     const longCache = /\.(woff2|png|webp|jpg)$/.test(ext) && !/favicon|app-icon/.test(rel);
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' });
+    const cache = versioned && /\.(css|js)$/.test(ext) ? 'public, max-age=31536000, immutable' : longCache ? 'public, max-age=604800' : 'no-cache';
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': cache });
     res.end(data);
   });
 }
@@ -104,8 +122,8 @@ async function accessFor(u) {
   if (!u) return Access.accessOf(null);
   const c = accessCache.get(u.id);
   if (c && Date.now() - c.at < 60000) return c.a;
-  const billing = u.guest ? null : await store.getBilling(u.id).catch(() => null);
-  const tours = u.guest ? [] : await store.listTournaments(u.id).catch(() => []);
+  // abonnement et tournois lus en même temps (un seul aller-retour vers la base au lieu de deux)
+  const [billing, tours] = u.guest ? [null, []] : await Promise.all([store.getBilling(u.id).catch(() => null), store.listTournaments(u.id).catch(() => [])]);
   const a = Access.accessOf(u, billing, tours, freeAccess(u));
   accessCache.set(u.id, { at: Date.now(), a });
   return a;
@@ -366,7 +384,7 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/club/')) return sendClub(res, p.slice(5));
 
     /* ---------- fichiers statiques ---------- */
-    if (/^\/(css|js|img|fonts)\//.test(p) || p === '/manifest.webmanifest') return sendFile(res, p);
+    if (/^\/(css|js|img|fonts)\//.test(p) || p === '/manifest.webmanifest') return sendFile(res, p, url.searchParams.has('v'));
     if (p === '/favicon.ico') return sendFile(res, '/img/favicon.png');
     if (p === '/sw.js') return sendFile(res, '/js/sw.js');   // service worker (mode hors ligne), servi à la racine
     let im = p.match(IMG_RE);
@@ -593,10 +611,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/me') {
       const u = await currentUser(req);
-      const id = u && !u.guest ? await store.getIdentity(u.id).catch(() => null) : null;
+      // identité et accès lus en même temps
+      const [id, access] = await Promise.all([u && !u.guest ? store.getIdentity(u.id).catch(() => null) : null, u ? accessFor(u) : null]);
       // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (RAM JA + RAM Club)
       const renew = u && !u.guest ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) } : undefined;
-      return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access: u ? await accessFor(u) : null, storage: store.kind }, renew);
+      return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access, storage: store.kind }, renew);
     }
 
     /* ---------- API RAM Club (même compte /RAM, mêmes données Supabase) ---------- */
@@ -655,7 +674,9 @@ const server = http.createServer(async (req, res) => {
         const row = await newTournament(u.id, opts);
         return json(res, 200, { id: row.id });
       }
-      return json(res, 200, { tournaments: await store.listTournaments(u.id), presets: Engine.PRESETS, mine: await store.getTemplates(u.id) });
+      // les deux lectures partent en même temps (avant : l'une après l'autre, deux allers-retours vers la base)
+      const [tournaments, mine] = await Promise.all([store.listTournaments(u.id), store.getTemplates(u.id)]);
+      return json(res, 200, { tournaments, presets: Engine.PRESETS, mine });
     }
     m = p.match(/^\/api\/tournaments\/([\w-]+)(\/duplicate|\/close|\/reopen)?$/);
     if (m) {

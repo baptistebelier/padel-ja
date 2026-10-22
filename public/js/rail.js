@@ -23,6 +23,17 @@
     ['stats', '/statistiques', 'Stats', 'Statistiques'],
     ['admin', '/admin', 'Admin', 'Administration']
   ];
+  /* téléphone : barre du haut avec le bouton du menu, pour les pages qui n'ont pas la leur */
+  function railTop(nav) {
+    const mine = document.querySelector('.mtop-rail');
+    const own = [...document.querySelectorAll('[data-drawer-open]')].some(b => !mine || !mine.contains(b));
+    if (own) { if (mine) mine.remove(); return; }
+    if (mine) return;
+    const top = document.createElement('header'); top.className = 'mtop mtop-rail';
+    top.innerHTML = `<button type="button" class="mtop-btn" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
+        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"><img class="lg-j" src="/img/ja-ram-rouge-noir.png" alt="/RAM JA"></a><span class="mtop-sp"></span>`;
+    nav.after(top);
+  }
   function build() {
     const page = document.body.dataset.page || '';
     const nav = document.createElement('aside');
@@ -39,12 +50,7 @@
 
     /* ---------- téléphone : le rail devient un volet qui sort de la gauche ---------- */
     const veil = document.createElement('div'); veil.className = 'rail-veil'; document.body.appendChild(veil);
-    if (!document.querySelector('[data-drawer-open]')) {   // pages sans barre d'application : on en ajoute une
-      const top = document.createElement('header'); top.className = 'mtop';
-      top.innerHTML = `<button type="button" class="mtop-btn" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
-        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"><img class="lg-j" src="/img/ja-ram-rouge-noir.png" alt="/RAM JA"></a><span class="mtop-sp"></span>`;
-      nav.after(top);
-    }
+    railTop(nav);
     const open = () => { document.body.classList.add('drawer-open'); };
     const close = () => { document.body.classList.remove('drawer-open'); nav.style.transform = ''; };
     document.addEventListener('click', e => { if (e.target.closest('[data-drawer-open]')) { e.preventDefault(); open(); } });
@@ -162,17 +168,83 @@
     nav.addEventListener('click', e => { if (Date.now() < until && e.isTrusted) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
 
-  /* navigation fluide : la page visée se prépare dès le survol (ou le toucher) d'un élément du menu,
-     pour s'afficher aussitôt au clic (Chrome, Edge) ; ailleurs, elle est préchargée dans le cache du navigateur */
-  function preload() {
-    if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
-      const s = document.createElement('script'); s.type = 'speculationrules';
-      s.textContent = JSON.stringify({ prerender: [{ where: { and: [{ selector_matches: '.rail a[href^="/"], .mtab a[href^="/"]' }, { not: { href_matches: '/deconnexion' } }] }, eagerness: 'moderate' }] });
-      document.head.append(s); return;
+  /* ---------- navigation sans rechargement (comme RAM Club) ----------
+     Entre les pages de l'espace juge-arbitre, on ne recharge plus tout : la page visée est lue (souvent
+     dès le survol du lien), son contenu remplace l'ancien, le menu reste en place, et seuls ses propres
+     scripts s'exécutent. Styles, polices et scripts communs déjà chargés ne sont plus redemandés. */
+  const SOFT = new Set(['/dashboard', '/app', '/calendrier', '/joueurs', '/statistiques', '/profil', '/admin']);
+  const pages = new Map();   // adresse → { at, p: Promise<{ url, html }> }
+  const pathOf = src => (src || '').split('?')[0];
+  const softOk = url => url.origin === location.origin && SOFT.has(url.pathname) && SOFT.has(location.pathname);
+  function fetchPage(href) {
+    const c = pages.get(href);
+    if (c && Date.now() - c.at < 10000) return c.p;
+    const p = fetch(href, { credentials: 'include', headers: { Accept: 'text/html' } }).then(r => {
+      if (!r.ok) throw new Error('page ' + r.status);
+      return r.text().then(html => ({ url: r.url, html }));
+    });
+    pages.set(href, { at: Date.now(), p }); p.catch(() => pages.delete(href));
+    return p;
+  }
+  const loadScript = src => new Promise(ok => { const s = document.createElement('script'); s.src = src; s.onload = s.onerror = ok; document.body.appendChild(s); });
+  const loaded = src => [...document.scripts].some(s => s.src && pathOf(new URL(s.src).pathname) === pathOf(src));
+  let navSeq = 0;
+  async function go(href, push) {
+    const seq = ++navSeq;
+    let page;
+    try { page = await fetchPage(href); } catch (e) { location.href = href; return; }
+    if (seq !== navSeq) return;   // un autre clic a eu lieu entre-temps
+    const target = new URL(page.url);
+    if (!SOFT.has(target.pathname)) { location.href = page.url; return; }   // redirigé (connexion expirée…)
+    const doc = new DOMParser().parseFromString(page.html, 'text/html');
+    if (push) history.pushState({ soft: 1 }, '', href);
+    document.title = doc.title;
+    // feuilles de style et scripts d'en-tête propres à la page visée (déjà chargés : ignorés)
+    doc.querySelectorAll('head link[rel="stylesheet"]').forEach(l => {
+      const h = pathOf(l.getAttribute('href'));
+      if (![...document.querySelectorAll('link[rel="stylesheet"]')].some(x => pathOf(x.getAttribute('href')) === h)) document.head.appendChild(l.cloneNode());
+    });
+    const heads = [...doc.querySelectorAll('head script[src]')].map(s => s.getAttribute('src')).filter(s => !loaded(s));
+    // contenu : tout sauf le menu, le voile du volet et la barre du haut du téléphone
+    const nav = document.querySelector('.rail'), veil = document.querySelector('.rail-veil');
+    [...document.body.children].forEach(el => { if (el !== nav && el !== veil && !el.classList.contains('mtop-rail')) el.remove(); });
+    const page2 = doc.body.dataset.page || '';
+    document.body.className = doc.body.className; document.body.classList.add('has-rail');
+    document.body.dataset.page = page2;
+    const scripts = [];
+    [...doc.body.childNodes].forEach(n => {
+      if (n.nodeName === 'SCRIPT') { scripts.push(n); return; }
+      document.body.insertBefore(document.importNode(n, true), veil);
+    });
+    // barre du haut du téléphone : celle de la page si elle en a une, sinon celle du menu
+    railTop(nav);
+    nav.querySelectorAll('a[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === page2));
+    window.scrollTo(0, 0);
+    if (window.PadelAccess) accessBar(window.PadelAccess);
+    for (const src of heads) await loadScript(src);
+    for (const s of scripts) {
+      const src = s.getAttribute('src');
+      if (src) { if (!loaded(src)) await loadScript(src); continue; }
+      if (s.type && s.type !== 'text/javascript' && s.type !== 'module') continue;
+      const n = document.createElement('script'); n.textContent = s.textContent; document.body.appendChild(n);
     }
-    const done = new Set();
-    const warm = e => { const a = e.target.closest && e.target.closest('.rail a[href^="/"]'); if (!a || done.has(a.href) || /deconnexion/.test(a.href) || a.href === location.href) return; done.add(a.href); fetch(a.href, { credentials: 'include' }).catch(() => {}); };
+  }
+  function softNav() {
+    document.addEventListener('click', e => {
+      if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest && e.target.closest('a[href]');
+      if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+      const url = new URL(a.href, location.href);
+      if (!softOk(url) || url.hash && url.pathname === location.pathname) return;
+      e.preventDefault();
+      if (url.href !== location.href) go(url.href, true);
+    });
+    // retour / avance du navigateur entre deux pages de l'espace
+    addEventListener('popstate', () => { if (SOFT.has(location.pathname)) go(location.href, false); else location.reload(); });
+    history.replaceState({ soft: 1 }, '');
+    // la page visée est lue dès le survol ou le toucher du lien : au clic, elle s'affiche aussitôt
+    const warm = e => { const a = e.target.closest && e.target.closest('a[href^="/"]'); if (!a) return; const url = new URL(a.href, location.href); if (softOk(url) && url.href !== location.href) fetchPage(url.href).catch(() => {}); };
     document.addEventListener('pointerover', warm, { passive: true }); document.addEventListener('touchstart', warm, { passive: true });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); preload(); }); else { build(); navCursor(); preload(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); softNav(); }); else { build(); navCursor(); softNav(); }
 })();

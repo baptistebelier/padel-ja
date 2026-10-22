@@ -26,6 +26,28 @@
   document.addEventListener('DOMContentLoaded', () => apply(root.dataset.theme));
 })();
 
+/* lectures partagées : une même donnée demandée par le menu et par la page (profil, liste des tournois…)
+   ne part qu'une fois, et reste en mémoire 15 s pour s'afficher aussitôt quand on change de page.
+   Toute écriture (POST, PUT, DELETE…) vide cette mémoire : on ne montre jamais une donnée périmée par sa propre action. */
+(function () {
+  const SHARED = new Set(['/api/me', '/api/tournaments', '/api/club-players', '/api/stats']);
+  const TTL = 15000, memo = new Map(), raw = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+    let url; try { url = new URL(typeof input === 'string' ? input : input.url, location.href); } catch (e) { return raw(input, init); }
+    if (method !== 'GET') { memo.clear(); return raw(input, init); }
+    if (url.origin !== location.origin || !SHARED.has(url.pathname) || url.search) return raw(input, init);
+    const hit = memo.get(url.pathname);
+    if (!hit || Date.now() - hit.at > TTL) {
+      const p = raw(input, init).then(r => r.text().then(body => ({ ok: r.ok, status: r.status, body, type: r.headers.get('content-type') })));
+      memo.set(url.pathname, { at: Date.now(), p });
+      p.then(d => { if (!d.ok) memo.delete(url.pathname); }, () => memo.delete(url.pathname));   // erreur : pas gardée en mémoire
+    }
+    return memo.get(url.pathname).p.then(d => new Response(d.body, { status: d.status, headers: { 'Content-Type': d.type || 'application/json' } }));
+  };
+  window.UIData = { clear: () => memo.clear() };
+})();
+
 /* pas de zoom au pincement ni au double-tap dans l'interface (téléphone, iPad) ;
    seules les zones .pinch-zoom (tableau final) gèrent leur propre zoom */
 (function () {
