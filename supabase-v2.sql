@@ -21,6 +21,10 @@ create index if not exists players_licence_idx on public.players(licence);
 create index if not exists players_name_key_idx on public.players(name_key);
 create index if not exists players_search_idx on public.players(search);
 
+-- Fiche rattachée à un compte /RAM (lien /RAM JA ↔ /RAM Club) : une fiche = un seul compte
+alter table public.players add column if not exists user_id text;
+create unique index if not exists players_user_id_key on public.players(user_id) where user_id is not null;
+
 -- Participations : une ligne par joueur et par tournoi clôturé
 create table if not exists public.participations (
   id            text primary key,

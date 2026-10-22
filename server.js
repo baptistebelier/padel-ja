@@ -136,6 +136,7 @@ const accessOfOwner = async id => accessFor(await store.getUser(id));
 /* compte de la session : gardé 20 s en mémoire (chaque page et chaque appel n'interroge plus la base),
    oublié dès que le compte est enregistré ou supprimé */
 const userCache = new Map();
+let clubDir = null;   // annuaire des clubs (/RAM Club + tournois /RAM JA), recalculé toutes les 5 minutes
 ['saveUser', 'deleteUser'].forEach(fn => { const orig = store[fn].bind(store); store[fn] = async (x, ...rest) => { userCache.delete(typeof x === 'object' ? x.id : x); try { return await orig(x, ...rest); } finally { userCache.delete(typeof x === 'object' ? x.id : x); } }; });
 async function currentUser(req) {
   const id = Auth.sessionUserId(req);
@@ -722,6 +723,56 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, Object.assign(await accountStats(u.id), { guest: !!u.guest }));
     }
 
+    /* ---------- liens /RAM JA ↔ /RAM Club ---------- */
+    /* ma fiche joueur /RAM JA : celle rattachée à mon compte, sinon les fiches qui pourraient être la mienne
+       (même licence, ou même nom et prénom), avec leurs derniers tournois pour que je me reconnaisse */
+    if (p === '/api/me/player') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      const id = Object.assign({}, await store.getIdentity(u.id).catch(() => null));
+      const histOf = async pls => { const parts = await store.participationsOfPlayers(pls.map(x => x.id)).catch(() => []);
+        return pls.map(pl => Object.assign(publicPlayer(pl), { history: parts.filter(x => x.player_id === pl.id).sort((a, b) => (b.closed_at || 0) - (a.closed_at || 0))
+          .map(x => ({ tournament: x.t_name, club: x.t_club, category: x.t_category, gender: x.t_gender, date: x.t_date, place: x.place, placeLo: x.place_lo, points: x.points, partner: x.partner, pairs: x.n_pairs })) })); };
+      if (req.method === 'POST') {
+        const b = await readBody(req);
+        if (b.licence !== undefined) id.licence = String(b.licence || '').replace(/\s+/g, '').slice(0, 20);
+        if (b.dismiss) id.dismissed = [...new Set([...(id.dismissed || []), String(b.dismiss)])].slice(-20);
+        if (b.player !== undefined) {
+          const pl = b.player ? await store.getPlayer(String(b.player)).catch(() => null) : null;
+          if (b.player && !pl) return json(res, 404, { error: 'Fiche joueur introuvable' });
+          // une fiche n'appartient qu'à un seul compte : personne ne peut s'attribuer les résultats d'un autre
+          if (pl && pl.user_id && pl.user_id !== u.id) return json(res, 409, { error: 'Cette fiche est déjà rattachée à un autre compte /RAM. Contacte le juge-arbitre en cas d\'erreur.' });
+          const old = id.player && id.player !== (pl && pl.id) ? await store.getPlayer(id.player).catch(() => null) : null;
+          if (old && old.user_id === u.id) { old.user_id = null; await store.savePlayer(old); }
+          if (pl) { pl.user_id = u.id; await store.savePlayer(pl); }
+          id.player = pl ? pl.id : null;
+          await ram.linkPlayer(u.id, id.player);
+        }
+        await store.saveIdentity(u.id, id);
+      }
+      try {
+        if (id.player) { const pl = await store.getPlayer(id.player).catch(() => null); if (pl) return json(res, 200, { linked: (await histOf([pl]))[0], licence: id.licence || '' }); }
+        const nm = splitName(Object.assign({}, u, id)), key = norm(String(nm.last).toUpperCase()) + '|' + norm(nm.first);
+        const found = new Map();
+        if (id.licence) { const pl = await store.findPlayer(id.licence, '__'); if (pl && pl.licence === id.licence) found.set(pl.id, pl); }
+        if (nm.last && nm.first) (await store.searchPlayers(`${nm.last} ${nm.first}`, 10)).filter(pl => pl.name_key === key).forEach(pl => found.set(pl.id, pl));
+        const cands = [...found.values()].filter(pl => !(id.dismissed || []).includes(pl.id) && (!pl.user_id || pl.user_id === u.id)).slice(0, 4);
+        return json(res, 200, { linked: null, licence: id.licence || '', candidates: await histOf(cands) });
+      } catch (e) { return json(res, 200, { linked: null, licence: id.licence || '', candidates: [] }); }
+    }
+    /* annuaire des clubs commun aux deux applis : clubs /RAM Club et clubs des tournois /RAM JA */
+    if (p === '/api/clubs-directory') {
+      const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
+      if (!clubDir || Date.now() - clubDir.at > 300000) {
+        const names = new Map();
+        const add = (n, src) => { const s = String(n || '').trim(); if (s.length < 2) return; const k = norm(s); const c = names.get(k) || { name: s, ramClub: false, tournaments: 0 }; if (src === 'club') c.ramClub = true; else c.tournaments++; names.set(k, c); };
+        (await ram.clubNames().catch(() => [])).forEach(n => add(n, 'club'));
+        (await store.listAllTournaments().catch(() => [])).forEach(t => add(((t.summary || {}).club), 'ja'));
+        clubDir = { at: Date.now(), list: [...names.values()].sort((a, b) => Number(b.ramClub) - Number(a.ramClub) || b.tournaments - a.tournaments || a.name.localeCompare(b.name)) };
+      }
+      const q = norm(url.searchParams.get('q') || '');
+      return json(res, 200, { clubs: clubDir.list.filter(c => !q || norm(c.name).includes(q)).slice(0, 30) });
+    }
+
     /* ---------- API base de joueurs (partagée entre tous les juges-arbitres) ---------- */
     if (p === '/api/players' || p.startsWith('/api/players/') || p === '/api/club-players') {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
@@ -732,7 +783,15 @@ const server = http.createServer(async (req, res) => {
           if (q.length < 2) return json(res, 200, { players: [] });
           const players = await store.searchPlayers(q, 8);
           const parts = await store.participationsOfPlayers(players.map(x => x.id));
-          return json(res, 200, { players: players.map(pl => Object.assign(publicPlayer(pl), { tournaments: parts.filter(x => x.player_id === pl.id).length })) });
+          const list = players.map(pl => Object.assign(publicPlayer(pl), { tournaments: parts.filter(x => x.player_id === pl.id).length }));
+          // adhérents /RAM Club pas encore dans la base : proposés aussi (nom, licence, classement padel, club)
+          const known = new Set(players.flatMap(pl => [pl.id, pl.licence && 'l:' + pl.licence, pl.name_key && 'n:' + pl.name_key].filter(Boolean)));
+          (await ram.searchMembers(q, 6).catch(() => [])).forEach(m => {
+            const w = m.name.trim().split(/\s+/), first = w.shift() || '', last = w.join(' ').toUpperCase();
+            if ((m.ja && known.has(m.ja)) || (m.licence && known.has('l:' + m.licence)) || known.has('n:' + norm(last) + '|' + norm(first))) return;
+            list.push({ id: 'rc-' + m.clubId + '-' + m.key, last, first, licence: m.licence, rank: m.rank, club: m.club, source: 'club', tournaments: 0 });
+          });
+          return json(res, 200, { players: list });
         }
         if (p === '/api/club-players') {
           // joueurs les plus fidèles aux tournois de ce juge-arbitre

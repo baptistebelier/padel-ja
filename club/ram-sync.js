@@ -583,6 +583,7 @@
     if (!M[R.key]) M[R.key] = { n: 'Moi', r: 'NC', team: '', fol: 0, g: 'H', bd: '', res: [] };
     R.rev = d.rev; R.live = true; LS.set('ram-club', id);
     derive(); ramRender(); schedule(); listen();
+    api('/api/me/player').then(d => { R.ja = d; render(true); }).catch(() => {});   // fiche /RAM JA rattachée, ou celles qui pourraient être la mienne
   }
 
   /* ---------- actions propres au vrai club ---------- */
@@ -630,6 +631,17 @@
         <div class="fld"><label for="rn-short">Sigle</label><input id="rn-short" required maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="TCT"></div></div>
         <button class="btn full ghost">Créer le club</button></form>
       <p class="muted small" style="margin-top:14px">Sans club, l'appli reste en démonstration avec un club fictif.</p></div>`);
+    // annuaire commun aux deux applis : clubs déjà connus de /RAM JA (tournois) proposés à la création ;
+    // un club déjà présent sur /RAM Club est signalé, pour le rejoindre plutôt que le créer en double
+    fetch('/api/clubs-directory', { credentials: 'include' }).then(r => r.json()).then(d => {
+      const inp = $('rn-name'); if (!inp || !d.clubs) return;
+      const dl = document.createElement('datalist'); dl.id = 'rn-clubs';
+      dl.innerHTML = d.clubs.map(c => `<option value="${e(c.name)}">${c.ramClub ? 'Déjà sur /RAM Club' : c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '') + ' /RAM JA'}</option>`).join('');
+      inp.after(dl); inp.setAttribute('list', 'rn-clubs');
+      const hint = document.createElement('p'); hint.className = 'muted small'; inp.closest('form').querySelector('.two').after(hint);
+      const fold = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+      inp.addEventListener('input', () => { const c = d.clubs.find(x => x.ramClub && fold(x.name) === fold(inp.value)); hint.textContent = c ? `${c.name} est déjà sur /RAM Club : demande son code au bureau pour le rejoindre.` : ''; });
+    }).catch(() => {});
   }
   document.addEventListener('submit', ev => {
     const f = ev.target; if (f.id !== 'ram-join' && f.id !== 'ram-new') return;
@@ -656,16 +668,50 @@
   const _home = V.home;
   V.home = function () {
     const h = _home.apply(this, arguments);
-    if (R.live || !served || R.user === undefined) return h;
+    if (R.live) { const ask = jaAsk(); return ask ? '<div class="pad" style="padding-bottom:0">' + ask + '</div>' + h : h; }   // « Est-ce toi ? » aussi sur l'accueil
+    if (!served || R.user === undefined) return h;
     const card = R.user
       ? `<div class="card"><span class="kicker">Démonstration</span><p>Tu regardes un club fictif. Crée l'appli de ton club ou rejoins-le avec son code.</p><button class="btn full" data-a="ramStart">Créer ou rejoindre mon club</button></div>`
       : `<div class="card"><span class="kicker">Démonstration</span><p>Tu regardes un club fictif. Connecte-toi avec ton compte /RAM pour retrouver ton club.</p><a class="btn full" href="${loginUrl()}">Se connecter</a></div>`;
     return '<div class="pad" style="padding-bottom:0">' + card + '</div>' + h;
   };
+  /* ---------- lien avec /RAM JA : ma fiche joueur et mes tournois ---------- */
+  R.ja = null; R.jaHist = {};
+  window.ramPlayerSync = body => api('/api/me/player', body).then(d => { R.ja = d; render(true); return d; }, x => { toast(x.message); throw x; });
+  A.ramLink = d => ramPlayerSync({ player: d.id }).then(() => toast('Profil relié à ta fiche /RAM JA : tes tournois apparaissent dans ton palmarès'), () => {});
+  A.ramUnlink = () => ramPlayerSync({ player: null }).then(() => toast('Fiche /RAM JA détachée'), () => {});
+  A.ramDismiss = d => ramPlayerSync({ dismiss: d.id }).catch(() => {});
+  const jaPlace = (p, lo) => (p === 1 ? '1er' : p + 'e') + (lo && lo !== p ? '–' + lo + 'e' : '');
+  function jaHist(pid) {
+    if (R.jaHist[pid] === undefined) { R.jaHist[pid] = null; api('/api/players/' + encodeURIComponent(pid)).then(d => { R.jaHist[pid] = d.history || []; render(true); }, () => { R.jaHist[pid] = []; }); }
+    return R.jaHist[pid];
+  }
+  /* « Est-ce toi ? » : fiches /RAM JA au même nom ou à la même licence, avec leurs derniers tournois */
+  function jaAsk() {
+    if (!R.ja || R.ja.linked) return '';
+    return (R.ja.candidates || []).map(p => {
+      const t = (p.history || []).slice(0, 3).map(x => `${e(x.tournament || 'un tournoi')}${x.club ? ' à ' + e(x.club) : ''}${x.date ? ' (' + e(x.date) + ')' : ''}`).join(', ');
+      return `<div class="card"><span class="kicker">Est-ce toi ?</span><p>Es-tu <b>${e(p.first)} ${e(p.last)}</b>${p.licence ? ' (licence ' + e(p.licence) + ')' : ''}, qui a joué ${t || 'des tournois /RAM JA'} ?</p><p class="muted small">Relie ton profil à cette fiche : tes résultats /RAM JA apparaîtront dans ton palmarès, pour tout le club.</p><div class="ctl"><button class="btn sm grow" data-a="ramLink" data-id="${e(p.id)}">Oui, c'est moi</button><button class="btn sm ghost grow" data-a="ramDismiss" data-id="${e(p.id)}">Non</button></div></div>`;
+    }).join('');
+  }
+  /* tournois /RAM JA d'un adhérent relié à sa fiche (« _ja », écrit par le serveur seulement) */
+  function jaCards(id) {
+    let h = id === ME() ? jaAsk() : '';
+    if (id === ME() && R.ja && R.ja.linked) { const p = R.ja.linked; h += `<div class="card"><span class="kicker">Fiche /RAM JA</span><p><b>${e(p.last)} ${e(p.first)}</b>${p.licence ? ' · licence ' + e(p.licence) : ''} · ${(p.history || []).length} tournoi${(p.history || []).length > 1 ? 's' : ''}</p><button class="btn sm ghost" data-a="ramUnlink">Détacher cette fiche</button></div>`; }
+    const pid = (M[id] || {})._ja;
+    if (pid) {
+      const hs = jaHist(pid);
+      h += `<div class="stack"><span class="kicker">Tournois /RAM JA</span><div class="palm">${hs === null ? '<p class="muted small">Chargement…</p>' : hs.length ? hs.map(x => `<div class="res"><span class="wl wide ${x.place === 1 ? 'w' : 'pl'}">${jaPlace(x.place, x.placeLo)}</span><span class="grow"><span class="nm">${e(x.tournament || 'Tournoi')}</span>${x.category ? ` <span class="bd rk">${e(x.category)}</span>` : ''}<br><span class="muted small">${[x.club, x.date, x.partner ? 'avec ' + x.partner : '', x.points ? x.points + ' pts' : ''].filter(Boolean).map(e).join(' · ')}</span></span></div>`).join('') : '<p class="muted small">Aucun tournoi clôturé pour le moment.</p>'}</div></div>`;
+    }
+    return h;
+  }
+  window.ramJaAsk = jaAsk;
   const _profile = profile;
   profile = function (id) {
     let h = _profile(id);
     if (!R.live) return h;
+    const ja = jaCards(id), anchor = '<div class="stack"><span class="kicker">Palmarès de la saison</span>';
+    if (ja) h = h.includes(anchor) ? h.replace(anchor, () => ja + anchor) : h + ja;
     if (id === ME() && isBureau() && R.code) h = h.replace('<div class="phero">', `<div class="card"><span class="kicker">Code du club</span><p><b style="font-size:22px;letter-spacing:.06em">${e(R.code)}</b></p><p class="muted small">Donne ce code aux adhérents : ils l'entrent dans l'appli, puis tu valides leur demande.</p><button class="btn sm ghost" data-a="ramCopy">Copier l'invitation</button></div><div class="phero">`);
     if (id !== ME() && isBureau() && !isMinor(id) && R.roles[id]) {
       const r = R.roles[id], chip = (v, l) => `<button class="chip" data-a="ramRole" data-id="${id}" data-r="${v}" aria-pressed="${r === v}">${l}</button>`;

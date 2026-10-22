@@ -366,7 +366,7 @@
     const box = $('#sug' + n);
     if (!sug.items.length) { box.hidden = true; sug.open = false; return; }
     box.innerHTML = sug.items.map((p, i) => `<div class="sg ${i === sug.active ? 'on' : ''}" data-i="${i}"><b>${esc(p.last)}</b> ${esc(p.first)}
-      <span>${p.licence ? 'Lic. ' + esc(p.licence) : ''}${p.rank ? ' · Clt ' + esc(p.rank) : ''}</span><em>${p.tournaments} tournoi${p.tournaments > 1 ? 's' : ''}</em></div>`).join('');
+      <span>${p.licence ? 'Lic. ' + esc(p.licence) : ''}${p.rank ? ' · Clt ' + esc(p.rank) : ''}</span><em>${p.source === 'club' ? '/RAM Club · ' + esc(p.club || '') : p.tournaments + ' tournoi' + (p.tournaments > 1 ? 's' : '')}</em></div>`).join('');
     box.hidden = false; sug.open = true; sug.n = n;
     $$('.sg', box).forEach(el => el.onmousedown = e => { e.preventDefault(); pickSuggestion(n, sug.items[+el.dataset.i]); });
   }

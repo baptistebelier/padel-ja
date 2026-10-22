@@ -554,3 +554,13 @@ html, body { background: var(--bg); }
   .addfab span { display: none; }
   .addfab svg { width: 28px !important; height: 28px !important; }
 }
+
+/* équipes : fil chronologique des rencontres (en direct, à venir, résultats), séparé par mois */
+.tl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.tl-sec { min-width: 0; }
+.tl-sec > .kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.tl-sec > .kicker svg { width: 16px; height: 16px; }
+.tl-sec.tl-live > .kicker { color: var(--hot); }
+.tl-month { display: flex; align-items: center; gap: 10px; margin: 14px 0 8px; font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.tl-month::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.tl-sec > .tl-month:first-of-type { margin-top: 0; }

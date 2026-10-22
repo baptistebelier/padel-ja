@@ -259,5 +259,19 @@
     const warm = e => { const a = e.target.closest && e.target.closest('a[href^="/"]'); if (!a) return; const url = new URL(a.href, location.href); if (softOk(url) && url.href !== location.href) fetchPage(url.href).catch(() => {}); };
     document.addEventListener('pointerover', warm, { passive: true }); document.addEventListener('touchstart', warm, { passive: true });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); softNav(); sideOut(); }); else { build(); navCursor(); softNav(); sideOut(); }
+  /* annuaire des clubs commun à /RAM JA et /RAM Club : proposé dans les champs « Club »
+     (tournoi, paires, profil), clubs /RAM Club en premier */
+  function clubList() {
+    let ready = null;
+    document.addEventListener('focusin', e => {
+      const inp = e.target.closest && e.target.closest('input[data-f="club"], input[name="k1"], input[name="k2"], input[name="club"]');
+      if (!inp) return;
+      inp.setAttribute('list', 'ram-clubs');
+      ready = ready || fetch('/api/clubs-directory').then(r => r.json()).then(d => {
+        const dl = document.getElementById('ram-clubs') || (document.querySelector('.rail') || document.body).appendChild(Object.assign(document.createElement('datalist'), { id: 'ram-clubs' }));   // dans le menu : il reste en place d'une page à l'autre
+        dl.innerHTML = (d.clubs || []).map(c => `<option value="${String(c.name).replace(/"/g, '&quot;')}">${c.ramClub ? '/RAM Club' : c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '')}</option>`).join('');
+      }).catch(() => { ready = null; });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); clubList(); navCursor(); softNav(); sideOut(); }); else { build(); clubList(); navCursor(); softNav(); sideOut(); }
 })();

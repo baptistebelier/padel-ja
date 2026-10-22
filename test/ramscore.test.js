@@ -73,3 +73,14 @@ test('anti-triche : classement compté par le serveur, une fois par jour, compte
   const a2 = checkOp(club, ctx, { coll: 'member', id: 'a', op: 'patch', patch: [{ t: 'set', p: ['r'], v: '15/2' }, { t: 'set', p: ['_rk'], v: 99 }] });
   assert.strictEqual(a2._rk, 1);
 });
+
+test("lien /RAM JA : le champ « _ja » d'un profil n'est écrit que par le serveur", () => {
+  const club = { items: new Map([['member/a', { coll: 'member', id: 'a', data: { n: 'Léa Morin', _ja: 'j1' } }]]) };
+  const ctx = { key: 'a', valid: true, staff: false };
+  // un adhérent ne peut ni changer ni retirer sa fiche rattachée depuis son appareil
+  assert.strictEqual(checkOp(club, ctx, { coll: 'member', id: 'a', op: 'patch', patch: [{ t: 'set', p: ['_ja'], v: 'j999' }] })._ja, 'j1');
+  assert.strictEqual(checkOp(club, ctx, { coll: 'member', id: 'a', op: 'put', data: { n: 'Léa Morin' } })._ja, 'j1');
+  // et ne peut pas s'en attribuer une
+  const club2 = { items: new Map([['member/b', { coll: 'member', id: 'b', data: { n: 'Karim' } }]]) };
+  assert.strictEqual(checkOp(club2, { key: 'b', valid: true, staff: false }, { coll: 'member', id: 'b', op: 'patch', patch: [{ t: 'set', p: ['_ja'], v: 'j1' }] })._ja, undefined);
+});
