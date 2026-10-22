@@ -37,4 +37,4 @@
 :root[data-style="street"] { --ui-r: 0px; --ui-r-sm: 0px; --ui-tilt: -2deg; --ui-bw: 2px; }
 
 /* pas de zoom au pincement ni au double-tap : on garde le défilement */
-html { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

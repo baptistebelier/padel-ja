@@ -564,3 +564,21 @@ html, body { background: var(--bg); }
 .tl-month { display: flex; align-items: center; gap: 10px; margin: 14px 0 8px; font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .tl-month::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .tl-sec > .tl-month:first-of-type { margin-top: 0; }
+
+/* ---------- Soin du 23/10 ---------- */
+/* Bénévoles : le bouton passe sous la phrase quand la place manque,
+   au lieu d'écraser « Tu veux aider à l'organisation ? » en colonne d'un mot par ligne */
+.volu > .grow { flex: 1 1 190px; min-width: 0; }
+.volu > .btn { flex: 1 1 auto; white-space: normal; }
+
+/* Bouton « Ajouter du contenu » sur téléphone et tablette : un carré « + » à droite,
+   au-dessus de la barre d'onglets, qui ne masque plus le bas des publications.
+   Le libellé reste lu par les lecteurs d'écran (aria-label). */
+@media (max-width: 1023px) {
+  .addfab { left: auto !important; right: max(16px, env(safe-area-inset-right, 0px)) !important;
+    width: 58px; height: 58px; min-height: 58px; padding: 0; border-radius: 0; gap: 0;
+    box-shadow: 4px 4px 0 var(--accent2, var(--hot)); }
+  .addfab span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .addfab svg { width: 28px; height: 28px; }
+  .fab #main { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+}

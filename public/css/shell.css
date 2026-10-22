@@ -276,14 +276,18 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   body.editor-page .ab-menu { border: 1px solid var(--ui-border-2); background: var(--ui-surface); }
 
   /* éditeur : barre flottante façon réseau social, tous les pictos visibles, curseur qui suit le doigt */
-  body.editor-page .side { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); height: 60px; padding: 0; width: auto;
+  body.editor-page .side { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); height: 66px; padding: 0; width: auto;
     background: color-mix(in srgb, var(--ui-surface) 88%, transparent); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
     border: 1px solid var(--ui-border-2); box-shadow: 5px 5px 0 var(--ui-hard); overflow: hidden; touch-action: none; }
   body.editor-page nav#nav { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; height: 100%; padding: 0; gap: 0; position: relative; overflow: visible; }
   body.editor-page nav#nav button { position: relative; z-index: 1; min-width: 0; width: auto; height: 100%; padding: 0; margin: 0; border: 0; display: grid; place-items: center;
     background: transparent !important; box-shadow: none !important; transform: none !important; color: var(--ui-text-mut); transition: color .2s; }
-  body.editor-page nav#nav button .lg, body.editor-page nav#nav button .sh, body.editor-page nav#nav button i { display: none !important; }
-  body.editor-page nav#nav button .ic { width: 24px; height: 24px; margin: 0; }
+  /* pictogramme + libellé court (Tournoi, Paires, Tirage…) : on comprend chaque onglet sans deviner */
+  body.editor-page nav#nav button { grid-template-rows: auto auto; align-content: center; gap: 3px; }
+  body.editor-page nav#nav button .lg, body.editor-page nav#nav button i { display: none !important; }
+  body.editor-page nav#nav button .sh { display: block !important; font-family: var(--cond, "Barlow Condensed", sans-serif); font-weight: 700;
+    font-size: 10.5px; line-height: 1; letter-spacing: .03em; text-transform: uppercase; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: clip; }
+  body.editor-page nav#nav button .ic { width: 22px; height: 22px; margin: 0; }
   body.editor-page nav#nav button.on { color: var(--ui-on-accent); }
   body.editor-page nav#nav button.on::before, body.editor-page nav#nav button::before { display: none !important; }
   .nav-ind { position: absolute; z-index: 0; top: 8px; bottom: 8px; left: 0; background: var(--ui-accent); box-shadow: 3px 3px 0 var(--ui-accent2);
@@ -302,7 +306,7 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
   html:has(body.editor-page), body.editor-page { height: auto; min-height: 100%; }
   body.editor-page { display: block; background: var(--ui-bg); }
   body.editor-page .shell { display: block; min-height: 0; }
-  body.editor-page main { overflow: visible; padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  body.editor-page main { overflow: visible; padding-bottom: calc(108px + env(safe-area-inset-bottom)); }
   /* chaque onglet fait au moins toute la hauteur de l'écran : sur iPhone, une page plus courte que l'écran
      faisait remonter la barre flottante (Tableaux, Planning, Direct) par rapport aux pages longues */
   body.editor-page main { min-height: 100vh; min-height: 100lvh; }

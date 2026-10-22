@@ -84,6 +84,9 @@ h2 { font-size: clamp(36px, 6vw, 64px); transform: rotate(-1.5deg); transform-or
 .plan > b { font-family: var(--display); font-weight: 400; font-size: 44px; text-transform: uppercase; line-height: 1; }
 .plan p { margin: 0; flex: 1; color: #d8d4cd; }
 .plan .btn { align-self: flex-start; }
+.plan > b small { font-size: 22px; margin-left: 4px; }
+.plans-note { margin: 22px 0 0; color: #d8d4cd; }
+.plans-note a { color: var(--accent); }
 .foot { display: flex; gap: 20px; align-items: center; padding-top: 50px; padding-bottom: 50px; border-top: 2px solid var(--line); margin-top: 50px; }
 .foot img { height: 48px; }
 

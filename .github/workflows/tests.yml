@@ -1,12 +1,52 @@
-# Tests automatiques du moteur (tirage, formats FFT, scores, programmation) à chaque envoi sur GitHub
+# Tests automatiques à chaque envoi sur GitHub
+# - tests : moteur (tirage, formats FFT, scores, programmation), serveur, accès, RGPD…
+# - ecrans : chaque écran de /RAM JA et /RAM Club ouvert dans un vrai navigateur
 name: Tests
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]     # les branches de travail sont testées via leur pull request
+  pull_request:
+
+# un nouvel envoi annule les tests encore en cours pour la même branche
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: node --test
+
+  ecrans:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PLAYWRIGHT_VERSION: 1.56.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm i --no-save playwright@${{ env.PLAYWRIGHT_VERSION }}
+      # le navigateur est gardé en cache : il n'est téléchargé qu'une fois par version
+      - uses: actions/cache@v4
+        id: navigateur
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+      - name: Installer Chromium (si absent du cache)
+        if: steps.navigateur.outputs.cache-hit != 'true'
+        timeout-minutes: 6
+        run: npx playwright install chromium
+      - name: Bibliothèques système du navigateur
+        timeout-minutes: 6
+        run: npx playwright install-deps chromium
+      - name: Tests d'écran
+        timeout-minutes: 4
+        run: npm run test:ecrans
