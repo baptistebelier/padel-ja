@@ -288,3 +288,16 @@ html, body { background: var(--bg); }
 .ptr.spin i { animation: ptrSpin .7s linear infinite; }
 @keyframes ptrSpin { to { transform: rotate(360deg); } }
 .ptr.ptr-back, #main.ptr-back { transition: transform .25s ease, opacity .25s ease; }
+
+/* ---------- séries de messages façon WhatsApp (22/10/2026) ----------
+   Nom en haut du premier message, avatar en bas à côté du dernier, et une pointe anguleuse
+   (bulle de BD) sur ce dernier message, tournée vers l'avatar ; à droite pour mes messages. */
+.msg { align-items: flex-end; }
+.bub.tail { position: relative; }
+.msg:not(.me) .bub.tail::before, .msg:not(.me) .bub.tail::after { content: ''; position: absolute; bottom: -1px; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.msg:not(.me) .bub.tail::before { left: -12px; width: 12px; height: 13px; background: var(--line); }
+.msg:not(.me) .bub.tail::after { left: -10px; bottom: 0; width: 11px; height: 11px; background: var(--card); }
+.msg.me .bub.tail::after { content: ''; position: absolute; right: -11px; bottom: 0; width: 11px; height: 12px; background: var(--accent); clip-path: polygon(0 0, 100% 100%, 0 100%); }
+.msg.me .bubw { margin-right: 10px; }
+.msg.me .reacts { margin-right: 10px; }
+.msg, .msg.me { overflow: visible; }   /* la pointe dépasse de la bulle */

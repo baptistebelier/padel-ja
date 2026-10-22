@@ -4,7 +4,7 @@ function slide(c){const m=$('main');m.classList.remove('pg-r','pg-l','sg-r','sg-
 const ROLE={wait:"Nouvel inscrit en attente de validation",admin:'Bureau du club',cap:'Capitaine',mem:'Adhérent et parent',coach:'Enseignante',kid:'Compte jeune'};
 const TITLES={home:()=>['Accueil','Le mur du club'],chans:()=>['Groupes',club().name],agenda:()=>['Agenda','Cours, équipes et événements'],teamarch:()=>{const [id,s]=view().id.split('|');return [teamName(grp(id)),'Saison '+s]},ecole:()=>['École','Cours et stages'],club:()=>['Le club','Saison '+S.season],me:()=>['Mon profil',ROLE[S.role]],
  admin:()=>[isAdmin()?'Gérer le club':S.role==='coach'?'Mes groupes':'Mon équipe','Édition'],list:()=>['Adhérents',club().name],reports:()=>['Signalements','Modération'],legal:()=>['Mentions',club().name],post:()=>['Publication',club().name],art:()=>['Actus',club().name],partners:()=>['Partenaires',club().name],archive:()=>['Archives','Saisons précédentes'],join:()=>['Adhérents',"Faire entrer le club"]};
-function render(keep){const v=view(),key=v.v+(v.id||''),main=$('main'),y=main.scrollTop;let t,sub;
+function render(keep){const v=view(),key=v.v+(v.id||''),main=$('main'),y=main.scrollTop,atEnd=main.scrollHeight-main.clientHeight-y<80;let t,sub;
  if(TITLES[v.v])[t,sub]=TITLES[v.v]();
  else if(v.v==='chan'){const c=chans.find(c=>c.id===v.id);t='# '+c.name;sub=c.desc}
  else if(v.v==='rec'){const r=recs.find(r=>r.id===v.id);t=teamName(grp(r.tid))+' – '+r.opp;sub=r.comp}
@@ -29,7 +29,8 @@ function render(keep){const v=view(),key=v.v+(v.id||''),main=$('main'),y=main.sc
  /* Bouton flottant « Ajouter du contenu » : sur le mur, seulement pour ceux qui peuvent publier */
  let fab=$('addfab');if(!fab){fab=document.createElement('button');fab.id='addfab';fab.className='addfab';fab.dataset.a='plus';fab.innerHTML=`${ic('plus')}Ajouter du contenu`;$('phone').appendChild(fab)}
  const showFab=v.v==='home'&&!S.stack.length&&canPublish()&&!pending()&&!tabs.hidden;fab.hidden=!showFab;$('phone').classList.toggle('fab',showFab);
- main.scrollTop=keep&&key===lastKey?y:(v.v==='chan'?main.scrollHeight:0);
+ /* discussion : si l'on était en bas, on y reste (nouveaux messages, mise à jour) */
+ main.scrollTop=keep&&key===lastKey?((v.v==='chan'||v.v==='rec')&&atEnd?main.scrollHeight:y):(v.v==='chan'?main.scrollHeight:0);
  if(S.dir){slide((key!==lastKey?'pg-':'sg-')+(S.dir>0?'r':'l'));S.dir=0}
  lastKey=key;lastFoot=fk}
 
