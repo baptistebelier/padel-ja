@@ -1,8 +1,9 @@
 /* =========================================================================
    RAM JA — pictogrammes des cartes (dessinés pour le logiciel, jamais d'emoji)
-   - chaque carte reçoit le pictogramme de son sujet devant son titre ;
-   - les sections numérotées de la fiche tournoi (« 01 / Infos ») perdent leur
-     numéro au profit du pictogramme, dans le titre comme dans les onglets ;
+   - chaque carte reçoit le pictogramme de son sujet devant son titre (blanc), jamais dans
+     le sur-titre rose ; une carte sans titre en reçoit un dans le code de la page ;
+   - les sections numérotées de la fiche tournoi (« 01 / Infos ») perdent leur numéro ;
+     le pictogramme de leur titre sert aussi dans les onglets ;
    - les cartes ajoutées plus tard (fenêtres, tirage…) sont décorées aussi.
    ========================================================================= */
 (function () {
@@ -47,7 +48,8 @@
     ['matchs de classement', 'ranking'], ['classement', 'podium'], ['ordre des matchs', 'order'], ['repos', 'rest'], ['matchs par jour', 'check'],
     ['tous les matchs', 'list'], ['overlay', 'stream'], ['stream', 'stream'], ['preparer le tirage', 'dice'], ['tirage', 'dice'],
     ['enregistrer ce format', 'save'], ['imprimer', 'print'], ['impression', 'print'], ['modifier la paire', 'edit'], ['raccourcis clavier', 'keyboard'],
-    ['mon compte', 'user'], ['fiche joueur', 'user'], ['aide', 'help'], ['progression', 'progress']
+    ['mon compte', 'user'], ['fiche joueur', 'user'], ['aide', 'help'], ['progression', 'progress'],
+    ['acces', 'lock'], ['sauvegardes', 'save'], ["droit a l'effacement", 'userx']
   ];
   const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   const keyOf = txt => { const t = norm(txt); const r = RULES.find(([k]) => t.startsWith(k)); return r ? r[1] : null; };
@@ -55,27 +57,18 @@
 
   function decorate(root) {
     const R = root || document;
-    // 1. sections numérotées (« 01 / Infos ») : le numéro devient le pictogramme, le titre en dessous n'en reçoit pas d'autre
+    // 1. sections numérotées (« 01 / Infos ») : le sur-titre perd son numéro et reste du texte seul
     R.querySelectorAll('.eyebrow').forEach(eb => {
-      if (eb.querySelector('.pic') || !/^\s*\d{1,2}\s*\/\s*/.test(eb.textContent)) return;
-      const word = eb.textContent.replace(/^\s*\d{1,2}\s*\/\s*/, ''), k = keyOf(word);
-      if (k) eb.innerHTML = svg(k) + word;
+      if (!eb.children.length && /^\s*\d{1,2}\s*\/\s*/.test(eb.textContent)) eb.textContent = eb.textContent.replace(/^\s*\d{1,2}\s*\/\s*/, '');
     });
-    // 2. titres de cartes : chacun son pictogramme (une carte peut en avoir plusieurs : paires, attente, forfaits)
-    R.querySelectorAll('.card h3, .modal h3, .sheet h3, .dlg h3').forEach(h3 => {
-      if (h3.querySelector('.pic') || h3.closest('[data-nopic]')) return;
-      const card = h3.closest('.card, .modal, .sheet, .dlg'), eb = card && card.querySelector('.eyebrow');
-      if (eb && eb.querySelector('.pic') && card.querySelector('h3') === h3) return;   // section numérotée : déjà illustrée
-      const k = keyOf(h3.textContent) || (card && card.querySelector('h3') === h3 && eb ? keyOf(eb.textContent) : null);
-      if (k) h3.insertAdjacentHTML('afterbegin', svg(k));
-    });
-    // 3. cartes sans titre (« Sur les terrains ») : le pictogramme va dans le sur-titre
-    R.querySelectorAll('.card').forEach(card => {
-      if (card.querySelector('h3')) return;
-      const eb = card.querySelector('.eyebrow');
-      if (!eb || eb.querySelector('.pic')) return;
-      const k = keyOf(eb.textContent);
-      if (k) eb.insertAdjacentHTML('afterbegin', svg(k));
+    // 2. titres de cartes (en blanc) : chacun son pictogramme, devant le texte ; jamais dans le sur-titre rose
+    //    (une carte peut en avoir plusieurs : paires, attente, forfaits) ; le sujet du sur-titre sert pour le premier titre
+    R.querySelectorAll('.card h3, .card h2.h2s, .modal h3, .sheet h3, .dlg h3').forEach(h => {
+      if (h.querySelector('.pic') || h.closest('[data-nopic]')) return;
+      const card = h.closest('.card, .modal, .sheet, .dlg'), eb = card && card.querySelector('.eyebrow');
+      const first = card && card.querySelector('h3, h2.h2s') === h;
+      const k = keyOf(h.textContent) || (first && eb ? keyOf(eb.textContent) : null);
+      if (k) h.insertAdjacentHTML('afterbegin', svg(k));
     });
   }
   window.Pictos = { decorate, svg: k => (P[k] ? svg(k) : '') };

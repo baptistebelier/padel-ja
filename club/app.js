@@ -34,7 +34,7 @@ function render(keep){const v=view(),key=v.v+(v.id||''),main=$('main'),y=main.sc
  const wide=matchMedia('(min-width: 1024px)').matches,newSeg=main.querySelector(':scope > .seg');
  if(wide&&lastKey&&key!==lastKey){if(newSeg&&!oldSeg)newSeg.classList.add('seg-in');else if(oldSeg&&!newSeg){oldSeg.classList.remove('seg-in');oldSeg.classList.add('seg-out');main.appendChild(oldSeg);setTimeout(()=>oldSeg.remove(),260)}}
  /* Bouton flottant « Ajouter du contenu » : sur le mur, seulement pour ceux qui peuvent publier */
- let fab=$('addfab');if(!fab){fab=document.createElement('button');fab.id='addfab';fab.className='addfab';fab.dataset.a='plus';fab.innerHTML=`${ic('plus')}Ajouter du contenu`;$('phone').appendChild(fab)}
+ let fab=$('addfab');if(!fab){fab=document.createElement('button');fab.id='addfab';fab.className='addfab';fab.dataset.a='plus';fab.title='Ajouter du contenu';fab.setAttribute('aria-label','Ajouter du contenu');fab.innerHTML=`${ic('plus')}<span>Ajouter du contenu</span>`;$('phone').appendChild(fab)}
  const showFab=v.v==='home'&&!S.stack.length&&canPublish()&&!pending()&&!tabs.hidden;fab.hidden=!showFab;$('phone').classList.toggle('fab',showFab);
  /* discussion : si l'on était en bas, on y reste (nouveaux messages, mise à jour) */
  main.scrollTop=keep&&key===lastKey?((v.v==='chan'||v.v==='rec')&&atEnd?main.scrollHeight:y):(v.v==='chan'?main.scrollHeight:0);
@@ -608,7 +608,14 @@ setTimeout(()=>installGuide(false),600);
 /* ---------- fond de l'appli : motif fixe au choix (points, quadrillage, diagonales, uni), mémorisé ---------- */
 const MOTIFS=[['dots','Points'],['grid','Quadrillage'],['stripes','Diagonales'],['plain','Uni'],['ram-padel','Padel'],['ram-tennis','Tennis'],['ram-mixte','Padel &amp; Tennis']];
 function setMotif(k){if(!MOTIFS.some(m=>m[0]===k))k='dots';S.motif=k;document.documentElement.dataset.motif=k;try{localStorage.setItem('club-motif',k)}catch(e){}}
-try{setMotif(localStorage.getItem('club-motif')||'dots')}catch(e){setMotif('dots')}
+/* le système passe du jour à la nuit : on suit, si l'adhérent a choisi « Système » */
+if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(S.mode==='systeme'){setTheme(S.club);render(true)}});
+/* style de l'interface : épuré, street dosé (par défaut) ou full street, comme RAM JA */
+function setUStyle(v){S.ustyle=v||'';if(S.ustyle)document.documentElement.dataset.style=S.ustyle;else delete document.documentElement.dataset.style;try{localStorage.setItem('club-style',S.ustyle)}catch(e){}}
+try{setUStyle(localStorage.getItem('club-style')||'')}catch(e){setUStyle('')}
+A.ustyle=d=>{setUStyle(d.k);render(true)};
+/* fond par défaut des nouveaux adhérents : le motif /RAM padel et tennis */
+try{setMotif(localStorage.getItem('club-motif')||'ram-mixte')}catch(e){setMotif('ram-mixte')}
 A.motif=d=>{setMotif(d.k);render(true)};
 
 /* ---------- retour en arrière : glisser depuis le bord gauche vers la droite (sauf sur les écrans principaux) ---------- */
@@ -645,12 +652,13 @@ A.motif=d=>{setMotif(d.k);render(true)};
   busy=false;end();if(!window.RAM||!RAM.live)toast('Démonstration : rien à actualiser')});
  m.addEventListener('touchcancel',()=>{if(on){on=false;end()}});})();
 
-/* ---------- version ordinateur, comme Padel JA : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
+/* ---------- version ordinateur, comme RAM JA : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
 function ramRail(title){let rb=$('rbot');if(!rb){rb=document.createElement('div');rb.id='rbot';rb.className='rbot';$('phone').appendChild(rb)}
  const dk=effDark(),me=ME(),cur=S.tab==='me'&&!S.stack.length;
  rb.innerHTML=`<i class="sep"></i><button data-a="ramMode">${ic(dk?'sun':'moon')}<span>${dk?'Mode jour':'Mode nuit'}</span></button><button data-a="tab" data-t="me" ${cur?'aria-current="page"':''}>${M[me]?av(me,'sm'):ic('user')}<span>Profil</span></button><button data-a="logout">${ic('logout')}<span>Sortir</span></button>`;
  const seg=$('main').querySelector(':scope > .seg');if(seg&&!seg.querySelector('.segt'))seg.insertAdjacentHTML('afterbegin',`<div class="segt"><span>${esc(club().name)}</span><b>${title||''}</b></div>`)}
 A.ramMode=()=>{S.mode=effDark()?'jour':'nuit';try{localStorage.setItem('club-mode',S.mode)}catch(e){}setTheme(S.club);render(true)};
-/* réglage du profil : couleurs du club (auto), jour ou nuit */
-A.mode=d=>{S.mode=d.k||'';try{localStorage.setItem('club-mode',S.mode)}catch(e){}setTheme(S.club);render(true)};
-A.logout=()=>{fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{}).then(()=>{try{localStorage.removeItem('ram-club')}catch(e){}location.reload()})};
+/* réglage du profil : jour, nuit ou système (les couleurs, elles, restent celles choisies par le bureau) */
+A.mode=d=>{S.mode=d.k||'systeme';try{localStorage.setItem('club-mode',S.mode)}catch(e){}setTheme(S.club);render(true)};
+/* sortir : on se déconnecte et on arrive sur la page de connexion de RAM Club */
+A.logout=()=>{fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{}).then(()=>{try{localStorage.removeItem('ram-club')}catch(e){}location.href=(location.pathname.startsWith('/club/')?'/club/':'/')+'connexion'})};

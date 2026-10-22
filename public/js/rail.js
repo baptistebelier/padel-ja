@@ -229,6 +229,19 @@
       const n = document.createElement('script'); n.textContent = s.textContent; document.body.appendChild(n);
     }
   }
+  /* tournoi en cours : en quittant par le menu, le sous-menu du tournoi repart en glissant avant de changer de page */
+  function sideOut() {
+    if (!document.body.classList.contains('editor-page')) return;
+    document.addEventListener('click', e => {
+      if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest && e.target.closest('.rail a[href^="/"]');
+      if (!a || !matchMedia('(min-width: 721px) and (prefers-reduced-motion: no-preference)').matches) return;
+      e.preventDefault(); document.body.classList.add('side-out');
+      setTimeout(() => { location.href = a.href; }, 200);
+    });
+    // retour arrière vers le tournoi (page gardée en mémoire par le navigateur) : le sous-menu réapparaît
+    addEventListener('pageshow', e => { if (e.persisted) document.body.classList.remove('side-out'); });
+  }
   function softNav() {
     document.addEventListener('click', e => {
       if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -246,5 +259,5 @@
     const warm = e => { const a = e.target.closest && e.target.closest('a[href^="/"]'); if (!a) return; const url = new URL(a.href, location.href); if (softOk(url) && url.href !== location.href) fetchPage(url.href).catch(() => {}); };
     document.addEventListener('pointerover', warm, { passive: true }); document.addEventListener('touchstart', warm, { passive: true });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); softNav(); }); else { build(); navCursor(); softNav(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); softNav(); sideOut(); }); else { build(); navCursor(); softNav(); sideOut(); }
 })();

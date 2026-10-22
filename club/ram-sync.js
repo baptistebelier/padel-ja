@@ -1,6 +1,6 @@
 /* ---------- RAM Club en vrai : compte /RAM, club réel, synchronisation ----------
-   Servie par le serveur Padel JA (club.riseandmove.fr ou /club/), l'appli :
-   1. lit la session /RAM (le même compte que Padel JA) ;
+   Servie par le serveur RAM JA (club.riseandmove.fr ou /club/), l'appli :
+   1. lit la session /RAM (le même compte que RAM JA) ;
    2. charge le club de l'adhérent (ou propose d'en créer un / d'en rejoindre un avec le code) ;
    3. remplace les données de démo par celles du club ;
    4. après chaque action, compare l'état de l'appli à la dernière version connue et envoie
@@ -13,7 +13,8 @@
   const onClubHost = /^club\./.test(location.hostname);
   const served = onClubHost || location.pathname.startsWith('/club');   // sinon : démo sans serveur
   const here = () => location.href.split('#')[0];
-  const loginUrl = () => (onClubHost ? JA : '') + '/connexion?retour=' + encodeURIComponent(onClubHost ? here() : location.pathname);
+  // page de connexion propre à RAM Club (même compte /RAM que RAM JA), puis retour à l'endroit quitté
+  const loginUrl = () => (onClubHost ? '' : '/club') + '/connexion?retour=' + encodeURIComponent(location.pathname + location.search);
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const J = o => JSON.stringify(o);
   const copy = o => (o === undefined ? undefined : JSON.parse(J(o)));
@@ -121,7 +122,7 @@
     if (typeof STATS !== 'undefined') Object.keys(STATS).forEach(k => { const s = STATS[k]; if (M[k] && k !== 'club' && (k === R.key || R.base.has('stats/' + k) || s.k.size || Object.keys(s.c).length)) { add('stats', k, { c: s.c, k: [...s.k], got: s.got, lvl: s.lvl }); } });
     const read = Object.assign({}, (prev('prefs', R.key) || {}).read || {});
     chans.forEach(ch => { if (!ch.un) { const last = Math.max(0, ...(ch.msgs || []).map(m => m.at || 0)); if (last) read[ch.id] = Math.max(read[ch.id] || 0, last); } });
-    add('prefs', R.key, { follow: [...S.follow], blocked: [...S.blocked], nset: S.nset, share: S.share, ct: MYCT, mute: chans.filter(ch => ch.mute).map(ch => ch.id), read, setup: S.setup || {}, invited: S.invited || 0, motif: S.motif || 'dots' });
+    add('prefs', R.key, { follow: [...S.follow], blocked: [...S.blocked], nset: S.nset, share: S.share, ct: MYCT, mute: chans.filter(ch => ch.mute).map(ch => ch.id), read, setup: S.setup || {}, invited: S.invited || 0, motif: S.motif || 'ram-mixte' });
     // messages : groupes, direct des rencontres, commentaires des publications
     const box = (ref, list) => (list || []).forEach(m => { if (!m._id) m._id = newId('m'); add('msg', m._id, msgOut(m, ref, prev('msg', m._id))); });
     chans.forEach(ch => box('c:' + ch.id, ch.msgs));
@@ -599,7 +600,7 @@
   A.ramRemoveOk = d => api('/api/ram/c/' + R.club + '/remove', { key: d.id }).then(() => { closeSheet(); R.base.delete('member/' + d.id); delete M[d.id]; S.stack.pop(); derive(); ramRender(); toast('Adhérent retiré du club'); }, x => toast(x.message));
   A.delAccount = d => {
     if (!R.live) return _delAccount(d);
-    sheet('Quitter le club', `<div class="body"><div class="note">Tu quittes ${e(club().name)} : ton profil et tes réglages sont retirés de l'appli du club. Tes messages restent affichés. Ton compte /RAM (le même que Padel JA) est conservé.</div><button class="btn full hot" data-a="ramLeave">Quitter ${e(club().name)}</button></div>`);
+    sheet('Quitter le club', `<div class="body"><div class="note">Tu quittes ${e(club().name)} : ton profil et tes réglages sont retirés de l'appli du club. Tes messages restent affichés. Ton compte /RAM (le même que RAM JA) est conservé.</div><button class="btn full hot" data-a="ramLeave">Quitter ${e(club().name)}</button></div>`);
   };
   A.ramLeave = () => api('/api/ram/c/' + R.club + '/remove', { key: R.key }).then(() => { closeSheet(); stop(); LS.set('ram-club', ''); location.reload(); }, x => toast(x.message));
   /* actualisation manuelle (tirer vers le bas) : on envoie ce qui attend, puis on recharge tout le club
@@ -641,9 +642,9 @@
   window.ramTeam = () => Object.keys(M).filter(k => k !== 'club' && (R.roles[k] === 'bureau' || R.roles[k] === 'coach'));
   function accountCard() {
     const u = R.user, logo = `<img src="${ramLogo()}" alt="/RAM Club" class="ram-acc-logo">`;
-    if (!u) return `${logo}<div class="grow"><b>Compte /RAM</b><span>Connecte-toi avec ton compte /RAM : le même que pour Padel JA.</span></div><a class="btn sm" href="${loginUrl()}">Se connecter</a>`;
+    if (!u) return `${logo}<div class="grow"><b>Compte /RAM</b><span>Connecte-toi avec ton compte /RAM : le même que pour RAM JA.</span></div><a class="btn sm" href="${loginUrl()}">Se connecter</a>`;
     const nm = e([u.first, u.last].filter(Boolean).join(' ') || u.name || u.email);
-    return `${logo}<div class="grow"><b>Compte /RAM</b><span>${nm} · ${e(u.email || '')}</span><small>${R.live ? (R.clubs.length > 1 ? `<button class="nm" data-a="ramClubs" style="color:var(--accent)">Changer de club</button>` : `Le même compte que Padel JA.`) : `<button class="nm" data-a="ramStart" style="color:var(--accent)">Créer ou rejoindre mon club</button>`}</small></div><a class="btn sm ghost" href="${onClubHost ? JA : ''}/deconnexion">Se déconnecter</a>`;
+    return `${logo}<div class="grow"><b>Compte /RAM</b><span>${nm} · ${e(u.email || '')}</span><small>${R.live ? (R.clubs.length > 1 ? `<button class="nm" data-a="ramClubs" style="color:var(--accent)">Changer de club</button>` : `Le même compte que RAM JA.`) : `<button class="nm" data-a="ramStart" style="color:var(--accent)">Créer ou rejoindre mon club</button>`}</small></div><button class="btn sm ghost" data-a="logout">Se déconnecter</button>`;
   }
   function fill() {
     const el = document.getElementById('ramAccount');

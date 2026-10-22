@@ -160,7 +160,8 @@ const S={ecTab:'mine',ag:'all',tab:'home',stack:[],club:0,role:'admin',liked:new
 const club=()=>CLUBS[S.club];
 /* logo /RAM Club lisible sur les couleurs du club : blanc sur fond sombre, noir sur fond clair */
 /* mode jour / nuit choisi par l'adhérent (sinon celui du club) */
-const effDark=c=>(c=c||club(),S.mode==='nuit'?true:S.mode==='jour'?false:!!c.dark);
+/* mode d'affichage choisi par l'adhérent : jour, nuit ou celui du système (par défaut) ; les couleurs restent celles du club */
+const effDark=c=>(c=c||club(),S.mode==='nuit'?true:S.mode==='jour'?false:S.mode==='systeme'||!S.mode?!!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches):!!c.dark);
 const ramLogo=()=>effDark()?'img/ram-club-blanc.png':'img/ram-club-noir.png';
 const ME=()=>window.RAM_KEY||(S.role==='wait'?'lucas':S.role==='kid'?'leo':S.role==='coach'?'sarah':'me');
 /* L'enseignant a les pouvoirs du bureau, sauf les commissions ; le bureau seul gère les commissions */
@@ -208,4 +209,5 @@ function ensureGroupChans(){GROUPS.forEach(g=>{if((g.type!=='train'&&g.type!=='t
   msgs:[{by:g.type==='train'?(g.coach||'club'):(g.cap||'club'),x:g.type==='train'?`Bienvenue dans le groupe ${g.name} ! Les infos des cours passeront ici.`:'Bienvenue dans le groupe de l\'équipe ! Compos et convocations passeront ici.',t:'Lun.'}]})})}
 ensureGroupChans();
 /* mode jour / nuit personnel (vide = celui du club), mémorisé sur l'appareil */
-try{S.mode=localStorage.getItem('club-mode')||''}catch(e){S.mode=''}
+try{S.mode=localStorage.getItem('club-mode')||'systeme'}catch(e){S.mode='systeme'}
+Object.assign(I,{screen:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'});

@@ -71,7 +71,7 @@
         </div>
         <h3 style="font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:20px;margin:22px 0 8px">Fond de l'interface</h3>
         <div class="seg" id="segFond">
-          <button type="button" data-v="">Points</button>
+          <button type="button" data-v="points">Points</button>
           <button type="button" data-v="ram-padel">Padel</button>
           <button type="button" data-v="ram-tennis">Tennis</button>
           <button type="button" data-v="ram-mixte">Padel et tennis</button>
@@ -180,8 +180,8 @@
   const markFond = () => { const v = document.documentElement.dataset.fond || ''; document.querySelectorAll('#segFond button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); };
   document.querySelectorAll('#segFond button').forEach(b => b.onclick = () => {
     const v = b.dataset.v;
-    try { if (v) localStorage.setItem('padelja-fond', v); else localStorage.removeItem('padelja-fond'); } catch (e) {}
-    if (v) document.documentElement.dataset.fond = v; else delete document.documentElement.dataset.fond;
+    try { localStorage.setItem('padelja-fond', v); } catch (e) {}
+    document.documentElement.dataset.fond = v;
     markFond();
   });
   markFond();

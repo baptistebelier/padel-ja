@@ -530,3 +530,15 @@ html:root[data-theme="light"][data-fond^="ram-"] body::before, html:root[data-th
 html:root[data-theme="light"][data-fond^="ram-"] body::after { background: color-mix(in srgb, #8E9C00 26%, transparent); }
 html:root[data-fond="plain"] body::before, html:root[data-fond="plain"] body.acct::before { background: none; }
 html, body { overscroll-behavior-x: none; } /* pas de retour arrière par glissement horizontal (Android) */
+
+/* tournoi en cours (ordinateur) : le sous-menu du tournoi glisse depuis le menu en entrant,
+   et repart vers lui en sortant (vers une autre page du menu) */
+@media (min-width: 721px) and (prefers-reduced-motion: no-preference) {
+  body.editor-page .side { animation: jaSideIn .3s cubic-bezier(.2, .8, .2, 1) both; }
+  body.editor-page.side-out .side { animation: jaSideOut .22s cubic-bezier(.4, 0, .9, .6) forwards; }
+}
+@keyframes jaSideIn { from { transform: translateX(-100%); opacity: .3; } }
+@keyframes jaSideOut { to { transform: translateX(-100%); opacity: 0; } }
+
+/* pictogrammes devant les titres des cartes des pages compte (administration) : même rendu que la fiche tournoi */
+.card h2.h2s .pic { display: inline-block; width: 1em; height: 1em; vertical-align: -.12em; margin-right: .45em; color: var(--ui-accent-text, var(--ui-accent)); flex: none; }

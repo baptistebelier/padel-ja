@@ -573,7 +573,7 @@
           <p class="muted small" style="text-align:center">Cliquez sur la carte tirée ou tapez son numéro (pavé numérique). Plusieurs chiffres : tapez-les à la suite, puis Entrée.</p>
           <div class="btns"><button class="ghost" id="tvDraw">Afficher sur la TV</button><button class="ghost danger" id="drawReset">Annuler le tirage</button></div>
         </div>
-        <div class="card"><span class="eyebrow">Progression</span><ul class="pots" id="potList"></ul><div id="drawPrev" style="margin-top:16px"></div></div></div>`;
+        <div class="card"><span class="eyebrow">Tirage au sort</span><h3>Progression</h3><ul class="pots" id="potList"></ul><div id="drawPrev" style="margin-top:16px"></div></div></div>`;
       $('#flipRand').onclick = () => send('draw/flipRandom');
       $('#drawAuto').onclick = () => confirm('Laisser l\'ordinateur tirer toutes les cartes restantes ?') && send('draw/auto');
       $('#tvDraw').onclick = () => send('display/set', { tv: 'draw', rotate: false });
@@ -865,7 +865,7 @@
         card.classList.toggle('open', o);
         try { localStorage.setItem(KEY + id, o ? '1' : '0'); } catch (e) {}
       });
-      tabs.insertAdjacentHTML('beforeend', `<button type="button" role="tab" class="tsec-tab" data-sec="${id}"><span>${(card.querySelector('.eyebrow .pic') || {}).outerHTML || card.querySelector('.eyebrow').textContent.split('/')[0].trim()}</span>${card.dataset.label}</button>`);
+      tabs.insertAdjacentHTML('beforeend', `<button type="button" role="tab" class="tsec-tab" data-sec="${id}"><span>${(card.querySelector('h3 .pic') || {}).outerHTML || ''}</span>${card.dataset.label}</button>`);
     });
     $$('.tsec-tab', tabs).forEach(b => b.onclick = () => pick(b.dataset.sec));
     let cur = ''; try { cur = localStorage.getItem(TAB) || ''; } catch (e) {}

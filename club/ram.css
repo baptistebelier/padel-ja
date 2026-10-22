@@ -1,6 +1,6 @@
 /* =========================================================================
    /RAM Club — charte /RAM JA (21/10/2026)
-   Même famille que le logiciel Padel JA : angles droits, ombres dures décalées,
+   Même famille que le logiciel RAM JA : angles droits, ombres dures décalées,
    barre du bas flottante foncée avec curseur citron qui suit le doigt.
    Les couleurs restent celles du club (réglées dans app.js) : ce fichier ne
    change que les formes, les ombres et la navigation. Chargé après app.css.
@@ -23,7 +23,7 @@
 .btn:not(.ghost):active, .addfab:active, .ib.acc:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--accent2, var(--hot)); }
 .btn.ghost { box-shadow: inset 0 0 0 1.5px var(--line); }
 
-/* ---------- cartes : bord fin et ombre dure, comme les fiches de Padel JA ---------- */
+/* ---------- cartes : bord fin et ombre dure, comme les fiches de RAM JA ---------- */
 .card { border: 1px solid var(--line); box-shadow: 5px 5px 0 var(--ram-hard); }
 .sheet { border-top: 3px solid var(--accent); }
 
@@ -32,7 +32,7 @@
 .ring { transform: rotate(-2deg); box-shadow: 4px 4px 0 var(--ram-hard); }
 .story:nth-child(even) .ring { transform: rotate(2deg); }
 
-/* ---------- barre du bas façon Padel JA ----------
+/* ---------- barre du bas façon RAM JA ----------
    Plus foncée que les cartes pour bien ressortir, curseur citron carré avec ombre rose,
    et toute la barre grossit un peu pendant qu'on glisse le doigt dessus. */
 .tabs {
@@ -196,7 +196,7 @@
 .tabs.drag button[aria-current="page"] svg { color: var(--muted); }
 .tabs.drag button.hov svg { color: var(--on-accent); }
 
-/* ---------- fond de l'appli : motif fixe (points, quadrillage, diagonales ou uni), comme Padel JA ----------
+/* ---------- fond de l'appli : motif fixe (points, quadrillage, diagonales ou uni), comme RAM JA ----------
    Le motif reste immobile pendant que le contenu défile ; il prend la couleur du texte du club, très atténuée. */
 .motif { position: absolute; inset: 0; pointer-events: none; z-index: 0; --mc: color-mix(in srgb, var(--fg) 8%, transparent); }
 :root[data-motif="dots"] .motif, :root:not([data-motif]) .motif { background: radial-gradient(var(--mc) 1px, transparent 1.3px) 0 0 / 7px 7px; }
@@ -334,7 +334,7 @@ html, body { background: var(--bg); }
 .thero .grow > .muted.small { display: block; }   /* points et trophées sur deux lignes distinctes */
 
 /* =========================================================================
-   Onglets sur ordinateur, comme la fiche tournoi de Padel JA (22/10/2026) :
+   Onglets sur ordinateur, comme la fiche tournoi de RAM JA (22/10/2026) :
    une rangée d'onglets carrés posée sur une grande carte ; l'onglet actif
    prend la couleur du club, un trait de la même couleur le relie à la carte.
    ========================================================================= */
@@ -371,7 +371,7 @@ html, body { background: var(--bg); }
 }
 
 /* =========================================================================
-   VERSION ORDINATEUR, direction artistique de Padel JA (22/10/2026)
+   VERSION ORDINATEUR, direction artistique de RAM JA (22/10/2026)
    - menu principal : colonne étroite et sombre, logo /RAM Club en haut,
      pictogramme au-dessus du libellé, sans contour ;
    - pages à onglets (Groupes, Agenda, École, Club) : sous-menu latéral plus
@@ -421,7 +421,7 @@ html, body { background: var(--bg); }
   }
   #main > .seg button svg { width: 21px; height: 21px; flex: none; }
   #main > .seg button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 9%, transparent); }
-  /* onglet actif : bandeau de la couleur du club légèrement penché, comme dans Padel JA */
+  /* onglet actif : bandeau de la couleur du club légèrement penché, comme dans RAM JA */
   #main > .seg button[aria-selected="true"] { color: var(--on-accent); background: transparent; }
   #main > .seg button[aria-selected="true"]::before { content: ''; position: absolute; inset: 3px 4px; background: var(--accent); transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); z-index: -1; }
   #main > .seg + * { border-top: 1px solid var(--line); margin-top: 18px; }
@@ -452,7 +452,7 @@ html, body { background: var(--bg); }
 .toplogo.sub { display: none; }
 
 /* =========================================================================
-   VERSION ORDINATEUR — mêmes menus que Padel JA, mesure pour mesure (23/10/2026)
+   VERSION ORDINATEUR — mêmes menus que RAM JA, mesure pour mesure (23/10/2026)
    Menu principal 84 px : logo en haut, éléments 68 × 58 px, pictogramme sur le
    libellé ; élément actif = bloc plein couleur d'accent, ombre dure décalée.
    En bas : mode jour / nuit, profil, sortie.
@@ -514,9 +514,43 @@ html, body { background: var(--bg); }
     -webkit-mask-image: none; mask-image: none; }
   #main > .seg button { flex: 1 0 auto; justify-content: center; }
 }
-/* téléphone : une barre de 4 onglets ou plus tient sans défiler (texte seul, un peu resserré) */
+/* téléphone : chaque onglet garde son petit pictogramme ; s'ils ne tiennent pas tous, la barre défile au doigt */
 @media (max-width: 480px) {
-  #main > .seg:has(button:nth-of-type(4)) { gap: 6px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
-  #main > .seg:has(button:nth-of-type(4)) button { flex: 1 1 auto; min-width: 0; padding: 0 6px; gap: 0; font-size: 15px; }
-  #main > .seg:has(button:nth-of-type(4)) button svg { display: none; }
+  #main > .seg { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 6px;
+    padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+  #main > .seg button { flex: 1 0 auto; padding: 0 12px; gap: 6px; scroll-snap-align: start; }
+  #main > .seg button svg { display: inline-block; width: 16px; height: 16px; flex: none; }
+}
+
+/* =========================================================================
+   STYLE DE L'INTERFACE (Profil › Affichage), comme RAM JA :
+   street dosé par défaut, épuré (sans ombres dures ni inclinaisons), full street (plus marqué)
+   ========================================================================= */
+:root[data-style="epure"] { --ram-hard: transparent; }
+:root[data-style="epure"] :is(.top h1, .crest, .ring, .story:nth-child(even) .ring, .tilt, .poster .big, .datepill, .stamp) { transform: none !important; }
+:root[data-style="epure"] :is(.tilt, .poster .big, .stamp, .bd.done, .segt b) { font-style: normal; }
+:root[data-style="epure"] #main > .seg button[aria-selected="true"], :root[data-style="epure"] #main > .seg button[aria-selected="true"]::before { transform: none !important; box-shadow: none !important; }
+:root[data-style="epure"] :is(.crest, .tabs button[aria-current="page"], .rbot button[aria-current="page"], .motifs button[aria-pressed="true"], .btn, .addfab) { box-shadow: none !important; }
+:root[data-style="street"] { --ram-hard: rgba(0, 0, 0, .8); }
+:root[data-style="street"][style*="color-scheme: light"] { --ram-hard: rgba(0, 0, 0, .28); }
+:root[data-style="street"] .top h1 { transform: rotate(-2.5deg); }
+:root[data-style="street"] .kicker { display: inline-block; transform: rotate(-1.5deg); }
+:root[data-style="street"] :is(.card, .lis, .palm .res, #main > .seg + *) { box-shadow: 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] .btn:not(.ghost) { box-shadow: 4px 4px 0 var(--accent2, var(--hot)); }
+
+/* téléphone et tablette : le contenu des pages à onglets (Agenda, École, Club…) dans un cadre uni ton sur ton,
+   comme sur ordinateur et comme la liste des groupes ; le motif ne passe plus derrière le texte */
+@media (max-width: 1023px) {
+  #main > .seg + .pad { background: var(--card); border: 1px solid var(--line); box-shadow: 4px 4px 0 var(--ram-hard); margin: 12px 10px 24px; }
+  #main > .seg + .pad .card { box-shadow: 3px 3px 0 var(--ram-hard); }
+}
+
+/* ordinateur : « Ajouter du contenu » devient un bouton carré « + », en bas, juste à droite du menu latéral
+   (et du sous-menu quand la page en a un) */
+@media (min-width: 1024px) {
+  .addfab { left: calc(var(--side) + 18px + env(safe-area-inset-left, 0px)) !important; right: auto !important; bottom: calc(22px + env(safe-area-inset-bottom, 0px)) !important;
+    width: 58px !important; height: 58px; min-height: 58px !important; padding: 0 !important; border-radius: 0 !important; justify-content: center; z-index: 7; }
+  .phone.hassub .addfab { left: calc(var(--side) + var(--sub) + 18px + env(safe-area-inset-left, 0px)) !important; }
+  .addfab span { display: none; }
+  .addfab svg { width: 28px !important; height: 28px !important; }
 }

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0B0B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RAM Club">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Connexion — RAM Club</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/site.css">
+<style>
+  .auth-page .nav .logo img { height: 44px; }
+  .auth-box .club-note { margin: 18px 0 0; font-size: 13px; opacity: .75; line-height: 1.5; }
+</style>
+</head>
+<!-- Connexion à RAM Club : le même compte /RAM que RAM JA ; après connexion, retour dans l'appli du club -->
+<body class="auth-page">
+<header class="nav"><a href="presentation" class="logo"><img src="img/ram-club-blanc.png" alt="/RAM Club"></a><a href="presentation" class="btn ghost">Découvrir RAM Club</a></header>
+<main class="auth">
+  <div class="auth-box">
+    <div class="tabs"><button data-m="login">Connexion</button><button data-m="signup">Créer un compte</button></div>
+    <h1 id="title"></h1>
+    <form id="f" autocomplete="on">
+      <label data-only="signup">Prénom<input name="first" autocomplete="given-name"></label>
+      <label data-only="signup">Nom<input name="last" autocomplete="family-name"></label>
+      <label data-hide="reset">E-mail<input name="email" type="email" required autocomplete="email"></label>
+      <label data-hide="forgot"><span id="pwLabel">Mot de passe</span><input name="password" type="password" required minlength="8" autocomplete="current-password"></label>
+      <p class="hint" data-only="forgot">Indique l'adresse de ton compte : tu recevras un lien pour choisir un nouveau mot de passe (valable 1 heure).</p>
+      <p class="hint" data-only="signup">8 caractères minimum. Ensuite, tu crées ton club ou tu rejoins le tien avec son code.</p>
+      <div class="err" id="err"></div>
+      <div class="ok" id="ok" hidden></div>
+      <button class="btn primary" id="go"></button>
+      <p class="alt" data-only="login"><a href="mot-de-passe-oublie">Mot de passe oublié ?</a></p>
+      <p class="alt" data-only="forgot"><a href="connexion">Retour à la connexion</a></p>
+    </form>
+    <p class="club-note">Un seul compte /RAM pour RAM Club et RAM JA, le logiciel du juge-arbitre.</p>
+  </div>
+</main>
+<script>
+(function () {
+  const qs = new URLSearchParams(location.search);
+  const base = location.pathname.startsWith('/club/') ? '/club/' : '/';   // ja.riseandmove.fr/club/ ou club.riseandmove.fr/
+  const page = location.pathname.slice(base.length);
+  let mode = { inscription: 'signup', 'mot-de-passe-oublie': 'forgot' }[page] || 'login';
+  const f = document.getElementById('f');
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+    document.querySelectorAll('[data-only]').forEach(el => { el.hidden = !el.dataset.only.split(' ').includes(m); });
+    document.querySelectorAll('[data-hide]').forEach(el => { el.hidden = el.dataset.hide === m; el.querySelectorAll('input').forEach(i => { i.required = el.dataset.hide !== m; }); });
+    document.querySelector('.tabs').hidden = m === 'forgot';
+    document.getElementById('ok').hidden = true;
+    document.getElementById('title').innerHTML = { signup: 'Rejoindre <span class="band lime">mon club</span>', forgot: 'Mot de passe <span class="band lime">oublié</span>' }[m] || 'Mon <span class="band lime">club</span>';
+    document.getElementById('go').textContent = { signup: 'Créer mon compte', forgot: 'Recevoir le lien' }[m] || 'Se connecter';
+    f.password.autocomplete = m === 'login' ? 'current-password' : 'new-password';
+    if (m === 'login' || m === 'signup') history.replaceState(null, '', base + (m === 'signup' ? 'inscription' : 'connexion') + location.search);
+    document.getElementById('err').textContent = '';
+  }
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setMode(b.dataset.m));
+  setMode(mode);
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const body = mode === 'forgot' ? { email: f.email.value } : { email: f.email.value, password: f.password.value, first: f.first.value, last: f.last.value, club: '' };
+    document.getElementById('err').textContent = '';
+    const r = await fetch('/api/auth/' + mode, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { document.getElementById('err').textContent = d.error || 'Erreur'; return; }
+    if (mode === 'forgot') {
+      const ok = document.getElementById('ok'); ok.hidden = false;
+      ok.textContent = "Si un compte existe avec cette adresse, un e-mail vient de partir. Pense à regarder dans les indésirables.";
+      return;
+    }
+    // après connexion : la page de l'appli d'où l'on venait, sinon l'accueil du club
+    const back = qs.get('retour') || '';
+    location.href = /^\/(?!\/)/.test(back) || /^https:\/\/club\.riseandmove\.fr\//.test(back) ? back : base;
+  };
+})();
+</script>
+</body>
+</html>

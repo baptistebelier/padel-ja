@@ -86,7 +86,10 @@ function sendFile(res, rel, versioned) {
 // RAM Club : fichiers de l'appli (dossier club/). Pages, scripts et icônes toujours revérifiés,
 // le service worker de l'appli gère le hors-ligne.
 const CLUB_ROOT = path.join(__dirname, 'club');
+// pages de RAM Club à adresse propre : connexion (et inscription, mot de passe oublié) et présentation
+const CLUB_PAGES = { '/connexion': '/connexion.html', '/inscription': '/connexion.html', '/mot-de-passe-oublie': '/connexion.html', '/presentation': '/presentation.html' };
 function sendClub(res, rel) {
+  if (CLUB_PAGES[rel]) rel = CLUB_PAGES[rel];
   if (!rel || rel.endsWith('/')) rel = (rel || '/') + 'index.html';
   const file = path.normalize(path.join(CLUB_ROOT, rel));
   if (!file.startsWith(CLUB_ROOT)) { res.writeHead(403); return res.end(); }
@@ -379,7 +382,8 @@ const server = http.createServer(async (req, res) => {
        Sur le sous-domaine club., tout ce qui n'est pas l'API est l'appli RAM Club (dossier club/).
        Ailleurs (ja., localhost), elle reste accessible sous /club/ pour les essais. */
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
-    if (/^club\./.test(host) && !p.startsWith('/api/')) return sendClub(res, p);
+    // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
+    if (/^club\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p);
     if (p === '/club') return redirect(res, '/club/');
     if (p.startsWith('/club/')) return sendClub(res, p.slice(5));
 
