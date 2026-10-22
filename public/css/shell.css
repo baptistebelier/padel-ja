@@ -514,11 +514,14 @@ body.editor-page main > .acc-bar { margin: 12px 0 6px; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
 
 /* ---------- fond de l'interface (Profil › Apparence) : motifs /RAM ou uni ----------
-   Tuile sans couture en masque, colorée par le texte du thème jour / nuit, très atténuée. */
+   Tuile sans couture en masque, colorée par le texte du thème : claire la nuit, foncée le jour, très atténuée. */
 :root[data-fond="ram-padel"] { --fond: url(/img/motifs/padel.png); }
 :root[data-fond="ram-tennis"] { --fond: url(/img/motifs/tennis.png); }
 :root[data-fond="ram-mixte"] { --fond: url(/img/motifs/mixte.png); }
-html:root[data-fond^="ram-"] body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 1;
+html:root[data-fond^="ram-"] body::before, html:root[data-fond^="ram-"] body.acct::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 1;
   background: color-mix(in srgb, var(--ui-text, #F7EFF0) 4%, transparent);
   -webkit-mask: var(--fond) 0 0 / 640px 640px repeat; mask: var(--fond) 0 0 / 640px 640px repeat; }
-html:root[data-fond="plain"] body::before { background: none; }
+/* jour : encre foncée un peu plus présente, l'œil la perçoit moins sur fond clair ;
+   .acct : passe devant la trame de points du thème jour des pages compte */
+html:root[data-theme="light"][data-fond^="ram-"] body::before, html:root[data-theme="light"][data-fond^="ram-"] body.acct::before { background: color-mix(in srgb, var(--ui-text, #2A0A12) 5%, transparent); }
+html:root[data-fond="plain"] body::before, html:root[data-fond="plain"] body.acct::before { background: none; }
