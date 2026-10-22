@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-10-23-soin1';
+const VERSION = '2026-10-23-soin2';
 const CACHE = 'appli-club-' + VERSION;
 /* Fichiers de l'appli mis en cache dès l'installation */
 const CORE = [
@@ -14,10 +14,24 @@ const CORE = [
   'icon-192.png',
   'logo.js',
   'data.js',
-  'ui.js',
+  'ui/1-briques.js',
+  'ui/2-publications.js',
+  'ui/3-rencontres.js',
+  'ui/4-agenda.js',
+  'ui/5-club.js',
+  'ui/6-profil.js',
+  'ui/7-ecole.js',
+  'ui/8-ecrans.js',
   'sons.js',
   'trophees.js',
-  'app.js',
+  'app/1-affichage.js',
+  'app/2-couleurs.js',
+  'app/3-direct.js',
+  'app/4-formulaires.js',
+  'app/5-actions.js',
+  'app/6-gestes.js',
+  'app/7-enregistrement.js',
+  'app/8-demarrage.js',
   'manifest.webmanifest',
   'icon-180.png',
   'icon-512.png'
@@ -85,7 +99,7 @@ self.addEventListener('fetch', e => {
 
 /* ---------- Notifications push ----------
    Le serveur envoie un JSON : {"title":"…","body":"…","url":"#/rec/r1","tag":"direct-r1"}
-   url = écran à ouvrir dans l'appli (voir openFromUrl dans app.js). */
+   url = écran à ouvrir dans l'appli (voir openFromUrl dans app/8-demarrage.js). */
 self.addEventListener('push', e => {
   let d = {};
   try {
