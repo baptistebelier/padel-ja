@@ -461,3 +461,17 @@ html, body { background: var(--bg); }
   #main > .seg button[aria-selected="true"]::before { display: none; }
   #main > .seg button[aria-selected="true"] svg { opacity: 1; }
 }
+
+/* ---------- téléphone et iPad : la barre d'onglets prend toute la largeur de l'écran ---------- */
+@media (max-width: 1023px) {
+  #main > .seg { max-width: none !important; margin-left: 0 !important; margin-right: 0 !important;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    -webkit-mask-image: none; mask-image: none; }
+  #main > .seg button { flex: 1 0 auto; justify-content: center; }
+}
+/* téléphone : une barre de 4 onglets ou plus tient sans défiler (texte seul, un peu resserré) */
+@media (max-width: 480px) {
+  #main > .seg:has(button:nth-of-type(4)) { gap: 6px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+  #main > .seg:has(button:nth-of-type(4)) button { flex: 1 1 auto; min-width: 0; padding: 0 6px; gap: 0; font-size: 15px; }
+  #main > .seg:has(button:nth-of-type(4)) button svg { display: none; }
+}
