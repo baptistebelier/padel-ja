@@ -340,3 +340,69 @@ html, body { background: var(--bg); }
 .stories { padding-top: 20px; }
 /* liste des groupes de discussion : tous dans la même carte (ordinateur), séparés par un trait */
 .lis > .li:last-child { border-bottom: 0; }
+
+/* =========================================================================
+   VERSION ORDINATEUR, direction artistique de Padel JA (22/10/2026)
+   - menu principal : colonne étroite et sombre, logo /RAM Club en haut,
+     pictogramme au-dessus du libellé, sans contour ;
+   - pages à onglets (Groupes, Agenda, École, Club) : sous-menu latéral plus
+     large, un ton plus clair, sans contour, comme le menu d'un tournoi ;
+   - logo du club au centre de la barre du haut ;
+   - notifications : panneau pleine hauteur qui glisse depuis la droite.
+   ========================================================================= */
+@media (min-width: 1024px) {
+  :root { --side: 92px; --sub: 236px; }
+  /* menu principal */
+  .tabs, :root[style*="color-scheme: light"] .tabs {
+    width: calc(var(--side) + env(safe-area-inset-left, 0px)); padding: calc(108px + env(safe-area-inset-top, 0px)) 0 calc(96px + env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px);
+    align-items: center; gap: 4px; border: 0 !important; box-shadow: none !important; background: color-mix(in srgb, var(--bg) 35%, #000);
+  }
+  :root[style*="color-scheme: light"] .tabs { background: #14161C; }
+  .tabs::before { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(22px + env(safe-area-inset-top, 0px)); width: 68px; height: 62px; background: url("img/ram-club-blanc.png") center / contain no-repeat !important; }
+  .tabs .pill { display: none !important; }
+  .tabs button {
+    flex-direction: column; justify-content: center; gap: 5px; width: 72px; min-height: 60px; padding: 8px 2px; position: relative;
+    font-family: var(--f-body); font-weight: 600; font-size: 11px; letter-spacing: 0; text-transform: none; color: rgba(255, 255, 255, .62); background: transparent;
+  }
+  .tabs button svg { width: 22px; height: 22px; }
+  .tabs button:hover { color: #fff; background: rgba(255, 255, 255, .06); }
+  .tabs button[aria-current="page"], .tabs button[aria-current="page"]:hover { color: #fff; background: rgba(255, 255, 255, .09); }
+  .tabs button[aria-current="page"] svg { color: var(--accent); }
+  .tabs button[aria-current="page"]::before { content: ''; position: absolute; left: -10px; top: 14px; bottom: 14px; width: 4px; background: var(--accent); }
+  .tabs .cnt { position: absolute; top: 4px; right: 10px; margin: 0; }
+  /* bouton « Ajouter du contenu » : en bas du menu, pictogramme et libellé */
+  .addfab { left: calc(10px + env(safe-area-inset-left, 0px)) !important; width: 72px !important; right: auto !important; bottom: calc(18px + env(safe-area-inset-bottom, 0px)) !important;
+    flex-direction: column; gap: 4px; min-height: 66px; padding: 8px 4px; font-size: 10px; line-height: 1.1; text-align: center; white-space: normal; }
+  /* barre du haut : logo du club au centre */
+  .top { position: absolute; }
+  .toplogo, .toplogo.sub { display: block !important; position: absolute; left: 50%; top: calc(50% + env(safe-area-inset-top, 0px) / 2); transform: translate(-50%, -50%); height: 44px; max-width: 200px; margin: 0; }
+  /* sous-menu des pages à onglets */
+  .phone.hassub { padding-left: calc(var(--side) + var(--sub) + env(safe-area-inset-left, 0px)); }
+  .phone.hassub .top { left: calc(var(--side) + var(--sub) + env(safe-area-inset-left, 0px)); }
+  #main > .seg {
+    position: fixed !important; top: 0 !important; bottom: 0; left: calc(var(--side) + env(safe-area-inset-left, 0px)); width: var(--sub); z-index: 6;
+    display: flex; flex-direction: column; flex-wrap: nowrap; gap: 4px; margin: 0; max-width: none;
+    padding: calc(96px + env(safe-area-inset-top, 0px)) 14px 24px; border: 0 !important; overflow-y: auto;
+    background: color-mix(in srgb, var(--fg) 6%, var(--bg));
+  }
+  #main > .seg button {
+    width: 100%; justify-content: flex-start; gap: 13px; min-height: 48px; padding: 0 16px; border: 0 !important;
+    font-family: var(--f-sub); font-weight: 700; font-size: 17px; letter-spacing: .06em; text-transform: uppercase;
+    color: color-mix(in srgb, var(--fg) 72%, transparent); background: transparent; position: relative; z-index: 0;
+  }
+  #main > .seg button svg { width: 21px; height: 21px; flex: none; }
+  #main > .seg button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 6%, transparent); }
+  /* onglet actif : bandeau de la couleur du club légèrement penché, comme dans Padel JA */
+  #main > .seg button[aria-selected="true"] { color: var(--on-accent); background: transparent; }
+  #main > .seg button[aria-selected="true"]::before { content: ''; position: absolute; inset: 3px 4px; background: var(--accent); transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); z-index: -1; }
+  #main > .seg + * { border-top: 1px solid var(--line); margin-top: 18px; }
+  /* notifications : panneau latéral pleine hauteur, depuis la droite */
+  .back.side { left: 0 !important; justify-content: flex-end; align-items: stretch; padding: 0 !important; }
+  .back.side .sheet { width: min(440px, 92vw); height: 100%; max-height: none !important; border: 0 !important; border-left: 3px solid var(--accent) !important;
+    box-shadow: -8px 0 0 var(--ram-hard) !important; padding-top: env(safe-area-inset-top, 0px); }
+  .back.side.anim .sheet { animation: ramSlideL .26s cubic-bezier(.2, .9, .3, 1) !important; }
+  .back.side .grab { display: none; }
+}
+@keyframes ramSlideL { from { transform: translateX(100%); } to { transform: none; } }
+/* téléphone et tablette : le logo du club n'est affiché que sur les écrans principaux */
+.toplogo.sub { display: none; }
