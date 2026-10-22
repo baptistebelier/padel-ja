@@ -840,6 +840,7 @@
       $$('.tsec-tab', tabs).forEach(b => b.classList.toggle('on', b.dataset.sec === id));
       try { localStorage.setItem(TAB, id); } catch (e) {}
     };
+    if (window.Pictos) Pictos.decorate(wrap);   // pictogrammes à la place des numéros 01, 02…
     secs.forEach(card => {
       const id = card.dataset.sec, head = document.createElement('div'), title = document.createElement('div'), body = document.createElement('div');
       head.className = 'row-between fold-h'; body.className = 'fold-b';
@@ -864,7 +865,7 @@
         card.classList.toggle('open', o);
         try { localStorage.setItem(KEY + id, o ? '1' : '0'); } catch (e) {}
       });
-      tabs.insertAdjacentHTML('beforeend', `<button type="button" role="tab" class="tsec-tab" data-sec="${id}"><span>${card.querySelector('.eyebrow').textContent.split('/')[0].trim()}</span>${card.dataset.label}</button>`);
+      tabs.insertAdjacentHTML('beforeend', `<button type="button" role="tab" class="tsec-tab" data-sec="${id}"><span>${(card.querySelector('.eyebrow .pic') || {}).outerHTML || card.querySelector('.eyebrow').textContent.split('/')[0].trim()}</span>${card.dataset.label}</button>`);
     });
     $$('.tsec-tab', tabs).forEach(b => b.onclick = () => pick(b.dataset.sec));
     let cur = ''; try { cur = localStorage.getItem(TAB) || ''; } catch (e) {}
