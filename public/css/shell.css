@@ -498,3 +498,17 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 .acc-bar .acc-go { flex: none; padding: 8px 14px; background: var(--ui-accent); color: var(--ui-on-accent) !important; text-decoration: none !important; font-family: var(--label); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
 body.editor-page main > .acc-bar { margin: 12px 0 6px; }
 .acc-pass { color: var(--ui-accent-text); }
+
+/* =========================================================================
+   Navigation entre les pages du menu : comme un changement d'onglet.
+   Le menu reste immobile ; le contenu sort en fondu et la nouvelle page
+   glisse doucement en place (navigateurs récents : Chrome, Edge, Safari 18.2+).
+   ========================================================================= */
+@view-transition { navigation: auto; }
+.rail { view-transition-name: rail; }
+::view-transition-group(rail) { animation: none; }
+::view-transition-old(root) { animation: vtOut .14s ease-in both; }
+::view-transition-new(root) { animation: vtIn .24s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes vtOut { to { opacity: 0; transform: translateY(-4px); } }
+@keyframes vtIn { from { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }

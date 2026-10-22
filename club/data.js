@@ -159,7 +159,9 @@ const S={ecTab:'mine',ag:'all',tab:'home',stack:[],club:0,role:'admin',liked:new
 
 const club=()=>CLUBS[S.club];
 /* logo /RAM Club lisible sur les couleurs du club : blanc sur fond sombre, noir sur fond clair */
-const ramLogo=()=>club().dark?'img/ram-club-blanc.png':'img/ram-club-noir.png';
+/* mode jour / nuit choisi par l'adhérent (sinon celui du club) */
+const effDark=c=>(c=c||club(),S.mode==='nuit'?true:S.mode==='jour'?false:!!c.dark);
+const ramLogo=()=>effDark()?'img/ram-club-blanc.png':'img/ram-club-noir.png';
 const ME=()=>window.RAM_KEY||(S.role==='wait'?'lucas':S.role==='kid'?'leo':S.role==='coach'?'sarah':'me');
 /* L'enseignant a les pouvoirs du bureau, sauf les commissions ; le bureau seul gère les commissions */
 const isAdmin=()=>S.role==='admin'||S.role==='coach';
@@ -182,7 +184,7 @@ const CLUBINFO={courts:6,pistes:2,members:412,joined:318,house:'Tous les jours, 
 const JOINREQ=[{id:'lucas',n:'Lucas Petit',mail:'lucas.petit@exemple.fr',via:'le code du club'},{n:'Lucie Marchand',mail:'lucie.marchand@exemple.fr',via:'le code du club'},{n:'Olivier Fabre',mail:'olivier.fabre@exemple.fr',via:"un lien d'invitation"}];
 const LVHELP="Échelle du club : 1-2 débutant · 3-4 loisir · 5-6 intermédiaire · 7-8 confirmé · 9-10 compétition. Le niveau est validé par les enseignants padel.";
 const isMinor=id=>!!(M[id]&&M[id].role==='Jeune');
-Object.assign(I,{sound:'<path d="M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/>',mute:'<path d="M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6"/>'});
+Object.assign(I,{moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',logout:'<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>',sound:'<path d="M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/>',mute:'<path d="M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6"/>'});
 M.leo.photoOk=false;
 S.share={tel:false,mail:false,soc:false};S.plan.mine=false;S.reply=null;
 chans[1].msgs[0].re={'👍':4,'❤️':2};
@@ -205,3 +207,5 @@ function ensureGroupChans(){GROUPS.forEach(g=>{if((g.type!=='train'&&g.type!=='t
  chans.push({id:g.id,g:g.type,sport:g.type==='team'?(co&&co.sport):g.sport,name:g.type==='team'?teamName(g):g.name,desc:g.sub,kid:g.mem.some(isMinor)?1:0,un:0,
   msgs:[{by:g.type==='train'?(g.coach||'club'):(g.cap||'club'),x:g.type==='train'?`Bienvenue dans le groupe ${g.name} ! Les infos des cours passeront ici.`:'Bienvenue dans le groupe de l\'équipe ! Compos et convocations passeront ici.',t:'Lun.'}]})})}
 ensureGroupChans();
+/* mode jour / nuit personnel (vide = celui du club), mémorisé sur l'appareil */
+try{S.mode=localStorage.getItem('club-mode')||''}catch(e){S.mode=''}

@@ -28,7 +28,7 @@ function render(keep){const v=view(),key=v.v+(v.id||''),main=$('main'),y=main.sc
  if(showTabs){tabs.hidden=false;const un=pending()?0:chans.reduce((a,c)=>a+(c.mute||!chanOk(c)?0:c.un),0),tb=(k,i,l)=>`<button data-a="tab" data-t="${k}" ${S.tab===k?'aria-current="page"':''}>${ic(i)}${l}${k==='chans'&&un?`<span class="cnt">${un}</span>`:''}</button>`;
   tabs.innerHTML=tb('home','home','Accueil')+tb('chans','chat','Groupes')+tb('agenda','cal','Agenda')+tb('ecole','school','École')+tb('club','club','Club')+tb('me','user','Profil');tabs.insertAdjacentHTML('afterbegin','<span class="pill" id="tpill" aria-hidden="true"></span>');pillTo(tabs.querySelector('[aria-current]'),true)}
  if(pending()&&!lockOk(v))foot.hidden=true;
- $('phone').classList.toggle('notabs',tabs.hidden);$('phone').classList.toggle('hassub',!!main.querySelector(':scope > .seg'));$('phone').classList.toggle('withfoot',!foot.hidden);
+ $('phone').classList.toggle('notabs',tabs.hidden);$('phone').classList.toggle('hassub',!!main.querySelector(':scope > .seg'));ramRail(t);$('phone').classList.toggle('withfoot',!foot.hidden);
  /* Bouton flottant « Ajouter du contenu » : sur le mur, seulement pour ceux qui peuvent publier */
  let fab=$('addfab');if(!fab){fab=document.createElement('button');fab.id='addfab';fab.className='addfab';fab.dataset.a='plus';fab.innerHTML=`${ic('plus')}Ajouter du contenu`;$('phone').appendChild(fab)}
  const showFab=v.v==='home'&&!S.stack.length&&canPublish()&&!pending()&&!tabs.hidden;fab.hidden=!showFab;$('phone').classList.toggle('fab',showFab);
@@ -58,8 +58,8 @@ function derive(acc,bg){let c=acc,t=0;const to=lum(bg)<.2?'#FFFFFF':'#000000';wh
 const BASE={true:{bg:'#0B0B0B',card:'#161616',card2:'#222222',line:'#2E2E2E',fg:'#F5F3EE',muted:'#A09C93'},false:{bg:'#F3F5FA',card:'#FFFFFF',card2:'#E4E9F3',line:'#D0D7E5',fg:'#0C1630',muted:'#5A647E'}};
 const HOT='#E0123C',PADEL='#2459E0';
 /* logo entier du club qui ressort sur son fond : logo clair sur fond sombre, logo sombre sur fond clair (l'autre en secours) */
-const clubLogo=c=>(c=c||club(),c.dark?(c.logoL||c.logoD):(c.logoD||c.logoL))||'';
-function setTheme(i){S.club=i;const c=CLUBS[i],r=document.documentElement.style,b=BASE[!!c.dark],acc=derive(c.accent,c.bg||b.bg).col;
+const clubLogo=c=>(c=c||club(),effDark(c)?(c.logoL||c.logoD):(c.logoD||c.logoL))||'';
+function setTheme(i){S.club=i;const c0=CLUBS[i],dk=effDark(c0),c=dk===!!c0.dark?c0:Object.assign({},c0,{dark:dk,bg:null,card:null,card2:null,line:null,fg:null,muted:null}),r=document.documentElement.style,b=BASE[dk],acc=derive(c.accent,c.bg||b.bg).col;
  Object.keys(b).forEach(k=>r.setProperty('--'+k,c[k]||b[k]));r.setProperty('--accent',acc);
  /* Rouge d'alerte utilisé comme couleur de texte (« Perf ! », « En jeu », « Supprimer ») : ajusté pour atteindre 4,5:1 sur la surface la plus défavorable du thème */
  const sf=[c.bg||b.bg,c.card||b.card,c.card2||b.card2],to=c.dark?'#FFFFFF':'#000000';let ht=HOT,t=0;while(Math.min(...sf.map(x=>contrast(ht,x)))<4.7&&t<1){t=Math.min(1,t+.03);ht=mix(HOT,to,t)}r.setProperty('--hot-tx',ht);r.setProperty('--on-accent',onColor(acc));r.setProperty('--hot',HOT);r.setProperty('--accent2',c.accent2||HOT);const rl=clubLogo(c);r.setProperty('--rail-logo',rl?`url("${rl}")`:`url("${c.dark?'img/ram-club-blanc.png':'img/ram-club-noir.png'}")`);r.setProperty('--on-hot','#FFFFFF');r.setProperty('--padel',PADEL);r.setProperty('--stage',c.dark?'#050505':'#DDE2EC');r.colorScheme=c.dark?'dark':'light';try{localStorage.setItem('club-theme',i)}catch(e){}}
@@ -639,3 +639,11 @@ A.motif=d=>{setMotif(d.k);render(true)};
   await new Promise(r=>setTimeout(r,Math.max(0,600-(Date.now()-t0))));   // l'indicateur tourne au moins un instant
   busy=false;end();if(!window.RAM||!RAM.live)toast('Démonstration : rien à actualiser')});
  m.addEventListener('touchcancel',()=>{if(on){on=false;end()}});})();
+
+/* ---------- version ordinateur, comme Padel JA : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
+function ramRail(title){let rb=$('rbot');if(!rb){rb=document.createElement('div');rb.id='rbot';rb.className='rbot';$('phone').appendChild(rb)}
+ const dk=effDark(),me=ME(),cur=S.tab==='me'&&!S.stack.length;
+ rb.innerHTML=`<i class="sep"></i><button data-a="ramMode">${ic(dk?'sun':'moon')}<span>${dk?'Mode jour':'Mode nuit'}</span></button><button data-a="tab" data-t="me" ${cur?'aria-current="page"':''}>${M[me]?av(me,'sm'):ic('user')}<span>Profil</span></button><button data-a="logout">${ic('logout')}<span>Sortir</span></button>`;
+ const seg=$('main').querySelector(':scope > .seg');if(seg&&!seg.querySelector('.segt'))seg.insertAdjacentHTML('afterbegin',`<div class="segt"><span>${esc(club().name)}</span><b>${title||''}</b></div>`)}
+A.ramMode=()=>{S.mode=effDark()?'jour':'nuit';try{localStorage.setItem('club-mode',S.mode)}catch(e){}setTheme(S.club);render(true)};
+A.logout=()=>{fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{}).then(()=>{try{localStorage.removeItem('ram-club')}catch(e){}location.reload()})};

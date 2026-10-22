@@ -112,9 +112,18 @@ async function accessFor(u) {
 }
 const accessOfOwner = async id => accessFor(await store.getUser(id));
 
+/* compte de la session : gardé 20 s en mémoire (chaque page et chaque appel n'interroge plus la base),
+   oublié dès que le compte est enregistré ou supprimé */
+const userCache = new Map();
+['saveUser', 'deleteUser'].forEach(fn => { const orig = store[fn].bind(store); store[fn] = async (x, ...rest) => { userCache.delete(typeof x === 'object' ? x.id : x); try { return await orig(x, ...rest); } finally { userCache.delete(typeof x === 'object' ? x.id : x); } }; });
 async function currentUser(req) {
   const id = Auth.sessionUserId(req);
-  return id ? store.getUser(id) : null;
+  if (!id) return null;
+  const c = userCache.get(id);
+  if (c && Date.now() - c.at < 20000) return c.u;
+  const u = await store.getUser(id);
+  if (u) userCache.set(id, { u, at: Date.now() }); else userCache.delete(id);
+  return u;
 }
 
 /* ---------------------------------------------------------------------
@@ -395,6 +404,8 @@ const server = http.createServer(async (req, res) => {
       return redirect(res, '/t/' + row.id, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 1), 1) });
     }
     if (p === '/deconnexion') return redirect(res, '/', { 'Set-Cookie': Auth.sessionCookie(req, null) });
+    // déconnexion sans changer de page (RAM Club, y compris sur club.riseandmove.fr)
+    if (p === '/api/auth/logout' && req.method === 'POST') return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, null) });
     let m = p.match(/^\/t\/([\w-]+)\/?(tv|overlay|print|remote)?$/);
     if (m) {
       if (!m[2]) { // éditeur : réservé au propriétaire

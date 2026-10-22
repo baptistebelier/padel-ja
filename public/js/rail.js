@@ -160,5 +160,17 @@
     nav.addEventListener('click', e => { if (Date.now() < until && e.isTrusted) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); }); else { build(); navCursor(); }
+  /* navigation fluide : la page visée se prépare dès le survol (ou le toucher) d'un élément du menu,
+     pour s'afficher aussitôt au clic (Chrome, Edge) ; ailleurs, elle est préchargée dans le cache du navigateur */
+  function preload() {
+    if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) {
+      const s = document.createElement('script'); s.type = 'speculationrules';
+      s.textContent = JSON.stringify({ prerender: [{ where: { and: [{ selector_matches: '.rail a[href^="/"], .mtab a[href^="/"]' }, { not: { href_matches: '/deconnexion' } }] }, eagerness: 'moderate' }] });
+      document.head.append(s); return;
+    }
+    const done = new Set();
+    const warm = e => { const a = e.target.closest && e.target.closest('.rail a[href^="/"]'); if (!a || done.has(a.href) || /deconnexion/.test(a.href) || a.href === location.href) return; done.add(a.href); fetch(a.href, { credentials: 'include' }).catch(() => {}); };
+    document.addEventListener('pointerover', warm, { passive: true }); document.addEventListener('touchstart', warm, { passive: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); navCursor(); preload(); }); else { build(); navCursor(); preload(); }
 })();
