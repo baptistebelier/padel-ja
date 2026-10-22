@@ -617,11 +617,21 @@ A.motif=d=>{setMotif(d.k);render(true)};
   else{move(0);setTimeout(reset,190)}});
  document.addEventListener('touchcancel',()=>{if(on){on=false;reset()}});})();
 
-/* ---------- iPhone, appli installée sur l'écran d'accueil ----------
-   Avec la barre d'état transparente, l'iPhone annonce une hauteur de fenêtre amputée de la barre d'état :
-   l'appli s'arrêtait avant le bas de l'écran. On prend la hauteur réelle de l'écran (portrait comme paysage). */
-(function(){const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
- if(!ios||!(navigator.standalone===true||matchMedia('(display-mode: standalone)').matches))return;
- const fit=()=>{const port=innerHeight>=innerWidth,h=port?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
-  if(h>innerHeight){document.documentElement.style.setProperty('--app-h',h+'px');document.documentElement.dataset.iosPwa='1'}else{delete document.documentElement.dataset.iosPwa}};
- fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,350))})();
+/* ---------- actualiser en tirant vers le bas (comme Instagram) ----------
+   Tout en haut d'une page, tirer vers le bas fait apparaître un indicateur de chargement sous la barre du haut ;
+   au-delà du seuil, l'appli recharge le club depuis le serveur. */
+(function(){const ph=$('phone'),m=$('main'),sp=document.createElement('div');sp.className='ptr';sp.setAttribute('aria-hidden','true');sp.innerHTML='<i></i>';ph.appendChild(sp);
+ let y0=0,x0=0,d=0,on=false,lock=false,busy=false;const MAX=96,GO=64;
+ const show=v=>{const t=$('top').offsetHeight;sp.style.top=t+'px';sp.style.opacity=Math.min(1,v/GO);sp.style.transform=`translate(-50%,${v/2-17}px)`;sp.firstChild.style.transform=`rotate(${v*4}deg)`;m.style.transform=v?`translateY(${v}px)`:''};
+ const end=()=>{m.classList.add('ptr-back');sp.classList.add('ptr-back');show(0);setTimeout(()=>{m.classList.remove('ptr-back');sp.classList.remove('ptr-back','spin')},260)};
+ m.addEventListener('touchstart',e=>{if(busy||e.touches.length!==1||m.scrollTop>0||$('sheet'))return;y0=e.touches[0].clientY;x0=e.touches[0].clientX;d=0;on=true;lock=false},{passive:true});
+ m.addEventListener('touchmove',e=>{if(!on)return;const dy=e.touches[0].clientY-y0,dx=e.touches[0].clientX-x0;
+  if(!lock){if(Math.abs(dx)>Math.abs(dy)||dy<0||m.scrollTop>0){on=false;return}if(dy<8)return;lock=true}
+  d=Math.min(MAX,dy*.6);show(d);e.preventDefault()},{passive:false});
+ m.addEventListener('touchend',async()=>{if(!on)return;on=false;if(!lock)return;
+  if(d<GO){end();return}
+  busy=true;sp.classList.add('spin');show(GO);try{navigator.vibrate&&navigator.vibrate(10)}catch(_){}
+  const t0=Date.now();let ok=false;try{ok=window.ramRefresh?await window.ramRefresh():false}catch(_){}
+  await new Promise(r=>setTimeout(r,Math.max(0,600-(Date.now()-t0))));   // l'indicateur tourne au moins un instant
+  busy=false;end();if(!window.RAM||!RAM.live)toast('Démonstration : rien à actualiser')});
+ m.addEventListener('touchcancel',()=>{if(on){on=false;end()}});})();

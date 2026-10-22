@@ -20,7 +20,7 @@
   const isObj = o => o && typeof o === 'object' && !Array.isArray(o);
   const LS = { get(k) { try { return localStorage.getItem(k); } catch (x) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (x) {} } };
 
-  const R = window.RAM = { user: undefined, clubs: [], club: null, key: null, role: null, rev: 0, base: new Map(), bad: new Map(), notified: new Set(), fol: {}, roles: {}, live: false };
+  const R = window.RAM = { user: undefined, clubs: [], club: null, key: null, role: null, rev: 0, base: new Map(), bad: new Map(), snap: new Map(), notified: new Set(), fol: {}, roles: {}, live: false };
   let readyFn; window.ramReady = new Promise(r => { readyFn = r; });
 
   async function api(path, body) {
@@ -114,7 +114,8 @@
     Object.keys(M).forEach(k => {
       if (k === 'club') return;
       const s = strip(M[k], ['fol']); s.valid = VALID[k] || '';
-      if (k === R.key) { const ct = {}; ['tel', 'mail'].forEach(x => { if (S.share[x] && MYCT[x][2]) ct[x] = MYCT[x][2]; }); if (S.share.soc && MYCT.soc[2]) ct.soc = [MYCT.soc[1], MYCT.soc[2]]; s.ct = ct; }
+      // abonnements (« fo ») : publics, dans le profil de celui qui suit → nombre d'abonnés et notification en direct pour tous
+      if (k === R.key) { s.fo = [...S.follow].filter(x => M[x] && x !== R.key); const ct = {}; ['tel', 'mail'].forEach(x => { if (S.share[x] && MYCT[x][2]) ct[x] = MYCT[x][2]; }); if (S.share.soc && MYCT.soc[2]) ct.soc = [MYCT.soc[1], MYCT.soc[2]]; s.ct = ct; }
       add('member', k, s);
     });
     if (typeof STATS !== 'undefined') Object.keys(STATS).forEach(k => { const s = STATS[k]; if (M[k] && k !== 'club' && (k === R.key || R.base.has('stats/' + k) || s.k.size || Object.keys(s.c).length)) { add('stats', k, { c: s.c, k: [...s.k], got: s.got, lvl: s.lvl }); } });
@@ -267,6 +268,8 @@
 
   /* ---------- tout ce qui dépend des autres éléments, recalculé après chaque arrivée ---------- */
   function derive() {
+    // abonnés de chacun = adhérents qui le suivent (sans moi : l'écran du profil m'ajoute s'il le faut)
+    Object.keys(M).forEach(k => { if (k === 'club') return; M[k].fol = Object.keys(M).filter(j => j !== 'club' && j !== R.key && j !== k && (M[j].fo || []).includes(k)).length; });
     JOINREQ.length = 0;
     Object.keys(M).forEach(k => { if (k !== 'club' && M[k].req && VALID[k] !== S.season) JOINREQ.push({ id: k, n: M[k].n, mail: M[k].mail || '', via: M[k].via || 'le code du club' }); });
     const mem = Object.keys(M).filter(k => k !== 'club');
@@ -329,13 +332,17 @@
   function ops() {
     const list = [], seen = new Set(), refs = openRefs();
     collect().forEach(([coll, id, s]) => {
-      const k = coll + '/' + id; seen.add(k);
+      const k = coll + '/' + id; seen.add(k); R.snap.set(k, J(s));
       const b = R.base.get(k);
       if (R.bad.get(k) === J(s)) return;                                   // déjà refusé tel quel : on n'insiste pas
       if (!b) { if (mayWrite(coll, id, s)) list.push({ coll, id, op: 'put', data: s }); return; }
       if (J(b.data) === J(s)) return;
       let patch = diff(b.data || {}, s);
       if (!(mayWrite(coll, id, b.data) && mayWrite(coll, id, s))) patch = SELF_OK.includes(coll) ? patch.filter(selfOp) : [];
+      // profil et trophées des autres : le bureau n'envoie que ses actions de gestion (validation, trophée décerné),
+      // jamais une copie locale un peu ancienne qui écraserait leurs abonnements, coordonnées ou compteurs
+      if (coll === 'member' && id !== R.key && !(b.data && b.data.parent === R.key)) patch = R.role === 'bureau' ? patch.filter(op => ['valid', 'req', 'mail', 'via'].includes(op.p[0])) : [];
+      if (coll === 'stats' && id !== R.key) patch = patch.filter(op => op.p[0] === 'k' && op.t === 'add' && /^award:/.test(op.v));
       if (patch.length) list.push({ coll, id, op: 'patch', patch, after: patchLocal(b.data, patch), _s: s });
     });
     R.base.forEach((b, k) => {
@@ -436,6 +443,7 @@
       if (isBureau() || b.resp === me) added(a.req, b.req).forEach(k => k !== me && known(k) && once(`creq/${id}/${k}`, () => notify('club', k, `souhaite rejoindre la ${String(b.name).toLowerCase()}`, { v: 'comm', id })));
       if (added(a.mem, b.mem).includes(me)) once(`cmem/${id}`, () => notify('club', known(b.resp) ? b.resp : 'club', `t'a accepté dans la ${String(b.name).toLowerCase()}`, { v: 'comm', id }));
     }
+    if (coll === 'member' && a && id !== me && added(a.fo, b.fo).includes(me) && known(id)) once(`fo/${id}`, () => notify('mine', id, 'te suit désormais', { v: 'member', id }));
     if (coll === 'member' && id !== me && isBureau() && b.req && !(a && a.req) && b.valid !== S.season) once(`join/${id}`, () => notify('club', id, 'demande à rejoindre le club', { v: 'join' }));
   }
   /* commentaires ouverts : on redessine la fenêtre en gardant le texte en cours de saisie */
@@ -464,7 +472,7 @@
       const k = it.coll + '/' + it.id, b = R.base.get(k);
       // modifié ici depuis le dernier envoi : on garde la version locale (elle partira au prochain envoi)
       // (seulement pour ce qui est à moi : une copie divergente d'un élément des autres est remplacée par la version du serveur)
-      if (b && local.has(k) && local.get(k) !== J(b.data) && !it.del && mayWrite(it.coll, it.id, b.data)) { R.base.set(k, { data: it.data }); return; }
+      if (b && local.has(k) && local.get(k) !== R.snap.get(k) && local.get(k) !== J(b.data) && !it.del && mayWrite(it.coll, it.id, b.data)) { R.base.set(k, { data: it.data }); return; }
       applyItem(it, false);
     });
     R.rev = d.rev;
@@ -477,8 +485,16 @@
       // une seule notification par message ou publication, même s'il arrive deux fois
       const nk = kind + '/' + (o._id || o.id); if (R.notified.has(nk)) return; R.notified.add(nk);
       if (kind === 'post' && canSee(o)) {
-        const type = o.by === 'club' ? 'club' : o.kind === 'play' ? 'play' : S.follow.has(o.by) ? 'follow' : 'club';
-        notify(type, o.by, o.kind === 'perf' || o.kind === 'padel' ? 'a publié un résultat' : o.kind === 'play' ? `cherche des joueurs : ${o.play.sport.toLowerCase()}, ${o.play.date} à ${o.play.time}` : 'a publié sur le mur', { v: 'post', id: o.id });
+        // publications d'un adhérent : ses abonnés sont prévenus (résultats détaillés) ; celles du club : tout le monde
+        const type = o.by === 'club' ? 'club' : o.kind === 'play' ? 'play' : S.follow.has(o.by) ? 'follow' : '';
+        const r = o.res, pr = o.pres;
+        const txt = o.kind === 'perf' && r ? `${r.w ? (r.fin ? 'remporte le tournoi' : 'gagne') : (r.fin ? 'perd en finale' : 'perd')} contre ${r.opp} (${r.or}) : ${r.sc}${r.perf ? ' · perf !' : ''}`
+          : o.kind === 'padel' && pr ? `termine ${pr.place === '1er' ? '1er' : pr.place} en ${pr.cat} à ${pr.club}`
+          : o.kind === 'play' ? `cherche des joueurs : ${o.play.sport.toLowerCase()}, ${o.play.date} à ${o.play.time}`
+          : /^Classement/.test(ttl(o)) ? `met à jour son ${ttl(o).replace(/^Classement/, 'classement')}`
+          : 'a publié sur le mur';
+        if (pr && pr.pid === R.key) notify('mine', o.by, `a publié votre résultat : ${pr.place === '1er' ? '1re' : pr.place} place en ${pr.cat} à ${pr.club}`, { v: 'post', id: o.id });   // partenaire de padel
+        else if (type) notify(type, o.by, txt, { v: 'post', id: o.id });
       }
       if (kind === 'msg' && ref.startsWith('c:')) { const c = chans.find(x => x.id === ref.slice(2)); const v = view(); if (c && !(v.v === 'chan' && v.id === c.id)) { if (!c.mute && chanOk(c)) notify('chan', o.by, 'a écrit dans ' + c.name, { v: 'chan', id: c.id }, false); } }
     });
@@ -576,6 +592,17 @@
     sheet('Quitter le club', `<div class="body"><div class="note">Tu quittes ${e(club().name)} : ton profil et tes réglages sont retirés de l'appli du club. Tes messages restent affichés. Ton compte /RAM (le même que Padel JA) est conservé.</div><button class="btn full hot" data-a="ramLeave">Quitter ${e(club().name)}</button></div>`);
   };
   A.ramLeave = () => api('/api/ram/c/' + R.club + '/remove', { key: R.key }).then(() => { closeSheet(); stop(); LS.set('ram-club', ''); location.reload(); }, x => toast(x.message));
+  /* actualisation manuelle (tirer vers le bas) : on envoie ce qui attend, puis on recharge tout le club
+     depuis le serveur, en restant sur l'écran ouvert */
+  window.ramRefresh = async () => {
+    if (!R.live) return false;
+    await tick().catch(() => {});
+    const tab = S.tab, stack = S.stack.slice(), ct = S.clubTab, ag = S.ecTab;
+    await start(R.club);
+    S.tab = tab; S.stack = stack.filter(v => !v.id || (v.v === 'post' ? posts : v.v === 'rec' ? recs : v.v === 'chan' ? chans : v.v === 'member' ? Object.keys(M).map(id => ({ id })) : [{ id: v.id }]).some(x => x.id === v.id));
+    S.clubTab = ct; S.ecTab = ag; ramRender();
+    return true;
+  };
   A.ramSwitch = d => { closeSheet(); start(d.id).catch(x => toast(x.message)); };
   A.ramClubs = () => sheet('Mes clubs', `<div class="body"><div class="menu">${R.clubs.map(c => `<button data-a="ramSwitch" data-id="${c.id}">${ic(c.id === R.club ? 'check' : 'club')}${e(c.name)}</button>`).join('')}<button data-a="ramStart">${ic('plus')}Créer ou rejoindre un autre club</button></div></div>`);
   A.ramStart = () => onboard();

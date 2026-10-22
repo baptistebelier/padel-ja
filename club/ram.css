@@ -266,12 +266,25 @@
 .lkl.dk { background: #0B0B0B; }
 .lkl.lt { background: #F3F5FA; }
 .lkl img { max-height: 100%; max-width: 100%; object-fit: contain; }
-/* iPhone, appli installée : hauteur réelle de l'écran (voir app.js) ; le fond de la page reprend celui du club */
+/* le fond de la page reprend celui du club */
 html, body { background: var(--bg); }
-:root[data-ios-pwa] .phone { bottom: auto; height: var(--app-h); }
+/* iPhone (iOS 26), appli installée : la fenêtre est plus courte que l'écran de la hauteur de la barre d'état
+   (bug WebKit 301108), et l'iPhone ne dessine rien en dessous. Une page au moins aussi haute que l'écran
+   récupère tout l'écran : on la rallonge de la hauteur de la barre d'état (100lvh au plus). */
+@media (display-mode: standalone) {
+  html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px))); }
+}
 /* barre du bas : marge confortable avec les coins arrondis de l'écran du téléphone */
 @media (max-width: 480px) {
   .tabs, .addfab { left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px)); }
   .tabs { bottom: calc(max(12px, env(safe-area-inset-bottom, 0px) - 6px) + 8px); }
   .addfab { bottom: calc(max(12px, env(safe-area-inset-bottom, 0px) - 6px) + 88px); }
 }
+
+/* ---------- actualiser en tirant vers le bas : indicateur sous la barre du haut ---------- */
+.ptr { position: absolute; left: 50%; z-index: 4; width: 34px; height: 34px; display: grid; place-items: center; opacity: 0; pointer-events: none;
+  background: var(--card); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); transform: translate(-50%, -34px); }
+.ptr i { width: 16px; height: 16px; border: 2.5px solid var(--accent); border-top-color: transparent; border-radius: 50% !important; }
+.ptr.spin i { animation: ptrSpin .7s linear infinite; }
+@keyframes ptrSpin { to { transform: rotate(360deg); } }
+.ptr.ptr-back, #main.ptr-back { transition: transform .25s ease, opacity .25s ease; }
