@@ -338,3 +338,5 @@ html, body { background: var(--bg); }
 
 /* accueil : la frise de raccourcis respire sous la barre du haut (titre, notifications) */
 .stories { padding-top: 20px; }
+/* liste des groupes de discussion : tous dans la même carte (ordinateur), séparés par un trait */
+.lis > .li:last-child { border-bottom: 0; }
