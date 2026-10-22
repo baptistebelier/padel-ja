@@ -514,15 +514,19 @@ body.editor-page main > .acc-bar { margin: 12px 0 6px; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
 
 /* ---------- fond de l'interface (Profil › Apparence) : motifs /RAM ou uni ----------
-   Tuile sans couture en masque, colorée par le texte du thème : claire la nuit, foncée le jour, très atténuée. */
-:root[data-fond="ram-padel"] { --fond: url(/img/motifs/w31/padel.png); }
-:root[data-fond="ram-tennis"] { --fond: url(/img/motifs/w31/tennis.png); }
-:root[data-fond="ram-mixte"] { --fond: url(/img/motifs/w31/mixte.png); }
-html:root[data-fond^="ram-"] body::before, html:root[data-fond^="ram-"] body.acct::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 1;
+   Deux couches, comme RAM Club : ::before porte les pictogrammes dans la teinte du texte (brun-rouge clair la nuit,
+   foncé le jour), ::after les traces (balles, cœurs, flèches, trajectoires) dans le jaune /RAM. Contraste 1,2. */
+:root[data-fond="ram-padel"] { --fond: url(/img/motifs/w32/padel-base.png); --fond-acc: url(/img/motifs/w32/padel-accent.png); }
+:root[data-fond="ram-tennis"] { --fond: url(/img/motifs/w32/tennis-base.png); --fond-acc: url(/img/motifs/w32/tennis-accent.png); }
+:root[data-fond="ram-mixte"] { --fond: url(/img/motifs/w32/mixte-base.png); --fond-acc: url(/img/motifs/w32/mixte-accent.png); }
+html:root[data-fond^="ram-"] body::before, html:root[data-fond^="ram-"] body.acct::before,
+html:root[data-fond^="ram-"] body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 1;
   background: color-mix(in srgb, var(--ui-text, #F7EFF0) 9%, transparent);
   -webkit-mask: var(--fond) 0 0 / 800px 800px repeat; mask: var(--fond) 0 0 / 800px 800px repeat; }
-/* jour : même contraste (1,2) avec l'encre foncée du thème ;
+html:root[data-fond^="ram-"] body::after { -webkit-mask-image: var(--fond-acc); mask-image: var(--fond-acc); background: color-mix(in srgb, #E0F50A 16%, transparent); }
+/* jour : encre foncée du thème ; le jaune est assombri pour rester lisible sur fond clair.
    .acct : passe devant la trame de points du thème jour des pages compte */
 html:root[data-theme="light"][data-fond^="ram-"] body::before, html:root[data-theme="light"][data-fond^="ram-"] body.acct::before { background: color-mix(in srgb, var(--ui-text, #2A0A12) 9%, transparent); }
+html:root[data-theme="light"][data-fond^="ram-"] body::after { background: color-mix(in srgb, #8E9C00 26%, transparent); }
 html:root[data-fond="plain"] body::before, html:root[data-fond="plain"] body.acct::before { background: none; }
 html, body { overscroll-behavior-x: none; } /* pas de retour arrière par glissement horizontal (Android) */

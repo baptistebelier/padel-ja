@@ -83,9 +83,9 @@ body[data-look] #stage::before { transition: opacity .6s; }
 /* motifs /RAM : tuile sans couture en masque (blanc très atténué), affichée à 800 px (double résolution, trait de 1,5 px, contraste 1,2 comme WhatsApp) */
 .look-bg-ram-padel #stage::before, .look-bg-ram-tennis #stage::before, .look-bg-ram-mixte #stage::before {
   background: #ffffff17; -webkit-mask: var(--ram-motif) 0 0 / 800px 800px repeat; mask: var(--ram-motif) 0 0 / 800px 800px repeat; }
-.look-bg-ram-padel { --ram-motif: url(/img/motifs/w31/padel.png); }
-.look-bg-ram-tennis { --ram-motif: url(/img/motifs/w31/tennis.png); }
-.look-bg-ram-mixte { --ram-motif: url(/img/motifs/w31/mixte.png); }
+.look-bg-ram-padel { --ram-motif: url(/img/motifs/w32/padel.png); }
+.look-bg-ram-tennis { --ram-motif: url(/img/motifs/w32/tennis.png); }
+.look-bg-ram-mixte { --ram-motif: url(/img/motifs/w32/mixte.png); }
 
 /* --- bandes décoratives --- */
 .look-nodeco .deco { display: none; }
