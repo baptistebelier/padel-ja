@@ -19,13 +19,16 @@ function render(keep){const v=view(),key=v.v+(v.id||''),main=$('main'),y=main.sc
  main.innerHTML=pending()&&!lockOk(v)?lockView(v):V[v.v](v.id);
  main.querySelectorAll(strips).forEach((e,i)=>{if(sx[i])e.scrollLeft=sx[i]});
  const foot=$('foot'),tabs=$('tabs'),liveRec=v.v==='rec'&&recs.find(r=>r.id===v.id).st==='live',fk=key+(liveRec?'L':'');
- if(v.v==='chan'||liveRec){foot.hidden=false;tabs.hidden=true;
+ /* menu de navigation : caché dans une discussion sur téléphone (la barre de saisie prend sa place), toujours visible avec le menu latéral (ordinateur) */
+ const showTabs=!(v.v==='chan'||liveRec)||sideNav();
+ if(v.v==='chan'||liveRec){foot.hidden=false;tabs.hidden=!showTabs;
   if(fk!==lastFoot){const c=v.v==='chan'?chans.find(c=>c.id===v.id):null;S.img=null;S.reply=null;
    foot.innerHTML=c&&c.ro&&!isAdmin()?'<div class="muted small" style="text-align:center;padding:8px">Seul le club publie dans ce groupe.</div>':`<div class="att" id="att" hidden></div><form class="composer" id="composer"><label class="attach" aria-label="Joindre une photo">${ic('image')}<input type="file" id="m-img" accept="image/*"></label><textarea id="msg-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="${c?(c.ro?'Publier au nom du club':'Écrire dans '+esc(c.name)):"Encourager l'équipe en direct"}" aria-label="Message"></textarea><button class="send" aria-label="Envoyer">${ic('send')}</button></form>`}}
- else{foot.hidden=true;tabs.hidden=false;const un=pending()?0:chans.reduce((a,c)=>a+(c.mute||!chanOk(c)?0:c.un),0),tb=(k,i,l)=>`<button data-a="tab" data-t="${k}" ${S.tab===k?'aria-current="page"':''}>${ic(i)}${l}${k==='chans'&&un?`<span class="cnt">${un}</span>`:''}</button>`;
+ else foot.hidden=true;
+ if(showTabs){tabs.hidden=false;const un=pending()?0:chans.reduce((a,c)=>a+(c.mute||!chanOk(c)?0:c.un),0),tb=(k,i,l)=>`<button data-a="tab" data-t="${k}" ${S.tab===k?'aria-current="page"':''}>${ic(i)}${l}${k==='chans'&&un?`<span class="cnt">${un}</span>`:''}</button>`;
   tabs.innerHTML=tb('home','home','Accueil')+tb('chans','chat','Groupes')+tb('agenda','cal','Agenda')+tb('ecole','school','École')+tb('club','club','Club')+tb('me','user','Profil');tabs.insertAdjacentHTML('afterbegin','<span class="pill" id="tpill" aria-hidden="true"></span>');pillTo(tabs.querySelector('[aria-current]'),true)}
  if(pending()&&!lockOk(v))foot.hidden=true;
- $('phone').classList.toggle('notabs',tabs.hidden);
+ $('phone').classList.toggle('notabs',tabs.hidden);$('phone').classList.toggle('withfoot',!foot.hidden);
  /* Bouton flottant « Ajouter du contenu » : sur le mur, seulement pour ceux qui peuvent publier */
  let fab=$('addfab');if(!fab){fab=document.createElement('button');fab.id='addfab';fab.className='addfab';fab.dataset.a='plus';fab.innerHTML=`${ic('plus')}Ajouter du contenu`;$('phone').appendChild(fab)}
  const showFab=v.v==='home'&&!S.stack.length&&canPublish()&&!pending()&&!tabs.hidden;fab.hidden=!showFab;$('phone').classList.toggle('fab',showFab);
@@ -544,7 +547,7 @@ document.addEventListener('touchend',e=>{if(banY===null)return;const d=e.changed
 let saved=0;try{saved=+localStorage.getItem('club-theme')||0}catch(e){}
 setTheme(CLUBS[saved]?saved:0);render();
 /* passage téléphone ↔ ordinateur (fenêtre redimensionnée) : le curseur se recale sur l'onglet actif */
-matchMedia('(min-width:1024px)').addEventListener('change',()=>{pillPos=null;pillTo($('tabs').querySelector('[aria-current]'))});
+matchMedia('(min-width:1024px)').addEventListener('change',()=>{pillPos=null;render(true);pillTo($('tabs').querySelector('[aria-current]'))});
 
 /* ---------- Ouvrir un écran depuis une adresse (notification push, lien partagé) ----------
    Formats : #/rec/r1  #/chan/general  #/post/p1  #/agenda/cours  #/notifs  #/me */

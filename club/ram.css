@@ -301,3 +301,10 @@ html, body { background: var(--bg); }
 .msg.me .bubw { margin-right: 10px; }
 .msg.me .reacts { margin-right: 10px; }
 .msg, .msg.me { overflow: visible; }   /* la pointe dépasse de la bulle */
+
+/* ---------- barre de saisie des discussions : bandeau opaque, comme la barre du haut, sur toute la largeur ---------- */
+.phone > .foot { background: var(--bg); }
+.phone.withfoot #main { padding-bottom: 0; }
+/* photo de profil du club : remplit tout le cercle (les coins d'une image carrée sont rognés) */
+.av.club.logo, .crest.logo { background-size: cover; background-color: transparent; }
+.av { background-size: cover; background-position: center; background-repeat: no-repeat; }
