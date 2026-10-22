@@ -38,7 +38,10 @@
 /* écran de lancement /RAM Club : retiré dès que l'appli est prête */
 /* il attend aussi le chargement du club (4 s au plus) pour ne pas montrer la démo avant le vrai club */
 Promise.all([new Promise(r=>setTimeout(r,700)),Promise.race([window.ramReady||Promise.resolve(),new Promise(r=>setTimeout(r,4000))])]).then(()=>{const s=document.getElementById('ramSplash');if(s){s.classList.add('out');setTimeout(()=>s.remove(),400)}});
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+/* Mises à jour : l'appli vérifie s'il existe une nouvelle version à chaque retour au premier plan, et se recharge d'elle-même dès qu'elle est installée (une fois, jamais pendant une saisie) */
+if('serviceWorker' in navigator){const had=!!navigator.serviceWorker.controller;let done=false;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had||done)return;done=true;const go=()=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)){setTimeout(go,4000);return}location.reload()};go()});
+ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(reg=>{document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{})})}).catch(()=>{}))}
 </script>
 </body>
 </html>

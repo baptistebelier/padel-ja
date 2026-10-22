@@ -269,3 +269,9 @@
 /* iPhone, appli installée : hauteur réelle de l'écran (voir app.js) ; le fond de la page reprend celui du club */
 html, body { background: var(--bg); }
 :root[data-ios-pwa] .phone { bottom: auto; height: var(--app-h); }
+/* barre du bas : marge confortable avec les coins arrondis de l'écran du téléphone */
+@media (max-width: 480px) {
+  .tabs, .addfab { left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px)); }
+  .tabs { bottom: calc(max(12px, env(safe-area-inset-bottom, 0px) - 6px) + 8px); }
+  .addfab { bottom: calc(max(12px, env(safe-area-inset-bottom, 0px) - 6px) + 88px); }
+}
