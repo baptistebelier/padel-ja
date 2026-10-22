@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "test:ecrans": "node --test ecrans/ecrans.ecran.mjs"
+    "test:ecrans": "node --test --test-timeout=90000 ecrans/ecrans.ecran.mjs"
   },
   "license": "UNLICENSED",
   "private": true,
