@@ -263,7 +263,7 @@ function applyServerAction(room, action) {
    --------------------------------------------------------------------- */
 const publicPlayer = pl => ({ id: pl.id, last: pl.last, first: pl.first, licence: pl.licence, rank: pl.rank });
 async function upsertPlayerFrom(pl, owner) {
-  const licence = String(pl.licence || '').replace(/\s+/g, '');
+  const licence = String(pl.licence || '').replace(/\s+/g, '').toUpperCase();   // chiffres et une lettre : même numéro quelle que soit la casse
   const last = String(pl.last || '').trim().toUpperCase(), first = String(pl.first || '').trim();
   const nameKey = norm(last) + '|' + norm(first);
   let p = (pl.playerId && await store.getPlayer(pl.playerId)) || await store.findPlayer(licence, nameKey);
@@ -734,7 +734,7 @@ const server = http.createServer(async (req, res) => {
           .map(x => ({ tournament: x.t_name, club: x.t_club, category: x.t_category, gender: x.t_gender, date: x.t_date, place: x.place, placeLo: x.place_lo, points: x.points, partner: x.partner, pairs: x.n_pairs })) })); };
       if (req.method === 'POST') {
         const b = await readBody(req);
-        if (b.licence !== undefined) id.licence = String(b.licence || '').replace(/\s+/g, '').slice(0, 20);
+        if (b.licence !== undefined) id.licence = String(b.licence || '').replace(/\s+/g, '').toUpperCase().slice(0, 20);   // les licences comportent une lettre
         if (b.dismiss) id.dismissed = [...new Set([...(id.dismissed || []), String(b.dismiss)])].slice(-20);
         if (b.player !== undefined) {
           const pl = b.player ? await store.getPlayer(String(b.player)).catch(() => null) : null;
