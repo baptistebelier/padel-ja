@@ -308,3 +308,15 @@ html, body { background: var(--bg); }
 /* photo de profil du club : remplit tout le cercle (les coins d'une image carrée sont rognés) */
 .av.club.logo, .crest.logo { background-size: cover; background-color: transparent; }
 .av { background-size: cover; background-position: center; background-repeat: no-repeat; }
+
+/* ---------- trophées : chaque section sur un fond uni (les trophées pas encore obtenus restent lisibles) ---------- */
+.tsec { background: var(--card); border: 1px solid var(--line); box-shadow: 5px 5px 0 var(--ram-hard); padding: 4px 14px; }
+.tsec .tro:last-child, .tsec .item:last-child { border-bottom: 0; }
+.thero.tsec { padding: 14px; }
+.frames.tsec { padding: 6px 10px 14px; }
+
+/* ---------- boutons « contour » : plus de bouton transparent sur le fond à motif ----------
+   Fond plein ton sur ton : un gris à peine plus clair que le fond en mode sombre, la couleur du fond en mode clair. */
+.btn.ghost { background: color-mix(in srgb, var(--fg) 7%, var(--bg)); }
+:root[style*="color-scheme: light"] .btn.ghost { background: var(--bg); }
+.thero .grow > .muted.small { display: block; }   /* points et trophées sur deux lignes distinctes */
