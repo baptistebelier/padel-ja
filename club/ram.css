@@ -266,3 +266,6 @@
 .lkl.dk { background: #0B0B0B; }
 .lkl.lt { background: #F3F5FA; }
 .lkl img { max-height: 100%; max-width: 100%; object-fit: contain; }
+/* iPhone, appli installée : hauteur réelle de l'écran (voir app.js) ; le fond de la page reprend celui du club */
+html, body { background: var(--bg); }
+:root[data-ios-pwa] .phone { bottom: auto; height: var(--app-h); }

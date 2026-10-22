@@ -2,7 +2,7 @@
 let lastKey='',lastFoot='',slT,toastT;
 function slide(c){const m=$('main');m.classList.remove('pg-r','pg-l','sg-r','sg-l');void m.offsetWidth;m.classList.add(c);clearTimeout(slT);slT=setTimeout(()=>m.classList.remove(c),320)}
 const ROLE={wait:"Nouvel inscrit en attente de validation",admin:'Bureau du club',cap:'Capitaine',mem:'Adhérent et parent',coach:'Enseignante',kid:'Compte jeune'};
-const TITLES={home:()=>[club().name,'Le mur du club'],chans:()=>['Groupes',club().name],agenda:()=>['Agenda','Cours, équipes et événements'],teamarch:()=>{const [id,s]=view().id.split('|');return [teamName(grp(id)),'Saison '+s]},ecole:()=>['École','Cours et stages'],club:()=>['Le club','Saison '+S.season],me:()=>['Mon profil',ROLE[S.role]],
+const TITLES={home:()=>['Accueil','Le mur du club'],chans:()=>['Groupes',club().name],agenda:()=>['Agenda','Cours, équipes et événements'],teamarch:()=>{const [id,s]=view().id.split('|');return [teamName(grp(id)),'Saison '+s]},ecole:()=>['École','Cours et stages'],club:()=>['Le club','Saison '+S.season],me:()=>['Mon profil',ROLE[S.role]],
  admin:()=>[isAdmin()?'Gérer le club':S.role==='coach'?'Mes groupes':'Mon équipe','Édition'],list:()=>['Adhérents',club().name],reports:()=>['Signalements','Modération'],legal:()=>['Mentions',club().name],post:()=>['Publication',club().name],art:()=>['Actus',club().name],partners:()=>['Partenaires',club().name],archive:()=>['Archives','Saisons précédentes'],join:()=>['Adhérents',"Faire entrer le club"]};
 function render(keep){const v=view(),key=v.v+(v.id||''),main=$('main'),y=main.scrollTop;let t,sub;
  if(TITLES[v.v])[t,sub]=TITLES[v.v]();
@@ -616,3 +616,12 @@ A.motif=d=>{setMotif(d.k);render(true)};
   if(dx>w*.33||fast){move(w);setTimeout(()=>{reset();S.dir=0;S.stack.pop();render();try{navigator.vibrate&&navigator.vibrate(8)}catch(_){}},180)}
   else{move(0);setTimeout(reset,190)}});
  document.addEventListener('touchcancel',()=>{if(on){on=false;reset()}});})();
+
+/* ---------- iPhone, appli installée sur l'écran d'accueil ----------
+   Avec la barre d'état transparente, l'iPhone annonce une hauteur de fenêtre amputée de la barre d'état :
+   l'appli s'arrêtait avant le bas de l'écran. On prend la hauteur réelle de l'écran (portrait comme paysage). */
+(function(){const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ if(!ios||!(navigator.standalone===true||matchMedia('(display-mode: standalone)').matches))return;
+ const fit=()=>{const port=innerHeight>=innerWidth,h=port?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
+  if(h>innerHeight){document.documentElement.style.setProperty('--app-h',h+'px');document.documentElement.dataset.iosPwa='1'}else{delete document.documentElement.dataset.iosPwa}};
+ fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,350))})();

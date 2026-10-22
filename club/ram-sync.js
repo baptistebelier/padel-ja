@@ -385,7 +385,10 @@
   const removed = (x, y) => (x || []).filter(v => !(y || []).includes(v));
   const ttl = p => String(p.title || p.q || '').replace(/<[^>]+>/g, '').trim();
   const quoted = p => ttl(p) ? ` « ${ttl(p)} »` : '';
-  const once = (k, fn) => { if (R.notified.has(k)) return; R.notified.add(k); fn(); };
+  // une même action ne notifie qu'une fois (même si elle arrive deux fois), mais on est de nouveau prévenu si elle se répète plus tard
+  // (se désister puis revenir sur une partie, retirer puis remettre un like…)
+  const recent = new Map();
+  const once = (k, fn) => { const t = Date.now(), last = recent.get(k); if (last && t - last < 1500) return; recent.set(k, t); fn(); };
   const goRef = ref => ref.startsWith('c:') ? { v: 'chan', id: ref.slice(2) } : ref.startsWith('r:') ? { v: 'rec', id: ref.slice(2) } : { v: 'post', id: ref.slice(2) };
   const known = k => k === 'club' || !!M[k];
   function notifyDiff(coll, id, a, b) {
@@ -406,8 +409,8 @@
       }
       if (mine && b.play && a.play) {
         const y = b.play, when = `${y.date} à ${y.time}`;
-        added(a.play.in, y.in).forEach(k => k !== me && known(k) && once(`play/${id}/${k}/${(y.in || []).length}`, () => notify('play', k, `rejoint ta partie du ${when}`, go)));
-        removed(a.play.in, y.in).forEach(k => k !== me && known(k) && notify('play', k, `se désiste de ta partie du ${when}`, go));
+        added(a.play.in, y.in).forEach(k => k !== me && known(k) && once(`play/${id}/${k}`, () => notify('play', k, `rejoint ta partie du ${when}`, go)));
+        removed(a.play.in, y.in).forEach(k => k !== me && known(k) && once(`out/${id}/${k}`, () => notify('play', k, `se désiste de ta partie du ${when}`, go)));
         added(a.play.wait, y.wait).forEach(k => k !== me && known(k) && once(`wait/${id}/${k}`, () => notify('play', k, `se met en liste d'attente pour ta partie du ${when}`, go)));
       }
     }
