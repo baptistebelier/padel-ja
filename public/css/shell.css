@@ -515,12 +515,12 @@ body.editor-page main > .acc-bar { margin: 12px 0 6px; }
 
 /* ---------- fond de l'interface (Profil › Apparence) : motifs /RAM ou uni ----------
    Tuile sans couture en masque, colorée par le texte du thème : claire la nuit, foncée le jour, très atténuée. */
-:root[data-fond="ram-padel"] { --fond: url(/img/motifs/w30/padel.png); }
-:root[data-fond="ram-tennis"] { --fond: url(/img/motifs/w30/tennis.png); }
-:root[data-fond="ram-mixte"] { --fond: url(/img/motifs/w30/mixte.png); }
+:root[data-fond="ram-padel"] { --fond: url(/img/motifs/w31/padel.png); }
+:root[data-fond="ram-tennis"] { --fond: url(/img/motifs/w31/tennis.png); }
+:root[data-fond="ram-mixte"] { --fond: url(/img/motifs/w31/mixte.png); }
 html:root[data-fond^="ram-"] body::before, html:root[data-fond^="ram-"] body.acct::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 1;
   background: color-mix(in srgb, var(--ui-text, #F7EFF0) 9%, transparent);
-  -webkit-mask: var(--fond) 0 0 / 1000px 1000px repeat; mask: var(--fond) 0 0 / 1000px 1000px repeat; }
+  -webkit-mask: var(--fond) 0 0 / 800px 800px repeat; mask: var(--fond) 0 0 / 800px 800px repeat; }
 /* jour : même contraste (1,2) avec l'encre foncée du thème ;
    .acct : passe devant la trame de points du thème jour des pages compte */
 html:root[data-theme="light"][data-fond^="ram-"] body::before, html:root[data-theme="light"][data-fond^="ram-"] body.acct::before { background: color-mix(in srgb, var(--ui-text, #2A0A12) 9%, transparent); }
