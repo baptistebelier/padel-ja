@@ -1,4 +1,4 @@
-# Mettre Padel JA en ligne — guide pas à pas
+# Mettre /RAM JA en ligne — guide pas à pas
 
 Objectif : `https://ja.riseandmove.fr`, une page de présentation pour les clubs, une démo en un clic et des comptes juge-arbitre.
 
@@ -51,7 +51,7 @@ Ta boutique n'est pas touchée : on ajoute seulement un sous-domaine.
 ---
 
 ## Et ensuite
-- **Abonnements via Shopify** : produit « Padel JA » plus l'app *Shopify Subscriptions*. Le logiciel active le compte automatiquement après l'achat.
+- **Abonnements via Shopify** : produit « /RAM JA » plus l'app *Shopify Subscriptions*. Le logiciel active le compte automatiquement après l'achat.
 - **Mot de passe oublié** par e-mail (Brevo, gratuit).
 - **Mode hors connexion** pour les clubs avec un Wi-Fi faible.
 - **Page publique** du tournoi pour les joueurs (QR code au club).
