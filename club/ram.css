@@ -16,11 +16,11 @@
 
 /* ---------- boutons « sticker » : ombre dure rose, qui s'écrase à l'appui ---------- */
 .btn:not(.ghost), .addfab, .ib.acc {
-  box-shadow: 4px 4px 0 var(--hot);
+  box-shadow: 4px 4px 0 var(--accent2, var(--hot));
   transition: transform .12s ease, box-shadow .12s ease;
 }
 .btn.hot { box-shadow: 4px 4px 0 var(--accent); }
-.btn:not(.ghost):active, .addfab:active, .ib.acc:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--hot); }
+.btn:not(.ghost):active, .addfab:active, .ib.acc:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--accent2, var(--hot)); }
 .btn.ghost { box-shadow: inset 0 0 0 1.5px var(--line); }
 
 /* ---------- cartes : bord fin et ombre dure, comme les fiches de Padel JA ---------- */
@@ -28,7 +28,7 @@
 .sheet { border-top: 3px solid var(--accent); }
 
 /* ---------- pastilles d'en-tête (crest du club) et stories : carrés penchés ---------- */
-.crest { transform: rotate(-3deg); box-shadow: 3px 3px 0 var(--hot); }
+.crest { transform: rotate(-3deg); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); }
 .ring { transform: rotate(-2deg); box-shadow: 4px 4px 0 var(--ram-hard); }
 .story:nth-child(even) .ring { transform: rotate(2deg); }
 
@@ -46,7 +46,7 @@
 /* club aux couleurs claires (app.js pose color-scheme: light sur la page) : barre claire, un ton sous les cartes */
 :root[style*="color-scheme: light"] { --ram-hard: rgba(0, 0, 0, .16); }
 :root[style*="color-scheme: light"] .tabs { background: color-mix(in srgb, color-mix(in srgb, var(--card) 84%, var(--fg)) 94%, transparent); }
-.pill { background: var(--accent) !important; box-shadow: 3px 3px 0 var(--hot); top: 6px; bottom: 6px; }
+.pill { background: var(--accent) !important; box-shadow: 3px 3px 0 var(--accent2, var(--hot)); top: 6px; bottom: 6px; }
 .tabs button { z-index: 1; transition: color .2s; }
 .tabs button[aria-current="page"] { color: var(--on-accent); }
 .tabs.drag button[aria-current="page"] { color: var(--muted); }
@@ -93,9 +93,9 @@
   :root[style*="color-scheme: light"] .tabs { background: color-mix(in srgb, var(--card) 90%, var(--fg)); }
   .tabs::before {
     content: ""; position: absolute; left: 22px; top: calc(26px + env(safe-area-inset-top, 0px)); width: 176px; height: 80px;
-    background: url("img/ram-club-blanc.png") left center / contain no-repeat;
+    background: var(--rail-logo, url("img/ram-club-blanc.png")) left center / contain no-repeat;
   }
-  :root[style*="color-scheme: light"] .tabs::before { background-image: url("img/ram-club-noir.png"); }
+  
   .tabs button {
     flex: none; flex-direction: row; justify-content: flex-start; gap: 14px; min-height: 50px; padding: 0 16px;
     font-size: 17px; letter-spacing: .03em; color: var(--muted);
@@ -180,7 +180,7 @@
 .bub time { align-self: flex-end; font-size: 11px; line-height: 1; color: var(--muted); margin-top: 1px; }
 .bub .quote { margin-top: 0; }
 .bub .mph { margin-top: 2px; width: 230px; }
-.msg.me .bub { background: var(--accent); color: var(--on-accent); border-color: transparent; box-shadow: 3px 3px 0 var(--hot); }
+.msg.me .bub { background: var(--accent); color: var(--on-accent); border-color: transparent; box-shadow: 3px 3px 0 var(--accent2, var(--hot)); }
 .msg.me .bub time { color: color-mix(in srgb, var(--on-accent) 62%, transparent); }
 .msg.me .bub .quote { background: color-mix(in srgb, var(--on-accent) 12%, transparent); color: var(--on-accent); border-left-color: var(--on-accent); }
 .msg .reacts { margin-top: 5px; }
@@ -206,7 +206,7 @@
 #main, .foot { position: relative; z-index: 1; }
 .motifs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .motifs button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1.5px solid var(--line); background: var(--card2); font-family: var(--f-sub); font-weight: 600; font-size: 12px; color: var(--fg); }
-.motifs button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 3px 3px 0 var(--hot); }
+.motifs button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); }
 .motifs i { width: 100%; height: 38px; background-color: var(--bg); --mc: color-mix(in srgb, var(--fg) 22%, transparent); }
 .motifs i.dots { background-image: radial-gradient(var(--mc) 1px, transparent 1.3px); background-size: 7px 7px; }
 .motifs i.grid { background-image: linear-gradient(var(--mc) 1px, transparent 1px), linear-gradient(90deg, var(--mc) 1px, transparent 1px); background-size: 14px 14px; }
@@ -252,3 +252,17 @@
   .nstack { left: calc(var(--side) + 24px); right: max(24px, env(safe-area-inset-right, 0px)); }
   #main, .phone.fab #main { padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* =========================================================================
+   Identité du club (22/10/2026)
+   Barre du haut : titre et sous-titre seuls, précédés du logo entier du club
+   sur téléphone et tablette. Sur ordinateur, le logo est en haut du menu
+   latéral : pas de doublon dans la barre du haut.
+   ========================================================================= */
+.toplogo { display: block; flex: none; height: 38px; width: auto; max-width: 128px; object-fit: contain; object-position: left center; margin-right: 4px; }
+@media (min-width: 1024px) { .toplogo { display: none; } }
+/* aperçus des logos dans « Apparence du club » : sur fond sombre et sur fond clair */
+.lkl { display: flex; align-items: center; justify-content: center; height: 72px; margin-top: 8px; padding: 10px; border: 1px solid var(--line); }
+.lkl.dk { background: #0B0B0B; }
+.lkl.lt { background: #F3F5FA; }
+.lkl img { max-height: 100%; max-width: 100%; object-fit: contain; }

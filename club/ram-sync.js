@@ -97,7 +97,7 @@
     const prev = (c, id) => (R.base.get(c + '/' + id) || {}).data;
     const at = (o, coll) => { if (!o.at && !R.base.has(coll + '/' + o.id)) o.at = Date.now(); };
     const c = club();
-    add('conf', 'main', { name: c.name, short: c.short, label: c.label || c.name, dark: !!c.dark, accent: c.accent, hot: c.hot, logo: c.logo || null,
+    add('conf', 'main', { name: c.name, short: c.short, label: c.label || c.name, dark: !!c.dark, accent: c.accent, accent2: c.accent2 || null, hot: c.hot, logo: c.logo || null, logoL: c.logoL || null, logoD: c.logoD || null,
       bg: c.bg, card: c.card, card2: c.card2, line: c.line, fg: c.fg, muted: c.muted, info: strip(CLUBINFO, ['joined', 'members', 'code']), form: FORM, season: S.season });
     posts.forEach(p => { if (!p.id) p.id = newId('p'); add('post', p.id, postOut(p, prev('post', p.id))); });
     chans.forEach(ch => { at(ch, 'chan'); add('chan', ch.id, strip(ch, ['msgs', 'un', 'mute'])); });
@@ -185,7 +185,7 @@
       case 'conf': {
         CLUBS.length = 1; const c = CLUBS[0] || (CLUBS[0] = {});
         Object.keys(c).forEach(k => delete c[k]);
-        ['name', 'short', 'label', 'dark', 'accent', 'hot', 'logo', 'bg', 'card', 'card2', 'line', 'fg', 'muted'].forEach(k => { if (s[k] != null) c[k] = s[k]; });
+        ['name', 'short', 'label', 'dark', 'accent', 'accent2', 'hot', 'logo', 'logoL', 'logoD', 'bg', 'card', 'card2', 'line', 'fg', 'muted'].forEach(k => { if (s[k] != null) c[k] = s[k]; });
         Object.keys(CLUBINFO).forEach(k => delete CLUBINFO[k]); Object.assign(CLUBINFO, copy(s.info || {}));
         CLUBINFO.mods = CLUBINFO.mods || { actus: true, comm: true };
         if (R.code) CLUBINFO.code = R.code;
