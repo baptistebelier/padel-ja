@@ -20,7 +20,7 @@
   const isObj = o => o && typeof o === 'object' && !Array.isArray(o);
   const LS = { get(k) { try { return localStorage.getItem(k); } catch (x) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (x) {} } };
 
-  const R = window.RAM = { user: undefined, clubs: [], club: null, key: null, role: null, rev: 0, base: new Map(), bad: new Map(), snap: new Map(), notified: new Set(), fol: {}, roles: {}, live: false };
+  const R = window.RAM = { user: undefined, clubs: [], club: null, key: null, role: null, rev: 0, base: new Map(), bad: new Map(), snap: new Map(), notified: new Set(), fol: {}, roles: {}, scores: {}, live: false };
   let readyFn; window.ramReady = new Promise(r => { readyFn = r; });
 
   async function api(path, body) {
@@ -464,6 +464,8 @@
       if (opened) toast('Ton accès au club est validé : bienvenue !');
       return;
     }
+    // scores d'investissement calculés par le serveur : identiques pour tous les comptes
+    if (d.scores) { const ch = Object.keys(d.scores).some(k => d.scores[k] !== R.scores[k]); R.scores = d.scores; if (ch && !d.items.length) render(true); }
     if (!d.items.length) { R.rev = d.rev; return; }
     const local = new Map(collect().map(([coll, id, s]) => [coll + '/' + id, J(s)]));
     const before = new Map(d.items.map(it => { const b = R.base.get(it.coll + '/' + it.id); return [it.coll + '/' + it.id, b ? b.data : null]; }));
@@ -565,7 +567,7 @@
   async function start(id) {
     const d = await api('/api/ram/c/' + id + '/sync?since=0');
     stop(); wipe();
-    R.club = id; R.key = d.me.key; R.role = d.me.role; R.valid = d.me.valid; R.loadAt = Date.now(); R.code = d.club.code; R.fol = d.fol || {}; R.roles = d.roles || {}; R.base = new Map(); R.bad = new Map();
+    R.club = id; R.key = d.me.key; R.role = d.me.role; R.valid = d.me.valid; R.loadAt = Date.now(); R.code = d.club.code; R.fol = d.fol || {}; R.roles = d.roles || {}; R.scores = d.scores || {}; R.base = new Map(); R.bad = new Map();
     window.RAM_KEY = R.key;
     const order = ['conf', 'member', 'prefs', 'stats', 'chan', 'group', 'champ', 'rec', 'post', 'art', 'partner', 'comm', 'claim', 'msg', 'report'];
     d.items.sort((a, b) => order.indexOf(a.coll) - order.indexOf(b.coll)).forEach(it => applyItem(it, true));

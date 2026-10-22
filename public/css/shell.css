@@ -1,5 +1,5 @@
 /* =========================================================================
-   PADEL JA — rail de navigation principal + pages de l'espace juge-arbitre
+   RAM JA — rail de navigation principal + pages de l'espace juge-arbitre
    (tableau de bord, mes tournois, calendrier, joueurs, profil, admin)
    Utilise les variables --ui-* de ui.css (thèmes jour / nuit).
    ========================================================================= */
@@ -525,3 +525,4 @@ html:root[data-fond^="ram-"] body::before, html:root[data-fond^="ram-"] body.acc
    .acct : passe devant la trame de points du thème jour des pages compte */
 html:root[data-theme="light"][data-fond^="ram-"] body::before, html:root[data-theme="light"][data-fond^="ram-"] body.acct::before { background: color-mix(in srgb, var(--ui-text, #2A0A12) 9%, transparent); }
 html:root[data-fond="plain"] body::before, html:root[data-fond="plain"] body.acct::before { background: none; }
+html, body { overscroll-behavior-x: none; } /* pas de retour arrière par glissement horizontal (Android) */

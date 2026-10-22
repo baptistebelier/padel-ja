@@ -352,6 +352,23 @@ html, body { background: var(--bg); }
 .stories { padding-top: 20px; }
 /* liste des groupes de discussion : tous dans la même carte (ordinateur), séparés par un trait */
 .lis > .li:last-child { border-bottom: 0; }
+/* téléphone et tablette : même carte opaque, ton sur ton, que sur ordinateur (le motif ne passe plus derrière le texte) */
+@media (max-width: 1023px) {
+  .lis { background: var(--card); border: 1px solid var(--line); box-shadow: 4px 4px 0 var(--ram-hard); margin: 12px 0 18px; }
+  .lis > .li { border-bottom: 1px solid var(--line); }
+}
+/* palmarès : chaque résultat dans son propre cadre uni */
+.palm .res { background: var(--card); border: 1px solid var(--line); padding: 8px 12px; margin-bottom: 8px; box-shadow: 3px 3px 0 var(--ram-hard); }
+.palm .swipe { border-bottom: 0; margin-bottom: 8px; gap: 8px; }
+.palm .swipe .res { margin-bottom: 0; box-shadow: none; }
+/* ordinateur (souris) : pas de glissement, la corbeille est toujours visible au bout de la ligne */
+@media (hover: hover) and (pointer: fine) {
+  .palm .swipe { overflow: visible; gap: 0; box-shadow: 3px 3px 0 var(--ram-hard); }
+  .palm .swipe .res { flex: 1 1 auto; min-width: 0; }
+  .palm .swipe .del { flex: 0 0 48px; border-radius: 0; background: var(--card); color: var(--muted); border: 1px solid var(--line); border-left: 0; cursor: pointer; transition: background .15s, color .15s; }
+  .palm .swipe .del:hover { background: var(--hot); color: var(--on-hot); }
+  .palm .swipehint { display: none; }
+}
 
 /* =========================================================================
    VERSION ORDINATEUR, direction artistique de Padel JA (22/10/2026)
@@ -416,6 +433,21 @@ html, body { background: var(--bg); }
   .back.side .grab { display: none; }
 }
 @keyframes ramSlideL { from { transform: translateX(100%); } to { transform: none; } }
+/* fermeture du volet latéral : il ressort par la droite */
+@media (min-width: 1024px) {
+  .back.side.out { animation: ramFadeOut .22s ease-in forwards; pointer-events: none; }
+  .back.side.out .sheet { animation: ramSlideOut .22s cubic-bezier(.4, 0, .9, .6) forwards !important; }
+}
+@keyframes ramSlideOut { to { transform: translateX(100%); } }
+@keyframes ramFadeOut { to { opacity: 0; } }
+/* ordinateur : le sous-menu glisse en entrant (page qui en a un) et en sortant (page qui n'en a pas) */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  #main > .seg.seg-in { animation: ramSegIn .26s cubic-bezier(.2, .8, .2, 1); }
+  #main > .seg.seg-out { animation: ramSegOut .24s cubic-bezier(.4, 0, .9, .6) forwards; pointer-events: none; }
+}
+@media (min-width: 1024px) { #main > .seg.seg-out { pointer-events: none; } }
+@keyframes ramSegIn { from { transform: translateX(-100%); } }
+@keyframes ramSegOut { to { transform: translateX(-100%); } }
 /* téléphone et tablette : le logo du club n'est affiché que sur les écrans principaux */
 .toplogo.sub { display: none; }
 
@@ -438,8 +470,9 @@ html, body { background: var(--bg); }
   :root[style*="color-scheme: light"] .tabs { background: #16181F !important; }
   .tabs::before { left: calc(10px + env(safe-area-inset-left, 0px)); top: calc(16px + env(safe-area-inset-top, 0px)); width: 64px; height: 60px; }
   .tabs button[data-t="me"] { display: none; }
+  /* .rbot est hors de la barre d'onglets : sans display:flex ici, ses icônes restaient collées à gauche */
   .tabs button, .rbot button {
-    flex-direction: column; justify-content: center; gap: 4px; width: 68px; min-height: 58px; padding: 7px 2px; border: 0; position: relative;
+    display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 4px; width: 68px; min-height: 58px; padding: 7px 2px; border: 0; position: relative;
     font: 600 10.5px/1.15 var(--f-body); letter-spacing: 0; text-transform: none; text-align: center; color: rgba(255, 255, 255, .66); background: transparent; box-shadow: none;
     transition: background .15s, color .15s;
   }

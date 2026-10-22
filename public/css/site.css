@@ -1,4 +1,4 @@
-/* PADEL JA — site public, connexion, tableau de bord (charte /RAM) */
+/* RAM JA — site public, connexion, tableau de bord (charte /RAM) */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--ink); color: var(--white); font: 16px/1.6 var(--body); overflow-x: hidden; }

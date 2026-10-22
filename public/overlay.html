@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Padel JA — Overlay</title>
+<title>RAM JA — Overlay</title>
 <link rel="stylesheet" href="/css/ram.css">
 <style>
 * { box-sizing: border-box; }
@@ -75,7 +75,7 @@ body.green { background: #00FF00; } body.blue { background: #0047FF; } body.tran
     const bgc = qs.get('bg') || S.display.overlay || 'green';
     ['green', 'blue', 'transparent'].forEach(c => document.body.classList.toggle(c, c === bgc));
     const m = pickMatch(S, R);
-    document.getElementById('hint').textContent = m ? '' : (bgc === 'transparent' ? '' : 'Overlay Padel JA — choisissez un match dans l\'onglet « Écran TV & stream »');
+    document.getElementById('hint').textContent = m ? '' : (bgc === 'transparent' ? '' : 'Overlay RAM JA — choisissez un match dans l\'onglet « Écran TV & stream »');
     if (!m) { sb.classList.add('hide'); return; }
     const r = R[m.id];
     const sc = r.score;

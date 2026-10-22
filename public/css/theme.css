@@ -1,4 +1,4 @@
-/* PADEL JA — variables d'interface (thèmes jour / nuit), partagées par l'éditeur et l'espace juge-arbitre */
+/* RAM JA — variables d'interface (thèmes jour / nuit), partagées par l'éditeur et l'espace juge-arbitre */
 /* ---------- nuit (par défaut) ---------- */
 :root {
   --ui-bg: #120A0C; --ui-surface: #1C1215; --ui-surface-2: #251A1D; --ui-sunken: #160D10;

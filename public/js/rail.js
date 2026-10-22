@@ -27,7 +27,7 @@
     const page = document.body.dataset.page || '';
     const nav = document.createElement('aside');
     nav.className = 'rail'; nav.setAttribute('role', 'navigation'); nav.setAttribute('aria-label', 'Navigation principale');
-    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="Padel JA — tableau de bord"><img src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"></a>
+    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="RAM JA — tableau de bord"><img src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"></a>
       <div class="rail-group">${ITEMS.map(([k, href, label, title]) =>
         `<a href="${href}" data-r="${k}" class="${page === k ? 'on' : ''}" title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
       <div class="rail-group rail-bottom"><i class="sep"></i>
@@ -51,15 +51,17 @@
     veil.onclick = close;
     nav.addEventListener('click', e => { if (e.target.closest('a')) close(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-    // glisser du bord gauche vers la droite pour ouvrir, vers la gauche pour fermer
+    // glisser du bord gauche vers la droite pour ouvrir, vers la gauche pour fermer.
+    // Le geste du bord gauche ouvre uniquement le menu : on bloque le « retour à la page précédente »
+    // du navigateur (iPhone), qui se déclenchait en même temps.
     let sx = null, sy = 0, dx = 0, mode = '';
     const mobile = () => matchMedia('(max-width: 720px)').matches;
     document.addEventListener('touchstart', e => {
       if (!mobile() || e.target.closest('#nav')) return;
       const t = e.touches[0], isOpen = document.body.classList.contains('drawer-open');
-      if (!isOpen && t.clientX < 24) mode = 'open'; else if (isOpen) mode = 'close'; else return;
+      if (!isOpen && t.clientX < 24) { mode = 'open'; if (e.cancelable) e.preventDefault(); } else if (isOpen) mode = 'close'; else return;
       sx = t.clientX; sy = t.clientY; dx = 0;
-    }, { passive: true });
+    }, { passive: false });
     document.addEventListener('touchmove', e => {
       if (sx == null) return;
       const t = e.touches[0]; dx = t.clientX - sx;

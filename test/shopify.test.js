@@ -43,7 +43,7 @@ test('un même webhook reçu deux fois ne prolonge qu\'une fois', () => {
   assert.equal(again.billing.until, b.until);
 });
 
-test('commande sans produit Padel JA (t-shirt…) : rien ne change', () => {
+test('commande sans produit RAM JA (t-shirt…) : rien ne change', () => {
   const r = applyOrder(null, order(3, 'TSHIRT-RAM'), now);
   assert.equal(r.changed, false);
 });

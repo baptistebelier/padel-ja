@@ -1,4 +1,4 @@
-/* Webhook Shopify de bout en bout : un vrai serveur Padel JA sur des données temporaires */
+/* Webhook Shopify de bout en bout : un vrai serveur RAM JA sur des données temporaires */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('crypto');

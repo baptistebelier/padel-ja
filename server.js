@@ -1,5 +1,5 @@
 /* =========================================================================
-   PADEL JA — serveur (local ou en ligne), sans dépendance, Node.js >= 18
+   RAM JA — serveur (local ou en ligne), sans dépendance, Node.js >= 18
    - comptes juge-arbitre, plusieurs tournois par compte, démo en un clic
    - chaque tournoi a son « salon » temps réel (Server-Sent Events)
    - écrans TV / overlay ouverts sur un autre appareil : clé de diffusion
@@ -594,7 +594,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/me') {
       const u = await currentUser(req);
       const id = u && !u.guest ? await store.getIdentity(u.id).catch(() => null) : null;
-      // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (Padel JA + RAM Club)
+      // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (RAM JA + RAM Club)
       const renew = u && !u.guest ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) } : undefined;
       return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access: u ? await accessFor(u) : null, storage: store.kind }, renew);
     }
@@ -850,7 +850,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('\n  ==============================================');
-  console.log('   PADEL JA — serveur démarré');
+  console.log('   RAM JA — serveur démarré');
   console.log('  ==============================================');
   console.log(`   Stockage : ${ONLINE ? 'Supabase (en ligne)' : 'fichiers locaux (dossier data)'}`);
   console.log(`   Ouvrir   : http://localhost:${PORT}/`);
@@ -861,7 +861,7 @@ server.listen(PORT, '0.0.0.0', () => {
   Mail.keepAlive(msg => console.log('  ' + msg));
 });
 server.on('error', e => {
-  if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : Padel JA est sans doute déjà lancé.\n`);
+  if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : RAM JA est sans doute déjà lancé.\n`);
   else console.error(e);
 });
 // sauvegarde propre à l'arrêt

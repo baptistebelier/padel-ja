@@ -31,7 +31,7 @@ const RARES=[
  {id:'coach',cl:1,n:'Pédagogue',d:'Enseigner au club',r:2,i:'school',ok:id=>GROUPS.some(g=>g.coach===id)},
  {id:'champion',cl:1,n:'Champion',d:"Monter de division ou finir 1er avec son équipe, en ayant joué au moins un match. Donné automatiquement quand le capitaine clôture le championnat",r:3,i:'trophy',m:1,ok:()=>false},
  {id:'invaincu',cl:1,n:'Invaincu',d:"Finir la saison sans perdre un match par équipe. Vérifié automatiquement à la clôture de la saison",r:3,i:'shield',m:1,ok:()=>false},
- {id:'bureau',cl:1,n:'Au bureau',d:'Être élu au bureau du club',r:3,i:'club',ok:id=>id===ME()&&S.role==='admin'}];
+ {id:'bureau',cl:1,n:'Au bureau',d:'Être élu au bureau du club',r:3,i:'club',ok:id=>(window.RAM&&RAM.roles&&RAM.club?RAM.roles[id]==='bureau':id===ME()&&S.role==='admin')}];
 const RAR=['Courant','Peu courant','Rare','Très rare'];
 /* Cadres autour de l'avatar, débloqués par le score d'investissement */
 const FRAMES=[{n:'Sans cadre',min:0},{n:'Bronze',min:150},{n:'Argent',min:500},{n:'Or',min:1200},{n:'Platine',min:2500},{n:'Diamant',min:4500}];

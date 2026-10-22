@@ -1,5 +1,5 @@
 /* =========================================================================
-   PADEL JA — Moteur partagé (serveur Node + navigateur)
+   RAM JA — Moteur partagé (serveur Node + navigateur)
    Score, formats FFT, formules (poules, qualifications, tableau final),
    tirage au sort par cartes, programmation, repos et contrôles réglementaires.
    ========================================================================= */

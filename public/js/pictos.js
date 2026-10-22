@@ -1,5 +1,5 @@
 /* =========================================================================
-   PADEL JA — pictogrammes des cartes (dessinés pour le logiciel, jamais d'emoji)
+   RAM JA — pictogrammes des cartes (dessinés pour le logiciel, jamais d'emoji)
    - chaque carte reçoit le pictogramme de son sujet devant son titre ;
    - les sections numérotées de la fiche tournoi (« 01 / Infos ») perdent leur
      numéro au profit du pictogramme, dans le titre comme dans les onglets ;
