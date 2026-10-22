@@ -1,4 +1,6 @@
-# Tests automatiques du moteur (tirage, formats FFT, scores, programmation) à chaque envoi sur GitHub
+# Tests automatiques à chaque envoi sur GitHub
+# - tests : moteur (tirage, formats FFT, scores, programmation), serveur, accès, RGPD…
+# - ecrans : chaque écran de /RAM JA et /RAM Club ouvert dans un vrai navigateur
 name: Tests
 on: [push, pull_request]
 jobs:
@@ -10,3 +12,14 @@ jobs:
         with:
           node-version: 20
       - run: node --test
+
+  ecrans:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm i --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ecrans
