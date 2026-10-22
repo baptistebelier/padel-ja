@@ -5,6 +5,17 @@
 - Le dépôt `baptistebelier/appli-club` est un **miroir** (démo GitHub Pages) recopié
   automatiquement toutes les 3 heures. Ne jamais y faire de modification à la main.
 
+## Organisation du code du Club (`club/`)
+- `ui/1-…8-….js` : ce qui s'affiche (briques, publications, rencontres, agenda, club, profil,
+  école, table des écrans `V`).
+- `app/1-…8-….js` : ce qui réagit (affichage, couleurs, direct, formulaires, table des actions `A`,
+  gestes, enregistrement des formulaires, démarrage).
+- Ce sont des scripts classiques qui partagent leurs variables : l'**ordre de chargement** de
+  `index.html` compte. Un nouveau fichier doit aussi être ajouté à la liste `CORE` de `sw.js`.
+- Après toute modification du Club, change `VERSION` dans `club/sw.js`, sinon les applis
+  installées gardent l'ancienne version en cache.
+- Mise en forme : `npx prettier --write club` (réglages dans `club/.prettierrc.json`).
+
 ## Avant chaque envoi
 - `npm test` doit passer. Render lance ces tests à chaque mise en ligne : si un test
   échoue, la mise en ligne est annulée.

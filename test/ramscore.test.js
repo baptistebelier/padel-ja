@@ -8,7 +8,8 @@ const { clubScores, deriveCounts, TPTS, RPTS, TIERED, RARE } = require('../lib/r
 const { checkOp } = require('../lib/ramclub');
 
 test('barèmes du serveur identiques à ceux de l\'appli (club/trophees.js)', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'club', 'trophees.js'), 'utf8');
+  // espaces et retours à la ligne retirés : le test ne dépend pas de la mise en forme du fichier
+  const src = fs.readFileSync(path.join(__dirname, '..', 'club', 'trophees.js'), 'utf8').replace(/\s+/g, '');
   assert.deepStrictEqual(JSON.parse(src.match(/TPTS=(\[[^\]]*\])/)[1]), TPTS);
   assert.deepStrictEqual(JSON.parse(src.match(/RPTS=(\[[^\]]*\])/)[1]), RPTS);
   const tiered = {}; for (const m of src.matchAll(/\{id:'(\w+)'[^}]*?t:(\[[\d,]+\])/g)) tiered[m[1]] = JSON.parse(m[2]);
