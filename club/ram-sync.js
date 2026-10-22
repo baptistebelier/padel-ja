@@ -336,6 +336,72 @@
       if (again) { again = false; setTimeout(tick, 50); }
     }
   }
+  /* ---------- notifications de ce qui me concerne ----------
+     On compare chaque élément avant / après la mise à jour : quelqu'un aime ma publication, la commente,
+     rejoint ma partie, réagit à mon message, me convoque, répond à ma convocation, demande à entrer… */
+  const added = (x, y) => (y || []).filter(v => !(x || []).includes(v));
+  const removed = (x, y) => (x || []).filter(v => !(y || []).includes(v));
+  const ttl = p => String(p.title || p.q || '').replace(/<[^>]+>/g, '').trim();
+  const quoted = p => ttl(p) ? ` « ${ttl(p)} »` : '';
+  const once = (k, fn) => { if (R.notified.has(k)) return; R.notified.add(k); fn(); };
+  const goRef = ref => ref.startsWith('c:') ? { v: 'chan', id: ref.slice(2) } : ref.startsWith('r:') ? { v: 'rec', id: ref.slice(2) } : { v: 'post', id: ref.slice(2) };
+  const known = k => k === 'club' || !!M[k];
+  function notifyDiff(coll, id, a, b) {
+    if (!b) return;
+    const me = R.key, kids = (M[me] && M[me].kids) || [];
+    if (coll === 'post' && a) {
+      const go = { v: 'post', id }, mine = b.by === me, clubEv = b.by === 'club' && isAdmin();
+      if (mine) added(a.likers, b.likers).forEach(k => k !== me && known(k) && once(`like/${id}/${k}`, () => notify('mine', k, 'aime ta publication' + quoted(b), go)));
+      if (mine || clubEv) {
+        const ma = a.myBy || {}, mb = b.myBy || {};
+        Object.keys(mb).forEach(k => {
+          const v = mb[k]; if (k === me || ma[k] === v || !known(k)) return;
+          const t = b.kind === 'event' ? (v === 'yes' ? (b.stage ? "s'inscrit au stage" : "s'inscrit à") + quoted(b) : v === 'wait' ? "se met en liste d'attente pour" + quoted(b) : '')
+            : b.kind === 'comm' && v === 'yes' ? "est intéressé par" + quoted(b) : '';
+          if (t) once(`rsvp/${id}/${k}/${v}`, () => notify(mine ? 'mine' : 'club', k, t, go));
+        });
+        added(a.vol, b.vol).forEach(k => k !== me && known(k) && once(`vol/${id}/${k}`, () => notify(mine ? 'mine' : 'club', k, 'se propose comme bénévole pour' + quoted(b), go)));
+      }
+      if (mine && b.play && a.play) {
+        const y = b.play, when = `${y.date} à ${y.time}`;
+        added(a.play.in, y.in).forEach(k => k !== me && known(k) && once(`play/${id}/${k}/${(y.in || []).length}`, () => notify('play', k, `rejoint ta partie du ${when}`, go)));
+        removed(a.play.in, y.in).forEach(k => k !== me && known(k) && notify('play', k, `se désiste de ta partie du ${when}`, go));
+        added(a.play.wait, y.wait).forEach(k => k !== me && known(k) && once(`wait/${id}/${k}`, () => notify('play', k, `se met en liste d'attente pour ta partie du ${when}`, go)));
+      }
+    }
+    if (coll === 'msg') {
+      if (a && b.by === me) Object.keys(b.reBy || {}).forEach(k => { const e = b.reBy[k]; if (k !== me && known(k) && (a.reBy || {})[k] !== e) once(`re/${id}/${k}/${e}`, () => notify('mine', k, `a réagi ${e} à ton ${b.ref.startsWith('p:') ? 'commentaire' : 'message'}`, goRef(b.ref))); });
+      if (!a && b.by !== me && b.ref.startsWith('p:') && known(b.by)) {
+        const p = posts.find(x => x.id === b.ref.slice(2));
+        if (p && p.by === me) once(`com/${id}`, () => notify('mine', b.by, `a commenté ta publication : « ${String(b.x || 'Photo').slice(0, 70)} »`, { v: 'post', id: p.id }));
+        else if (p && b.rep && b.rep.by === me) once(`com/${id}`, () => notify('mine', b.by, `t'a répondu : « ${String(b.x || '').slice(0, 70)} »`, { v: 'post', id: p.id }));
+      }
+    }
+    if (coll === 'rec' && a) {
+      const g = grp(b.tid), team = g ? teamName(g) : "L'équipe", go = { v: 'rec', id }, la = a.lineup || {}, lb = b.lineup || {}, by = g && g.cap && known(g.cap) ? g.cap : 'club';
+      [me, ...kids].forEach(k => { if (lb[k] && la[k] !== lb[k]) once(`conv/${id}/${k}/${lb[k]}`, () => notify('team', by, `${k === me ? 'te convoque' : 'convoque ' + first(k)} comme ${lb[k] === 'T' ? 'titulaire' : 'remplaçant'} : ${team} – ${b.opp}${b.when ? ', ' + b.when : ''}`, go)); });
+      if (g && canTeam(g)) Object.keys(b.conv || {}).forEach(k => { const v = b.conv[k]; if (k !== me && known(k) && (a.conv || {})[k] !== v && (v === 'ok' || v === 'no')) once(`rep/${id}/${k}/${v}`, () => notify('team', k, v === 'ok' ? `est dispo pour ${team} – ${b.opp}` : `n'est pas dispo pour ${team} – ${b.opp}`, go)); });
+      const mineTeam = g && (g.mem.includes(me) || g.mem.some(k => kids.includes(k)));
+      if (mineTeam && a.st !== 'live' && b.st === 'live') once(`live/${id}`, () => notify('team', 'club', `${team} – ${b.opp} : la rencontre commence en direct`, go));
+      if (mineTeam && a.st === 'live' && b.st === 'done') once(`end/${id}`, () => { const s = teamScore(b); notify('team', 'club', `${team} – ${b.opp} : fin de la rencontre, ${s[0]} à ${s[1]}`, go); });
+    }
+    if (coll === 'group' && a && added(a.mem, b.mem).some(k => k === me || kids.includes(k)))
+      once(`grp/${id}/${(b.mem || []).length}`, () => notify('team', known(b.coach) ? b.coach : known(b.cap) ? b.cap : 'club', `t'a ajouté à ${b.type === 'team' ? teamName(b) : b.name}`, { v: b.type === 'team' ? 'team' : 'grp', id }));
+    if (coll === 'comm' && a) {
+      if (isBureau() || b.resp === me) added(a.req, b.req).forEach(k => k !== me && known(k) && once(`creq/${id}/${k}`, () => notify('club', k, `souhaite rejoindre la ${String(b.name).toLowerCase()}`, { v: 'comm', id })));
+      if (added(a.mem, b.mem).includes(me)) once(`cmem/${id}`, () => notify('club', known(b.resp) ? b.resp : 'club', `t'a accepté dans la ${String(b.name).toLowerCase()}`, { v: 'comm', id }));
+    }
+    if (coll === 'member' && id !== me && isBureau() && b.req && !(a && a.req) && b.valid !== S.season) once(`join/${id}`, () => notify('club', id, 'demande à rejoindre le club', { v: 'join' }));
+  }
+  /* commentaires ouverts : on redessine la fenêtre en gardant le texte en cours de saisie */
+  function refreshComments(pid) {
+    const p = posts.find(x => x.id === pid); if (!p) return;
+    const inp = document.getElementById('com-input'), txt = inp ? inp.value : '', focus = document.activeElement === inp;
+    sheet('Commentaires', commentsBody(p), true);
+    const ni = document.getElementById('com-input'); if (ni) { ni.value = txt; if (focus) ni.focus({ preventScroll: true }); }
+    const l = document.getElementById('com-list'); if (l) l.scrollTo({ top: l.scrollHeight, behavior: 'smooth' });
+  }
+
   async function pull() {
     const d = await api('/api/ram/c/' + R.club + '/sync?since=' + R.rev);
     // accès validé par le bureau ou rôle changé : ce qu'on a le droit de voir change, on recharge tout le club
@@ -347,6 +413,7 @@
     }
     if (!d.items.length) { R.rev = d.rev; return; }
     const local = new Map(collect().map(([coll, id, s]) => [coll + '/' + id, J(s)]));
+    const before = new Map(d.items.map(it => { const b = R.base.get(it.coll + '/' + it.id); return [it.coll + '/' + it.id, b ? b.data : null]; }));
     fresh = [];
     d.items.forEach(it => {
       const k = it.coll + '/' + it.id, b = R.base.get(k);
@@ -363,9 +430,17 @@
     fresh.forEach(([kind, o, ref]) => {
       // une seule notification par message ou publication, même s'il arrive deux fois
       const nk = kind + '/' + (o._id || o.id); if (R.notified.has(nk)) return; R.notified.add(nk);
-      if (kind === 'post' && canSee(o)) notify(o.by === 'club' ? 'club' : 'follow', o.by, o.kind === 'perf' || o.kind === 'padel' ? 'a publié un résultat' : 'a publié sur le mur', { v: 'post', id: o.id });
+      if (kind === 'post' && canSee(o)) {
+        const type = o.by === 'club' ? 'club' : o.kind === 'play' ? 'play' : S.follow.has(o.by) ? 'follow' : 'club';
+        notify(type, o.by, o.kind === 'perf' || o.kind === 'padel' ? 'a publié un résultat' : o.kind === 'play' ? `cherche des joueurs : ${o.play.sport.toLowerCase()}, ${o.play.date} à ${o.play.time}` : 'a publié sur le mur', { v: 'post', id: o.id });
+      }
       if (kind === 'msg' && ref.startsWith('c:')) { const c = chans.find(x => x.id === ref.slice(2)); const v = view(); if (c && !(v.v === 'chan' && v.id === c.id)) { if (!c.mute && chanOk(c)) notify('chan', o.by, 'a écrit dans ' + c.name, { v: 'chan', id: c.id }, false); } }
     });
+    // tout ce qui me concerne dans ce qui a changé : likes, commentaires, réactions, inscriptions, convocations…
+    d.items.forEach(it => { if (!it.del) { try { notifyDiff(it.coll, it.id, before.get(it.coll + '/' + it.id), it.data); } catch (x) { console.warn('RAM Club : notification', x.message); } } });
+    // commentaires ouverts : les nouveaux commentaires s'y affichent aussitôt
+    const cf = document.getElementById('com-form');
+    if (cf && fresh.some(([kind, , ref]) => kind === 'msg' && ref === 'p:' + cf.dataset.id)) refreshComments(cf.dataset.id);
     safeRender();
     if (toBottom) {
       const m = document.getElementById('main');

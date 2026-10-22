@@ -154,7 +154,7 @@ const REPORTS=[];
 /* État de l'appli. role : admin (bureau), cap (capitaine), mem (adhérent), kid (compte jeune de Léo) */
 const S={ecTab:'mine',ag:'all',tab:'home',stack:[],club:0,role:'admin',liked:new Set(),follow:new Set(['ines','sarah','thomas']),blocked:new Set(),
  chanTab:'club',recTab:'now',clubTab:'actus',champ:'c1',scoring:false,flash:null,pop:null,sent:false,dir:0,img:null,imgs:[],grpAll:false,
- share:{tel:true,mail:false,soc:true},nset:{club:true,follow:true,chan:true,team:true,live:false,play:true},
+ share:{tel:true,mail:false,soc:true},nset:{club:true,follow:true,chan:true,team:true,live:false,play:true,mine:true},
  plan:{mode:'events',d:TODAY,cat:{ens:1,ani:1,eq:1},sp:{Tennis:1,Padel:1}},list:{sort:'tennis',f:'all',q:''},palm:'tennis',season:'2026-2027',arch:{s:'',t:'arts'}};
 
 const club=()=>CLUBS[S.club];
