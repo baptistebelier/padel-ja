@@ -320,3 +320,21 @@ html, body { background: var(--bg); }
 .btn.ghost { background: color-mix(in srgb, var(--fg) 7%, var(--bg)); }
 :root[style*="color-scheme: light"] .btn.ghost { background: var(--bg); }
 .thero .grow > .muted.small { display: block; }   /* points et trophées sur deux lignes distinctes */
+
+/* =========================================================================
+   Onglets sur ordinateur, comme la fiche tournoi de Padel JA (22/10/2026) :
+   une rangée d'onglets carrés posée sur une grande carte ; l'onglet actif
+   prend la couleur du club, un trait de la même couleur le relie à la carte.
+   ========================================================================= */
+@media (min-width: 1024px) {
+  #main > .seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 18px 0 0; margin-bottom: 0; overflow: visible; background: var(--bg); border-bottom: 2px solid var(--accent); }
+  #main > .seg button { min-height: 42px; padding: 0 16px; border: 2px solid var(--line); border-bottom: 0; background: var(--card2); color: var(--muted);
+    font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; box-shadow: none !important; transform: none !important; }
+  #main > .seg button:hover { color: var(--fg); background: var(--card); }
+  #main > .seg button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  #main > .seg + * { background: var(--card); border: 1px solid var(--line); border-top: 0; box-shadow: 6px 6px 0 var(--ram-hard); margin-bottom: 40px; }
+  #main > .seg + * .card { box-shadow: 3px 3px 0 var(--ram-hard); }
+}
+
+/* accueil : la frise de raccourcis respire sous la barre du haut (titre, notifications) */
+.stories { padding-top: 20px; }
