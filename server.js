@@ -276,6 +276,34 @@ async function upsertPlayerFrom(pl, owner) {
   return p;
 }
 
+/* chaque compte /RAM a sa fiche joueur : celle qui porte déjà sa licence ou son nom (si elle n'est à personne),
+   sinon une nouvelle. Ainsi un adhérent /RAM Club est trouvé par les juges-arbitres, et ses résultats lui reviennent.
+   Une fiche n'appartient qu'à un compte : un second compte au même nom n'en reçoit pas (il pourra en choisir une). */
+async function ensureAccountPlayer(u) {
+  if (!u || u.guest) return null;
+  const id = Object.assign({}, await store.getIdentity(u.id).catch(() => null));
+  if (id.player) { await ram.linkPlayer(u.id, id.player).catch(() => {}); return id.player; }
+  const nm = splitName(Object.assign({}, u, id)), first = String(nm.first || '').trim(), last = String(nm.last || '').trim();
+  if (!first || !last) return null;
+  const licence = String(id.licence || '').toUpperCase(), key = norm(last.toUpperCase()) + '|' + norm(first);
+  let pl = await store.findPlayer(licence, key).catch(() => null);
+  if (pl && pl.user_id && pl.user_id !== u.id) return null;
+  const now = Date.now();
+  if (!pl) pl = { id: 'j' + Auth.randomId(12), created_at: now, created_by: 'compte', last: last.toUpperCase(), first, licence, rank: '' };
+  Object.assign(pl, { user_id: u.id, updated_at: now, name_key: norm(pl.last) + '|' + norm(pl.first), search: norm(`${pl.last} ${pl.first} ${pl.licence || ''}`) });
+  await store.savePlayer(pl);
+  id.player = pl.id; await store.saveIdentity(u.id, id);
+  await ram.linkPlayer(u.id, pl.id).catch(() => {});
+  return pl.id;
+}
+// au démarrage : les comptes existants reçoivent leur fiche (dans l'ordre de création, le premier compte au même nom l'emporte)
+async function ensureAllAccountPlayers(log) {
+  const users = (await store.listUsers()).filter(u => !u.guest).sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+  let n = 0;
+  for (const u of users) { try { const before = (await store.getIdentity(u.id).catch(() => null)) || {}; if (!before.player && await ensureAccountPlayer(u)) n++; } catch (e) {} }
+  if (n) log(`Base de joueurs : ${n} fiche(s) créée(s) ou rattachée(s) pour les comptes /RAM`);
+}
+
 async function closeTournament(room, u) {
   const T = room.row.state;
   if (!T.draw || !T.draw.built) return { error: 'Le tirage n\'a pas été fait : rien à clôturer.' };
@@ -455,6 +483,7 @@ const server = http.createServer(async (req, res) => {
         pass_hash: Auth.hashPassword(b.password), plan: 'essai', guest: false, created_at: Date.now() };
       await store.saveUser(u);
       if (first || last) await store.saveIdentity(u.id, { first, last });
+      await ensureAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // sa fiche joueur /RAM JA
       // premier tournoi d'exemple pour bien démarrer
       await newTournament(u.id, { demo: true, example: true, name:'Tournoi d\'exemple' });
       // e-mail de bienvenue (sans bloquer l'inscription si l'envoi échoue)
@@ -490,6 +519,7 @@ const server = http.createServer(async (req, res) => {
           pass_hash: null, plan: 'actif', guest: false, created_at: Date.now() };
         await store.saveUser(u);
         if (first || last) await store.saveIdentity(u.id, { first, last });
+      await ensureAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // sa fiche joueur /RAM JA
         await newTournament(u.id, { demo: true, example: true, name: 'Tournoi d\'exemple' });
       } else if ((u.plan || 'essai') === 'essai') { u.plan = 'actif'; await store.saveUser(u); }
       if (!u.pass_hash) link = appUrl(req) + '/reinitialiser?t=' + encodeURIComponent(Auth.makeResetToken(u, Date.now(), 7 * 864e5));
@@ -943,6 +973,7 @@ server.listen(PORT, '0.0.0.0', () => {
   Backup.schedule(store, msg => console.log('  ' + msg));
   Retention.schedule(store, msg => console.log('  ' + msg));
   Mail.keepAlive(msg => console.log('  ' + msg));
+  ensureAllAccountPlayers(msg => console.log('  ' + msg)).catch(e => console.error('  Fiches joueurs des comptes :', e.message));
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);
