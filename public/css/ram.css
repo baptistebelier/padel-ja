@@ -127,3 +127,9 @@ body[data-look] #stage::before { transition: opacity .6s; }
 /* bandeau défilant continu (App.marquee) */
 .mq-u { display: inline-flex; align-items: center; flex: none; white-space: nowrap; }
 @keyframes mqx { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
+
+/* Zoom autorisé partout : sur téléphone, les champs restent en 16 px minimum,
+   sinon iPhone zoome tout seul quand on touche un champ de saisie. */
+@media (max-width: 820px) {
+  input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { font-size: max(16px, 1em); }
+}
