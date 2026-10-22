@@ -288,14 +288,55 @@
 
   /* ---------- envoi et réception ---------- */
   let busy = false, again = false, timer = null, pushT = null;
+  /* ---------- droits, comme le serveur les vérifie ----------
+     Sur un élément dont je ne suis pas l'auteur (publication d'un autre, groupe, rencontre…), je n'envoie
+     que ce qui me concerne : ma réponse, mon like, ma réaction, ma présence. Le reste des différences
+     (copie un peu ancienne, détail recalculé à l'affichage) n'est jamais envoyé : il serait refusé et
+     ferait échouer mon action avec lui. */
+  const staffMe = () => R.role === 'bureau' || R.role === 'coach';
+  function mayWrite(coll, id, d) {
+    if (!d) return false;
+    const k = R.key, staff = staffMe(), capOf = tid => { const g = grp(tid); return !!g && g.cap === k; };
+    switch (coll) {
+      case 'conf': return R.role === 'bureau';
+      case 'post': return staff || d.by === k || (d.by === 'club' && (d.kind === 'result' || d.kind === 'match') && (() => { const r = recs.find(x => x.id === d.rec); return !!r && capOf(r.tid); })()) || (d.by === 'club' && d.kind === 'teamfinal' && capOf(d.tid));
+      case 'msg': return staff || d.by === k;
+      case 'chan': case 'champ': case 'art': case 'partner': case 'report': return staff;
+      case 'group': return staff || d.cap === k || d.coach === k;
+      case 'rec': return staff || capOf(d.tid);
+      case 'comm': return staff || d.resp === k;
+      case 'member': return staff || id === k || d.parent === k;
+      case 'prefs': return id === k;
+      case 'stats': return staff || id === k;
+      case 'claim': return staff || d.by === k;
+    }
+    return false;
+  }
+  const myKeys = () => [R.key].concat((M[R.key] && M[R.key].kids) || []);
+  const selfOp = op => { const K = myKeys(); return (op.p || []).some(x => K.includes(x)) || ((op.t === 'add' || op.t === 'rm') && K.includes(op.v)); };
+  const SELF_OK = ['post', 'msg', 'rec', 'group', 'comm'];
+  function patchLocal(data, patch) {
+    const out = copy(data || {});
+    patch.forEach(op => {
+      let o = out; op.p.slice(0, -1).forEach(x => { if (!isObj(o[x])) o[x] = {}; o = o[x]; });
+      const x = op.p[op.p.length - 1];
+      if (op.t === 'set') o[x] = copy(op.v); else if (op.t === 'unset') delete o[x];
+      else if (op.t === 'add') { if (!Array.isArray(o[x])) o[x] = []; if (!o[x].some(v => J(v) === J(op.v))) o[x].push(copy(op.v)); }
+      else if (op.t === 'rm' && Array.isArray(o[x])) o[x] = o[x].filter(v => J(v) !== J(op.v));
+    });
+    return out;
+  }
   function ops() {
     const list = [], seen = new Set(), refs = openRefs();
     collect().forEach(([coll, id, s]) => {
       const k = coll + '/' + id; seen.add(k);
       const b = R.base.get(k);
       if (R.bad.get(k) === J(s)) return;                                   // déjà refusé tel quel : on n'insiste pas
-      if (!b) list.push({ coll, id, op: 'put', data: s });
-      else if (J(b.data) !== J(s)) { const patch = diff(b.data || {}, s); if (patch.length) list.push({ coll, id, op: 'patch', patch, _s: s }); }
+      if (!b) { if (mayWrite(coll, id, s)) list.push({ coll, id, op: 'put', data: s }); return; }
+      if (J(b.data) === J(s)) return;
+      let patch = diff(b.data || {}, s);
+      if (!(mayWrite(coll, id, b.data) && mayWrite(coll, id, s))) patch = SELF_OK.includes(coll) ? patch.filter(selfOp) : [];
+      if (patch.length) list.push({ coll, id, op: 'patch', patch, after: patchLocal(b.data, patch), _s: s });
     });
     R.base.forEach((b, k) => {
       if (seen.has(k)) return;
@@ -303,6 +344,7 @@
       if (coll === 'conf' || coll === 'prefs' || coll === 'stats') return;
       if (coll === 'msg' && !(b.data && refs.has(b.data.ref))) return;      // conteneur fermé (direct terminé…) : on garde
       if (coll === 'member' && !M[id] && id === R.key) return;
+      if (!mayWrite(coll, id, b.data) || (coll === 'member' && R.role !== 'bureau' && b.data.parent !== R.key)) return;   // pas à moi : on ne supprime pas
       list.push({ coll, id, op: 'del' });
     });
     return list;
@@ -314,11 +356,11 @@
     try {
       const list = ops();
       if (list.length) {
-        const sent = list.map(o => { const x = Object.assign({}, o); delete x._s; return x; });
+        const sent = list.map(o => { const x = Object.assign({}, o); delete x._s; delete x.after; return x; });
         const r = await api('/api/ram/c/' + R.club + '/ops', { ops: sent });
         const bad = new Set((r.rejected || []).map(x => x.coll + '/' + x.id));
         list.forEach(o => { if (bad.has(o.coll + '/' + o.id)) R.bad.set(o.coll + '/' + o.id, J(o.data || o._s)); });
-        list.forEach(o => { const k = o.coll + '/' + o.id; if (bad.has(k)) return; if (o.op === 'del') R.base.delete(k); else R.base.set(k, { data: o.data || o._s }); });
+        list.forEach(o => { const k = o.coll + '/' + o.id; if (bad.has(k)) return; if (o.op === 'del') R.base.delete(k); else R.base.set(k, { data: o.op === 'put' ? o.data : o.after }); });
         if (bad.size) {
           console.warn('RAM Club : refusé ' + J(r.rejected));
           toast("Une modification n'a pas été enregistrée : elle n'est pas autorisée pour ton compte");
@@ -418,7 +460,8 @@
     d.items.forEach(it => {
       const k = it.coll + '/' + it.id, b = R.base.get(k);
       // modifié ici depuis le dernier envoi : on garde la version locale (elle partira au prochain envoi)
-      if (b && local.has(k) && local.get(k) !== J(b.data) && !it.del) { R.base.set(k, { data: it.data }); return; }
+      // (seulement pour ce qui est à moi : une copie divergente d'un élément des autres est remplacée par la version du serveur)
+      if (b && local.has(k) && local.get(k) !== J(b.data) && !it.del && mayWrite(it.coll, it.id, b.data)) { R.base.set(k, { data: it.data }); return; }
       applyItem(it, false);
     });
     R.rev = d.rev;
