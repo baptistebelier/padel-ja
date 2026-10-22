@@ -14,7 +14,7 @@ function render(keep){const v=view(),key=v.v+(v.id||''),main=$('main'),y=main.sc
  else if(v.v==='comm'){t=COMMS.find(c=>c.id===v.id).name;sub=club().name}
  else{t=M[v.id].n;sub='Profil'}
  if(key!==lastKey){$('top').classList.remove('hide');lastY=0;turnY=0}
- $('top').innerHTML=(S.stack.length?`<button class="ib" data-a="back" aria-label="Retour">${ic('back')}</button>`:'')+(clubLogo()?`<img class="toplogo${S.stack.length?' sub':''}" src="${clubLogo()}" alt="${esc(club().name)}">`:'')+`<h1>${t}<span class="sub">${sub}</span></h1>${v.v==='chan'?muteBtn(chans.find(c=>c.id===v.id)):''}${(isAdmin()||S.role==='cap')&&!pending()?`<button class="ib" data-a="admin" aria-label="${isAdmin()?'Gérer le club':'Gérer mon équipe'}">${ic('gear')}</button>`:''}<button class="ib" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending()&&NOTIFS.some(n=>n.n&&nVis(n))?'<span class="dot"></span>':''}</button>`;
+ $('top').innerHTML=(S.stack.length?`<button class="ib" data-a="back" aria-label="Retour">${ic('back')}</button>`:'')+(clubLogo()?`<img class="toplogo${S.stack.length?' sub':''}" src="${clubLogo()}" alt="${esc(club().name)}">`:'')+`<h1>${t}<span class="sub">${sub}</span></h1>${v.v==='chan'?muteBtn(chans.find(c=>c.id===v.id)):''}${(isAdmin()||S.role==='cap')&&!pending()?`<button class="ib" data-a="admin" aria-label="${isAdmin()?'Gérer le club':'Gérer mon équipe'}">${ic('gear')}</button>`:''}<button class="ib modebtn" data-a="ramMode" aria-label="${effDark()?'Passer en mode jour':'Passer en mode nuit'}">${ic(effDark()?'sun':'moon')}</button><button class="ib" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending()&&NOTIFS.some(n=>n.n&&nVis(n))?'<span class="dot"></span>':''}</button>`;
  const strips='.seg,.chips,.stories',sx=key===lastKey?[...main.querySelectorAll(strips)].map(e=>e.scrollLeft):[];
  main.innerHTML=pending()&&!lockOk(v)?lockView(v):V[v.v](v.id);
  main.querySelectorAll(strips).forEach((e,i)=>{if(sx[i])e.scrollLeft=sx[i]});
@@ -646,4 +646,6 @@ function ramRail(title){let rb=$('rbot');if(!rb){rb=document.createElement('div'
  rb.innerHTML=`<i class="sep"></i><button data-a="ramMode">${ic(dk?'sun':'moon')}<span>${dk?'Mode jour':'Mode nuit'}</span></button><button data-a="tab" data-t="me" ${cur?'aria-current="page"':''}>${M[me]?av(me,'sm'):ic('user')}<span>Profil</span></button><button data-a="logout">${ic('logout')}<span>Sortir</span></button>`;
  const seg=$('main').querySelector(':scope > .seg');if(seg&&!seg.querySelector('.segt'))seg.insertAdjacentHTML('afterbegin',`<div class="segt"><span>${esc(club().name)}</span><b>${title||''}</b></div>`)}
 A.ramMode=()=>{S.mode=effDark()?'jour':'nuit';try{localStorage.setItem('club-mode',S.mode)}catch(e){}setTheme(S.club);render(true)};
+/* réglage du profil : couleurs du club (auto), jour ou nuit */
+A.mode=d=>{S.mode=d.k||'';try{localStorage.setItem('club-mode',S.mode)}catch(e){}setTheme(S.club);render(true)};
 A.logout=()=>{fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{}).then(()=>{try{localStorage.removeItem('ram-club')}catch(e){}location.reload()})};

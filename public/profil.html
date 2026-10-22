@@ -69,6 +69,14 @@
           <button type="button" data-v="">Street dosé</button>
           <button type="button" data-v="street">Full street</button>
         </div>
+        <h3 style="font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:20px;margin:22px 0 8px">Fond de l'interface</h3>
+        <div class="seg" id="segFond">
+          <button type="button" data-v="">Points</button>
+          <button type="button" data-v="ram-padel">Padel</button>
+          <button type="button" data-v="ram-tennis">Tennis</button>
+          <button type="button" data-v="ram-mixte">Padel et tennis</button>
+          <button type="button" data-v="plain">Uni</button>
+        </div>
         <p class="muted small">L'écran TV et l'overlay gardent leur propre habillage, réglable dans chaque tournoi (onglet Tournoi).</p>
       </section>
       <section class="card">
@@ -168,6 +176,15 @@
     markStyle();
   });
   markStyle();
+  // fond de l'interface : points, motifs /RAM ou uni
+  const markFond = () => { const v = document.documentElement.dataset.fond || ''; document.querySelectorAll('#segFond button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); };
+  document.querySelectorAll('#segFond button').forEach(b => b.onclick = () => {
+    const v = b.dataset.v;
+    try { if (v) localStorage.setItem('padelja-fond', v); else localStorage.removeItem('padelja-fond'); } catch (e) {}
+    if (v) document.documentElement.dataset.fond = v; else delete document.documentElement.dataset.fond;
+    markFond();
+  });
+  markFond();
   document.addEventListener('click', e => { if (e.target.closest('[data-theme-toggle]')) setTimeout(mark, 0); });
 
   /* ---------- mes préférences : résumé + éditeur complet ---------- */

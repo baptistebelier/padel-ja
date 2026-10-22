@@ -210,7 +210,7 @@
 :root[data-motif="ram-mixte"] { --mk: url(motifs/mixte-base.png); --ma: url(motifs/mixte-accent.png); }
 :root[data-motif^="ram-"] .motif { background: none; }
 :root[data-motif^="ram-"] .motif::before, :root[data-motif^="ram-"] .motif::after { content: ''; position: absolute; inset: 0;
-  -webkit-mask: var(--mk) 0 0 / 853px 853px repeat; mask: var(--mk) 0 0 / 853px 853px repeat; background: color-mix(in srgb, var(--fg) 6%, transparent); }
+  -webkit-mask: var(--mk) 0 0 / 1280px 1280px repeat; mask: var(--mk) 0 0 / 1280px 1280px repeat; background: color-mix(in srgb, var(--fg) 6%, transparent); }
 :root[data-motif^="ram-"] .motif::after { -webkit-mask-image: var(--ma); mask-image: var(--ma); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 #main, .foot { position: relative; z-index: 1; }
 .motifs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -272,7 +272,7 @@
    latéral : pas de doublon dans la barre du haut.
    ========================================================================= */
 .toplogo { display: block; flex: none; height: 38px; width: auto; max-width: 128px; object-fit: contain; object-position: left center; margin-right: 4px; }
-@media (min-width: 1024px) { .toplogo { display: none; } }
+@media (min-width: 1024px) { .toplogo { display: none; } .modebtn { display: none; } }
 /* aperçus des logos dans « Apparence du club » : sur fond sombre et sur fond clair */
 .lkl { display: flex; align-items: center; justify-content: center; height: 72px; margin-top: 8px; padding: 10px; border: 1px solid var(--line); }
 .lkl.dk { background: #0B0B0B; }

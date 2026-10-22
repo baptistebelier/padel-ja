@@ -16,6 +16,8 @@
   apply(saved() || system());
   // style de l'interface : épuré, street dosé (par défaut) ou full street
   try { const st = localStorage.getItem('padelja-style'); if (st) root.dataset.style = st; } catch (e) {}
+  // fond de l'interface : points (par défaut), motif /RAM padel, tennis, padel et tennis, ou uni
+  try { const f = localStorage.getItem('padelja-fond'); if (f) root.dataset.fond = f; } catch (e) {}
   if (window.matchMedia) matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (!saved()) apply(system()); });
   window.UITheme = {
     toggle() { const t = root.dataset.theme === 'light' ? 'dark' : 'light'; try { localStorage.setItem(KEY, t); } catch (e) {} apply(t); }
