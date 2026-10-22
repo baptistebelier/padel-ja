@@ -519,6 +519,6 @@ body.editor-page main > .acc-bar { margin: 12px 0 6px; }
 :root[data-fond="ram-tennis"] { --fond: url(/img/motifs/tennis.png); }
 :root[data-fond="ram-mixte"] { --fond: url(/img/motifs/mixte.png); }
 html:root[data-fond^="ram-"] body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 1;
-  background: color-mix(in srgb, var(--ui-text, #F7EFF0) 6%, transparent);
-  -webkit-mask: var(--fond) 0 0 / 1280px 1280px repeat; mask: var(--fond) 0 0 / 1280px 1280px repeat; }
+  background: color-mix(in srgb, var(--ui-text, #F7EFF0) 4%, transparent);
+  -webkit-mask: var(--fond) 0 0 / 640px 640px repeat; mask: var(--fond) 0 0 / 640px 640px repeat; }
 html:root[data-fond="plain"] body::before { background: none; }

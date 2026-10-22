@@ -100,7 +100,7 @@
     flex: none; flex-direction: row; justify-content: flex-start; gap: 14px; min-height: 50px; padding: 0 16px;
     font-size: 17px; letter-spacing: .03em; color: var(--muted);
   }
-  .tabs button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 6%, transparent); }
+  .tabs button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 4%, transparent); }
   .tabs button[aria-current="page"], .tabs button[aria-current="page"]:hover { color: var(--on-accent); background: transparent; }
   .tabs .cnt { position: static; margin-left: auto; }
   .tabs .pill { left: 14px !important; right: 14px; top: 0 !important; bottom: auto !important; width: auto !important; }
@@ -210,8 +210,8 @@
 :root[data-motif="ram-mixte"] { --mk: url(motifs/mixte-base.png); --ma: url(motifs/mixte-accent.png); }
 :root[data-motif^="ram-"] .motif { background: none; }
 :root[data-motif^="ram-"] .motif::before, :root[data-motif^="ram-"] .motif::after { content: ''; position: absolute; inset: 0;
-  -webkit-mask: var(--mk) 0 0 / 1280px 1280px repeat; mask: var(--mk) 0 0 / 1280px 1280px repeat; background: color-mix(in srgb, var(--fg) 6%, transparent); }
-:root[data-motif^="ram-"] .motif::after { -webkit-mask-image: var(--ma); mask-image: var(--ma); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  -webkit-mask: var(--mk) 0 0 / 640px 640px repeat; mask: var(--mk) 0 0 / 640px 640px repeat; background: color-mix(in srgb, var(--fg) 4%, transparent); }
+:root[data-motif^="ram-"] .motif::after { -webkit-mask-image: var(--ma); mask-image: var(--ma); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 #main, .foot { position: relative; z-index: 1; }
 .motifs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .motifs button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1.5px solid var(--line); background: var(--card2); font-family: var(--f-sub); font-weight: 600; font-size: 12px; color: var(--fg); }
@@ -403,7 +403,7 @@ html, body { background: var(--bg); }
     color: color-mix(in srgb, var(--fg) 72%, transparent); background: transparent; position: relative; z-index: 0;
   }
   #main > .seg button svg { width: 21px; height: 21px; flex: none; }
-  #main > .seg button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 6%, transparent); }
+  #main > .seg button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 4%, transparent); }
   /* onglet actif : bandeau de la couleur du club légèrement penché, comme dans Padel JA */
   #main > .seg button[aria-selected="true"] { color: var(--on-accent); background: transparent; }
   #main > .seg button[aria-selected="true"]::before { content: ''; position: absolute; inset: 3px 4px; background: var(--accent); transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); z-index: -1; }
