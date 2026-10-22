@@ -83,7 +83,7 @@
     return s;
   }
   function msgIn(s, id) {
-    const m = { _id: id, by: s.by, at: s.at, t: clock(s.at) };
+    const m = { _id: id, by: s.by, at: s.at, t: s.at ? String(new Date(s.at).getHours()).padStart(2, '0') + ':' + String(new Date(s.at).getMinutes()).padStart(2, '0') : '' };   // heure ; le jour est donné par les séparateurs
     ['x', 'img', 'rep'].forEach(k => { if (s[k] != null) m[k] = copy(s[k]); });
     const re = {}; Object.values(s.reBy || {}).forEach(v => { re[v] = (re[v] || 0) + 1; });
     if (Object.keys(re).length) m.re = re;
@@ -120,7 +120,7 @@
     if (typeof STATS !== 'undefined') Object.keys(STATS).forEach(k => { const s = STATS[k]; if (M[k] && k !== 'club' && (k === R.key || R.base.has('stats/' + k) || s.k.size || Object.keys(s.c).length)) { add('stats', k, { c: s.c, k: [...s.k], got: s.got, lvl: s.lvl }); } });
     const read = Object.assign({}, (prev('prefs', R.key) || {}).read || {});
     chans.forEach(ch => { if (!ch.un) { const last = Math.max(0, ...(ch.msgs || []).map(m => m.at || 0)); if (last) read[ch.id] = Math.max(read[ch.id] || 0, last); } });
-    add('prefs', R.key, { follow: [...S.follow], blocked: [...S.blocked], nset: S.nset, share: S.share, ct: MYCT, mute: chans.filter(ch => ch.mute).map(ch => ch.id), read, setup: S.setup || {}, invited: S.invited || 0 });
+    add('prefs', R.key, { follow: [...S.follow], blocked: [...S.blocked], nset: S.nset, share: S.share, ct: MYCT, mute: chans.filter(ch => ch.mute).map(ch => ch.id), read, setup: S.setup || {}, invited: S.invited || 0, motif: S.motif || 'dots' });
     // messages : groupes, direct des rencontres, commentaires des publications
     const box = (ref, list) => (list || []).forEach(m => { if (!m._id) m._id = newId('m'); add('msg', m._id, msgOut(m, ref, prev('msg', m._id))); });
     chans.forEach(ch => box('c:' + ch.id, ch.msgs));
@@ -248,6 +248,7 @@
         if (s.share) Object.assign(S.share, s.share);
         if (s.ct) ['tel', 'mail', 'soc'].forEach(k => { if (s.ct[k]) MYCT[k] = s.ct[k]; });
         S.setup = s.setup || {}; S.invited = s.invited || 0;
+        if (s.motif && typeof setMotif === 'function') setMotif(s.motif);
         R.prefs = s; return;
       }
       case 'stats': {
@@ -355,6 +356,10 @@
     });
     R.rev = d.rev;
     derive();
+    // nouveau message dans la discussion ouverte : il apparaît avec une animation et l'écran défile jusqu'à lui
+    const v0 = view(), here = v0.v === 'chan' ? 'c:' + v0.id : v0.v === 'rec' ? 'r:' + v0.id : '';
+    let toBottom = false;
+    fresh.forEach(([kind, o, ref]) => { if (kind === 'msg' && ref === here) { o._pop = 1; toBottom = true; } });
     fresh.forEach(([kind, o, ref]) => {
       // une seule notification par message ou publication, même s'il arrive deux fois
       const nk = kind + '/' + (o._id || o.id); if (R.notified.has(nk)) return; R.notified.add(nk);
@@ -362,6 +367,14 @@
       if (kind === 'msg' && ref.startsWith('c:')) { const c = chans.find(x => x.id === ref.slice(2)); const v = view(); if (c && !(v.v === 'chan' && v.id === c.id)) { if (!c.mute && chanOk(c)) notify('chan', o.by, 'a écrit dans ' + c.name, { v: 'chan', id: c.id }, false); } }
     });
     safeRender();
+    if (toBottom) {
+      const m = document.getElementById('main');
+      setTimeout(() => {
+        m.scrollTo({ top: m.scrollHeight, behavior: 'smooth' });
+        // filet : si le défilement doux n'a pas abouti (appareil lent, appli en arrière-plan), on va directement en bas
+        setTimeout(() => { if (m.scrollHeight - m.clientHeight - m.scrollTop > 40) m.scrollTop = m.scrollHeight; }, 700);
+      }, 30);
+    }
   }
   /* redessine sans gêner : pas pendant la saisie dans l'écran, ni sous une fenêtre ouverte */
   let pend = false;

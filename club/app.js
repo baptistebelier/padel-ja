@@ -498,7 +498,7 @@ setInterval(()=>{if(simN>=8||window.RAM_KEY)return;const v=view(),pool=chans.fil
 var lastY=0,turnY=0;
 function topPad(){const t=$('top'),m=$('main');m.style.paddingTop=t.offsetHeight+'px';m.style.setProperty('--segt',t.classList.contains('hide')?'calc(env(safe-area-inset-top,0px) - '+t.offsetHeight+'px)':'0px')}
 $('main').addEventListener('scroll',()=>{const m=$('main'),max=m.scrollHeight-m.clientHeight,y=Math.min(Math.max(m.scrollTop,0),max),t=$('top'),hid=t.classList.contains('hide');
- if(y>lastY){turnY=y;if(y>80&&!hid){t.classList.add('hide');m.style.setProperty('--segt','calc(env(safe-area-inset-top,0px) - '+t.offsetHeight+'px)')}}
+ if(y>lastY){turnY=y;if(y>80&&!hid&&!['chan','rec'].includes(view().v)){t.classList.add('hide');m.style.setProperty('--segt','calc(env(safe-area-inset-top,0px) - '+t.offsetHeight+'px)')}}
  else if(y<lastY&&hid&&(turnY-y>160||y<30)){t.classList.remove('hide');m.style.setProperty('--segt','0px')}
  lastY=y},{passive:true});
 new ResizeObserver(topPad).observe($('top'),{box:'border-box'});
@@ -588,3 +588,24 @@ function installGuide(force){let later=false;try{later=localStorage.getItem('clu
 A.installLater=()=>{try{localStorage.setItem('club-install-later','1')}catch(e){}closeSheet()};
 A.installHelp=()=>installGuide(true);
 setTimeout(()=>installGuide(false),600);
+
+/* ---------- fond de l'appli : motif fixe au choix (points, quadrillage, diagonales, uni), mémorisé ---------- */
+const MOTIFS=[['dots','Points'],['grid','Quadrillage'],['stripes','Diagonales'],['plain','Uni']];
+function setMotif(k){if(!MOTIFS.some(m=>m[0]===k))k='dots';S.motif=k;document.documentElement.dataset.motif=k;try{localStorage.setItem('club-motif',k)}catch(e){}}
+try{setMotif(localStorage.getItem('club-motif')||'dots')}catch(e){setMotif('dots')}
+A.motif=d=>{setMotif(d.k);render(true)};
+
+/* ---------- retour en arrière : glisser depuis le bord gauche vers la droite (sauf sur les écrans principaux) ---------- */
+(function(){let x0=0,y0=0,t0=0,dx=0,on=false,lock=false;const els=()=>[$('main'),$('top'),$('foot')].filter(Boolean),ph=$('phone');
+ const move=v=>{els().forEach(e=>e.style.transform=v?`translateX(${v}px)`:'');ph.style.setProperty('--sw',Math.min(v,60)+'px')};
+ const reset=()=>{els().forEach(e=>e.classList.remove('swipe-back','swipe-done'));ph.classList.remove('swiping');move(0)};
+ document.addEventListener('touchstart',e=>{if(e.touches.length!==1||!S.stack.length||$('sheet'))return;const t=e.touches[0],r=ph.getBoundingClientRect();
+  if(t.clientX-r.left>28)return;x0=t.clientX;y0=t.clientY;t0=Date.now();dx=0;on=true;lock=false},{passive:true});
+ document.addEventListener('touchmove',e=>{if(!on)return;const t=e.touches[0],ddx=t.clientX-x0,ddy=t.clientY-y0;
+  if(!lock){if(Math.abs(ddy)>Math.abs(ddx)&&Math.abs(ddy)>8){on=false;return}if(ddx<8)return;lock=true;els().forEach(el=>el.classList.add('swipe-back'));ph.classList.add('swiping')}
+  dx=Math.max(0,ddx);move(dx);e.preventDefault()},{passive:false});
+ document.addEventListener('touchend',()=>{if(!on)return;on=false;if(!lock)return;const w=ph.clientWidth,fast=dx>40&&dx/(Date.now()-t0)>.5;
+  els().forEach(el=>{el.classList.remove('swipe-back');el.classList.add('swipe-done')});
+  if(dx>w*.33||fast){move(w);setTimeout(()=>{reset();S.dir=0;S.stack.pop();render();try{navigator.vibrate&&navigator.vibrate(8)}catch(_){}},180)}
+  else{move(0);setTimeout(reset,190)}});
+ document.addEventListener('touchcancel',()=>{if(on){on=false;reset()}});})();

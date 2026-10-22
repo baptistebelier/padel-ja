@@ -149,3 +149,71 @@
 .ram-acc span { font-weight: 600; overflow-wrap: anywhere; }
 .ram-acc small { color: var(--muted); font-size: 12px; }
 .ram-acc-logo { height: 34px; width: auto; flex: none; }
+
+/* =========================================================================
+   Messagerie façon WhatsApp (22/10/2026)
+   Bulle carrée = nom + badges + message + heure ; avatar dehors ; messages
+   enchaînés empilés sans avatar ni nom ; apparition en petit « pop ».
+   ========================================================================= */
+.chat { gap: 2px; padding-top: 12px; }
+.chat > .note, .chat > .lphelp { margin-bottom: 8px; }
+.msg { gap: 8px; align-items: flex-start; margin-top: 12px; }
+.msg.cont { margin-top: 4px; }
+.msg .grow { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.msg.me .grow { align-items: flex-end; }
+.msg .avsp { flex: none; width: 34px; }
+/* même colonne pour l'avatar (cadre de trophée compris) et l'espace qui le remplace : les bulles s'alignent */
+.msg > .av, .msg > .avsp { margin: 2px !important; }
+.daysep { display: flex; justify-content: center; margin: 16px 0 4px; }
+.daysep span { font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; padding: 4px 10px; background: var(--card2); color: var(--muted); border: 1px solid var(--line); box-shadow: 2px 2px 0 var(--ram-hard); }
+.msg .av.sm { flex: none; }
+.bubw { max-width: 86%; }
+.bub {
+  display: flex; flex-direction: column; gap: 3px; margin-top: 0;
+  padding: 7px 10px 6px; background: var(--card); border: 1px solid var(--line);
+  box-shadow: 3px 3px 0 var(--ram-hard); white-space: normal; text-align: left;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.bub .hd { gap: 6px; margin-bottom: 1px; }
+.bub .hd .nm { color: var(--accent); font-weight: 700; }
+.bub .tx { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.4; }
+.bub time { align-self: flex-end; font-size: 11px; line-height: 1; color: var(--muted); margin-top: 1px; }
+.bub .quote { margin-top: 0; }
+.bub .mph { margin-top: 2px; width: 230px; }
+.msg.me .bub { background: var(--accent); color: var(--on-accent); border-color: transparent; box-shadow: 3px 3px 0 var(--hot); }
+.msg.me .bub time { color: color-mix(in srgb, var(--on-accent) 62%, transparent); }
+.msg.me .bub .quote { background: color-mix(in srgb, var(--on-accent) 12%, transparent); color: var(--on-accent); border-left-color: var(--on-accent); }
+.msg .reacts { margin-top: 5px; }
+/* apparition : la bulle arrive du bas en grossissant un peu (de la gauche pour les autres, de la droite pour moi) */
+@keyframes ramPopL { from { opacity: 0; transform: translate(-14px, 10px) scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes ramPopR { from { opacity: 0; transform: translate(14px, 10px) scale(.94); } to { opacity: 1; transform: none; } }
+.msg.in { animation: ramPopL .32s cubic-bezier(.2, 1.1, .35, 1.15) both; }
+.msg.me.in { animation-name: ramPopR; }
+@media (prefers-reduced-motion: reduce) { .msg.in { animation: fade .2s; } }
+
+/* ---------- barre du bas : pictogramme noir sur le curseur citron (jamais jaune sur jaune) ---------- */
+.tabs button[aria-current="page"] svg { color: var(--on-accent); }
+.tabs.drag button[aria-current="page"] svg { color: var(--muted); }
+.tabs.drag button.hov svg { color: var(--on-accent); }
+
+/* ---------- fond de l'appli : motif fixe (points, quadrillage, diagonales ou uni), comme Padel JA ----------
+   Le motif reste immobile pendant que le contenu défile ; il prend la couleur du texte du club, très atténuée. */
+.motif { position: absolute; inset: 0; pointer-events: none; z-index: 0; --mc: color-mix(in srgb, var(--fg) 8%, transparent); }
+:root[data-motif="dots"] .motif, :root:not([data-motif]) .motif { background: radial-gradient(var(--mc) 1px, transparent 1.3px) 0 0 / 7px 7px; }
+:root[data-motif="grid"] .motif { background: linear-gradient(var(--mc) 1px, transparent 1px) 0 0 / 56px 56px, linear-gradient(90deg, var(--mc) 1px, transparent 1px) 0 0 / 56px 56px; }
+:root[data-motif="stripes"] .motif { --mc: color-mix(in srgb, var(--fg) 4%, transparent); background: repeating-linear-gradient(-45deg, var(--mc) 0 3px, transparent 3px 26px); }
+:root[data-motif="plain"] .motif { background: none; }
+#main, .foot { position: relative; z-index: 1; }
+.motifs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.motifs button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1.5px solid var(--line); background: var(--card2); font-family: var(--f-sub); font-weight: 600; font-size: 12px; color: var(--fg); }
+.motifs button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 3px 3px 0 var(--hot); }
+.motifs i { width: 100%; height: 38px; background-color: var(--bg); --mc: color-mix(in srgb, var(--fg) 22%, transparent); }
+.motifs i.dots { background-image: radial-gradient(var(--mc) 1px, transparent 1.3px); background-size: 7px 7px; }
+.motifs i.grid { background-image: linear-gradient(var(--mc) 1px, transparent 1px), linear-gradient(90deg, var(--mc) 1px, transparent 1px); background-size: 14px 14px; }
+.motifs i.stripes { background-image: repeating-linear-gradient(-45deg, var(--mc) 0 2px, transparent 2px 9px); }
+
+/* ---------- retour en arrière en glissant depuis le bord gauche ---------- */
+#main.swipe-back, #top.swipe-back, .foot.swipe-back { transition: none !important; }
+#main.swipe-done, #top.swipe-done, .foot.swipe-done { transition: transform .18s ease-out !important; }
+.phone.swiping::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--sw, 0px); z-index: 4; pointer-events: none;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent); }
