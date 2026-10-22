@@ -1,6 +1,6 @@
 {
- "name": "RAM Club",
- "short_name": "RAM Club",
+ "name": "/RAM Club",
+ "short_name": "/RAM Club",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",

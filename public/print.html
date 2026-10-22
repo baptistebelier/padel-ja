@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
-<title>RAM JA — Impression</title>
+<title>/RAM JA — Impression</title>
 <link rel="stylesheet" href="/css/ram.css">
 <style>
 @page { size: A4 landscape; margin: 10mm; }
@@ -72,7 +72,7 @@ td.n { font-family: var(--label); font-weight: 700; width: 40px; }
     return `<div class="page ${portrait ? 'portrait' : ''}"><div class="head"><div><h1>${esc(t.name)} · <span class="band lime">${esc(title)}</span></h1>
       <div class="meta">${esc([t.category + ' ' + t.gender, t.club, d, t.ja && 'JA : ' + t.ja].filter(Boolean).join(' · '))}</div></div>
       <div>${(t.logoDark || t.logo) ? `<img src="${t.logoDark || t.logo}">` : ''} <img src="/img/ram-logo-rouge-noir.webp" style="height:34px"></div></div>${body}
-      <div class="foot"><span>RAM JA · /RAM — Rise And Move</span><span>Édité le ${new Date().toLocaleString('fr-FR')}</span></div></div>`;
+      <div class="foot"><span>/RAM JA · /RAM — Rise And Move</span><span>Édité le ${new Date().toLocaleString('fr-FR')}</span></div></div>`;
   }
   const mBox = m => {
     const r = R[m.id];

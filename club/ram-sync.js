@@ -1,6 +1,6 @@
-/* ---------- RAM Club en vrai : compte /RAM, club réel, synchronisation ----------
-   Servie par le serveur RAM JA (club.riseandmove.fr ou /club/), l'appli :
-   1. lit la session /RAM (le même compte que RAM JA) ;
+/* ---------- /RAM Club en vrai : compte /RAM, club réel, synchronisation ----------
+   Servie par le serveur /RAM JA (club.riseandmove.fr ou /club/), l'appli :
+   1. lit la session /RAM (le même compte que /RAM JA) ;
    2. charge le club de l'adhérent (ou propose d'en créer un / d'en rejoindre un avec le code) ;
    3. remplace les données de démo par celles du club ;
    4. après chaque action, compare l'état de l'appli à la dernière version connue et envoie
@@ -13,7 +13,7 @@
   const onClubHost = /^club\./.test(location.hostname);
   const served = onClubHost || location.pathname.startsWith('/club');   // sinon : démo sans serveur
   const here = () => location.href.split('#')[0];
-  // page de connexion propre à RAM Club (même compte /RAM que RAM JA), puis retour à l'endroit quitté
+  // page de connexion propre à /RAM Club (même compte /RAM que /RAM JA), puis retour à l'endroit quitté
   const loginUrl = () => (onClubHost ? '' : '/club') + '/connexion?retour=' + encodeURIComponent(location.pathname + location.search);
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const J = o => JSON.stringify(o);
@@ -370,7 +370,7 @@
         list.forEach(o => { if (bad.has(o.coll + '/' + o.id)) R.bad.set(o.coll + '/' + o.id, J(o.data || o._s)); });
         list.forEach(o => { const k = o.coll + '/' + o.id; if (bad.has(k)) return; if (o.op === 'del') R.base.delete(k); else R.base.set(k, { data: o.op === 'put' ? o.data : o.after }); });
         if (bad.size) {
-          console.warn('RAM Club : refusé ' + J(r.rejected));
+          console.warn('/RAM Club : refusé ' + J(r.rejected));
           toast("Une modification n'a pas été enregistrée : elle n'est pas autorisée pour ton compte");
           // on revient à la version du serveur pour ces éléments
           list.filter(o => bad.has(o.coll + '/' + o.id)).forEach(o => { const b = R.base.get(o.coll + '/' + o.id); applyItem(b ? { coll: o.coll, id: o.id, data: b.data } : { coll: o.coll, id: o.id, del: 1 }, false); });
@@ -380,7 +380,7 @@
       await pull();
     } catch (x) {
       if (x.status === 401 || x.status === 404) { stop(); toast(x.status === 401 ? 'Ta session /RAM a expiré : reconnecte-toi' : "Tu ne fais plus partie de ce club"); }
-      else console.warn('RAM Club : synchronisation', x.message);
+      else console.warn('/RAM Club : synchronisation', x.message);
     } finally {
       busy = false;
       if (again) { again = false; setTimeout(tick, 50); }
@@ -509,7 +509,7 @@
       if (kind === 'msg' && ref.startsWith('c:')) { const c = chans.find(x => x.id === ref.slice(2)); const v = view(); if (c && !(v.v === 'chan' && v.id === c.id)) { if (!c.mute && chanOk(c)) notify('chan', o.by, 'a écrit dans ' + c.name, { v: 'chan', id: c.id }, false); } }
     });
     // tout ce qui me concerne dans ce qui a changé : likes, commentaires, réactions, inscriptions, convocations…
-    d.items.forEach(it => { if (!it.del) { try { notifyDiff(it.coll, it.id, before.get(it.coll + '/' + it.id), it.data); } catch (x) { console.warn('RAM Club : notification', x.message); } } });
+    d.items.forEach(it => { if (!it.del) { try { notifyDiff(it.coll, it.id, before.get(it.coll + '/' + it.id), it.data); } catch (x) { console.warn('/RAM Club : notification', x.message); } } });
     // commentaires ouverts : les nouveaux commentaires s'y affichent aussitôt
     const cf = document.getElementById('com-form');
     if (cf && fresh.some(([kind, , ref]) => kind === 'msg' && ref === 'p:' + cf.dataset.id)) refreshComments(cf.dataset.id);
@@ -600,7 +600,7 @@
   A.ramRemoveOk = d => api('/api/ram/c/' + R.club + '/remove', { key: d.id }).then(() => { closeSheet(); R.base.delete('member/' + d.id); delete M[d.id]; S.stack.pop(); derive(); ramRender(); toast('Adhérent retiré du club'); }, x => toast(x.message));
   A.delAccount = d => {
     if (!R.live) return _delAccount(d);
-    sheet('Quitter le club', `<div class="body"><div class="note">Tu quittes ${e(club().name)} : ton profil et tes réglages sont retirés de l'appli du club. Tes messages restent affichés. Ton compte /RAM (le même que RAM JA) est conservé.</div><button class="btn full hot" data-a="ramLeave">Quitter ${e(club().name)}</button></div>`);
+    sheet('Quitter le club', `<div class="body"><div class="note">Tu quittes ${e(club().name)} : ton profil et tes réglages sont retirés de l'appli du club. Tes messages restent affichés. Ton compte /RAM (le même que /RAM JA) est conservé.</div><button class="btn full hot" data-a="ramLeave">Quitter ${e(club().name)}</button></div>`);
   };
   A.ramLeave = () => api('/api/ram/c/' + R.club + '/remove', { key: R.key }).then(() => { closeSheet(); stop(); LS.set('ram-club', ''); location.reload(); }, x => toast(x.message));
   /* actualisation manuelle (tirer vers le bas) : on envoie ce qui attend, puis on recharge tout le club
@@ -617,11 +617,11 @@
   A.ramSwitch = d => { closeSheet(); start(d.id).catch(x => toast(x.message)); };
   A.ramClubs = () => sheet('Mes clubs', `<div class="body"><div class="menu">${R.clubs.map(c => `<button data-a="ramSwitch" data-id="${c.id}">${ic(c.id === R.club ? 'check' : 'club')}${e(c.name)}</button>`).join('')}<button data-a="ramStart">${ic('plus')}Créer ou rejoindre un autre club</button></div></div>`);
   A.ramStart = () => onboard();
-  A.ramCopy = () => { const t = `Rejoins ${club().name} sur RAM Club : ${location.origin}${onClubHost ? '/' : '/club/'} · code du club ${R.code}`; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { (S.setup = S.setup || {}).inv = true; render(true); toast('Invitation copiée'); }).catch(() => toast('Copie impossible ici : note le code ' + R.code)); };
+  A.ramCopy = () => { const t = `Rejoins ${club().name} sur /RAM Club : ${location.origin}${onClubHost ? '/' : '/club/'} · code du club ${R.code}`; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { (S.setup = S.setup || {}).inv = true; render(true); toast('Invitation copiée'); }).catch(() => toast('Copie impossible ici : note le code ' + R.code)); };
 
   /* ---------- créer un club ou rejoindre le sien ---------- */
   function onboard() {
-    sheet('Ton club sur RAM Club', `<div class="body">
+    sheet('Ton club sur /RAM Club', `<div class="body">
       <form id="ram-join" class="stack"><span class="kicker">Rejoindre mon club</span><p class="muted small">Le bureau de ton club te donne son code (par exemple TPC-4821).</p>
         <div class="fld"><label for="rj-code">Code du club</label><input id="rj-code" required autocomplete="off" autocapitalize="characters" placeholder="TPC-4821"></div>
         <button class="btn full">Envoyer ma demande</button></form>
@@ -642,9 +642,9 @@
   window.ramTeam = () => Object.keys(M).filter(k => k !== 'club' && (R.roles[k] === 'bureau' || R.roles[k] === 'coach'));
   function accountCard() {
     const u = R.user, logo = `<img src="${ramLogo()}" alt="/RAM Club" class="ram-acc-logo">`;
-    if (!u) return `${logo}<div class="grow"><b>Compte /RAM</b><span>Connecte-toi avec ton compte /RAM : le même que pour RAM JA.</span></div><a class="btn sm" href="${loginUrl()}">Se connecter</a>`;
+    if (!u) return `${logo}<div class="grow"><b>Compte /RAM</b><span>Connecte-toi avec ton compte /RAM : le même que pour /RAM JA.</span></div><a class="btn sm" href="${loginUrl()}">Se connecter</a>`;
     const nm = e([u.first, u.last].filter(Boolean).join(' ') || u.name || u.email);
-    return `${logo}<div class="grow"><b>Compte /RAM</b><span>${nm} · ${e(u.email || '')}</span><small>${R.live ? (R.clubs.length > 1 ? `<button class="nm" data-a="ramClubs" style="color:var(--accent)">Changer de club</button>` : `Le même compte que RAM JA.`) : `<button class="nm" data-a="ramStart" style="color:var(--accent)">Créer ou rejoindre mon club</button>`}</small></div><button class="btn sm ghost" data-a="logout">Se déconnecter</button>`;
+    return `${logo}<div class="grow"><b>Compte /RAM</b><span>${nm} · ${e(u.email || '')}</span><small>${R.live ? (R.clubs.length > 1 ? `<button class="nm" data-a="ramClubs" style="color:var(--accent)">Changer de club</button>` : `Le même compte que /RAM JA.`) : `<button class="nm" data-a="ramStart" style="color:var(--accent)">Créer ou rejoindre mon club</button>`}</small></div><button class="btn sm ghost" data-a="logout">Se déconnecter</button>`;
   }
   function fill() {
     const el = document.getElementById('ramAccount');
@@ -695,7 +695,7 @@
         const want = LS.get('ram-club'), c = R.clubs.find(x => x.id === want) || R.clubs[0];
         if (c) await start(c.id);
       }
-    } catch (x) { console.warn('RAM Club : démarrage', x.message); if (R.user === undefined) R.user = null; }
+    } catch (x) { console.warn('/RAM Club : démarrage', x.message); if (R.user === undefined) R.user = null; }
     readyFn();
     if (!R.live) { render(true); fill(); }
   })();

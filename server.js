@@ -1,5 +1,5 @@
 /* =========================================================================
-   RAM JA — serveur (local ou en ligne), sans dépendance, Node.js >= 18
+   /RAM JA — serveur (local ou en ligne), sans dépendance, Node.js >= 18
    - comptes juge-arbitre, plusieurs tournois par compte, démo en un clic
    - chaque tournoi a son « salon » temps réel (Server-Sent Events)
    - écrans TV / overlay ouverts sur un autre appareil : clé de diffusion
@@ -23,7 +23,7 @@ const Auth = require('./lib/auth.js');
 const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
 const store = createStore(process.env.DATA_DIR || path.join(__dirname, 'data'));   // DATA_DIR : dossier de test
-const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || path.join(__dirname, 'data'));   // RAM Club : clubs, publications, groupes…
+const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || path.join(__dirname, 'data'));   // /RAM Club : clubs, publications, groupes…
 const ONLINE = store.kind === 'supabase';
 
 /* ---------------------------------------------------------------------
@@ -83,10 +83,10 @@ function sendFile(res, rel, versioned) {
     res.end(data);
   });
 }
-// RAM Club : fichiers de l'appli (dossier club/). Pages, scripts et icônes toujours revérifiés,
+// /RAM Club : fichiers de l'appli (dossier club/). Pages, scripts et icônes toujours revérifiés,
 // le service worker de l'appli gère le hors-ligne.
 const CLUB_ROOT = path.join(__dirname, 'club');
-// pages de RAM Club à adresse propre : connexion (et inscription, mot de passe oublié) et présentation
+// pages de /RAM Club à adresse propre : connexion (et inscription, mot de passe oublié) et présentation
 const CLUB_PAGES = { '/connexion': '/connexion.html', '/inscription': '/connexion.html', '/mot-de-passe-oublie': '/connexion.html', '/presentation': '/presentation.html' };
 function sendClub(res, rel) {
   if (CLUB_PAGES[rel]) rel = CLUB_PAGES[rel];
@@ -378,8 +378,8 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   try {
-    /* ---------- RAM Club (club.riseandmove.fr) : même serveur, mêmes comptes, même base ----------
-       Sur le sous-domaine club., tout ce qui n'est pas l'API est l'appli RAM Club (dossier club/).
+    /* ---------- /RAM Club (club.riseandmove.fr) : même serveur, mêmes comptes, même base ----------
+       Sur le sous-domaine club., tout ce qui n'est pas l'API est l'appli /RAM Club (dossier club/).
        Ailleurs (ja., localhost), elle reste accessible sous /club/ pour les essais. */
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
@@ -404,7 +404,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/mot-de-passe-oublie' || p === '/reinitialiser') return sendFile(res, '/auth.html');
     if (p === '/connexion' || p === '/inscription') {
       const u = await currentUser(req);
-      // déjà connecté : tableau de bord, ou retour direct vers RAM Club si l'on en vient
+      // déjà connecté : tableau de bord, ou retour direct vers /RAM Club si l'on en vient
       const back = String(url.searchParams.get('retour') || '');
       if (u && !u.guest) return redirect(res, /^(https:\/\/club\.riseandmove\.fr\/|\/club\/)/.test(back) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
       return sendFile(res, '/auth.html');
@@ -426,7 +426,7 @@ const server = http.createServer(async (req, res) => {
       return redirect(res, '/t/' + row.id, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 1), 1) });
     }
     if (p === '/deconnexion') return redirect(res, '/', { 'Set-Cookie': Auth.sessionCookie(req, null) });
-    // déconnexion sans changer de page (RAM Club, y compris sur club.riseandmove.fr)
+    // déconnexion sans changer de page (/RAM Club, y compris sur club.riseandmove.fr)
     if (p === '/api/auth/logout' && req.method === 'POST') return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, null) });
     let m = p.match(/^\/t\/([\w-]+)\/?(tv|overlay|print|remote)?$/);
     if (m) {
@@ -617,12 +617,12 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req);
       // identité et accès lus en même temps
       const [id, access] = await Promise.all([u && !u.guest ? store.getIdentity(u.id).catch(() => null) : null, u ? accessFor(u) : null]);
-      // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (RAM JA + RAM Club)
+      // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (/RAM JA + /RAM Club)
       const renew = u && !u.guest ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) } : undefined;
       return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access, storage: store.kind }, renew);
     }
 
-    /* ---------- API RAM Club (même compte /RAM, mêmes données Supabase) ---------- */
+    /* ---------- API /RAM Club (même compte /RAM, mêmes données Supabase) ---------- */
     if (p.startsWith('/api/ram/')) {
       const u = await currentUser(req);
       if (!u || u.guest) return json(res, 401, { error: 'Connectez-vous avec votre compte /RAM.' });
@@ -875,7 +875,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('\n  ==============================================');
-  console.log('   RAM JA — serveur démarré');
+  console.log('   /RAM JA — serveur démarré');
   console.log('  ==============================================');
   console.log(`   Stockage : ${ONLINE ? 'Supabase (en ligne)' : 'fichiers locaux (dossier data)'}`);
   console.log(`   Ouvrir   : http://localhost:${PORT}/`);
@@ -886,7 +886,7 @@ server.listen(PORT, '0.0.0.0', () => {
   Mail.keepAlive(msg => console.log('  ' + msg));
 });
 server.on('error', e => {
-  if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : RAM JA est sans doute déjà lancé.\n`);
+  if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);
   else console.error(e);
 });
 // sauvegarde propre à l'arrêt

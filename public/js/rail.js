@@ -38,7 +38,7 @@
     const page = document.body.dataset.page || '';
     const nav = document.createElement('aside');
     nav.className = 'rail'; nav.setAttribute('role', 'navigation'); nav.setAttribute('aria-label', 'Navigation principale');
-    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="RAM JA — tableau de bord"><img src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"></a>
+    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="/RAM JA — tableau de bord"><img src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"></a>
       <div class="rail-group">${ITEMS.map(([k, href, label, title]) =>
         `<a href="${href}" data-r="${k}" class="${page === k ? 'on' : ''}" title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
       <div class="rail-group rail-bottom"><i class="sep"></i>
@@ -168,7 +168,7 @@
     nav.addEventListener('click', e => { if (Date.now() < until && e.isTrusted) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
 
-  /* ---------- navigation sans rechargement (comme RAM Club) ----------
+  /* ---------- navigation sans rechargement (comme /RAM Club) ----------
      Entre les pages de l'espace juge-arbitre, on ne recharge plus tout : la page visée est lue (souvent
      dès le survol du lien), son contenu remplace l'ancien, le menu reste en place, et seuls ses propres
      scripts s'exécutent. Styles, polices et scripts communs déjà chargés ne sont plus redemandés. */

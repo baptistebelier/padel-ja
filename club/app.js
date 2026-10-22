@@ -610,7 +610,7 @@ const MOTIFS=[['dots','Points'],['grid','Quadrillage'],['stripes','Diagonales'],
 function setMotif(k){if(!MOTIFS.some(m=>m[0]===k))k='dots';S.motif=k;document.documentElement.dataset.motif=k;try{localStorage.setItem('club-motif',k)}catch(e){}}
 /* le système passe du jour à la nuit : on suit, si l'adhérent a choisi « Système » */
 if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(S.mode==='systeme'){setTheme(S.club);render(true)}});
-/* style de l'interface : épuré, street dosé (par défaut) ou full street, comme RAM JA */
+/* style de l'interface : épuré, street dosé (par défaut) ou full street, comme /RAM JA */
 function setUStyle(v){S.ustyle=v||'';if(S.ustyle)document.documentElement.dataset.style=S.ustyle;else delete document.documentElement.dataset.style;try{localStorage.setItem('club-style',S.ustyle)}catch(e){}}
 try{setUStyle(localStorage.getItem('club-style')||'')}catch(e){setUStyle('')}
 A.ustyle=d=>{setUStyle(d.k);render(true)};
@@ -652,7 +652,7 @@ A.motif=d=>{setMotif(d.k);render(true)};
   busy=false;end();if(!window.RAM||!RAM.live)toast('Démonstration : rien à actualiser')});
  m.addEventListener('touchcancel',()=>{if(on){on=false;end()}});})();
 
-/* ---------- version ordinateur, comme RAM JA : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
+/* ---------- version ordinateur, comme /RAM JA : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
 function ramRail(title){let rb=$('rbot');if(!rb){rb=document.createElement('div');rb.id='rbot';rb.className='rbot';$('phone').appendChild(rb)}
  const dk=effDark(),me=ME(),cur=S.tab==='me'&&!S.stack.length;
  rb.innerHTML=`<i class="sep"></i><button data-a="ramMode">${ic(dk?'sun':'moon')}<span>${dk?'Mode jour':'Mode nuit'}</span></button><button data-a="tab" data-t="me" ${cur?'aria-current="page"':''}>${M[me]?av(me,'sm'):ic('user')}<span>Profil</span></button><button data-a="logout">${ic('logout')}<span>Sortir</span></button>`;
@@ -660,5 +660,5 @@ function ramRail(title){let rb=$('rbot');if(!rb){rb=document.createElement('div'
 A.ramMode=()=>{S.mode=effDark()?'jour':'nuit';try{localStorage.setItem('club-mode',S.mode)}catch(e){}setTheme(S.club);render(true)};
 /* réglage du profil : jour, nuit ou système (les couleurs, elles, restent celles choisies par le bureau) */
 A.mode=d=>{S.mode=d.k||'systeme';try{localStorage.setItem('club-mode',S.mode)}catch(e){}setTheme(S.club);render(true)};
-/* sortir : on se déconnecte et on arrive sur la page de connexion de RAM Club */
+/* sortir : on se déconnecte et on arrive sur la page de connexion de /RAM Club */
 A.logout=()=>{fetch('/api/auth/logout',{method:'POST',credentials:'include'}).catch(()=>{}).then(()=>{try{localStorage.removeItem('ram-club')}catch(e){}location.href=(location.pathname.startsWith('/club/')?'/club/':'/')+'connexion'})};

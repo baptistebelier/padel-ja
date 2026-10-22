@@ -1,4 +1,4 @@
-/* RAM JA — utilitaires communs aux écrans (connexion temps réel, noms, thème, cartes du tirage) */
+/* /RAM JA — utilitaires communs aux écrans (connexion temps réel, noms, thème, cartes du tirage) */
 (function () {
   'use strict';
   const qs = new URLSearchParams(location.search);

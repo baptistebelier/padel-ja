@@ -1,5 +1,5 @@
 /* =========================================================================
-   RAM JA — pictogrammes des cartes (dessinés pour le logiciel, jamais d'emoji)
+   /RAM JA — pictogrammes des cartes (dessinés pour le logiciel, jamais d'emoji)
    - chaque carte reçoit le pictogramme de son sujet devant son titre (blanc), jamais dans
      le sur-titre rose ; une carte sans titre en reçoit un dans le code de la page ;
    - les sections numérotées de la fiche tournoi (« 01 / Infos ») perdent leur numéro ;

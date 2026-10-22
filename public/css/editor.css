@@ -1,4 +1,4 @@
-/* RAM JA — éditeur, charte /RAM « Street poster » */
+/* /RAM JA — éditeur, charte /RAM « Street poster » */
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body { background: var(--ui-bg); color: var(--ui-text); font: 14px/1.5 var(--body); display: flex; flex-direction: column; }

@@ -1,4 +1,4 @@
-/* RAM JA — Écran TV (1920×1080, mis à l'échelle de la fenêtre) — charte /RAM */
+/* /RAM JA — Écran TV (1920×1080, mis à l'échelle de la fenêtre) — charte /RAM */
 (function () {
   'use strict';
   const E = Engine, A = App, esc = A.esc;

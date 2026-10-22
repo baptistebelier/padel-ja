@@ -1,4 +1,4 @@
-/* RAM JA — écran TV, charte /RAM « Street poster » */
+/* /RAM JA — écran TV, charte /RAM « Street poster » */
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #000; cursor: none; }
 body.pointer { cursor: default; }

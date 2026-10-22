@@ -7,10 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="RAM JA">
+<meta name="apple-mobile-web-app-title" content="/RAM JA">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja2">
-<title>Mes tournois — RAM JA</title>
+<title>Mes tournois — /RAM JA</title>
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
 <link rel="stylesheet" href="/css/ram.css">
 <link rel="stylesheet" href="/css/theme.css">
@@ -58,7 +58,7 @@
   // essai terminé ou tournoi d'essai déjà utilisé : on explique et on propose les offres
   function blocked(d) {
     const shop = (d.access && d.access.shop) || (window.PadelAccess && window.PadelAccess.shop);
-    if (shop && confirm((d.error || 'Création impossible.') + '\n\nVoir les offres RAM JA ?')) window.open(shop, '_blank', 'noopener');
+    if (shop && confirm((d.error || 'Création impossible.') + '\n\nVoir les offres /RAM JA ?')) window.open(shop, '_blank', 'noopener');
     else if (!shop) alert(d.error || 'Création impossible.');
   }
   async function load() {

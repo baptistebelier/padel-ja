@@ -1,5 +1,5 @@
 /* =========================================================================
-   RAM JA — rail de navigation principal + pages de l'espace juge-arbitre
+   /RAM JA — rail de navigation principal + pages de l'espace juge-arbitre
    (tableau de bord, mes tournois, calendrier, joueurs, profil, admin)
    Utilise les variables --ui-* de ui.css (thèmes jour / nuit).
    ========================================================================= */
@@ -514,7 +514,7 @@ body.editor-page main > .acc-bar { margin: 12px 0 6px; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
 
 /* ---------- fond de l'interface (Profil › Apparence) : motifs /RAM ou uni ----------
-   Deux couches, comme RAM Club : ::before porte les pictogrammes dans la teinte du texte (brun-rouge clair la nuit,
+   Deux couches, comme /RAM Club : ::before porte les pictogrammes dans la teinte du texte (brun-rouge clair la nuit,
    foncé le jour), ::after les traces (balles, cœurs, flèches, trajectoires) dans le jaune /RAM. Contraste 1,2. */
 :root[data-fond="ram-padel"] { --fond: url(/img/motifs/w32/padel-base.png); --fond-acc: url(/img/motifs/w32/padel-accent.png); }
 :root[data-fond="ram-tennis"] { --fond: url(/img/motifs/w32/tennis-base.png); --fond-acc: url(/img/motifs/w32/tennis-accent.png); }

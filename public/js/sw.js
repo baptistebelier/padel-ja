@@ -1,4 +1,4 @@
-/* RAM JA — service worker : réseau d'abord, copie locale si le réseau coupe.
+/* /RAM JA — service worker : réseau d'abord, copie locale si le réseau coupe.
    En ligne, tout se comporte comme d'habitude (toujours la dernière version) ;
    hors ligne, les pages et fichiers déjà ouverts restent disponibles. */
 const CACHE = 'padelja-v1';

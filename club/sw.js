@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION='2026-10-23-ram33';
+const VERSION='2026-10-23-ram34';
 const CACHE='appli-club-'+VERSION;
 /* Fichiers de l'appli mis en cache dès l'installation */
 const CORE=['index.html','app.css','ram.css','ram-sync.js','img/ram-club-blanc.png','img/ram-club-noir.png','img/favicon.png','icon-192.png','logo.js','data.js','ui.js','sons.js','trophees.js','app.js','manifest.webmanifest','icon-180.png','icon-512.png'];
@@ -34,7 +34,7 @@ self.addEventListener('fetch',e=>{
    url = écran à ouvrir dans l'appli (voir openFromUrl dans app.js). */
 self.addEventListener('push',e=>{
  let d={};try{d=e.data?e.data.json():{}}catch(_){d={body:e.data?e.data.text():''}}
- e.waitUntil(self.registration.showNotification(d.title||"RAM Club",{body:d.body||'',icon:'icon-180.png',badge:'icon-180.png',tag:d.tag,data:{url:d.url||''},renotify:!!d.tag}));
+ e.waitUntil(self.registration.showNotification(d.title||"/RAM Club",{body:d.body||'',icon:'icon-180.png',badge:'icon-180.png',tag:d.tag,data:{url:d.url||''},renotify:!!d.tag}));
 });
 
 /* Toucher la notification : on remet l'appli au premier plan (ou on l'ouvre) sur le bon écran */
