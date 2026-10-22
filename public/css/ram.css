@@ -82,7 +82,7 @@ body[data-look] #stage::before { transition: opacity .6s; }
 .look-bg-plain #stage::before { background: none; }
 /* motifs /RAM : tuile sans couture en masque (blanc très atténué), affichée à 853 px pour un trait de 1 px */
 .look-bg-ram-padel #stage::before, .look-bg-ram-tennis #stage::before, .look-bg-ram-mixte #stage::before {
-  background: #ffffff0d; -webkit-mask: var(--ram-motif) 0 0 / 853px 853px repeat; mask: var(--ram-motif) 0 0 / 853px 853px repeat; }
+  background: #ffffff08; -webkit-mask: var(--ram-motif) 0 0 / 853px 853px repeat; mask: var(--ram-motif) 0 0 / 853px 853px repeat; }
 .look-bg-ram-padel { --ram-motif: url(/img/motifs/padel.png); }
 .look-bg-ram-tennis { --ram-motif: url(/img/motifs/tennis.png); }
 .look-bg-ram-mixte { --ram-motif: url(/img/motifs/mixte.png); }

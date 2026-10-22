@@ -210,8 +210,8 @@
 :root[data-motif="ram-mixte"] { --mk: url(motifs/mixte-base.png); --ma: url(motifs/mixte-accent.png); }
 :root[data-motif^="ram-"] .motif { background: none; }
 :root[data-motif^="ram-"] .motif::before, :root[data-motif^="ram-"] .motif::after { content: ''; position: absolute; inset: 0;
-  -webkit-mask: var(--mk) 0 0 / 853px 853px repeat; mask: var(--mk) 0 0 / 853px 853px repeat; background: color-mix(in srgb, var(--fg) 11%, transparent); }
-:root[data-motif^="ram-"] .motif::after { -webkit-mask-image: var(--ma); mask-image: var(--ma); background: color-mix(in srgb, var(--accent) 30%, transparent); }
+  -webkit-mask: var(--mk) 0 0 / 853px 853px repeat; mask: var(--mk) 0 0 / 853px 853px repeat; background: color-mix(in srgb, var(--fg) 6%, transparent); }
+:root[data-motif^="ram-"] .motif::after { -webkit-mask-image: var(--ma); mask-image: var(--ma); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 #main, .foot { position: relative; z-index: 1; }
 .motifs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .motifs button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1.5px solid var(--line); background: var(--card2); font-family: var(--f-sub); font-weight: 600; font-size: 12px; color: var(--fg); }
