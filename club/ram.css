@@ -203,6 +203,15 @@
 :root[data-motif="grid"] .motif { background: linear-gradient(var(--mc) 1px, transparent 1px) 0 0 / 56px 56px, linear-gradient(90deg, var(--mc) 1px, transparent 1px) 0 0 / 56px 56px; }
 :root[data-motif="stripes"] .motif { --mc: color-mix(in srgb, var(--fg) 4%, transparent); background: repeating-linear-gradient(-45deg, var(--mc) 0 3px, transparent 3px 26px); }
 :root[data-motif="plain"] .motif { background: none; }
+/* motifs /RAM (padel, tennis, padel et tennis) : tuiles sans couture en masque, colorées par le thème ;
+   ::before porte les pictogrammes (couleur du texte), ::after les traces d'accent (couleur d'accent du club) */
+:root[data-motif="ram-padel"] { --mk: url(motifs/padel-base.png); --ma: url(motifs/padel-accent.png); }
+:root[data-motif="ram-tennis"] { --mk: url(motifs/tennis-base.png); --ma: url(motifs/tennis-accent.png); }
+:root[data-motif="ram-mixte"] { --mk: url(motifs/mixte-base.png); --ma: url(motifs/mixte-accent.png); }
+:root[data-motif^="ram-"] .motif { background: none; }
+:root[data-motif^="ram-"] .motif::before, :root[data-motif^="ram-"] .motif::after { content: ''; position: absolute; inset: 0;
+  -webkit-mask: var(--mk) 0 0 / 853px 853px repeat; mask: var(--mk) 0 0 / 853px 853px repeat; background: color-mix(in srgb, var(--fg) 11%, transparent); }
+:root[data-motif^="ram-"] .motif::after { -webkit-mask-image: var(--ma); mask-image: var(--ma); background: color-mix(in srgb, var(--accent) 30%, transparent); }
 #main, .foot { position: relative; z-index: 1; }
 .motifs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .motifs button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1.5px solid var(--line); background: var(--card2); font-family: var(--f-sub); font-weight: 600; font-size: 12px; color: var(--fg); }
@@ -211,6 +220,9 @@
 .motifs i.dots { background-image: radial-gradient(var(--mc) 1px, transparent 1.3px); background-size: 7px 7px; }
 .motifs i.grid { background-image: linear-gradient(var(--mc) 1px, transparent 1px), linear-gradient(90deg, var(--mc) 1px, transparent 1px); background-size: 14px 14px; }
 .motifs i.stripes { background-image: repeating-linear-gradient(-45deg, var(--mc) 0 2px, transparent 2px 9px); }
+.motifs i[class^="ram-"] { position: relative; overflow: hidden; }
+.motifs i[class^="ram-"]::before { content: ''; position: absolute; inset: 0; background: var(--mc); -webkit-mask: var(--mi) 0 0 / 320px 320px; mask: var(--mi) 0 0 / 320px 320px; }
+.motifs i.ram-padel { --mi: url(motifs/padel-base.png); } .motifs i.ram-tennis { --mi: url(motifs/tennis-base.png); } .motifs i.ram-mixte { --mi: url(motifs/mixte-base.png); }
 
 /* ---------- retour en arrière en glissant depuis le bord gauche ---------- */
 #main.swipe-back, #top.swipe-back, .foot.swipe-back { transition: none !important; }

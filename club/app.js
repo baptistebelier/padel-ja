@@ -601,7 +601,7 @@ A.installHelp=()=>installGuide(true);
 setTimeout(()=>installGuide(false),600);
 
 /* ---------- fond de l'appli : motif fixe au choix (points, quadrillage, diagonales, uni), mémorisé ---------- */
-const MOTIFS=[['dots','Points'],['grid','Quadrillage'],['stripes','Diagonales'],['plain','Uni']];
+const MOTIFS=[['dots','Points'],['grid','Quadrillage'],['stripes','Diagonales'],['plain','Uni'],['ram-padel','Padel'],['ram-tennis','Tennis'],['ram-mixte','Padel &amp; Tennis']];
 function setMotif(k){if(!MOTIFS.some(m=>m[0]===k))k='dots';S.motif=k;document.documentElement.dataset.motif=k;try{localStorage.setItem('club-motif',k)}catch(e){}}
 try{setMotif(localStorage.getItem('club-motif')||'dots')}catch(e){setMotif('dots')}
 A.motif=d=>{setMotif(d.k);render(true)};
