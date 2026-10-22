@@ -205,9 +205,9 @@
 :root[data-motif="plain"] .motif { background: none; }
 /* motifs /RAM (padel, tennis, padel et tennis) : tuiles sans couture en masque, colorées par le thème ;
    ::before porte les pictogrammes (couleur du texte), ::after les traces d'accent (couleur d'accent du club) */
-:root[data-motif="ram-padel"] { --mk: url(motifs/padel-base.png); --ma: url(motifs/padel-accent.png); }
-:root[data-motif="ram-tennis"] { --mk: url(motifs/tennis-base.png); --ma: url(motifs/tennis-accent.png); }
-:root[data-motif="ram-mixte"] { --mk: url(motifs/mixte-base.png); --ma: url(motifs/mixte-accent.png); }
+:root[data-motif="ram-padel"] { --mk: url(motifs/w30/padel-base.png); --ma: url(motifs/w30/padel-accent.png); }
+:root[data-motif="ram-tennis"] { --mk: url(motifs/w30/tennis-base.png); --ma: url(motifs/w30/tennis-accent.png); }
+:root[data-motif="ram-mixte"] { --mk: url(motifs/w30/mixte-base.png); --ma: url(motifs/w30/mixte-accent.png); }
 :root[data-motif^="ram-"] .motif { background: none; }
 :root[data-motif^="ram-"] .motif::before, :root[data-motif^="ram-"] .motif::after { content: ''; position: absolute; inset: 0;
   -webkit-mask: var(--mk) 0 0 / 800px 800px repeat; mask: var(--mk) 0 0 / 800px 800px repeat; background: color-mix(in srgb, var(--fg) 9%, transparent); }
@@ -222,7 +222,7 @@
 .motifs i.stripes { background-image: repeating-linear-gradient(-45deg, var(--mc) 0 2px, transparent 2px 9px); }
 .motifs i[class^="ram-"] { position: relative; overflow: hidden; }
 .motifs i[class^="ram-"]::before { content: ''; position: absolute; inset: 0; background: var(--mc); -webkit-mask: var(--mi) 0 0 / 320px 320px; mask: var(--mi) 0 0 / 320px 320px; }
-.motifs i.ram-padel { --mi: url(motifs/padel-base.png); } .motifs i.ram-tennis { --mi: url(motifs/tennis-base.png); } .motifs i.ram-mixte { --mi: url(motifs/mixte-base.png); }
+.motifs i.ram-padel { --mi: url(motifs/w30/padel-base.png); } .motifs i.ram-tennis { --mi: url(motifs/w30/tennis-base.png); } .motifs i.ram-mixte { --mi: url(motifs/w30/mixte-base.png); }
 
 /* ---------- retour en arrière en glissant depuis le bord gauche ---------- */
 #main.swipe-back, #top.swipe-back, .foot.swipe-back { transition: none !important; }
