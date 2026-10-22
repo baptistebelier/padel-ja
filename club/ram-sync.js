@@ -255,7 +255,7 @@
       case 'stats': {
         if (typeof STATS === 'undefined') return;
         if (it.del) { delete STATS[id]; return; }
-        STATS[id] = { c: copy(s.c || {}), k: new Set(s.k || []), got: copy(s.got || {}), lvl: s.lvl == null ? null : s.lvl }; return;
+        STATS[id] = { c: copy(s.c || {}), k: new Set(s.k || []), got: copy(s.got || {}), lvl: s.lvl == null ? null : s.lvl }; countsOf(id); return;
       }
       default: {
         const list = LISTS[it.coll] && LISTS[it.coll]();
@@ -455,6 +455,12 @@
     const l = document.getElementById('com-list'); if (l) l.scrollTo({ top: l.scrollHeight, behavior: 'smooth' });
   }
 
+  /* compteurs d'actions recomptés par le serveur : ce sont eux que l'on affiche (trophées, paliers) */
+  function countsOf(k) {
+    const c = R.counts && R.counts[k]; if (!c || typeof STATS === 'undefined' || typeof ST !== 'function' || !M[k]) return;
+    const s = ST(k); Object.assign(s.c, c); s.c.ap = Object.entries(c).reduce((a, [x, n]) => a + (x === 'streak' || x === 'autre' ? 0 : n), 0);
+  }
+  function applyCounts(cnt) { R.counts = cnt; Object.keys(cnt).forEach(countsOf); }
   async function pull() {
     const d = await api('/api/ram/c/' + R.club + '/sync?since=' + R.rev);
     // accès validé par le bureau ou rôle changé : ce qu'on a le droit de voir change, on recharge tout le club
@@ -465,6 +471,7 @@
       return;
     }
     // scores d'investissement calculés par le serveur : identiques pour tous les comptes
+    if (d.counts) applyCounts(d.counts);
     if (d.scores) { const ch = Object.keys(d.scores).some(k => d.scores[k] !== R.scores[k]); R.scores = d.scores; if (ch && !d.items.length) render(true); }
     if (!d.items.length) { R.rev = d.rev; return; }
     const local = new Map(collect().map(([coll, id, s]) => [coll + '/' + id, J(s)]));
@@ -567,10 +574,11 @@
   async function start(id) {
     const d = await api('/api/ram/c/' + id + '/sync?since=0');
     stop(); wipe();
-    R.club = id; R.key = d.me.key; R.role = d.me.role; R.valid = d.me.valid; R.loadAt = Date.now(); R.code = d.club.code; R.fol = d.fol || {}; R.roles = d.roles || {}; R.scores = d.scores || {}; R.base = new Map(); R.bad = new Map();
+    R.club = id; R.key = d.me.key; R.role = d.me.role; R.valid = d.me.valid; R.loadAt = Date.now(); R.code = d.club.code; R.fol = d.fol || {}; R.roles = d.roles || {}; R.scores = d.scores || {}; R.counts = d.counts || {}; R.base = new Map(); R.bad = new Map();
     window.RAM_KEY = R.key;
     const order = ['conf', 'member', 'prefs', 'stats', 'chan', 'group', 'champ', 'rec', 'post', 'art', 'partner', 'comm', 'claim', 'msg', 'report'];
     d.items.sort((a, b) => order.indexOf(a.coll) - order.indexOf(b.coll)).forEach(it => applyItem(it, true));
+    applyCounts(R.counts);
     if (!M[R.key]) M[R.key] = { n: 'Moi', r: 'NC', team: '', fol: 0, g: 'H', bd: '', res: [] };
     R.rev = d.rev; R.live = true; LS.set('ram-club', id);
     derive(); ramRender(); schedule(); listen();

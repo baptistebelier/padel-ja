@@ -70,7 +70,7 @@ function check(){const id=ME(),s=ST(id),out=[];
  else if(out.length)render(true)}
 /* Décerner un trophée (club, automatique ou demande approuvée) : un palier de plus, ou le trophée rare */
 function award(id,tid,quiet,tier){const t=findT(tid),s=ST(id);let lv;
- if(t.t){const n=tierOf(t,s.c[t.id]||0);const k=tier!=null?Math.max(tier,n):n;if(k>=4)return false;s.c[t.id]=t.t[k];lv=TIERS[k].toLowerCase()}else{if(rOk(t,id))return false;s.k.add('award:'+t.id);lv=RAR[t.r].toLowerCase()}
+ if(t.t){const n=tierOf(t,s.c[t.id]||0);const k=tier!=null?Math.max(tier,n):n;if(k>=4)return false;s.c[t.id]=t.t[k];s.k.add('award:'+t.id+':'+k);lv=TIERS[k].toLowerCase()}else{if(rOk(t,id))return false;s.k.add('award:'+t.id);lv=RAR[t.r].toLowerCase()}
  if(id===ME())check();else if(!quiet)NOTIFS.unshift({by:'club',txt:`te décerne le trophée ${t.n} (${lv})`,t:"À l'instant",n:1,go:{v:'troph',id:id+'|'+t.id},to:[id]});
  return true}
 /* Clôture du championnat : trophée Champion pour ceux qui ont joué au moins un match (et le capitaine) */
