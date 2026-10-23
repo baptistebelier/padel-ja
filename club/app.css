@@ -663,3 +663,7 @@ body{touch-action:manipulation}
 .nrow.unread{background:color-mix(in srgb,var(--hot) 9%,transparent)}
 .nrow .medal{width:34px;height:34px;flex:none}
 .nrow .medal svg{width:18px;height:18px}
+/* Bar et club-house */
+.bar-it{gap:10px}
+.bar-it.off{opacity:.6}
+.bar-price{font-family:var(--f-display);font-size:20px;white-space:nowrap;color:var(--accent)}

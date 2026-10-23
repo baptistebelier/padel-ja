@@ -262,6 +262,15 @@
       );
     });
     if (typeof CLAIMS !== 'undefined') CLAIMS.forEach(x => add('claim', x.id, x));
+    // bar : la carte, et mes réservations (le bureau voit et tient toutes celles du club)
+    BAR.forEach(x => {
+      at(x, 'bar');
+      add('bar', x.id, x);
+    });
+    ORDERS.forEach(x => {
+      at(x, 'order');
+      add('order', x.id, x);
+    });
     Object.keys(M).forEach(k => {
       if (k === 'club') return;
       const s = strip(M[k], ['fol']);
@@ -468,7 +477,9 @@
     comm: () => COMMS,
     rec: () => recs,
     report: () => REPORTS,
-    claim: () => (typeof CLAIMS !== 'undefined' ? CLAIMS : [])
+    claim: () => (typeof CLAIMS !== 'undefined' ? CLAIMS : []),
+    bar: () => BAR,
+    order: () => ORDERS
   };
   function place(list, obj, desc) {
     const i = list.findIndex(x => x.id === obj.id);
@@ -536,6 +547,7 @@
         Object.keys(CLUBINFO).forEach(k => delete CLUBINFO[k]);
         Object.assign(CLUBINFO, copy(s.info || {}));
         CLUBINFO.mods = CLUBINFO.mods || { actus: true, comm: true };
+        if (CLUBINFO.mods.bar == null) CLUBINFO.mods.bar = false; // bar : activé par le bureau dans « Infos du club »
         if (R.code) CLUBINFO.code = R.code;
         FORM.length = 0;
         (s.form || []).forEach(f => FORM.push(copy(f)));
@@ -810,6 +822,10 @@
         return staff || id === k;
       case 'claim':
         return staff || d.by === k;
+      case 'bar':
+        return R.role === 'bureau';
+      case 'order':
+        return R.role === 'bureau' || myKeys().includes(d.by);
     }
     return false;
   }
@@ -1115,6 +1131,19 @@
           })
         );
     }
+    // bar : le bureau est prévenu de chaque nouvelle réservation (pour préparer les commandes du lendemain)
+    if (coll === 'order' && !a && isBureau() && b.by !== me && known(b.by) && b.st !== 'annule')
+      once(`order/${id}`, () =>
+        notify(
+          'club',
+          b.by,
+          `réserve ${b.qty} × ${b.name} · ${barDay(b.date).toLowerCase()}, ${MOMENT[b.moment].toLowerCase()}`,
+          {
+            v: 'bar',
+            d: b.date
+          }
+        )
+      );
     if (coll === 'member' && a && id !== me && added(a.fo, b.fo).includes(me) && known(id))
       once(`fo/${id}`, () => notify('mine', id, 'te suit désormais', { v: 'member', id }));
     if (coll === 'member' && id !== me && isBureau() && b.req && !(a && a.req) && b.valid !== S.season)
@@ -1376,6 +1405,8 @@
     if (typeof XP !== 'undefined') Object.keys(XP).forEach(k => delete XP[k]);
     if (typeof STATS !== 'undefined') Object.keys(STATS).forEach(k => delete STATS[k]);
     if (typeof CLAIMS !== 'undefined') CLAIMS.length = 0;
+    BAR.length = 0;
+    ORDERS.length = 0;
     ['tel', 'mail'].forEach(k => {
       MYCT[k][2] = '';
     });
@@ -1425,6 +1456,8 @@
       'partner',
       'comm',
       'claim',
+      'bar',
+      'order',
       'msg',
       'report'
     ];

@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-10-23-notifs1';
+const VERSION = '2026-10-23-bar1';
 const CACHE = 'appli-club-' + VERSION;
 /* Fichiers de l'appli mis en cache dès l'installation */
 const CORE = [
@@ -22,6 +22,7 @@ const CORE = [
   'ui/6-profil.js',
   'ui/7-ecole.js',
   'ui/8-ecrans.js',
+  'ui/9-bar.js',
   'sons.js',
   'trophees.js',
   'app/1-affichage.js',
@@ -32,6 +33,7 @@ const CORE = [
   'app/6-gestes.js',
   'app/7-enregistrement.js',
   'app/8-demarrage.js',
+  'app/9-bar.js',
   'manifest.webmanifest',
   'icon-180.png',
   'icon-512.png'

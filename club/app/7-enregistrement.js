@@ -212,7 +212,8 @@ document.addEventListener('submit', e => {
     I2.book = esc(toUrl(val('i-book')));
     I2.pay = esc(toUrl(val('i-pay')));
     I2.shop = esc(toUrl(val('i-shop')));
-    I2.mods = { actus: $('i-actus').checked, comm: $('i-comm').checked };
+    I2.mods = { actus: $('i-actus').checked, comm: $('i-comm').checked, bar: $('i-bar').checked };
+    I2.barCut = parseInt(val('i-cut'), 10) || 20;
     closeSheet();
     render(true);
     toast('Infos du club mises à jour');

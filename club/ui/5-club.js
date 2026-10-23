@@ -106,13 +106,15 @@ function clubView() {
       I2.mods.actus && ['actus', 'Actus', 'news'],
       ['teams', 'Équipes', 'users'],
       ['club', 'Le club', 'club'],
-      I2.mods.comm && ['comm', 'Commissions', 'flag']
+      I2.mods.comm && ['comm', 'Commissions', 'flag'],
+      I2.mods.bar && ['bar', 'Bar', 'cup']
     ].filter(Boolean);
   if (!tl.some(x => x[0] === S.clubTab)) S.clubTab = tl[0][0];
   const tabs = segs('clubTab', tl),
     t = S.clubTab;
   if (t === 'teams') return tabs + teamsBody();
   if (t === 'comm') return tabs + commList();
+  if (t === 'bar') return tabs + barView();
   if (t === 'actus') {
     const l = arts.filter(a => !a.arch);
     return (
@@ -163,4 +165,3 @@ function listView() {
  ${seesMinors() ? '' : '<p class="muted small">Les jeunes du club n\'apparaissent pas dans cette liste.</p>'}
  <div id="l-res"><span class="kicker">${ids.length} adhérent${ids.length > 1 ? 's' : ''}</span>${ids.length ? ids.map(p => `<button class="item" data-a="member" data-id="${p}">${av(p, 'sm')}<span class="grow"><span class="nm">${M[p].n}</span> ${bd(p, sp)}<br><span class="muted small">${catOf(p)}${sp && M[p].pad ? ' · classement padel n° ' + M[p].pad : ''}</span></span></button>`).join('') : empty('search', 'Aucun adhérent trouvé', "Vérifie l'orthographe ou change le filtre.")}</div></div>`;
 }
-

@@ -1222,7 +1222,8 @@ const S = {
   list: { sort: 'tennis', f: 'all', q: '' },
   palm: 'tennis',
   season: '2026-2027',
-  arch: { s: '', t: 'arts' }
+  arch: { s: '', t: 'arts' },
+  bar: { d: '', m: 'midi', v: 'carte' }
 };
 
 const club = () => CLUBS[S.club];
@@ -1292,8 +1293,122 @@ const CLUBINFO = {
   book: '',
   pay: '',
   code: 'TPC-4821',
-  mods: { actus: true, comm: true }
+  barCut: 20,
+  mods: { actus: true, comm: true, bar: true }
 };
+/* Bar et club-house : la carte (tenue par le bureau) et les réservations de repas des adhérents */
+const BAR = [
+  {
+    id: 'b1',
+    name: 'Croque-monsieur maison',
+    cat: 'Plat',
+    price: '6 €',
+    desc: 'Jambon, emmental, salade verte',
+    moments: ['midi', 'soir'],
+    resa: true,
+    on: true
+  },
+  {
+    id: 'b2',
+    name: 'Salade du club',
+    cat: 'Plat',
+    price: '9 €',
+    desc: 'Poulet grillé, tomates, parmesan, croûtons',
+    moments: ['midi'],
+    resa: true,
+    on: true
+  },
+  {
+    id: 'b3',
+    name: 'Formule du soir',
+    cat: 'Formule',
+    price: '14 €',
+    desc: 'Plat du jour, dessert et boisson',
+    moments: ['soir'],
+    resa: true,
+    on: true
+  },
+  {
+    id: 'b4',
+    name: 'Tarte aux pommes',
+    cat: 'Dessert',
+    price: '3,50 €',
+    desc: '',
+    moments: ['midi', 'soir'],
+    resa: true,
+    on: true
+  },
+  {
+    id: 'b5',
+    name: 'Café',
+    cat: 'Boisson',
+    price: '1,50 €',
+    desc: '',
+    moments: ['midi', 'soir'],
+    resa: false,
+    on: true
+  },
+  {
+    id: 'b6',
+    name: 'Bière pression',
+    cat: 'Boisson',
+    price: '3 €',
+    desc: '25 cl',
+    moments: ['soir'],
+    resa: false,
+    on: true
+  }
+];
+const ORDERS = [
+  {
+    id: 'o1',
+    by: 'me',
+    item: 'b1',
+    name: 'Croque-monsieur maison',
+    price: '6 €',
+    date: '2026-10-14',
+    moment: 'midi',
+    qty: 1,
+    note: '',
+    st: 'ok'
+  },
+  {
+    id: 'o2',
+    by: 'thomas',
+    item: 'b1',
+    name: 'Croque-monsieur maison',
+    price: '6 €',
+    date: '2026-10-14',
+    moment: 'midi',
+    qty: 2,
+    note: 'Sans salade',
+    st: 'ok'
+  },
+  {
+    id: 'o3',
+    by: 'ines',
+    item: 'b2',
+    name: 'Salade du club',
+    price: '9 €',
+    date: '2026-10-14',
+    moment: 'midi',
+    qty: 1,
+    note: '',
+    st: 'ok'
+  },
+  {
+    id: 'o4',
+    by: 'nathan',
+    item: 'b3',
+    name: 'Formule du soir',
+    price: '14 €',
+    date: '2026-10-14',
+    moment: 'soir',
+    qty: 1,
+    note: '',
+    st: 'ok'
+  }
+];
 const JOINREQ = [
   { id: 'lucas', n: 'Lucas Petit', mail: 'lucas.petit@exemple.fr', via: 'le code du club' },
   { n: 'Lucie Marchand', mail: 'lucie.marchand@exemple.fr', via: 'le code du club' },
