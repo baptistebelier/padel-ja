@@ -293,6 +293,8 @@
       }
     });
     add('prefs', R.key, {
+      nh: notifStore(),
+      seen: Object.assign({}, SEEN.at),
       follow: [...S.follow],
       blocked: [...S.blocked],
       nset: S.nset,
@@ -315,6 +317,102 @@
     posts.forEach(p => box('p:' + p.id, p.com));
     return out;
   }
+  /* ---------- historique des notifications, partagé entre mes appareils ----------
+     Rangé dans mes réglages (privés) : { id: { by, txt, at, go…, r: 1 si lue } }. L'identifiant est tiré du contenu :
+     la même notification produite sur deux appareils (trophée, like…) n'en fait qu'une. */
+  const NKEEP = ['by', 'txt', 'go', 'kick', 'head', 'det', 'tier', 'kind', 'live', 'frame', 'conv', 'to', 'team', 'sc'];
+  function nid(n) {
+    const s = [n.kick || '', n.by || '', n.txt || '', n.go ? (n.go.v || '') + '/' + (n.go.id || '') : ''].join('|');
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return 'n' + h.toString(36) + s.length.toString(36);
+  }
+  function stamp() {
+    NOTIFS.forEach(n => {
+      if (!n.at) n.at = Date.now();
+      if (!n.id) n.id = nid(n);
+    });
+    // une même notification arrivée deux fois : on garde la plus récente
+    const seen = new Set();
+    for (let i = 0; i < NOTIFS.length; i++) {
+      if (seen.has(NOTIFS[i].id)) NOTIFS.splice(i--, 1);
+      else seen.add(NOTIFS[i].id);
+    }
+    trimNotifs();
+  }
+  function notifStore() {
+    stamp();
+    const out = {};
+    NOTIFS.forEach(n => {
+      const o = { at: n.at };
+      NKEEP.forEach(k => {
+        if (n[k] != null) o[k] = copy(n[k]);
+      });
+      if (!n.n) o.r = 1;
+      out[n.id] = o;
+    });
+    return out;
+  }
+  // bandeaux déjà montrés sur cet appareil : une notification venue d'un autre appareil s'affiche une fois ici aussi
+  const shown = new Set(
+    (() => {
+      try {
+        return JSON.parse(LS.get('ram-nshown') || '[]');
+      } catch (x) {
+        return [];
+      }
+    })()
+  );
+  const _banner = banner;
+  banner = n => {
+    if (n && R.live) {
+      if (!n.id) n.id = nid(n);
+      if (shown.has(n.id)) return;
+      shown.add(n.id);
+      LS.set('ram-nshown', J([...shown].slice(-200)));
+    }
+    _banner(n);
+  };
+  function mergeNotifs(nh, initial) {
+    stamp();
+    const byId = new Map(NOTIFS.map(n => [n.id, n])),
+      arrived = [];
+    Object.keys(nh || {}).forEach(id => {
+      const o = nh[id],
+        cur = byId.get(id);
+      if (!isObj(o)) return;
+      if (cur) {
+        if (o.r) cur.n = 0; // lue sur un autre appareil
+        if ((o.at || 0) > (cur.at || 0)) cur.at = o.at;
+        return;
+      }
+      const n = Object.assign(copy(o), { id, n: o.r ? 0 : 1, t: '' });
+      delete n.r;
+      NOTIFS.push(n);
+      byId.set(id, n);
+      if (!initial && n.n) arrived.push(n);
+    });
+    trimNotifs();
+    if (initial) arrived.forEach(n => shown.add(n.id));
+    else arrived.forEach(n => banner(n));
+  }
+  /* dernière visite de chaque onglet (pastilles du menu, « Nouveau » sur le mur), partagée entre mes appareils */
+  let seenTab = null;
+  function markSeen() {
+    const t = S.tab;
+    if (!['home', 'agenda', 'ecole', 'club'].includes(t)) {
+      seenTab = t;
+      return;
+    }
+    const now = Date.now();
+    if (t !== seenTab) {
+      seenTab = t;
+      SEEN.prev[t] = SEEN.at[t] != null ? SEEN.at[t] : now; // ce qui est plus récent que la dernière visite est « nouveau »
+      SEEN.at[t] = now;
+      if (t === 'ecole') NOTIFS.forEach(n => n.go && (n.go.v === 'ecole' || n.go.ag === 'cours') && (n.n = 0));
+    } else if (!S.stack.length && tabNews(t)) SEEN.at[t] = now; // arrivé pendant qu'on regarde l'onglet
+  }
+
   /* conteneurs de messages encore affichés : un message absent d'un conteneur présent a été supprimé */
   function openRefs() {
     const s = new Set();
@@ -572,6 +670,10 @@
           });
         S.setup = s.setup || {};
         S.invited = s.invited || 0;
+        Object.keys(s.seen || {}).forEach(k => {
+          SEEN.at[k] = Math.max(SEEN.at[k] || 0, +s.seen[k] || 0);
+        });
+        mergeNotifs(s.nh, initial);
         if (s.motif && typeof setMotif === 'function') setMotif(s.motif);
         R.prefs = s;
         return;
@@ -1047,6 +1149,17 @@
     R.counts = cnt;
     Object.keys(cnt).forEach(countsOf);
   }
+  /* trophées : vérifiés après chaque synchronisation, avec les compteurs du serveur et les trophées décernés
+     par le club ; un palier atteint depuis n'importe quel appareil (ou grâce aux autres : likes, abonnés…)
+     donne sa notification, gardée dans l'historique de tous mes appareils */
+  function trophyCheck() {
+    if (typeof check !== 'function' || !M[R.key] || pending()) return;
+    try {
+      check();
+    } catch (x) {
+      console.warn('/RAM Club : trophées', x.message);
+    }
+  }
   async function pull() {
     const d = await api('/api/ram/c/' + R.club + '/sync?since=' + R.rev);
     // accès validé par le bureau ou rôle changé : ce qu'on a le droit de voir change, on recharge tout le club
@@ -1065,6 +1178,7 @@
     }
     if (!d.items.length) {
       R.rev = d.rev;
+      if (d.counts) trophyCheck();
       return;
     }
     const local = new Map(collect().map(([coll, id, s]) => [coll + '/' + id, J(s)]));
@@ -1095,6 +1209,7 @@
     });
     R.rev = d.rev;
     derive();
+    trophyCheck(); // compteurs, trophées décernés par le club
     // nouveau message dans la discussion ouverte : il apparaît avec une animation et l'écran défile jusqu'à lui
     const v0 = view(),
       here = v0.v === 'chan' ? 'c:' + v0.id : v0.v === 'rec' ? 'r:' + v0.id : '';
@@ -1239,6 +1354,7 @@
   /* chaque affichage peut suivre une action : on envoie les changements juste après */
   const ramRender = render;
   render = function (keep) {
+    if (R.live) markSeen();
     ramRender(keep);
     if (R.live) {
       clearTimeout(pushT);
@@ -1265,6 +1381,8 @@
     });
     MYCT.soc = ['at', 'Instagram', ''];
     S.liked.clear();
+    [SEEN.at, SEEN.prev].forEach(o => Object.keys(o).forEach(k => delete o[k]));
+    seenTab = null;
     S.follow = new Set();
     S.blocked = new Set();
     S.share = { tel: false, mail: false, soc: false };
@@ -1312,6 +1430,7 @@
     ];
     d.items.sort((a, b) => order.indexOf(a.coll) - order.indexOf(b.coll)).forEach(it => applyItem(it, true));
     applyCounts(R.counts);
+    trophyCheck();
     if (!M[R.key]) M[R.key] = { n: 'Moi', r: 'NC', team: '', fol: 0, g: 'H', bd: '', res: [] };
     R.rev = d.rev;
     R.live = true;

@@ -102,7 +102,58 @@ function lookPrev() {
 
 function notify(type, by, txt, go, quiet) {
   if (!S.nset[type] || by === ME()) return;
-  NOTIFS.unshift({ by, txt, t: "À l'instant", n: 1, go });
-  if (NOTIFS.length > 30) NOTIFS.pop();
+  NOTIFS.unshift({ by, txt, t: "À l'instant", n: 1, go, at: Date.now() });
+  trimNotifs();
   if (!quiet) banner(NOTIFS[0]);
+}
+/* Historique des notifications : toutes celles des 7 derniers jours, et au moins les 20 dernières (même plus anciennes) */
+const NOTIF_DAYS = 7,
+  NOTIF_MIN = 20,
+  NOTIF_MAX = 100;
+function trimNotifs() {
+  const lim = Date.now() - NOTIF_DAYS * 864e5;
+  NOTIFS.sort((a, b) => (b.at || Infinity) - (a.at || Infinity));
+  for (let i = NOTIFS.length - 1; i >= NOTIF_MIN; i--)
+    if (i >= NOTIF_MAX || (NOTIFS[i].at && NOTIFS[i].at < lim)) NOTIFS.splice(i, 1);
+}
+/* « Il y a 5 min », « Hier »… pour l'historique (les notifications de démo gardent leur texte) */
+function ago(n) {
+  if (!n.at) return n.t || '';
+  const s = (Date.now() - n.at) / 1000;
+  if (s < 60) return "À l'instant";
+  if (s < 3600) return 'Il y a ' + Math.floor(s / 60) + ' min';
+  if (s < 86400) return 'Il y a ' + Math.floor(s / 3600) + ' h';
+  if (s < 2 * 86400) return 'Hier';
+  return 'Il y a ' + Math.floor(s / 86400) + ' jours';
+}
+/* Nouveautés depuis la dernière visite de chaque onglet : pastilles du menu, « Nouveau » sur le mur.
+   SEEN.at : dernière visite (enregistrée et partagée entre appareils par ram-sync.js) ;
+   SEEN.prev : visite d'avant, figée pendant qu'on regarde l'onglet. Démo : rien n'est marqué. */
+const SEEN = { at: {}, prev: {} };
+const isNew = (tab, at, by) => !!at && by !== ME() && SEEN.prev[tab] != null && at > SEEN.prev[tab];
+function tabNews(tab) {
+  const since = SEEN.at[tab],
+    me = ME(),
+    kids = (M[me] && M[me].kids) || [];
+  if (since == null || pending()) return 0;
+  const aft = x => (x.at || 0) > since;
+  if (tab === 'home') return posts.filter(p => p.kind !== 'ad' && p.by !== me && aft(p) && canSee(p)).length;
+  if (tab === 'agenda')
+    return (
+      recs.filter(r => !r.arch && aft(r)).length +
+      posts.filter(p => p.kind === 'event' && p.by !== me && aft(p) && canSee(p)).length
+    );
+  if (tab === 'ecole')
+    return (
+      GROUPS.filter(g => g.type !== 'team' && aft(g) && (g.mem || []).some(k => k === me || kids.includes(k))).length +
+      NOTIFS.filter(n => n.n && n.go && (n.go.v === 'ecole' || n.go.ag === 'cours') && nVis(n)).length
+    );
+  if (tab === 'club')
+    return (
+      arts.filter(aft).length +
+      COMMS.filter(aft).length +
+      PARTNERS.filter(aft).length +
+      (isBureau() ? JOINREQ.length : 0)
+    );
+  return 0;
 }

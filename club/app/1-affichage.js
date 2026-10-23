@@ -115,9 +115,13 @@ function render(keep) {
   } else foot.hidden = true;
   if (showTabs) {
     tabs.hidden = false;
+    // pastilles : messages non lus dans les groupes ; nouveautés depuis la dernière visite des autres onglets
     const un = pending() ? 0 : chans.reduce((a, c) => a + (c.mute || !chanOk(c) ? 0 : c.un), 0),
-      tb = (k, i, l) =>
-        `<button data-a="tab" data-t="${k}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic(i)}${l}${k === 'chans' && un ? `<span class="cnt">${un}</span>` : ''}</button>`;
+      cnt = k => (k === 'chans' ? un : S.tab === k && !S.stack.length ? 0 : tabNews(k)),
+      tb = (k, i, l) => {
+        const n = cnt(k);
+        return `<button data-a="tab" data-t="${k}" ${S.tab === k ? 'aria-current="page"' : ''} aria-label="${l}${n ? ` (${n} nouveauté${n > 1 ? 's' : ''})` : ''}">${ic(i)}${l}${n ? `<span class="cnt">${n > 99 ? '99+' : n}</span>` : ''}</button>`;
+      };
     tabs.innerHTML =
       tb('home', 'home', 'Accueil') +
       tb('chans', 'chat', 'Groupes') +
@@ -249,4 +253,3 @@ function commentsBody(p) {
     l = p.com.map((m, i) => msgRow(m, i, postSport(p), ref)).join('');
   return `<div class="body chat com" id="com-list">${l ? lpHelp() + l : empty('com', 'Aucun commentaire', 'Sois le premier à réagir.')}</div><div class="foot"><form class="composer" id="com-form" data-id="${p.id}"><textarea id="com-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="Ajouter un commentaire" aria-label="Commentaire"></textarea><button class="send" aria-label="Publier">${ic('send')}</button></form></div>`;
 }
-

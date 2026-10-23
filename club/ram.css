@@ -537,6 +537,11 @@ html, body { background: var(--bg); }
 :root[data-style="street"] .kicker { display: inline-block; transform: rotate(-1.5deg); }
 :root[data-style="street"] :is(.card, .lis, .palm .res, #main > .seg + *) { box-shadow: 7px 7px 0 var(--ram-hard) !important; }
 :root[data-style="street"] .btn:not(.ghost) { box-shadow: 4px 4px 0 var(--accent2, var(--hot)); }
+/* full street : les sous-titres (nom du club au-dessus de « Groupes », « Cours, équipes et événements »…)
+   deviennent des étiquettes surlignées, comme les sur-titres de /RAM JA */
+:root[data-style="street"] :is(.top .sub, #main > .seg .segt span) { display: inline-block; justify-self: start; width: fit-content; max-width: 100%; background: var(--hot); color: var(--on-hot); padding: 2px 8px; transform: rotate(-1.5deg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root[data-style="street"] .top .sub { display: block; margin-top: 4px; }
+:root[data-style="street"] #main > .seg .segt { gap: 8px; }
 
 /* téléphone et tablette : le contenu des pages à onglets (Agenda, École, Club…) dans un cadre uni ton sur ton,
    comme sur ordinateur et comme la liste des groupes ; le motif ne passe plus derrière le texte */

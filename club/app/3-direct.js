@@ -95,7 +95,7 @@ function liveNote(r, head, det, kind, scope, m) {
       live: 1
     };
   NOTIFS.unshift(n);
-  if (NOTIFS.length > 30) NOTIFS.pop();
+  trimNotifs();
   banner(n);
 }
 const liveStart = (r, m) =>

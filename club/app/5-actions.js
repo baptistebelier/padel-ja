@@ -88,20 +88,31 @@ const A = {
       toast("Les notifications s'ouvriront quand le club aura validé ton accès");
       return;
     }
+    // les nouvelles (non lues) en haut, puis l'historique déjà lu ; toutes passent en « lues » à l'ouverture
+    const row = (n, i) => {
+      const r = n.conv && recs.find(x => x.id === n.conv),
+        c = r && r.conv && r.conv[ME()],
+        who =
+          n.tier != null || n.frame
+            ? `<span class="medal t${Math.max(0, n.tier || 0)}">${ic('trophy')}</span>`
+            : av(n.by, 'sm');
+      return r && r.st === 'soon' && r.lineup && r.lineup[ME()]
+        ? `<div class="msg nrow">${who}<span class="grow"><span class="nm">${name(n.by)}</span> ${n.txt}<br><time>${ago(n)}</time><span class="ctl" style="margin-top:8px"><button class="btn sm grow ${c === 'ok' ? '' : 'ghost'}" data-a="conv" data-r="${r.id}" data-s="ok">Je suis dispo</button><button class="btn sm grow ${c === 'no' ? 'hot' : 'ghost'}" data-a="conv" data-r="${r.id}" data-s="no">Pas dispo</button></span><button class="nm" data-a="ngo" data-i="${i}" style="color:var(--accent)">Voir la rencontre</button></span></div>`
+        : `<button class="msg nrow ${n.n ? 'unread' : ''}" data-a="ngo" data-i="${i}">${who}<span class="grow">${n.tier != null || n.frame ? '' : `<span class="nm">${name(n.by)}</span> `}${n.tier != null || n.frame ? esc(n.txt) : n.txt}<br><time>${ago(n)}</time></span>${n.n ? '<span class="st no">Nouveau</span>' : ''}</button>`;
+    };
+    const vis = NOTIFS.map((n, i) => [n, i]).filter(([n]) => !S.blocked.has(n.by) && nVis(n)),
+      fresh = vis.filter(([n]) => n.n),
+      old = vis.filter(([n]) => !n.n),
+      part = (t, l) =>
+        l.length ? `<span class="kicker nsec">${t}</span>${l.map(([n, i]) => row(n, i)).join('')}` : '';
     sheet(
       'Notifications',
       `<div class="body">${
-        NOTIFS.length
-          ? NOTIFS.map((n, i) => {
-              if (S.blocked.has(n.by) || !nVis(n)) return '';
-              const r = n.conv && recs.find(x => x.id === n.conv),
-                c = r && r.conv && r.conv[ME()];
-              return r && r.st === 'soon' && r.lineup && r.lineup[ME()]
-                ? `<div class="msg nrow">${av(n.by, 'sm')}<span class="grow"><span class="nm">${name(n.by)}</span> ${n.txt}<br><time>${n.t}</time><span class="ctl" style="margin-top:8px"><button class="btn sm grow ${c === 'ok' ? '' : 'ghost'}" data-a="conv" data-r="${r.id}" data-s="ok">Je suis dispo</button><button class="btn sm grow ${c === 'no' ? 'hot' : 'ghost'}" data-a="conv" data-r="${r.id}" data-s="no">Pas dispo</button></span><button class="nm" data-a="ngo" data-i="${i}" style="color:var(--accent)">Voir la rencontre</button></span></div>`
-                : `<button class="msg nrow" data-a="ngo" data-i="${i}">${av(n.by, 'sm')}<span class="grow"><span class="nm">${name(n.by)}</span> ${n.txt}<br><time>${n.t}</time></span>${n.n ? '<span class="st no">Nouveau</span>' : ''}</button>`;
-            }).join('')
+        vis.length
+          ? part(`Nouvelles · ${fresh.length}`, fresh) +
+            part(fresh.length ? 'Déjà lues' : 'Dernières notifications', old)
           : empty('bell', 'Aucune notification', 'Suis des adhérents pour être prévenu de leurs résultats.')
-      }<div class="note">Tu choisis ce que tu reçois dans ton profil, rubrique « Mes notifications ».</div></div>`
+      }<div class="note">Les notifications des 7 derniers jours sont gardées (au moins les 20 dernières), sur tous tes appareils. Tu choisis ce que tu reçois dans ton profil, rubrique « Mes notifications ».</div></div>`
     );
     $('sheet').classList.add('side');
     NOTIFS.forEach(n => (n.n = 0));
@@ -1168,4 +1179,3 @@ const A = {
     );
   }
 };
-
