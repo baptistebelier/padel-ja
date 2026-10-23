@@ -673,3 +673,9 @@ body{touch-action:manipulation}
 .voucher{display:grid;justify-items:center;gap:8px;text-align:center;padding:22px 16px;border:2px dashed var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
 .v-name{font-family:var(--f-display);font-size:24px;text-transform:uppercase;font-style:italic}
 .v-code{font-family:var(--f-display);font-size:46px;letter-spacing:.18em;color:var(--accent);line-height:1}
+/* bar : onglets Carte / Commandes (bureau) */
+.bar-tabs{display:flex;border-bottom:2px solid var(--line)}
+.bar-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:0 10px;margin-bottom:-2px;border-bottom:3px solid transparent;font-family:var(--f-sub);font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);position:relative}
+.bar-tabs button svg{width:18px;height:18px}
+.bar-tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.bar-tabs .cnt{background:var(--hot);color:var(--on-hot);font-size:11px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px;letter-spacing:0}

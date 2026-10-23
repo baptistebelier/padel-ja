@@ -54,31 +54,32 @@ test('bar : carte du bureau, réservations personnelles avant la date limite', a
   // servie : l'adhérent ne peut plus y toucher
   assert.equal((await ram.ops('A', club.id, [{ coll: 'order', id: 'o1', op: 'patch', patch: [{ p: ['qty'], t: 'set', v: 5 }] }])).rejected.length, 1);
 
-  /* points de participation : gagnés en participant, échangés contre un article du bar */
+  /* points bar : gagnés seulement en consommant au bar avec l'appli (réservation servie), 1 point par euro */
   const wallet = async u => (await ram.sync(u, club.id, 0)).wallet;
-  assert.equal((await wallet('A')).balance, 0);
-  // Inès s'inscrit à deux événements du club : 2 × 3 points
-  for (const id of ['ev1', 'ev2']) {
-    await ram.ops('B', club.id, [{ coll: 'post', id, op: 'put', data: { by: 'club', kind: 'event', title: 'Tournoi interne', at: Date.now() } }]);
-    assert.deepEqual((await ram.ops('A', club.id, [{ coll: 'post', id, op: 'patch', patch: [{ p: ['myBy', keys.A], t: 'set', v: 'yes' }] }])).rejected, []);
-  }
-  assert.deepEqual(await wallet('A'), { earned: 6, spent: 0, balance: 6, rules: { play: 2, evt: 3, stage: 5, volu: 5, train: 1, team: 2 } });
-  // le café vaut 4 points : un bon passe, le second est refusé (solde insuffisant)
-  await ram.ops('B', club.id, [{ coll: 'bar', id: 'b2', op: 'patch', patch: [{ p: ['pts'], t: 'set', v: 4 }] }]);
+  // la réservation o1 (2 croque-monsieur à 6 €) a été servie : 12 points
+  assert.deepEqual(await wallet('A'), { earned: 12, spent: 0, balance: 12, rules: { perEuro: 1 } });
+  // participer à la vie du club ne rapporte pas de points bar
+  await ram.ops('B', club.id, [{ coll: 'post', id: 'ev1', op: 'put', data: { by: 'club', kind: 'event', title: 'Tournoi interne', at: Date.now() } }]);
+  await ram.ops('A', club.id, [{ coll: 'post', id: 'ev1', op: 'patch', patch: [{ p: ['myBy', keys.A], t: 'set', v: 'yes' }] }]);
+  // une réservation pas encore servie non plus
+  assert.deepEqual((await order('o7', { date: day(4) })).rejected, []);
+  assert.equal((await wallet('A')).earned, 12);
+  // le café vaut 7 points : un bon passe, le second est refusé (solde insuffisant)
+  await ram.ops('B', club.id, [{ coll: 'bar', id: 'b2', op: 'patch', patch: [{ p: ['pts'], t: 'set', v: 7 }] }]);
   const redeem = id => ram.ops('A', club.id, [{ coll: 'redeem', id, op: 'put', data: { by: keys.A, item: 'b2', pts: 1, st: 'ok' } }]);
   assert.deepEqual((await redeem('r1')).rejected, []);
-  assert.equal(item(await ram.sync('A', club.id, 0), 'redeem', 'r1').pts, 4, 'prix en points repris de la carte');
+  assert.equal(item(await ram.sync('A', club.id, 0), 'redeem', 'r1').pts, 7, 'prix en points repris de la carte');
   assert.match((await redeem('r2')).rejected[0].error, /pas assez de points/);
-  assert.equal((await wallet('A')).balance, 2);
+  assert.equal((await wallet('A')).balance, 5);
   // l'adhérent ne se remet pas son bon lui-même ; il peut l'annuler (points rendus)
   assert.equal((await ram.ops('A', club.id, [{ coll: 'redeem', id: 'r1', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'remis' }] }])).rejected.length, 1);
   await ram.ops('A', club.id, [{ coll: 'redeem', id: 'r1', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'annule' }] }]);
-  assert.equal((await wallet('A')).balance, 6);
+  assert.equal((await wallet('A')).balance, 12);
   assert.equal((await ram.ops('A', club.id, [{ coll: 'redeem', id: 'r1', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'ok' }] }])).rejected.length, 1, 'un bon annulé ne revit pas');
   // nouveau bon, remis par le bureau : il ne s'annule plus
   assert.deepEqual((await redeem('r3')).rejected, []);
   assert.equal(item(await ram.sync('C', club.id, 0), 'redeem', 'r3'), undefined, 'bons des autres invisibles');
   assert.deepEqual((await ram.ops('B', club.id, [{ coll: 'redeem', id: 'r3', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'remis' }] }])).rejected, []);
   assert.equal((await ram.ops('A', club.id, [{ coll: 'redeem', id: 'r3', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'annule' }] }])).rejected.length, 1);
-  assert.equal((await wallet('A')).balance, 2);
+  assert.equal((await wallet('A')).balance, 5);
 });

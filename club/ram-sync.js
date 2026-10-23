@@ -271,7 +271,7 @@
       at(x, 'order');
       add('order', x.id, x);
     });
-    // bons d'échange des points de participation
+    // bons d'échange des points bar
     REDEEMS.forEach(x => {
       at(x, 'redeem');
       add('redeem', x.id, x);
@@ -1460,7 +1460,7 @@
     R.roles = d.roles || {};
     R.scores = d.scores || {};
     R.counts = d.counts || {};
-    R.wallet = d.wallet || null; // points de participation (monnaie du bar), calculés par le serveur
+    R.wallet = d.wallet || null; // points bar (gagnés en consommant au bar), calculés par le serveur
     R.base = new Map();
     R.bad = new Map();
     window.RAM_KEY = R.key;

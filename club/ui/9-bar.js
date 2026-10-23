@@ -21,15 +21,8 @@ const barOpen = iso => barNow() < barDeadline(iso);
 const barDay = iso => (iso === TODAY ? "Aujourd'hui" : iso === isoIn(1) ? 'Demain' : fmtD(iso));
 const myBarKeys = () => [ME()].concat((M[ME()] && M[ME()].kids) || []);
 const barItem = id => BAR.find(b => b.id === id);
-/* points de participation : gagnés par le serveur (barème), dépensés en bons d'échange au bar */
-const WALLET_L = {
-  play: 'partie jouée',
-  evt: 'événement',
-  stage: 'stage',
-  volu: 'coup de main bénévole',
-  train: 'cours (présence confirmée)',
-  team: 'rencontre d’équipe (dispo)'
-};
+/* points bar : gagnés en consommant au bar avec l'appli (réservation servie), comptés par le serveur ;
+   dépensés en bons d'échange au bar */
 const myWallet = () => {
   const w = (window.RAM && RAM.live && RAM.wallet) || WALLET,
     spent = REDEEMS.filter(r => r.by === ME() && r.st !== 'annule').reduce((a, r) => a + (+r.pts || 0), 0);
@@ -44,8 +37,13 @@ function barView() {
   if (!days.includes(B.d)) B.d = isoIn(1);
   const chip = (k, v, l) =>
     `<button class="chip" data-a="barSet" data-k="${k}" data-val="${v}" aria-pressed="${B[k] === v}">${l}</button>`;
+  // deux onglets pour le bureau : la carte, et les commandes (bons à remettre, réservations du jour) ;
+  // les adhérents n'ont que la carte
+  if (!staff) B.v = 'carte';
+  const tab = (v, i, l, n) =>
+    `<button role="tab" aria-selected="${B.v === v}" data-a="barSet" data-k="v" data-val="${v}">${ic(i)}${l}${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
   const top = staff
-    ? `<div class="ctl"><button class="btn grow" data-a="barEdit">${ic('plus')}Ajouter un article</button><button class="btn ghost grow" data-a="barSet" data-k="v" data-val="${B.v === 'cmd' ? 'carte' : 'cmd'}">${ic(B.v === 'cmd' ? 'cup' : 'list')}${B.v === 'cmd' ? 'La carte' : 'Commandes'}</button></div>`
+    ? `<div class="bar-tabs" role="tablist">${tab('carte', 'cup', 'Carte')}${tab('cmd', 'list', 'Commandes', REDEEMS.filter(r => r.st === 'ok').length + ORDERS.filter(o => o.date === isoIn(1) && o.st === 'ok').length)}</div>`
     : '';
   const when = `<div class="chips">${days.map(d => chip('d', d, barDay(d))).join('')}</div>`;
   if (staff && B.v === 'cmd') return `<div class="pad">${top}${barVouchers()}${when}${barOrders(B.d)}</div>`;
@@ -73,17 +71,14 @@ function barView() {
     })
     .join('');
   const next = mine.filter(o => o.date >= TODAY).sort((a, b) => (a.date + a.moment).localeCompare(b.date + b.moment));
-  const wcard = `<div class="card wallet"><div class="row" style="gap:12px"><span class="medal t2">${ic('trophy')}</span><span class="grow"><span class="kicker">Mes points de participation</span><br><b class="wal-n">${wal.balance} pts</b><span class="muted small"> · ${wal.earned} gagnés${wal.spent ? `, ${wal.spent} échangés` : ''}</span></span></div>
- <details class="more"><summary>Comment gagner des points</summary><div class="in">${Object.entries(wal.rules)
-   .map(([k, n]) => `<div class="price"><span>${WALLET_L[k] || k}</span><b>+${n}</b></div>`)
-   .join(
-     ''
-   )}<p class="muted small">Échange-les au bar contre une boisson ou un verre offert : cherche le bouton « Prendre avec … pts ».</p></div></details>
+  const wcard = `<div class="card wallet"><div class="row" style="gap:12px"><span class="medal t2">${ic('trophy')}</span><span class="grow"><span class="kicker">Mes points bar</span><br><b class="wal-n">${wal.balance} pts</b><span class="muted small"> · ${wal.earned} gagnés${wal.spent ? `, ${wal.spent} échangés` : ''}</span></span></div>
+ <details class="more"><summary>Comment gagner des points</summary><div class="in"><div class="price"><span>Consommer au bar avec l’appli : réserve, puis le bar marque ta commande servie</span><b>${(wal.rules && wal.rules.perEuro) || 1} pt / €</b></div><p class="muted small">Par exemple, 2 croque-monsieur à 6 € servis rapportent 12 points. Les achats faits au bar sans réservation dans l’appli ne comptent pas.</p><p class="muted small">Échange-les au bar contre une boisson ou un verre offert : cherche le bouton « Prendre avec … pts ».</p></div></details>
  ${bons.length ? `<span class="kicker">Mes bons à utiliser</span>${bons.map(r => `<div class="item"><span class="tile">${ic('cup')}</span><span class="grow"><span class="nm">${esc(r.name)}</span><br><span class="muted small">${r.pts} pts · bon ${barCode(r)}</span></span><button class="btn sm" data-a="barVoucher" data-id="${r.id}">Montrer au bar</button></div>`).join('')}` : ''}</div>`;
   return `<div class="pad">${top}${wcard}<p class="muted small">Réserve ton repas à l'avance : le club prévoit les quantités. Réservations jusqu'à la veille, ${barCut()} h.${CLUBINFO.house ? ' Club-house : ' + esc(CLUBINFO.house) + '.' : ''}</p>
  ${when}<div class="chips">${chip('m', 'midi', 'Midi')}${chip('m', 'soir', 'Soir')}</div>
  ${open ? '' : `<div class="note">Les réservations pour ${barDay(B.d).toLowerCase()} sont closes depuis la veille, ${barCut()} h. Les articles restent en vente au bar.</div>`}
  ${byCat || empty('cup', 'La carte est vide', staff ? 'Ajoute les plats et boissons du bar.' : 'Le bureau ajoutera bientôt la carte du bar.')}
+ ${staff ? `<button class="btn full" data-a="barEdit">${ic('plus')}Ajouter un article</button>` : ''}
  ${
    next.length
      ? `<div><span class="kicker">Mes réservations</span>${next

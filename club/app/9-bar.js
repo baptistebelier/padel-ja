@@ -21,7 +21,7 @@ Object.assign(A, {
  <div class="fld"><label for="a-img">Photo (facultative)</label><input type="file" id="a-img" accept="image/*"><div class="prev" id="a-prev" ${it.img ? `style="background-image:url(${it.img})"` : 'hidden'}></div></div>
  <div class="fld"><span class="lb">Servi</span>${ck('b-midi', 'Le midi', mo.includes('midi'))}${ck('b-soir', 'Le soir', mo.includes('soir'))}</div>
  <div class="fld"><span class="lb">Réservation</span>${ck('b-resa', 'Réservable à l’avance (repas préparés pour le lendemain)', it.resa)}${ck('b-on', 'Disponible en ce moment', it.on !== false)}</div>
- <div class="fld"><label for="b-pts">Échangeable contre des points de participation (facultatif)</label><input id="b-pts" type="number" min="0" max="999" inputmode="numeric" placeholder="10" value="${+it.pts > 0 ? +it.pts : ''}"><span class="muted small">Par exemple 10 pts pour un café, 30 pts pour un verre. Vide : pas d’échange.</span></div>
+ <div class="fld"><label for="b-pts">Échangeable contre des points bar (facultatif)</label><input id="b-pts" type="number" min="0" max="999" inputmode="numeric" placeholder="10" value="${+it.pts > 0 ? +it.pts : ''}"><span class="muted small">Par exemple 10 pts pour un café, 30 pts pour un verre. Vide : pas d’échange.</span></div>
  <button class="btn full">${it.id ? 'Enregistrer' : 'Ajouter à la carte'}</button>${it.id ? `<button type="button" class="btn full ghost" data-a="barDel" data-id="${it.id}">${ic('trash')}Retirer de la carte</button>` : ''}</form>`
     );
   },
@@ -63,7 +63,7 @@ Object.assign(A, {
     o.st = o.st === 'servi' ? 'ok' : 'servi';
     render(true);
   },
-  /* points de participation : prendre un article avec ses points → un bon à montrer au bar */
+  /* points bar : prendre un article avec ses points → un bon à montrer au bar */
   barRedeem(d) {
     const it = barItem(d.id),
       w = myWallet();
@@ -71,7 +71,7 @@ Object.assign(A, {
     if (w.balance < it.pts) return toast(`Il te manque ${it.pts - w.balance} points pour cet article`);
     sheet(
       'Échanger mes points',
-      `<div class="body"><div class="note"><b>${esc(it.name)}</b> offert contre <b>${it.pts} points</b> de participation.<br>Il t’en restera ${w.balance - it.pts}.</div><p class="muted small">Tu reçois un bon à montrer au bar. Tant qu’il n’est pas remis, tu peux l’annuler : tes points te sont rendus.</p><button class="btn full" data-a="barRedeemOk" data-id="${it.id}">${ic('trophy')}Prendre mon bon</button></div>`
+      `<div class="body"><div class="note"><b>${esc(it.name)}</b> offert contre <b>${it.pts} points bar</b>.<br>Il t’en restera ${w.balance - it.pts}.</div><p class="muted small">Tu reçois un bon à montrer au bar. Tant qu’il n’est pas remis, tu peux l’annuler : tes points te sont rendus.</p><button class="btn full" data-a="barRedeemOk" data-id="${it.id}">${ic('trophy')}Prendre mon bon</button></div>`
     );
   },
   barRedeemOk(d) {
@@ -88,7 +88,7 @@ Object.assign(A, {
     if (!r) return;
     sheet(
       'Mon bon',
-      `<div class="body"><div class="voucher"><span class="kicker">${esc(club().name)} · bar</span><b class="v-name">${esc(r.name)}</b><span class="v-code">${barCode(r)}</span><span class="muted small">${name(r.by)} · ${r.pts} points de participation</span></div><p class="muted small">Montre ce bon au bar : il est remis une seule fois.</p>${r.st === 'ok' ? `<button class="btn full ghost" data-a="barRedeemNo" data-id="${r.id}">Annuler le bon et récupérer mes points</button>` : ''}</div>`
+      `<div class="body"><div class="voucher"><span class="kicker">${esc(club().name)} · bar</span><b class="v-name">${esc(r.name)}</b><span class="v-code">${barCode(r)}</span><span class="muted small">${name(r.by)} · ${r.pts} points bar</span></div><p class="muted small">Montre ce bon au bar : il est remis une seule fois.</p>${r.st === 'ok' ? `<button class="btn full ghost" data-a="barRedeemNo" data-id="${r.id}">Annuler le bon et récupérer mes points</button>` : ''}</div>`
     );
   },
   barRedeemNo(d) {
