@@ -366,7 +366,7 @@
     const box = $('#sug' + n);
     if (!sug.items.length) { box.hidden = true; sug.open = false; return; }
     box.innerHTML = sug.items.map((p, i) => `<div class="sg ${i === sug.active ? 'on' : ''}" data-i="${i}"><b>${esc(p.last)}</b> ${esc(p.first)}
-      <span>${p.licence ? 'Lic. ' + esc(p.licence) : ''}${p.rank ? ' · Clt ' + esc(p.rank) : ''}</span><em>${p.source === 'club' ? '/RAM Club · ' + esc(p.club || '') : p.tournaments + ' tournoi' + (p.tournaments > 1 ? 's' : '')}</em></div>`).join('');
+      <span>${p.licence ? 'Lic. ' + esc(p.licence) : ''}${p.rank ? ' · Clt ' + esc(p.rank) : ''}</span><em>${p.source === 'club' ? '/RAM Club · ' + esc(p.club || '') : (p.club ? esc(p.club) + ' · ' : '') + p.tournaments + ' tournoi' + (p.tournaments > 1 ? 's' : '')}</em></div>`).join('');
     box.hidden = false; sug.open = true; sug.n = n;
     $$('.sg', box).forEach(el => el.onmousedown = e => { e.preventDefault(); pickSuggestion(n, sug.items[+el.dataset.i]); });
   }
@@ -412,7 +412,7 @@
     const best = h.length ? Math.min(...h.map(x => x.place)) : null, clubs = new Set(h.map(x => x.club)).size;
     const place = x => (x.place === 1 ? '1er' : x.placeLo && x.placeLo !== x.place ? `${x.placeLo}-${x.place}e` : x.place + 'e');
     return `<span class="eyebrow">Fiche joueur</span><h3>${esc(p.last)} ${esc(p.first)}</h3>
-      <div class="muted">${p.licence ? 'Licence ' + esc(p.licence) : 'Licence non renseignée'}${p.rank ? ' · classement ' + esc(p.rank) : ''}</div>
+      <div class="muted">${p.licence ? 'Licence ' + esc(p.licence) : 'Licence non renseignée'}${p.rank ? ' · classement ' + esc(p.rank) : ''}${p.club ? ' · ' + esc(p.club) : ''}</div>
       <div class="kpis" style="margin-top:14px"><div><b>${h.length}</b><span>tournois</span></div><div><b>${wins}</b><span>victoire${wins > 1 ? 's' : ''}</span></div>
         <div><b>${best ? best + (best === 1 ? 'er' : 'e') : '-'}</b><span>meilleur résultat</span></div><div><b>${clubs}</b><span>club${clubs > 1 ? 's' : ''}</span></div></div>
       <h4>Historique</h4>

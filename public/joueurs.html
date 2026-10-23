@@ -55,7 +55,7 @@
     if (q.length < 2) { $('#pres').innerHTML = ''; return; }
     qt = setTimeout(async () => {
       const d = await fetch('/api/players?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => ({ players: [] }));
-      $('#pres').innerHTML = (d.players || []).map(p => `<div class="pr2" data-p="${p.id}"><b>${esc(p.last)}</b> ${esc(p.first)} <span>${p.licence ? 'Lic. ' + esc(p.licence) + ' · ' : ''}${p.tournaments} tournoi(s)</span></div>`).join('')
+      $('#pres').innerHTML = (d.players || []).map(p => `<div class="pr2" data-p="${p.id}"><b>${esc(p.last)}</b> ${esc(p.first)} <span>${p.licence ? 'Lic. ' + esc(p.licence) + ' · ' : ''}${p.club ? esc(p.club) + ' · ' : ''}${p.tournaments} tournoi(s)</span></div>`).join('')
         || (d.error ? `<p class="muted small">${esc(d.error)}</p>` : '<p class="muted small">Aucun joueur trouvé.</p>');
       document.querySelectorAll('#pres [data-p]').forEach(el => el.onclick = () => openPlayer(el.dataset.p));
     }, 200);
@@ -66,7 +66,7 @@
     const p = d.player, h = d.history;
     const wins = h.filter(x => x.place === 1).length, best = h.length ? Math.min(...h.map(x => x.place)) : null, clubs = new Set(h.map(x => x.club)).size;
     $('#pbox').innerHTML = `<span class="eyebrow">Fiche joueur</span><h2>${esc(p.last)} ${esc(p.first)}</h2>
-      <p class="muted">${p.licence ? 'Licence ' + esc(p.licence) : 'Licence non renseignée'}${p.rank ? ' · classement ' + esc(p.rank) : ''}</p>
+      <p class="muted">${p.licence ? 'Licence ' + esc(p.licence) : 'Licence non renseignée'}${p.rank ? ' · classement ' + esc(p.rank) : ''}${p.club ? ' · ' + esc(p.club) : ''}</p>
       <div class="pk"><div><b>${h.length}</b><span>tournois</span></div><div><b>${wins}</b><span>victoires</span></div><div><b>${best ? best + (best === 1 ? 'er' : 'e') : '-'}</b><span>meilleur</span></div><div><b>${clubs}</b><span>clubs</span></div></div>
       <div class="ptable hist"><div class="ph"><span>Date</span><span>Tournoi</span><span>Club</span><span>Place</span><span>Pts</span><span>Partenaire</span></div>
       ${h.map(x => `<div class="pr"><span>${x.date ? new Date(x.date).toLocaleDateString('fr-FR') : ''}</span><span>${esc(x.tournament)} <i>${esc(x.category || '')}</i></span><span>${esc(x.club || '')}${x.mine ? '' : ' <i class="oc">autre club</i>'}</span><span><b>${place(x)}</b> / ${x.pairs}</span><span>${x.points == null ? '-' : x.points}</span><span>${esc(x.partner || '')}</span></div>`).join('')}</div>

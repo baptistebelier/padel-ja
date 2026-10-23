@@ -24,6 +24,9 @@ const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
 const store = createStore(process.env.DATA_DIR || path.join(__dirname, 'data'));   // DATA_DIR : dossier de test
 const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || path.join(__dirname, 'data'));   // /RAM Club : clubs, publications, groupes…
+const { createClubs, withClubLinks } = require('./lib/clubs.js');
+const clubs = createClubs(store);   // référentiel des clubs commun aux deux applis
+withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le club_id de leur texte « club »
 const ONLINE = store.kind === 'supabase';
 
 /* ---------------------------------------------------------------------
@@ -116,7 +119,7 @@ const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email |
 const PLANS = { essai: 'Essai', actif: 'Abonné', offert: 'Accès offert', admin: 'Administrateur' };
 const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
 const { splitName } = require('./lib/names');
-const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), avatar: u.avatar || '', club: u.club, hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
+const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), avatar: u.avatar || '', club: u.club, clubId: u.club_id || null,hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
   planLabel: PLANS[isAdmin(u) ? 'admin' : (u.plan || 'essai')], admin: isAdmin(u), free: freeAccess(u) };
 
 /* droits d'accès d'un compte (essai, abonné, lecture seule), gardés 1 min par compte */
@@ -261,7 +264,7 @@ function applyServerAction(room, action) {
 /* ---------------------------------------------------------------------
    base de joueurs : un joueur = une licence (ou, à défaut, NOM + prénom)
    --------------------------------------------------------------------- */
-const publicPlayer = pl => ({ id: pl.id, last: pl.last, first: pl.first, licence: pl.licence, rank: pl.rank });
+const publicPlayer = pl => ({ id: pl.id, last: pl.last, first: pl.first, licence: pl.licence, rank: pl.rank, clubId: pl.club_id || null, club: clubs.name(pl.club_id) || undefined });
 async function upsertPlayerFrom(pl, owner) {
   const licence = String(pl.licence || '').replace(/\s+/g, '').toUpperCase();   // chiffres et une lettre : même numéro quelle que soit la casse
   const last = String(pl.last || '').trim().toUpperCase(), first = String(pl.first || '').trim();
@@ -270,6 +273,8 @@ async function upsertPlayerFrom(pl, owner) {
   const now = Date.now();
   if (!p) p = { id: 'j' + Auth.randomId(12), created_at: now, created_by: owner };
   Object.assign(p, { last: last || p.last, first: first || p.first, licence: licence || p.licence || '', rank: pl.rank || p.rank || '', updated_at: now });
+  // club du joueur saisi par le juge-arbitre ; la fiche d'un compte garde le club choisi par son titulaire
+  if (!p.user_id && String(pl.club || '').trim()) p.club_id = await clubs.idOf(pl.club, { by: owner }).catch(() => p.club_id || null);
   p.name_key = norm(p.last) + '|' + norm(p.first);
   p.search = norm(`${p.last} ${p.first} ${p.licence}`);
   await store.savePlayer(p);
@@ -314,6 +319,7 @@ async function syncAccountPlayer(u, extra = {}) {
   if (!pl) pl = { id: 'j' + Auth.randomId(12), created_at: now, created_by: 'compte', rank: '' };
   Object.assign(pl, { user_id: u.id, last: last || pl.last || '', first: first || pl.first || '', licence: licence || pl.licence || '', updated_at: now });
   if (extra.rank !== undefined) pl.rank = String(extra.rank || '').slice(0, 12);
+  if (u.club_id) pl.club_id = u.club_id;   // le club du compte devient celui de sa fiche
   await store.savePlayer(playerKeys(pl));
   if (was !== pl.id) { id.player = pl.id; await store.saveIdentity(u.id, id); }
   await ram.linkPlayer(u.id, pl.id).catch(() => {});
@@ -326,6 +332,43 @@ async function ensureAllAccountPlayers(log) {
   let n = 0;
   for (const u of users) { try { const before = (await store.getIdentity(u.id).catch(() => null)) || {}; if (!before.player && await ensureAccountPlayer(u)) n++; } catch (e) {} }
   if (n) log(`Base de joueurs : ${n} fiche(s) créée(s) ou rattachée(s) pour les comptes /RAM`);
+}
+
+/* au démarrage : les données saisies avant le référentiel des clubs y sont rattachées (une seule fois :
+   seul ce qui n'a pas encore de club_id est repris) */
+async function ensureClubLinks(log) {
+  await clubs.load();
+  let nU = 0, nR = 0, nT = 0, nP = 0;
+  const users = (await store.listUsers()).filter(u => !u.guest);
+  for (const u of users) {
+    try {
+      if (!u.club) { const pr = await store.getProfile(u.id).catch(() => null); if (pr && String(pr.club || '').trim()) u.club = String(pr.club).trim().slice(0, 120); }   // club des réglages du juge-arbitre
+      if (u.club && !u.club_id) { await store.saveUser(u); if (u.club_id) { nU++; await syncAccountPlayer(u).catch(() => {}); } }
+    } catch (e) {}
+  }
+  for (const s of await ram.spaces().catch(() => [])) {
+    if (s.club_id) continue;
+    const c = await clubs.resolve(s.name).catch(() => null); if (c) { await ram.linkClub(s.id, c.id); nR++; }
+  }
+  for (const meta of await store.listAllTournaments()) {
+    const s = meta.summary || meta;
+    if (meta.club_id || !s.closed || s.example || !String(s.club || '').trim()) continue;
+    try {
+      const parts = await store.participationsOf('tournament_id', meta.id);
+      if (!parts.length) continue;   // tournoi de démonstration : rien n'est entré dans la base
+      const club = await clubs.resolve(s.club, { by: meta.owner }); if (!club) continue;
+      const row = rooms.has(meta.id) ? rooms.get(meta.id).row : await store.getTournament(meta.id);
+      if (!row) continue;
+      await store.saveTournament(row); await store.setParticipationsClub(meta.id, club.id); nT++;
+      // club de chaque joueur, tel que saisi par le juge-arbitre
+      for (const pair of (row.state && row.state.pairs) || []) for (const pl of [pair.p1, pair.p2]) {
+        if (!pl || !pl.playerId || !String(pl.club || '').trim()) continue;
+        const fiche = await store.getPlayer(pl.playerId).catch(() => null);
+        if (fiche && !fiche.club_id && !fiche.user_id) { fiche.club_id = await clubs.idOf(pl.club, { by: meta.owner }); await store.savePlayer(fiche); nP++; }
+      }
+    } catch (e) {}
+  }
+  if (nU + nR + nT + nP) log(`Clubs : ${clubs.list().length} au référentiel — ${nU} compte(s), ${nR} espace(s) /RAM Club, ${nT} tournoi(s), ${nP} fiche(s) joueur rattaché(s)`);
 }
 
 async function closeTournament(room, u) {
@@ -352,6 +395,9 @@ async function closeTournament(room, u) {
           place: res.place, place_lo: res.placeLo, points: res.points, partner: pname(mate || {}), n_pairs: results.length, closed_at: Date.now() });
       }
     }
+    // club organisateur : entre dans le référentiel avec le premier tournoi clôturé qui a des résultats
+    const club = rows.length && !t.example ? await clubs.resolve(t.club, { by: u.id }).catch(() => null) : null;
+    if (club) { room.row.club_id = club.id; rows.forEach(r => { r.club_id = club.id; }); }
     await store.addParticipations(rows);
     saved = rows.length;
   }
@@ -686,7 +732,12 @@ const server = http.createServer(async (req, res) => {
       if (p === '/api/ram/clubs' && req.method === 'GET') return json(res, 200, { clubs: await ram.myClubs(u.id) });
       if (p === '/api/ram/clubs' && req.method === 'POST') {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
-        return ram.create({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, b).then(c => json(res, 200, c), fail);
+        // l'espace /RAM Club est relié au club du référentiel (créé s'il n'y est pas encore)
+        const club = await clubs.resolve(b.name, { by: u.id }).catch(() => null);
+        return ram.create({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, Object.assign({}, b, { clubId: club && club.id })).then(async c => {
+          if (club && !u.club_id) { u.club = club.name; await store.saveUser(u); await syncAccountPlayer(u).catch(() => {}); }   // son club, s'il n'en avait pas
+          return json(res, 200, c);
+        }, fail);
       }
       if (p === '/api/ram/join' && req.method === 'POST') {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
@@ -814,18 +865,20 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { linked: mine ? (await histOf([mine]))[0] : null, licence: id.licence || '', candidates: await histOf(cands) });
       } catch (e) { return json(res, 200, { linked: null, licence: id.licence || '', candidates: [] }); }
     }
-    /* annuaire des clubs commun aux deux applis : clubs /RAM Club et clubs des tournois /RAM JA */
+    /* annuaire des clubs commun aux deux applis : le référentiel des clubs, avec pour chacun
+       son espace /RAM Club éventuel et le nombre de tournois /RAM JA qu'il a accueillis */
     if (p === '/api/clubs-directory') {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
       if (!clubDir || Date.now() - clubDir.at > 300000) {
-        const names = new Map();
-        const add = (n, src) => { const s = String(n || '').trim(); if (s.length < 2) return; const k = norm(s); const c = names.get(k) || { name: s, ramClub: false, tournaments: 0 }; if (src === 'club') c.ramClub = true; else c.tournaments++; names.set(k, c); };
-        (await ram.clubNames().catch(() => [])).forEach(n => add(n, 'club'));
-        (await store.listAllTournaments().catch(() => [])).forEach(t => add(((t.summary || {}).club), 'ja'));
-        clubDir = { at: Date.now(), list: [...names.values()].sort((a, b) => Number(b.ramClub) - Number(a.ramClub) || b.tournaments - a.tournaments || a.name.localeCompare(b.name)) };
+        await clubs.load();
+        const dir = new Map(clubs.list().map(c => [c.id, { id: c.id, name: c.name, city: c.city || '', ramClub: false, tournaments: 0 }]));
+        const of = (id, name) => dir.get(id) || dir.get((clubs.lookup(name) || {}).id);
+        (await ram.spaces().catch(() => [])).forEach(s => { const c = of(s.club_id, s.name); if (c) c.ramClub = true; });
+        (await store.listAllTournaments().catch(() => [])).forEach(t => { const s = t.summary || {}; const c = !s.example && of(t.club_id, s.club); if (c) c.tournaments++; });
+        clubDir = { at: Date.now(), list: [...dir.values()].sort((a, b) => Number(b.ramClub) - Number(a.ramClub) || b.tournaments - a.tournaments || a.name.localeCompare(b.name)) };
       }
       const q = norm(url.searchParams.get('q') || '');
-      return json(res, 200, { clubs: clubDir.list.filter(c => !q || norm(c.name).includes(q)).slice(0, 30) });
+      return json(res, 200, { clubs: clubDir.list.filter(c => !q || norm(c.name).includes(q)).slice(0, q ? 30 : 500) });
     }
 
     /* ---------- API base de joueurs (partagée entre tous les juges-arbitres) ---------- */
@@ -890,6 +943,8 @@ const server = http.createServer(async (req, res) => {
               logo: (l => /^data:image\//.test(l) && l.length < 400000 ? l : '')(restoreImages(String((c && c.logo) || ''))) }));
           if (Array.isArray(p.sponsors)) p.sponsors = p.sponsors.slice(0, 40).map((s, i) => ({ id: String((s && s.id) || 's' + i), name: String((s && s.name) || '').slice(0, 60), logo: String((s && s.logo) || '') }));
           await store.saveProfile(u.id, p);
+          // le club des réglages du juge-arbitre devient celui de son compte, s'il n'en avait pas
+          if (!u.club && String(p.club || '').trim()) { u.club = String(p.club).trim().slice(0, 120); await store.saveUser(u); await syncAccountPlayer(u).catch(() => {}); }
         } else {
           const room = b.tid && await getRoom(b.tid);
           if (!room || room.row.owner !== u.id) return json(res, 404, { error: 'Tournoi introuvable' });
@@ -998,7 +1053,8 @@ server.listen(PORT, '0.0.0.0', () => {
   Backup.schedule(store, msg => console.log('  ' + msg));
   Retention.schedule(store, msg => console.log('  ' + msg));
   Mail.keepAlive(msg => console.log('  ' + msg));
-  ensureAllAccountPlayers(msg => console.log('  ' + msg)).catch(e => console.error('  Fiches joueurs des comptes :', e.message));
+  ensureAllAccountPlayers(msg => console.log('  ' + msg)).catch(e => console.error('  Fiches joueurs des comptes :', e.message))
+    .then(() => ensureClubLinks(msg => console.log('  ' + msg))).catch(e => console.error('  Clubs :', e.message));
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);

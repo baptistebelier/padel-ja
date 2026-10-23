@@ -1645,7 +1645,7 @@
     let h = id === ME() ? jaAsk() : '';
     if (id === ME() && R.ja && R.ja.linked) {
       const p = R.ja.linked;
-      h += `<div class="card"><span class="kicker">Fiche /RAM JA</span><p><b>${e(p.last)} ${e(p.first)}</b>${p.licence ? ' · licence ' + e(p.licence) : ''} · ${(p.history || []).length} tournoi${(p.history || []).length > 1 ? 's' : ''}</p><p class="muted small">Elle suit ton profil : nom, licence et classement padel sont mis à jour pour les juges-arbitres.</p></div>`;
+      h += `<div class="card"><span class="kicker">Fiche /RAM JA</span><p><b>${e(p.last)} ${e(p.first)}</b>${p.licence ? ' · licence ' + e(p.licence) : ''}${p.club ? ' · ' + e(p.club) : ''} · ${(p.history || []).length} tournoi${(p.history || []).length > 1 ? 's' : ''}</p><p class="muted small">Elle suit ton profil : nom, licence et classement padel sont mis à jour pour les juges-arbitres.</p></div>`;
     }
     const pid = (M[id] || {})._ja;
     if (pid) {
