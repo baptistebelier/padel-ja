@@ -88,3 +88,42 @@ create unique index if not exists member_progress_key on public.member_progress(
 create index if not exists member_progress_rank_idx on public.member_progress(club_id, season, points desc);
 create index if not exists member_progress_user_idx on public.member_progress(user_id);
 alter table public.member_progress enable row level security;
+
+-- =========================================================================
+-- Groupes du club : groupes d'entraînement (cours) et équipes, avec leurs membres.
+-- Recopiés par le serveur depuis l'espace /RAM Club à chaque changement (lib/groupes.js).
+-- =========================================================================
+create table if not exists public.club_groups (
+  id              text primary key,
+  club_id         text not null references public.clubs(id) on delete cascade,
+  space_id        text not null,           -- espace /RAM Club (ram_clubs.id)
+  group_key       text not null,           -- identifiant du groupe dans l'espace
+  type            text not null check (type in ('train', 'team')),
+  name            text not null,
+  sport           text,
+  day             int,                     -- 0 = dimanche … 6 = samedi
+  start_time      text,                    -- « 19 h »
+  duration        text,                    -- « 1 h 30 »
+  location        text,                    -- « Extérieur », « En salle »
+  coach_user_id   text references public.users(id) on delete set null,
+  season          text,
+  archived        boolean not null default false,
+  updated_at      bigint
+);
+create unique index if not exists club_groups_key on public.club_groups(space_id, group_key);
+create index if not exists club_groups_club_idx on public.club_groups(club_id, season);
+
+create table if not exists public.club_group_members (
+  id          text primary key,
+  group_id    text not null references public.club_groups(id) on delete cascade,
+  club_id     text not null references public.clubs(id) on delete cascade,
+  user_id     text references public.users(id) on delete cascade,   -- vide pour un enfant sans compte
+  member_key  text not null,                                         -- adhérent dans l'espace /RAM Club
+  role        text not null default 'membre' check (role in ('membre', 'capitaine')),
+  updated_at  bigint
+);
+create index if not exists club_group_members_group_idx on public.club_group_members(group_id);
+create index if not exists club_group_members_user_idx on public.club_group_members(user_id);
+create index if not exists club_group_members_club_idx on public.club_group_members(club_id);
+alter table public.club_groups enable row level security;
+alter table public.club_group_members enable row level security;

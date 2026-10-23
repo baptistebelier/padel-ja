@@ -88,6 +88,12 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     await new Promise(r => setTimeout(r, 3600));
     const prog = (await b('/api/me/clubs')).progress.find(x => x.clubId === ua.clubId);
     assert.ok(prog && prog.points >= 1 && prog.trophies >= 1, JSON.stringify(prog));
+    // groupes d'entraînement : recopiés en base avec leurs membres et leur enseignant
+    await a(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'group', id: 'gtest', op: 'put', data: { type: 'train', name: 'Adultes compétition', day: 2, h: '19 h', dur: '1 h 30', sport: 'Tennis', coach: space.key, mem: [joined.key] } }] });
+    await new Promise(r => setTimeout(r, 3000));
+    const gb = (await b('/api/me/clubs')).groups, ga = (await a('/api/me/clubs')).groups;
+    assert.deepEqual(gb.map(x => [x.name, x.day, x.start, x.role]), [['Adultes compétition', 2, '19 h', 'membre']]);
+    assert.deepEqual(ga.map(x => [x.name, x.role]), [['Adultes compétition', 'enseignant']]);
     // fiche du club : effectifs pour tous, liste nominative pour le bureau seulement
     const fiche = await a('/api/clubs/' + ua.clubId);
     assert.equal(fiche.counts.bureau, 1); assert.equal(fiche.counts.adherent, 1); assert.ok(fiche.bureau);
