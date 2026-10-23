@@ -12,9 +12,11 @@ concurrency:
   group: tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# machines Ubuntu 24.04 fixées : « ubuntu-latest » passe à Ubuntu 26 (octobre 2026), que la version
+# de Playwright utilisée ne sait pas équiper (l'installation des bibliothèques du navigateur se bloque)
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +26,7 @@ jobs:
       - run: node --test
 
   ecrans:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
       PLAYWRIGHT_VERSION: 1.56.0
