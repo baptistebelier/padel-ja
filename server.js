@@ -128,7 +128,10 @@ const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email |
 const PLANS = { essai: 'Essai', actif: 'Abonné', offert: 'Accès offert', admin: 'Administrateur' };
 const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
 const { splitName } = require('./lib/names');
-const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), avatar: u.avatar || '', club: u.club, clubId: u.club_id || null,hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
+/* titres de juge-arbitre reconnus, par sport */
+const JA_TITLES = { tennis: ['JAT1', 'JAT2', 'JAT3'], padel: ['JAP1', 'JAP2', 'JAP3'] };
+let refDir = null;   // juges-arbitres /RAM JA proposés dans les tournois, recalculés toutes les 2 minutes
+const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), avatar: u.avatar || '', club: u.club, clubId: u.club_id || null, jaTitles: Array.isArray(u.jaTitles) ? u.jaTitles : [], hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
   planLabel: PLANS[isAdmin(u) ? 'admin' : (u.plan || 'essai')], admin: isAdmin(u), free: freeAccess(u) };
 
 /* droits d'accès d'un compte (essai, abonné, lecture seule), gardés 1 min par compte */
@@ -711,6 +714,10 @@ const server = http.createServer(async (req, res) => {
         id.first = String(b.first || '').trim().slice(0, 40); id.last = String(b.last || '').trim().slice(0, 40);
         u.name = [id.first, id.last].filter(Boolean).join(' '); changed = true;
       } else if (b.name != null) u.name = String(b.name).trim().slice(0, 80);
+      if (b.jaTitles != null) {   // titres de juge-arbitre : un pour le tennis, un pour le padel, au plus
+        const list = (Array.isArray(b.jaTitles) ? b.jaTitles : []).map(x => String(x).toUpperCase());
+        id.jaTitles = Object.values(JA_TITLES).map(set => list.find(x => set.includes(x))).filter(Boolean); changed = true; refDir = null;
+      }
       if (b.avatar != null) {   // photo de profil : image réduite (data URL), ou '' pour la retirer
         const a = String(b.avatar);
         if (a && (!/^data:image\/(png|jpeg|webp);base64,/.test(a) || a.length > 400000)) return json(res, 400, { error: 'Image trop lourde ou format non reconnu.' });
@@ -895,6 +902,25 @@ const server = http.createServer(async (req, res) => {
       }
       const q = norm(url.searchParams.get('q') || '');
       return json(res, 200, { clubs: clubDir.list.filter(c => !q || norm(c.name).includes(q)).slice(0, q ? 30 : 500) });
+    }
+    /* juges-arbitres /RAM JA proposés dans le champ « Juge-arbitre » d'un tournoi : comptes qui ont un titre
+       de juge-arbitre ou qui ont déjà organisé un vrai tournoi (pas les comptes seulement /RAM Club) ;
+       seulement nom, titres et club — jamais de coordonnées */
+    if (p === '/api/referees') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      if (!refDir || Date.now() - refDir.at > 120000) {
+        const [users, ids, tours] = await Promise.all([store.listUsers(), store.listIdentities().catch(() => []), store.listAllTournaments().catch(() => [])]);
+        const organisers = new Set(tours.filter(t => !(t.summary || {}).example).map(t => t.owner));
+        const idOf = new Map(ids.map(x => [x.owner, x.identity || {}]));
+        refDir = { at: Date.now(), list: users.filter(x => !x.guest).map(x => {
+          const id = idOf.get(x.id) || {}, n = splitName(Object.assign({}, x, id)), titles = Array.isArray(id.jaTitles) ? id.jaTitles : [];
+          if (!titles.length && !organisers.has(x.id)) return null;
+          return { id: x.id, first: n.first || '', last: String(n.last || '').toUpperCase(), titles, club: clubs.name(x.club_id) || x.club || '' };
+        }).filter(r => r && (r.first || r.last)).sort((a, b) => a.last.localeCompare(b.last) || a.first.localeCompare(b.first)) };
+      }
+      const q = norm(url.searchParams.get('q') || '');
+      const hit = r => !q || norm(`${r.first} ${r.last}`).includes(q) || norm(`${r.last} ${r.first}`).includes(q);
+      return json(res, 200, { referees: refDir.list.filter(hit).slice(0, 20) });
     }
     /* mes clubs : adhésions de mon compte et de ma fiche joueur, saison par saison */
     if (p === '/api/me/clubs') {

@@ -273,5 +273,31 @@
       }).catch(() => { ready = null; });
     });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { build(); clubList(); navCursor(); softNav(); sideOut(); }); else { build(); clubList(); navCursor(); softNav(); sideOut(); }
+  /* juges-arbitres /RAM JA proposés dans le champ « Juge-arbitre » (tournoi, préférences) ;
+     en choisir un remplit aussi « Qualification JA » (son titre padel en priorité) */
+  function jaList() {
+    let found = [], timer = null;
+    const isJa = el => el && el.matches && el.matches('input[data-f="ja"], input[data-p="ja"]');
+    const q = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const label = r => [r.first, r.last].filter(Boolean).join(' ');
+    const load = text => fetch('/api/referees?q=' + encodeURIComponent(text || '')).then(r => r.json()).then(d => {
+      found = d.referees || [];
+      const dl = document.getElementById('ram-ja') || (document.querySelector('.rail') || document.body).appendChild(Object.assign(document.createElement('datalist'), { id: 'ram-ja' }));
+      dl.innerHTML = found.map(r => `<option value="${q(label(r))}">${q([r.titles.join(' · '), r.club].filter(Boolean).join(' — '))}</option>`).join('');
+    }).catch(() => {});
+    document.addEventListener('focusin', e => { if (isJa(e.target)) { e.target.setAttribute('list', 'ram-ja'); if (!found.length) load(''); } });
+    document.addEventListener('input', e => { if (!isJa(e.target)) return; clearTimeout(timer); timer = setTimeout(() => load(e.target.value.trim()), 200); });
+    document.addEventListener('change', e => {
+      const el = e.target; if (!isJa(el)) return;
+      const r = found.find(x => label(x).toLowerCase() === el.value.trim().toLowerCase());
+      const title = r && (r.titles.find(x => /^JAP/.test(x)) || r.titles[0]); if (!title) return;
+      const key = el.dataset.f ? 'data-f' : 'data-p';
+      const box = el.closest('.form, .form2, form') || document, num = box.querySelector(`[${key}="jaNumber"]`);
+      if (!num || num.value === title) return;
+      num.value = title;
+      ['input', 'change'].forEach(t => num.dispatchEvent(new Event(t, { bubbles: true })));   // enregistré comme une saisie
+    });
+  }
+  const start = () => { build(); clubList(); jaList(); navCursor(); softNav(); sideOut(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

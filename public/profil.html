@@ -38,6 +38,9 @@
           <label>Prénom<input name="first" autocomplete="given-name" placeholder="Ex : Baptiste"></label>
           <label>Nom<input name="last" autocomplete="family-name" placeholder="Ex : Bélier"></label>
           <label class="span2">Club<input name="club" autocomplete="organization" placeholder="Ex : Padel Club de Brive"><small class="muted" id="clubHint" hidden></small></label>
+          <label>Titre JA tennis<select name="jaT"><option value="">Aucun</option><option>JAT1</option><option>JAT2</option><option>JAT3</option></select></label>
+          <label>Titre JA padel<select name="jaP"><option value="">Aucun</option><option>JAP1</option><option>JAP2</option><option>JAP3</option></select></label>
+          <p class="muted small span2" style="margin:0">Avec un titre, votre nom est proposé aux autres juges-arbitres quand ils remplissent le champ « Juge-arbitre » d'un tournoi.</p>
           <div class="span2"><button class="btn primary">Enregistrer</button><p class="msg" id="mMe"></p></div>
         </form>
       </section>
@@ -127,8 +130,9 @@
     $('#wInfo').innerHTML = [['Prénom', u.first], ['Nom', u.last], ['Club', u.club], ['E-mail', u.email]]
       .map(([k, v]) => `<dt>${k}</dt><dd>${v ? esc(v) : '<span class="muted">non renseigné</span>'}</dd>`).join('');
     const f = $('#fMe'); f.elements.first.value = u.first || ''; f.elements.last.value = u.last || ''; f.elements.club.value = u.club || '';
+    const t = u.jaTitles || []; f.elements.jaT.value = t.find(x => /^JAT/.test(x)) || ''; f.elements.jaP.value = t.find(x => /^JAP/.test(x)) || '';
     $('#pwState').textContent = u.hasPassword ? 'Mot de passe défini' : 'Aucun mot de passe';
-    if (u.guest) document.querySelectorAll('#fMe input, #fMe button, #pwOpen, #avFile').forEach(e => e.disabled = true);
+    if (u.guest) document.querySelectorAll('#fMe input, #fMe select, #fMe button, #pwOpen, #avFile').forEach(e => e.disabled = true);
   }
   fetch('/api/me').then(r => r.json()).then(d => { if (!d.user) return location.href = '/connexion'; showUser(d.user); loadClubs(); });
   // mes clubs : une ligne par club et par saison, avec ses rôles (bureau, enseignant, adhérent, joueur)
@@ -174,7 +178,7 @@
   $('#fMe').onsubmit = async e => {
     e.preventDefault();
     const f = e.target.elements;
-    const r = await post('/api/me', { first: f.first.value, last: f.last.value, club: f.club.value });
+    const r = await post('/api/me', { first: f.first.value, last: f.last.value, club: f.club.value, jaTitles: [f.jaT.value, f.jaP.value].filter(Boolean) });
     if (r.error) return say($('#mMe'), r.error);
     showUser(r.user); say($('#mMe'), 'Profil enregistré.', true); loadClubs();
   };
