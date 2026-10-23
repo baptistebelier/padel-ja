@@ -276,26 +276,50 @@ async function upsertPlayerFrom(pl, owner) {
   return p;
 }
 
-/* chaque compte /RAM a sa fiche joueur : celle qui porte déjà sa licence ou son nom (si elle n'est à personne),
-   sinon une nouvelle. Ainsi un adhérent /RAM Club est trouvé par les juges-arbitres, et ses résultats lui reviennent.
-   Une fiche n'appartient qu'à un compte : un second compte au même nom n'en reçoit pas (il pourra en choisir une). */
-async function ensureAccountPlayer(u) {
+/* ---------- fiche joueur de chaque compte /RAM ----------
+   Chaque compte (créé depuis /RAM JA ou /RAM Club : c'est la même inscription) a sa propre fiche joueur,
+   qui suit le compte : nom, prénom, licence et classement padel sont recopiés à chaque modification du profil.
+   Seule exception : une fiche saisie par un juge-arbitre qui porte la même licence est la même personne :
+   le compte la reprend, avec son historique. Une fiche n'appartient qu'à un seul compte. */
+const playerKeys = pl => Object.assign(pl, { name_key: norm(pl.last) + '|' + norm(pl.first), search: norm(`${pl.last} ${pl.first} ${pl.licence || ''}`) });
+// fiche créée pour le compte et jamais jouée : on peut la supprimer quand le compte en reprend une autre
+async function emptyAccountPlayer(pl) {
+  if (!pl || pl.created_by !== 'compte') return false;
+  return !(await store.participationsOf('player_id', pl.id).catch(() => [1])).length;
+}
+// le compte passe sur une autre fiche (choisie par « Est-ce toi ? » ou trouvée par sa licence)
+async function moveAccountPlayer(u, id, pl) {
+  const old = id.player && id.player !== pl.id ? await store.getPlayer(id.player).catch(() => null) : null;
+  if (old && old.user_id === u.id) {
+    if (old.rank && !pl.rank) pl.rank = old.rank;   // le classement padel déjà saisi suit le compte
+    if (await emptyAccountPlayer(old)) await store.deletePlayer(old.id);
+    else { old.user_id = null; await store.savePlayer(old); }
+  }
+  pl.user_id = u.id; id.player = pl.id;
+}
+/* crée ou met à jour la fiche du compte ; extra : { rank } (classement padel venu de /RAM Club) */
+async function syncAccountPlayer(u, extra = {}) {
   if (!u || u.guest) return null;
   const id = Object.assign({}, await store.getIdentity(u.id).catch(() => null));
-  if (id.player) { await ram.linkPlayer(u.id, id.player).catch(() => {}); return id.player; }
-  const nm = splitName(Object.assign({}, u, id)), first = String(nm.first || '').trim(), last = String(nm.last || '').trim();
-  if (!first || !last) return null;
-  const licence = String(id.licence || '').toUpperCase(), key = norm(last.toUpperCase()) + '|' + norm(first);
-  let pl = await store.findPlayer(licence, key).catch(() => null);
-  if (pl && pl.user_id && pl.user_id !== u.id) return null;
-  const now = Date.now();
-  if (!pl) pl = { id: 'j' + Auth.randomId(12), created_at: now, created_by: 'compte', last: last.toUpperCase(), first, licence, rank: '' };
-  Object.assign(pl, { user_id: u.id, updated_at: now, name_key: norm(pl.last) + '|' + norm(pl.first), search: norm(`${pl.last} ${pl.first} ${pl.licence || ''}`) });
-  await store.savePlayer(pl);
-  id.player = pl.id; await store.saveIdentity(u.id, id);
+  const nm = splitName(Object.assign({}, u, id)), first = String(nm.first || '').trim(), last = String(nm.last || '').trim().toUpperCase();
+  if (!first && !last) return null;
+  const licence = String(id.licence || '').toUpperCase(), now = Date.now(), was = id.player;   // moveAccountPlayer change id.player en route
+  let pl = id.player ? await store.getPlayer(id.player).catch(() => null) : null;
+  if (pl && pl.user_id && pl.user_id !== u.id) pl = null;
+  // même licence qu'une fiche de juge-arbitre qui n'est à personne : c'est la sienne, il la reprend
+  if (licence && (!pl || pl.licence !== licence)) {
+    const lic = await store.findPlayer(licence, '\u0000').catch(() => null);
+    if (lic && lic.licence === licence && lic.id !== (pl && pl.id) && (!lic.user_id || lic.user_id === u.id)) { await moveAccountPlayer(u, id, lic); pl = lic; }
+  }
+  if (!pl) pl = { id: 'j' + Auth.randomId(12), created_at: now, created_by: 'compte', rank: '' };
+  Object.assign(pl, { user_id: u.id, last: last || pl.last || '', first: first || pl.first || '', licence: licence || pl.licence || '', updated_at: now });
+  if (extra.rank !== undefined) pl.rank = String(extra.rank || '').slice(0, 12);
+  await store.savePlayer(playerKeys(pl));
+  if (was !== pl.id) { id.player = pl.id; await store.saveIdentity(u.id, id); }
   await ram.linkPlayer(u.id, pl.id).catch(() => {});
   return pl.id;
 }
+const ensureAccountPlayer = u => syncAccountPlayer(u);
 // au démarrage : les comptes existants reçoivent leur fiche (dans l'ordre de création, le premier compte au même nom l'emporte)
 async function ensureAllAccountPlayers(log) {
   const users = (await store.listUsers()).filter(u => !u.guest).sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
@@ -634,6 +658,7 @@ const server = http.createServer(async (req, res) => {
       if (b.club != null) u.club = String(b.club).trim().slice(0, 120);
       await store.saveUser(u);
       if (changed) await store.saveIdentity(u.id, id);
+      await syncAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // la fiche joueur suit le profil
       return json(res, 200, { ok: true, user: publicUser(Object.assign({}, u, id)) });
     }
     if (p === '/api/me/password' && req.method === 'POST') {
@@ -766,27 +791,27 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req);
         if (b.licence !== undefined) id.licence = String(b.licence || '').replace(/\s+/g, '').toUpperCase().slice(0, 20);   // les licences comportent une lettre
         if (b.dismiss) id.dismissed = [...new Set([...(id.dismissed || []), String(b.dismiss)])].slice(-20);
-        if (b.player !== undefined) {
-          const pl = b.player ? await store.getPlayer(String(b.player)).catch(() => null) : null;
-          if (b.player && !pl) return json(res, 404, { error: 'Fiche joueur introuvable' });
+        if (b.player) {   // « Est-ce toi ? » : le compte passe sur la fiche qui porte déjà ses tournois
+          const pl = await store.getPlayer(String(b.player)).catch(() => null);
+          if (!pl) return json(res, 404, { error: 'Fiche joueur introuvable' });
           // une fiche n'appartient qu'à un seul compte : personne ne peut s'attribuer les résultats d'un autre
-          if (pl && pl.user_id && pl.user_id !== u.id) return json(res, 409, { error: 'Cette fiche est déjà rattachée à un autre compte /RAM. Contacte le juge-arbitre en cas d\'erreur.' });
-          const old = id.player && id.player !== (pl && pl.id) ? await store.getPlayer(id.player).catch(() => null) : null;
-          if (old && old.user_id === u.id) { old.user_id = null; await store.savePlayer(old); }
-          if (pl) { pl.user_id = u.id; await store.savePlayer(pl); }
-          id.player = pl ? pl.id : null;
-          await ram.linkPlayer(u.id, id.player);
+          if (pl.user_id && pl.user_id !== u.id) return json(res, 409, { error: 'Cette fiche est déjà rattachée à un autre compte /RAM. Contacte le juge-arbitre en cas d\'erreur.' });
+          await moveAccountPlayer(u, id, pl); await store.savePlayer(pl);
         }
         await store.saveIdentity(u.id, id);
+        // la fiche suit le profil : nom, prénom, licence, classement padel
+        await syncAccountPlayer(u, b.rank !== undefined ? { rank: b.rank } : {});
+        Object.assign(id, await store.getIdentity(u.id).catch(() => null));
       }
       try {
-        if (id.player) { const pl = await store.getPlayer(id.player).catch(() => null); if (pl) return json(res, 200, { linked: (await histOf([pl]))[0], licence: id.licence || '' }); }
+        const mine = id.player ? await store.getPlayer(id.player).catch(() => null) : null;
+        // homonymes : fiches au même nom (ou à la même licence) qui ne sont à personne, à proposer par « Est-ce toi ? »
         const nm = splitName(Object.assign({}, u, id)), key = norm(String(nm.last).toUpperCase()) + '|' + norm(nm.first);
         const found = new Map();
-        if (id.licence) { const pl = await store.findPlayer(id.licence, '__'); if (pl && pl.licence === id.licence) found.set(pl.id, pl); }
-        if (nm.last && nm.first) (await store.searchPlayers(`${nm.last} ${nm.first}`, 10)).filter(pl => pl.name_key === key).forEach(pl => found.set(pl.id, pl));
-        const cands = [...found.values()].filter(pl => !(id.dismissed || []).includes(pl.id) && (!pl.user_id || pl.user_id === u.id)).slice(0, 4);
-        return json(res, 200, { linked: null, licence: id.licence || '', candidates: await histOf(cands) });
+        if (id.licence) { const pl = await store.findPlayer(id.licence, '\u0000').catch(() => null); if (pl && pl.licence === id.licence) found.set(pl.id, pl); }
+        if (nm.last && nm.first) (await store.searchPlayers(`${nm.last} ${nm.first}`, 10).catch(() => [])).filter(pl => pl.name_key === key).forEach(pl => found.set(pl.id, pl));
+        const cands = [...found.values()].filter(pl => pl.id !== (mine && mine.id) && !pl.user_id && !(id.dismissed || []).includes(pl.id)).slice(0, 4);
+        return json(res, 200, { linked: mine ? (await histOf([mine]))[0] : null, licence: id.licence || '', candidates: await histOf(cands) });
       } catch (e) { return json(res, 200, { linked: null, licence: id.licence || '', candidates: [] }); }
     }
     /* annuaire des clubs commun aux deux applis : clubs /RAM Club et clubs des tournois /RAM JA */

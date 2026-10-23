@@ -135,7 +135,7 @@ document.addEventListener('submit', e => {
     const me = M[ME()];
     me.n = val('e-name') || me.n;
     me.lic = (val('e-lic') || '').replace(/\s+/g, '').toUpperCase();
-    if (window.ramPlayerSync) ramPlayerSync({ licence: me.lic });
+    if (window.ramProfileSync) ramProfileSync({ name: me.n, licence: me.lic });
     me.g = val('e-g') === 'Femme' ? 'F' : 'H';
     if (val('e-bd')) me.bd = val('e-bd');
     MYCT.tel[2] = val('e-tel');
@@ -385,6 +385,8 @@ document.addEventListener('submit', e => {
       }
       me.pad = np;
       me.pl = nl;
+      // la fiche joueur /RAM JA reprend le classement padel (vu par les juges-arbitres)
+      if (window.ramPlayerSync) ramPlayerSync({ rank: np ? String(np) : '' }).catch(() => {});
       title = `Classement padel <em>${np ? 'n° ' + np : 'non classé'}</em>`;
       body = np
         ? `${first(ME())} est désormais n° ${np} au classement padel${nl ? ', niveau ' + nl : ''}.`
@@ -889,4 +891,3 @@ document.addEventListener('submit', e => {
     }
   }
 });
-

@@ -1593,11 +1593,20 @@
       () => toast('Profil relié à ta fiche /RAM JA : tes tournois apparaissent dans ton palmarès'),
       () => {}
     );
-  A.ramUnlink = () =>
-    ramPlayerSync({ player: null }).then(
-      () => toast('Fiche /RAM JA détachée'),
-      () => {}
-    );
+  /* « Mes informations » : le compte /RAM (prénom, nom) et la fiche joueur /RAM JA suivent le profil */
+  window.ramProfileSync = ({ name, licence }) => {
+    const w = String(name || '')
+        .trim()
+        .split(/\s+/),
+      first = w.shift() || '',
+      last = w.join(' ');
+    return api('/api/me', { first, last })
+      .then(d => {
+        if (d.user) R.user = Object.assign({}, R.user, d.user);
+        return ramPlayerSync({ licence });
+      })
+      .catch(() => {});
+  };
   A.ramDismiss = d => ramPlayerSync({ dismiss: d.id }).catch(() => {});
   const jaPlace = (p, lo) => (p === 1 ? '1er' : p + 'e') + (lo && lo !== p ? '–' + lo + 'e' : '');
   function jaHist(pid) {
@@ -1617,7 +1626,7 @@
   }
   /* « Est-ce toi ? » : fiches /RAM JA au même nom ou à la même licence, avec leurs derniers tournois */
   function jaAsk() {
-    if (!R.ja || R.ja.linked) return '';
+    if (!R.ja) return ''; // même avec sa fiche, le compte peut reprendre une fiche existante à son nom
     return (R.ja.candidates || [])
       .map(p => {
         const t = (p.history || [])
@@ -1636,7 +1645,7 @@
     let h = id === ME() ? jaAsk() : '';
     if (id === ME() && R.ja && R.ja.linked) {
       const p = R.ja.linked;
-      h += `<div class="card"><span class="kicker">Fiche /RAM JA</span><p><b>${e(p.last)} ${e(p.first)}</b>${p.licence ? ' · licence ' + e(p.licence) : ''} · ${(p.history || []).length} tournoi${(p.history || []).length > 1 ? 's' : ''}</p><button class="btn sm ghost" data-a="ramUnlink">Détacher cette fiche</button></div>`;
+      h += `<div class="card"><span class="kicker">Fiche /RAM JA</span><p><b>${e(p.last)} ${e(p.first)}</b>${p.licence ? ' · licence ' + e(p.licence) : ''} · ${(p.history || []).length} tournoi${(p.history || []).length > 1 ? 's' : ''}</p><p class="muted small">Elle suit ton profil : nom, licence et classement padel sont mis à jour pour les juges-arbitres.</p></div>`;
     }
     const pid = (M[id] || {})._ja;
     if (pid) {
