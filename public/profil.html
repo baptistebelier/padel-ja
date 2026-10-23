@@ -42,6 +42,11 @@
         </form>
       </section>
       <section class="card">
+        <span class="eyebrow">Clubs</span><h2>Mes clubs</h2>
+        <div class="rows" id="myClubs"><p class="muted small">Chargement…</p></div>
+        <p class="muted small">Le club de votre compte, vos adhésions /RAM Club et les clubs indiqués par les juges-arbitres dans leurs tournois, saison par saison.</p>
+      </section>
+      <section class="card">
         <span class="eyebrow">Sécurité</span><h2>Mot de passe</h2>
         <div class="pw-now"><span class="pw-dots">••••••••••</span><span class="chip ok" id="pwState">Mot de passe défini</span></div>
         <p class="muted small">Votre mot de passe est chiffré : personne ne peut le lire, pas même l'administrateur. Vous pouvez le remplacer ici.</p>
@@ -125,7 +130,27 @@
     $('#pwState').textContent = u.hasPassword ? 'Mot de passe défini' : 'Aucun mot de passe';
     if (u.guest) document.querySelectorAll('#fMe input, #fMe button, #pwOpen, #avFile').forEach(e => e.disabled = true);
   }
-  fetch('/api/me').then(r => r.json()).then(d => { if (!d.user) return location.href = '/connexion'; showUser(d.user); });
+  fetch('/api/me').then(r => r.json()).then(d => { if (!d.user) return location.href = '/connexion'; showUser(d.user); loadClubs(); });
+  // mes clubs : une ligne par club et par saison, avec ses rôles (bureau, enseignant, adhérent, joueur)
+  const ROLE = { bureau: 'Bureau', coach: 'Enseignant', adherent: 'Adhérent', joueur: 'Joueur' };
+  const SRC = { ramclub: '/RAM Club', compte: 'mon compte', tournoi: 'tournois /RAM JA' };
+  function loadClubs() {
+    if (me && me.guest) { $('#myClubs').innerHTML = '<p class="empty">Créez un compte pour rejoindre un club.</p>'; return; }
+    fetch('/api/me/clubs').then(r => r.json()).then(d => {
+      const groups = new Map(), order = ['bureau', 'coach', 'adherent', 'joueur'];
+      (d.memberships || []).forEach(m => {
+        const k = m.clubId + '|' + m.season, g = groups.get(k) || { club: m.club, season: m.season, roles: [], src: [], wait: false, lic: false };
+        if (!g.roles.includes(m.role)) g.roles.push(m.role);
+        if (!g.src.includes(m.source)) g.src.push(m.source);
+        g.wait = g.wait || m.status === 'attente'; g.lic = g.lic || m.licenceClub;
+        groups.set(k, g);
+      });
+      $('#myClubs').innerHTML = [...groups.values()].map(g => `<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><div><strong>${esc(g.club || 'Club')}</strong>
+        <small>Saison ${esc(g.season)} · ${g.roles.sort((a, b) => order.indexOf(a) - order.indexOf(b)).map(r => ROLE[r] || r).join(', ')}${g.lic ? ' · club de licence' : ''} · via ${g.src.map(s => SRC[s] || s).join(', ')}</small></div>
+        ${g.wait ? '<span class="tag ghost">En attente</span>' : g.season === d.season ? '<span class="tag lime">En cours</span>' : ''}</div>`).join('')
+        || '<p class="empty">Aucun club pour l’instant : indiquez le vôtre dans « Mes informations ».</p>';
+    }).catch(() => { $('#myClubs').innerHTML = ''; });
+  }
   ['first', 'last'].forEach(n => $('#fMe').elements[n].addEventListener('input', () => { if (!(me && me.avatar)) paintAvatar($('#fMe').elements.first.value, $('#fMe').elements.last.value); }));
   // photo de profil : recadrée en carré et réduite avant l'envoi
   $('#avFile').onchange = e => {
@@ -147,7 +172,7 @@
     const f = e.target.elements;
     const r = await post('/api/me', { first: f.first.value, last: f.last.value, club: f.club.value });
     if (r.error) return say($('#mMe'), r.error);
-    showUser(r.user); say($('#mMe'), 'Profil enregistré.', true);
+    showUser(r.user); say($('#mMe'), 'Profil enregistré.', true); loadClubs();
   };
   $('#pwOpen').onclick = () => { $('#fPw').hidden = false; $('#pwOpen').hidden = true; $('#mPw').textContent = ''; $('#fPw').elements.current.focus(); };
   $('#pwCancel').onclick = () => { $('#fPw').reset(); $('#fPw').hidden = true; $('#pwOpen').hidden = false; };

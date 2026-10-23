@@ -27,6 +27,7 @@ const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || pa
 const { createClubs, withClubLinks } = require('./lib/clubs.js');
 const clubs = createClubs(store);   // référentiel des clubs commun aux deux applis
 withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le club_id de leur texte « club »
+const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram });   // qui appartient à quel club, rôle et saison
 const ONLINE = store.kind === 'supabase';
 
 /* ---------------------------------------------------------------------
@@ -274,10 +275,12 @@ async function upsertPlayerFrom(pl, owner) {
   if (!p) p = { id: 'j' + Auth.randomId(12), created_at: now, created_by: owner };
   Object.assign(p, { last: last || p.last, first: first || p.first, licence: licence || p.licence || '', rank: pl.rank || p.rank || '', updated_at: now });
   // club du joueur saisi par le juge-arbitre ; la fiche d'un compte garde le club choisi par son titulaire
-  if (!p.user_id && String(pl.club || '').trim()) p.club_id = await clubs.idOf(pl.club, { by: owner }).catch(() => p.club_id || null);
+  const withClub = !p.user_id && String(pl.club || '').trim();
+  if (withClub) p.club_id = await clubs.idOf(pl.club, { by: owner }).catch(() => p.club_id || null);
   p.name_key = norm(p.last) + '|' + norm(p.first);
   p.search = norm(`${p.last} ${p.first} ${p.licence}`);
   await store.savePlayer(p);
+  if (withClub) await adhesions.addTournamentPlayer(p).catch(e => console.error('Adhésion du joueur :', e.message));
   return p;
 }
 
@@ -323,6 +326,7 @@ async function syncAccountPlayer(u, extra = {}) {
   await store.savePlayer(playerKeys(pl));
   if (was !== pl.id) { id.player = pl.id; await store.saveIdentity(u.id, id); }
   await ram.linkPlayer(u.id, pl.id).catch(() => {});
+  await adhesions.syncAccount(u, pl.id).catch(e => console.error('Adhésion du compte :', e.message));   // son club de licence pour la saison
   return pl.id;
 }
 const ensureAccountPlayer = u => syncAccountPlayer(u);
@@ -350,6 +354,9 @@ async function ensureClubLinks(log) {
     if (s.club_id) continue;
     const c = await clubs.resolve(s.name).catch(() => null); if (c) { await ram.linkClub(s.id, c.id); nR++; }
   }
+  // adhésions : clubs des comptes et adhérents des espaces /RAM Club, pour la saison en cours
+  for (const u of users) if (u.club_id) { const id = await store.getIdentity(u.id).catch(() => null); await adhesions.syncAccount(u, id && id.player).catch(() => {}); }
+  await adhesions.syncAllSpaces();
   for (const meta of await store.listAllTournaments()) {
     const s = meta.summary || meta;
     if (meta.club_id || !s.closed || s.example || !String(s.club || '').trim()) continue;
@@ -364,7 +371,7 @@ async function ensureClubLinks(log) {
       for (const pair of (row.state && row.state.pairs) || []) for (const pl of [pair.p1, pair.p2]) {
         if (!pl || !pl.playerId || !String(pl.club || '').trim()) continue;
         const fiche = await store.getPlayer(pl.playerId).catch(() => null);
-        if (fiche && !fiche.club_id && !fiche.user_id) { fiche.club_id = await clubs.idOf(pl.club, { by: meta.owner }); await store.savePlayer(fiche); nP++; }
+        if (fiche && !fiche.club_id && !fiche.user_id) { fiche.club_id = await clubs.idOf(pl.club, { by: meta.owner }); await store.savePlayer(fiche); await adhesions.addTournamentPlayer(fiche).catch(() => {}); nP++; }
       }
     } catch (e) {}
   }
@@ -736,6 +743,7 @@ const server = http.createServer(async (req, res) => {
         const club = await clubs.resolve(b.name, { by: u.id }).catch(() => null);
         return ram.create({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, Object.assign({}, b, { clubId: club && club.id })).then(async c => {
           if (club && !u.club_id) { u.club = club.name; await store.saveUser(u); await syncAccountPlayer(u).catch(() => {}); }   // son club, s'il n'en avait pas
+          await adhesions.syncSpace(c.id).catch(() => {});   // le créateur, au bureau du club
           return json(res, 200, c);
         }, fail);
       }
@@ -879,6 +887,47 @@ const server = http.createServer(async (req, res) => {
       }
       const q = norm(url.searchParams.get('q') || '');
       return json(res, 200, { clubs: clubDir.list.filter(c => !q || norm(c.name).includes(q)).slice(0, q ? 30 : 500) });
+    }
+    /* mes clubs : adhésions de mon compte et de ma fiche joueur, saison par saison */
+    if (p === '/api/me/clubs') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      const id = await store.getIdentity(u.id).catch(() => null);
+      const rows = await adhesions.ofUser(u.id, id && id.player).catch(() => []);
+      return json(res, 200, { season: adhesions.seasonOf(), memberships: rows.map(r => ({ clubId: r.club_id, club: clubs.name(r.club_id), role: r.role, status: r.status, season: r.season, source: r.source, licenceClub: !!r.licence_club })) });
+    }
+    /* un club : fiche et effectifs de la saison ; la liste nominative est réservée à son bureau */
+    m = p.match(/^\/api\/clubs\/(c[\w]{1,24})(\/members)?$/);
+    if (m) {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      await clubs.load();
+      const club = clubs.get(m[1]); if (!club) return json(res, 404, { error: 'Club introuvable' });
+      const season = url.searchParams.get('saison') || adhesions.seasonOf();
+      const rows = (await store.listMemberships('club_id', club.id)).filter(r => r.season === season);
+      const mine = rows.filter(r => r.user_id === u.id);
+      const bureau = isAdmin(u) || mine.some(r => r.role === 'bureau' && r.status === 'actif');
+      if (!m[2]) {
+        // une personne compte une fois, avec son rôle le plus élevé
+        const best = new Map(), rank = { bureau: 0, coach: 1, adherent: 2, joueur: 3 };
+        rows.filter(r => r.status === 'actif').forEach(r => { const k = r.user_id || r.player_id, b = best.get(k); if (!b || rank[r.role] < rank[b]) best.set(k, r.role); });
+        const counts = { bureau: 0, coach: 0, adherent: 0, joueur: 0 }; best.forEach(role => { counts[role]++; });
+        const ramClub = (await ram.spaces().catch(() => [])).some(s => s.club_id === club.id);
+        return json(res, 200, { club: { id: club.id, name: club.name, city: club.city || '', short: club.short || '' }, season, counts, ramClub, bureau,
+          me: mine.map(r => ({ role: r.role, status: r.status, source: r.source })) });
+      }
+      if (!bureau) return json(res, 403, { error: 'Réservé au bureau du club.' });
+      const players = await store.getPlayers([...new Set(rows.map(r => r.player_id).filter(Boolean))]).catch(() => []);
+      const people = new Map();
+      for (const r of rows) {
+        const k = r.user_id || r.player_id, pl = players.find(x => x.id === r.player_id);
+        const o = people.get(k) || { last: '', first: '', licence: '', roles: [], status: 'actif', sources: [] };
+        if (pl) Object.assign(o, { last: pl.last, first: pl.first, licence: pl.licence || '' });
+        else if (r.user_id && !o.last) { const usr = await store.getUser(r.user_id).catch(() => null); if (usr) Object.assign(o, splitName(usr)); }
+        if (!o.roles.includes(r.role)) o.roles.push(r.role);
+        if (!o.sources.includes(r.source)) o.sources.push(r.source);
+        if (r.status === 'attente' && r.source === 'ramclub') o.status = 'attente';
+        people.set(k, o);
+      }
+      return json(res, 200, { season, members: [...people.values()].sort((a, b) => String(a.last).localeCompare(String(b.last))) });
     }
 
     /* ---------- API base de joueurs (partagée entre tous les juges-arbitres) ---------- */
@@ -1055,6 +1104,7 @@ server.listen(PORT, '0.0.0.0', () => {
   Mail.keepAlive(msg => console.log('  ' + msg));
   ensureAllAccountPlayers(msg => console.log('  ' + msg)).catch(e => console.error('  Fiches joueurs des comptes :', e.message))
     .then(() => ensureClubLinks(msg => console.log('  ' + msg))).catch(e => console.error('  Clubs :', e.message));
+  adhesions.watch(msg => console.error('  ' + msg));   // chaque changement d'un espace /RAM Club met à jour ses adhésions
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);

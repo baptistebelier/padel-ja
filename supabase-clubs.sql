@@ -42,3 +42,29 @@ create unique index if not exists ram_clubs_club_key on public.ram_clubs(club_id
 -- Sécurité : accessibles uniquement par le serveur (clé secrète)
 alter table public.clubs enable row level security;
 alter table public.club_aliases enable row level security;
+
+-- =========================================================================
+-- Adhésions : qui appartient à quel club, avec quel rôle, pour quelle saison
+-- Une ligne par personne, club, saison et origine :
+--   ramclub : adhésion /RAM Club (rôle bureau, coach ou adherent ; en attente tant que le bureau n'a pas validé)
+--   compte  : club indiqué sur le compte /RAM (rôle joueur, club de licence)
+--   tournoi : club saisi par un juge-arbitre pour un joueur à la clôture d'un tournoi (rôle joueur)
+-- =========================================================================
+create table if not exists public.club_members (
+  id            text primary key,
+  club_id       text not null references public.clubs(id) on delete cascade,
+  user_id       text references public.users(id) on delete cascade,
+  player_id     text references public.players(id) on delete cascade,
+  role          text not null check (role in ('bureau', 'coach', 'adherent', 'joueur')),
+  status        text not null default 'actif' check (status in ('actif', 'attente')),
+  season        text not null,          -- « 2026-2027 » : de septembre à août
+  source        text not null check (source in ('ramclub', 'compte', 'tournoi')),
+  licence_club  boolean not null default false,
+  created_at    bigint,
+  updated_at    bigint,
+  check (user_id is not null or player_id is not null)
+);
+create index if not exists club_members_club_idx on public.club_members(club_id, season);
+create index if not exists club_members_user_idx on public.club_members(user_id);
+create index if not exists club_members_player_idx on public.club_members(player_id);
+alter table public.club_members enable row level security;

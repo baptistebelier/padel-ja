@@ -56,5 +56,33 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     const chq = dir.find(c => c.id === ua.clubId);
     assert.ok(chq && chq.ramClub);
     assert.equal(dir.filter(c => /chiquita/i.test(c.name)).length, 1);
+
+    /* adhésions : club du compte (joueur, club de licence) et bureau de l'espace /RAM Club */
+    const wait = () => new Promise(r => setTimeout(r, 1900));   // recopie différée des changements /RAM Club
+    let mine = (await a('/api/me/clubs')).memberships;
+    assert.ok(mine.some(x => x.clubId === ua.clubId && x.role === 'joueur' && x.source === 'compte' && x.licenceClub));
+    assert.ok(mine.some(x => x.clubId === ua.clubId && x.role === 'bureau' && x.source === 'ramclub' && x.status === 'actif'));
+    // Bruno demande à rejoindre : en attente jusqu'à la validation du bureau
+    const space = (await a('/api/ram/clubs')).clubs[0];
+    const joined = await b('/api/ram/join', { code: space.code });
+    await wait();
+    const pending = (await b('/api/me/clubs')).memberships.find(x => x.clubId === ua.clubId);
+    assert.equal(pending.status, 'attente'); assert.equal(pending.role, 'adherent');
+    const s = await a(`/api/ram/c/${space.id}/sync?since=0`);
+    const item = s.items.find(i => i.coll === 'member' && i.id === joined.key);
+    const season = (s.items.find(i => i.coll === 'conf').data || {}).season;
+    await a(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'member', id: joined.key, op: 'put', data: Object.assign({}, item.data, { valid: season, req: 0 }) }] });
+    await wait();
+    assert.equal((await b('/api/me/clubs')).memberships.find(x => x.clubId === ua.clubId).status, 'actif');
+    // fiche du club : effectifs pour tous, liste nominative pour le bureau seulement
+    const fiche = await a('/api/clubs/' + ua.clubId);
+    assert.equal(fiche.counts.bureau, 1); assert.equal(fiche.counts.adherent, 1); assert.ok(fiche.bureau);
+    assert.equal((await b('/api/clubs/' + ua.clubId + '/members')).error, 'Réservé au bureau du club.');
+    const list = (await a('/api/clubs/' + ua.clubId + '/members')).members;
+    assert.deepEqual(list.map(x => x.first).sort(), ['Alice', 'Bruno']);
+    // quitter le club : l'adhésion /RAM Club disparaît
+    await b(`/api/ram/c/${space.id}/remove`, { key: joined.key });
+    await wait();
+    assert.equal((await b('/api/me/clubs')).memberships.filter(x => x.clubId === ua.clubId).length, 0);
   } finally { srv.kill(); }
 });
