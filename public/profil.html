@@ -37,7 +37,7 @@
         <form class="form2" id="fMe" autocomplete="on">
           <label>Prénom<input name="first" autocomplete="given-name" placeholder="Ex : Baptiste"></label>
           <label>Nom<input name="last" autocomplete="family-name" placeholder="Ex : Bélier"></label>
-          <label class="span2">Club<input name="club" autocomplete="organization" placeholder="Ex : Padel Club de Brive"></label>
+          <label class="span2">Club<input name="club" autocomplete="organization" placeholder="Ex : Padel Club de Brive"><small class="muted" id="clubHint" hidden></small></label>
           <div class="span2"><button class="btn primary">Enregistrer</button><p class="msg" id="mMe"></p></div>
         </form>
       </section>
@@ -137,6 +137,10 @@
   function loadClubs() {
     if (me && me.guest) { $('#myClubs').innerHTML = '<p class="empty">Créez un compte pour rejoindre un club.</p>'; return; }
     fetch('/api/me/clubs').then(r => r.json()).then(d => {
+      // adhérent d'un club /RAM Club : le club du compte est le sien, il se change depuis /RAM Club
+      const inp = $('#fMe').elements.club, hint = $('#clubHint');
+      inp.readOnly = !!d.managed; hint.hidden = !d.managed;
+      if (d.managed) { inp.value = d.managed.club; hint.textContent = `Club de votre adhésion /RAM Club. Il change automatiquement si vous rejoignez un autre club sur /RAM Club.`; }
       const groups = new Map(), order = ['bureau', 'coach', 'adherent', 'joueur'];
       (d.memberships || []).forEach(m => {
         const k = m.clubId + '|' + m.season, g = groups.get(k) || { club: m.club, season: m.season, roles: [], src: [], wait: false, lic: false };

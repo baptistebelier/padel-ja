@@ -74,6 +74,13 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     await a(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'member', id: joined.key, op: 'put', data: Object.assign({}, item.data, { valid: season, req: 0 }) }] });
     await wait();
     assert.equal((await b('/api/me/clubs')).memberships.find(x => x.clubId === ua.clubId).status, 'actif');
+    // validé au club /RAM Club : son club /RAM JA devient celui-ci, et ne se change plus à la main
+    const ub3 = (await b('/api/me')).user;
+    assert.equal(ub3.clubId, ua.clubId);
+    assert.equal((await b('/api/me/clubs')).managed.clubId, ua.clubId);
+    await b('/api/me', { club: 'Autre club' });
+    assert.equal((await b('/api/me')).user.clubId, ua.clubId);
+    assert.equal((await b('/api/me/player')).linked.club, 'Chiquita Padel');
     // fiche du club : effectifs pour tous, liste nominative pour le bureau seulement
     const fiche = await a('/api/clubs/' + ua.clubId);
     assert.equal(fiche.counts.bureau, 1); assert.equal(fiche.counts.adherent, 1); assert.ok(fiche.bureau);
@@ -83,6 +90,11 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     // quitter le club : l'adhésion /RAM Club disparaît
     await b(`/api/ram/c/${space.id}/remove`, { key: joined.key });
     await wait();
-    assert.equal((await b('/api/me/clubs')).memberships.filter(x => x.clubId === ua.clubId).length, 0);
+    // il garde son dernier club, et redevient libre de le changer
+    const after = await b('/api/me/clubs');
+    assert.equal(after.memberships.filter(x => x.clubId === ua.clubId && x.source === 'ramclub').length, 0);
+    assert.equal(after.managed, null);
+    await b('/api/me', { club: 'TC Les Tilleuls' });
+    assert.equal((await b('/api/me')).user.club, 'TC Les Tilleuls');
   } finally { srv.kill(); }
 });

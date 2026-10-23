@@ -27,7 +27,15 @@ const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || pa
 const { createClubs, withClubLinks } = require('./lib/clubs.js');
 const clubs = createClubs(store);   // référentiel des clubs commun aux deux applis
 withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le club_id de leur texte « club »
-const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram });   // qui appartient à quel club, rôle et saison
+const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, onUsers: ids => Promise.all(ids.map(id => followRamClub(id).catch(() => {}))) });   // qui appartient à quel club, rôle et saison
+/* le club d'un compte suit son club /RAM Club (adhésion validée la plus récente) ;
+   sans club /RAM Club, il garde celui qu'il a choisi */
+async function followRamClub(userId) {
+  const u = await store.getUser(userId); if (!u || u.guest) return;
+  const clubId = await adhesions.ramClubOf(userId); if (!clubId || clubId === u.club_id) return;
+  u.club = clubs.name(clubId); await store.saveUser(u);
+  await syncAccountPlayer(u).catch(() => {});
+}
 const ONLINE = store.kind === 'supabase';
 
 /* ---------------------------------------------------------------------
@@ -708,7 +716,8 @@ const server = http.createServer(async (req, res) => {
         if (a && (!/^data:image\/(png|jpeg|webp);base64,/.test(a) || a.length > 400000)) return json(res, 400, { error: 'Image trop lourde ou format non reconnu.' });
         id.avatar = a; changed = true;
       }
-      if (b.club != null) u.club = String(b.club).trim().slice(0, 120);
+      // le club d'un adhérent /RAM Club est celui de /RAM Club : il ne se change pas ici
+      if (b.club != null && !(await adhesions.ramClubOf(u.id).catch(() => null))) u.club = String(b.club).trim().slice(0, 120);
       await store.saveUser(u);
       if (changed) await store.saveIdentity(u.id, id);
       await syncAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // la fiche joueur suit le profil
@@ -742,8 +751,7 @@ const server = http.createServer(async (req, res) => {
         // l'espace /RAM Club est relié au club du référentiel (créé s'il n'y est pas encore)
         const club = await clubs.resolve(b.name, { by: u.id }).catch(() => null);
         return ram.create({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, Object.assign({}, b, { clubId: club && club.id })).then(async c => {
-          if (club && !u.club_id) { u.club = club.name; await store.saveUser(u); await syncAccountPlayer(u).catch(() => {}); }   // son club, s'il n'en avait pas
-          await adhesions.syncSpace(c.id).catch(() => {});   // le créateur, au bureau du club
+          await adhesions.syncSpace(c.id).catch(() => {});   // le créateur, au bureau du club : son club /RAM JA devient celui-ci
           return json(res, 200, c);
         }, fail);
       }
@@ -893,7 +901,8 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       const id = await store.getIdentity(u.id).catch(() => null);
       const rows = await adhesions.ofUser(u.id, id && id.player).catch(() => []);
-      return json(res, 200, { season: adhesions.seasonOf(), memberships: rows.map(r => ({ clubId: r.club_id, club: clubs.name(r.club_id), role: r.role, status: r.status, season: r.season, source: r.source, licenceClub: !!r.licence_club })) });
+      const managed = await adhesions.ramClubOf(u.id).catch(() => null);
+      return json(res, 200, { season: adhesions.seasonOf(), managed: managed ? { clubId: managed, club: clubs.name(managed) } : null, memberships: rows.map(r => ({ clubId: r.club_id, club: clubs.name(r.club_id), role: r.role, status: r.status, season: r.season, source: r.source, licenceClub: !!r.licence_club })) });
     }
     /* un club : fiche et effectifs de la saison ; la liste nominative est réservée à son bureau */
     m = p.match(/^\/api\/clubs\/(c[\w]{1,24})(\/members)?$/);
