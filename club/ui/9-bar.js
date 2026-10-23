@@ -21,6 +21,20 @@ const barOpen = iso => barNow() < barDeadline(iso);
 const barDay = iso => (iso === TODAY ? "Aujourd'hui" : iso === isoIn(1) ? 'Demain' : fmtD(iso));
 const myBarKeys = () => [ME()].concat((M[ME()] && M[ME()].kids) || []);
 const barItem = id => BAR.find(b => b.id === id);
+/* points de participation : gagnés par le serveur (barème), dépensés en bons d'échange au bar */
+const WALLET_L = {
+  play: 'partie jouée',
+  evt: 'événement',
+  stage: 'stage',
+  volu: 'coup de main bénévole',
+  train: 'cours (présence confirmée)',
+  team: 'rencontre d’équipe (dispo)'
+};
+const myWallet = () => {
+  const w = (window.RAM && RAM.live && RAM.wallet) || WALLET,
+    spent = REDEEMS.filter(r => r.by === ME() && r.st !== 'annule').reduce((a, r) => a + (+r.pts || 0), 0);
+  return { earned: w.earned || 0, spent, balance: (w.earned || 0) - spent, rules: w.rules || WALLET.rules };
+};
 const barMoments = it => (Array.isArray(it.moments) && it.moments.length ? it.moments : ['midi', 'soir']);
 
 function barView() {
@@ -34,10 +48,12 @@ function barView() {
     ? `<div class="ctl"><button class="btn grow" data-a="barEdit">${ic('plus')}Ajouter un article</button><button class="btn ghost grow" data-a="barSet" data-k="v" data-val="${B.v === 'cmd' ? 'carte' : 'cmd'}">${ic(B.v === 'cmd' ? 'cup' : 'list')}${B.v === 'cmd' ? 'La carte' : 'Commandes'}</button></div>`
     : '';
   const when = `<div class="chips">${days.map(d => chip('d', d, barDay(d))).join('')}</div>`;
-  if (staff && B.v === 'cmd') return `<div class="pad">${top}${when}${barOrders(B.d)}</div>`;
+  if (staff && B.v === 'cmd') return `<div class="pad">${top}${barVouchers()}${when}${barOrders(B.d)}</div>`;
   const open = barOpen(B.d),
     mine = ORDERS.filter(o => myBarKeys().includes(o.by) && o.st !== 'annule'),
-    list = BAR.filter(it => staff || it.on !== false);
+    list = BAR.filter(it => staff || it.on !== false),
+    wal = myWallet(),
+    bons = REDEEMS.filter(r => r.by === ME() && r.st === 'ok');
   const card = it => {
     const ok = it.on !== false && it.resa && barMoments(it).includes(B.m),
       got = mine.filter(o => o.item === it.id && o.date === B.d && o.moment === B.m).reduce((a, o) => a + o.qty, 0);
@@ -48,7 +64,7 @@ function barView() {
    .join(
      ''
    )}${it.resa ? '' : '<span class="tag ghost">Au bar seulement</span>'}${it.on === false ? '<span class="tag">Indisponible</span>' : ''}${got ? `<span class="tag lime">Réservé · ${got}</span>` : ''}</div>
- <div class="ctl">${ok ? (open ? `<button class="btn grow" data-a="barBook" data-id="${it.id}">Réserver pour ${barDay(B.d).toLowerCase()} ${MOMENT[B.m].toLowerCase()}</button>` : '<span class="muted small grow">Réservations closes pour ce jour</span>') : ''}${staff ? `<button class="btn ghost" data-a="barEdit" data-id="${it.id}">${ic('edit')}Modifier</button>` : ''}</div></div>`;
+ <div class="ctl">${ok ? (open ? `<button class="btn grow" data-a="barBook" data-id="${it.id}">Réserver pour ${barDay(B.d).toLowerCase()} ${MOMENT[B.m].toLowerCase()}</button>` : '<span class="muted small grow">Réservations closes pour ce jour</span>') : ''}${it.on !== false && +it.pts > 0 ? `<button class="btn ${ok ? 'ghost' : ''} grow" data-a="barRedeem" data-id="${it.id}" ${wal.balance < it.pts ? 'disabled' : ''}>${ic('trophy')}${wal.balance < it.pts ? `${it.pts} pts (il t’en manque ${it.pts - wal.balance})` : `Prendre avec ${it.pts} pts`}</button>` : ''}${staff ? `<button class="btn ghost" data-a="barEdit" data-id="${it.id}">${ic('edit')}Modifier</button>` : ''}</div></div>`;
   };
   const byCat = [...BAR_CATS, ...new Set(list.map(it => it.cat).filter(c => !BAR_CATS.includes(c)))]
     .map(c => {
@@ -57,7 +73,14 @@ function barView() {
     })
     .join('');
   const next = mine.filter(o => o.date >= TODAY).sort((a, b) => (a.date + a.moment).localeCompare(b.date + b.moment));
-  return `<div class="pad">${top}<p class="muted small">Réserve ton repas à l'avance : le club prévoit les quantités. Réservations jusqu'à la veille, ${barCut()} h.${CLUBINFO.house ? ' Club-house : ' + esc(CLUBINFO.house) + '.' : ''}</p>
+  const wcard = `<div class="card wallet"><div class="row" style="gap:12px"><span class="medal t2">${ic('trophy')}</span><span class="grow"><span class="kicker">Mes points de participation</span><br><b class="wal-n">${wal.balance} pts</b><span class="muted small"> · ${wal.earned} gagnés${wal.spent ? `, ${wal.spent} échangés` : ''}</span></span></div>
+ <details class="more"><summary>Comment gagner des points</summary><div class="in">${Object.entries(wal.rules)
+   .map(([k, n]) => `<div class="price"><span>${WALLET_L[k] || k}</span><b>+${n}</b></div>`)
+   .join(
+     ''
+   )}<p class="muted small">Échange-les au bar contre une boisson ou un verre offert : cherche le bouton « Prendre avec … pts ».</p></div></details>
+ ${bons.length ? `<span class="kicker">Mes bons à utiliser</span>${bons.map(r => `<div class="item"><span class="tile">${ic('cup')}</span><span class="grow"><span class="nm">${esc(r.name)}</span><br><span class="muted small">${r.pts} pts · bon ${barCode(r)}</span></span><button class="btn sm" data-a="barVoucher" data-id="${r.id}">Montrer au bar</button></div>`).join('')}` : ''}</div>`;
+  return `<div class="pad">${top}${wcard}<p class="muted small">Réserve ton repas à l'avance : le club prévoit les quantités. Réservations jusqu'à la veille, ${barCut()} h.${CLUBINFO.house ? ' Club-house : ' + esc(CLUBINFO.house) + '.' : ''}</p>
  ${when}<div class="chips">${chip('m', 'midi', 'Midi')}${chip('m', 'soir', 'Soir')}</div>
  ${open ? '' : `<div class="note">Les réservations pour ${barDay(B.d).toLowerCase()} sont closes depuis la veille, ${barCut()} h. Les articles restent en vente au bar.</div>`}
  ${byCat || empty('cup', 'La carte est vide', staff ? 'Ajoute les plats et boissons du bar.' : 'Le bureau ajoutera bientôt la carte du bar.')}
@@ -71,6 +94,23 @@ function barView() {
          .join('')}</div>`
      : ''
  }</div>`;
+}
+/* code court d'un bon, à vérifier au bar */
+const barCode = r =>
+  String(r.id || '')
+    .replace(/[^a-z0-9]/gi, '')
+    .slice(-4)
+    .toUpperCase();
+/* Bureau : bons d'échange à remettre au bar (les plus récents d'abord) */
+function barVouchers() {
+  const l = REDEEMS.filter(r => r.st === 'ok').sort((a, b) => (b.at || 0) - (a.at || 0));
+  if (!l.length) return '';
+  return `<section class="card" style="gap:0"><span class="kicker">Bons à remettre · ${l.length}</span>${l
+    .map(
+      r =>
+        `<div class="item">${av(r.by, 'sm')}<span class="grow"><span class="nm">${name(r.by)}</span><br><span class="muted small">${esc(r.name)} · ${r.pts} pts · bon ${barCode(r)}</span></span><button class="btn sm" data-a="barGive" data-id="${r.id}">Remis</button></div>`
+    )
+    .join('')}</section>`;
 }
 /* Bureau : commandes d'un jour (demain par défaut), midi puis soir : total par article, puis qui a commandé quoi */
 function barOrders(iso) {

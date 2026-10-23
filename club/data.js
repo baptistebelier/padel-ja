@@ -1346,7 +1346,8 @@ const BAR = [
     desc: '',
     moments: ['midi', 'soir'],
     resa: false,
-    on: true
+    on: true,
+    pts: 10
   },
   {
     id: 'b6',
@@ -1356,9 +1357,14 @@ const BAR = [
     desc: '25 cl',
     moments: ['soir'],
     resa: false,
-    on: true
+    on: true,
+    pts: 30
   }
 ];
+/* Points de participation (monnaie du bar) : barème et solde de la démo ; dans un vrai club, le serveur les calcule */
+const WALLET = { earned: 46, spent: 0, rules: { play: 2, evt: 3, stage: 5, volu: 5, train: 1, team: 2 } };
+/* bons d'échange : un article du bar pris avec ses points, à montrer au bar */
+const REDEEMS = [];
 const ORDERS = [
   {
     id: 'o1',

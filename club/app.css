@@ -667,3 +667,9 @@ body{touch-action:manipulation}
 .bar-it{gap:10px}
 .bar-it.off{opacity:.6}
 .bar-price{font-family:var(--f-display);font-size:20px;white-space:nowrap;color:var(--accent)}
+/* Points de participation et bons d'échange */
+.wallet{gap:10px}
+.wal-n{font-family:var(--f-display);font-size:26px;color:var(--accent)}
+.voucher{display:grid;justify-items:center;gap:8px;text-align:center;padding:22px 16px;border:2px dashed var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.v-name{font-family:var(--f-display);font-size:24px;text-transform:uppercase;font-style:italic}
+.v-code{font-family:var(--f-display);font-size:46px;letter-spacing:.18em;color:var(--accent);line-height:1}

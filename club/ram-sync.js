@@ -271,6 +271,11 @@
       at(x, 'order');
       add('order', x.id, x);
     });
+    // bons d'échange des points de participation
+    REDEEMS.forEach(x => {
+      at(x, 'redeem');
+      add('redeem', x.id, x);
+    });
     Object.keys(M).forEach(k => {
       if (k === 'club') return;
       const s = strip(M[k], ['fol']);
@@ -479,7 +484,8 @@
     report: () => REPORTS,
     claim: () => (typeof CLAIMS !== 'undefined' ? CLAIMS : []),
     bar: () => BAR,
-    order: () => ORDERS
+    order: () => ORDERS,
+    redeem: () => REDEEMS
   };
   function place(list, obj, desc) {
     const i = list.findIndex(x => x.id === obj.id);
@@ -825,6 +831,7 @@
       case 'bar':
         return R.role === 'bureau';
       case 'order':
+      case 'redeem':
         return R.role === 'bureau' || myKeys().includes(d.by);
     }
     return false;
@@ -1131,6 +1138,14 @@
           })
         );
     }
+    // bar : un bon d'échange pris avec des points est signalé au bureau
+    if (coll === 'redeem' && !a && isBureau() && b.by !== me && known(b.by) && b.st === 'ok')
+      once(`redeem/${id}`, () =>
+        notify('club', b.by, `prend ${b.name} avec ${b.pts} points (bon ${barCode(Object.assign({ id }, b))})`, {
+          v: 'bar',
+          d: TODAY
+        })
+      );
     // bar : le bureau est prévenu de chaque nouvelle réservation (pour préparer les commandes du lendemain)
     if (coll === 'order' && !a && isBureau() && b.by !== me && known(b.by) && b.st !== 'annule')
       once(`order/${id}`, () =>
@@ -1200,6 +1215,11 @@
     }
     // scores d'investissement calculés par le serveur : identiques pour tous les comptes
     if (d.counts) applyCounts(d.counts);
+    if (d.wallet) {
+      const ch = !R.wallet || R.wallet.earned !== d.wallet.earned;
+      R.wallet = d.wallet;
+      if (ch && !d.items.length && S.tab === 'club') render(true);
+    }
     if (d.scores) {
       const ch = Object.keys(d.scores).some(k => d.scores[k] !== R.scores[k]);
       R.scores = d.scores;
@@ -1407,6 +1427,7 @@
     if (typeof CLAIMS !== 'undefined') CLAIMS.length = 0;
     BAR.length = 0;
     ORDERS.length = 0;
+    REDEEMS.length = 0;
     ['tel', 'mail'].forEach(k => {
       MYCT[k][2] = '';
     });
@@ -1439,6 +1460,7 @@
     R.roles = d.roles || {};
     R.scores = d.scores || {};
     R.counts = d.counts || {};
+    R.wallet = d.wallet || null; // points de participation (monnaie du bar), calculés par le serveur
     R.base = new Map();
     R.bad = new Map();
     window.RAM_KEY = R.key;
@@ -1458,6 +1480,7 @@
       'claim',
       'bar',
       'order',
+      'redeem',
       'msg',
       'report'
     ];
