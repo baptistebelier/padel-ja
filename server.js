@@ -28,6 +28,7 @@ const { createClubs, withClubLinks } = require('./lib/clubs.js');
 const clubs = createClubs(store);   // référentiel des clubs commun aux deux applis
 withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le club_id de leur texte « club »
 const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, onUsers: ids => Promise.all(ids.map(id => followRamClub(id).catch(() => {}))) });   // qui appartient à quel club, rôle et saison
+const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
 /* le club d'un compte suit son club /RAM Club (adhésion validée la plus récente) ;
    sans club /RAM Club, il garde celui qu'il a choisi */
 async function followRamClub(userId) {
@@ -368,6 +369,7 @@ async function ensureClubLinks(log) {
   // adhésions : clubs des comptes et adhérents des espaces /RAM Club, pour la saison en cours
   for (const u of users) if (u.club_id) { const id = await store.getIdentity(u.id).catch(() => null); await adhesions.syncAccount(u, id && id.player).catch(() => {}); }
   await adhesions.syncAllSpaces();
+  await progression.syncAllSpaces();
   for (const meta of await store.listAllTournaments()) {
     const s = meta.summary || meta;
     if (meta.club_id || !s.closed || s.example || !String(s.club || '').trim()) continue;
@@ -759,6 +761,7 @@ const server = http.createServer(async (req, res) => {
         const club = await clubs.resolve(b.name, { by: u.id }).catch(() => null);
         return ram.create({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, Object.assign({}, b, { clubId: club && club.id })).then(async c => {
           await adhesions.syncSpace(c.id).catch(() => {});   // le créateur, au bureau du club : son club /RAM JA devient celui-ci
+          await progression.syncSpace(c.id).catch(() => {});
           return json(res, 200, c);
         }, fail);
       }
@@ -928,7 +931,10 @@ const server = http.createServer(async (req, res) => {
       const id = await store.getIdentity(u.id).catch(() => null);
       const rows = await adhesions.ofUser(u.id, id && id.player).catch(() => []);
       const managed = await adhesions.ramClubOf(u.id).catch(() => null);
-      return json(res, 200, { season: adhesions.seasonOf(), managed: managed ? { clubId: managed, club: clubs.name(managed) } : null, memberships: rows.map(r => ({ clubId: r.club_id, club: clubs.name(r.club_id), role: r.role, status: r.status, season: r.season, source: r.source, licenceClub: !!r.licence_club })) });
+      const prog = await progression.ofUser(u.id).catch(() => []);
+      return json(res, 200, { season: adhesions.seasonOf(), managed: managed ? { clubId: managed, club: clubs.name(managed) } : null, memberships: rows.map(r => ({ clubId: r.club_id, club: clubs.name(r.club_id), role: r.role, status: r.status, season: r.season, source: r.source, licenceClub: !!r.licence_club })),
+        // progression /RAM Club : points et trophées, par club et par saison
+        progress: prog.map(g => ({ clubId: g.club_id, club: clubs.name(g.club_id), season: g.season, points: g.points, trophies: Object.keys(g.trophies || {}).length })) });
     }
     /* un club : fiche et effectifs de la saison ; la liste nominative est réservée à son bureau */
     m = p.match(/^\/api\/clubs\/(c[\w]{1,24})(\/members)?$/);
@@ -1139,7 +1145,8 @@ server.listen(PORT, '0.0.0.0', () => {
   Mail.keepAlive(msg => console.log('  ' + msg));
   ensureAllAccountPlayers(msg => console.log('  ' + msg)).catch(e => console.error('  Fiches joueurs des comptes :', e.message))
     .then(() => ensureClubLinks(msg => console.log('  ' + msg))).catch(e => console.error('  Clubs :', e.message));
-  adhesions.watch(msg => console.error('  ' + msg));   // chaque changement d'un espace /RAM Club met à jour ses adhésions
+  adhesions.watch(msg => console.error('  ' + msg));
+  progression.watch(msg => console.error('  ' + msg));   // et sa progression (trophées, points)   // chaque changement d'un espace /RAM Club met à jour ses adhésions
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);

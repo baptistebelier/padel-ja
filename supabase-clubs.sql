@@ -68,3 +68,23 @@ create index if not exists club_members_club_idx on public.club_members(club_id,
 create index if not exists club_members_user_idx on public.club_members(user_id);
 create index if not exists club_members_player_idx on public.club_members(player_id);
 alter table public.club_members enable row level security;
+
+-- =========================================================================
+-- Progression : compteurs d'actions, trophées et points d'investissement de chaque adhérent,
+-- par club et par saison. Calculée par le serveur à partir des données du club (lib/ram-score.js) :
+-- personne ne peut la modifier à la main. Mise à jour après chaque changement dans le club.
+-- =========================================================================
+create table if not exists public.member_progress (
+  id          text primary key,
+  club_id     text not null references public.clubs(id) on delete cascade,
+  user_id     text not null references public.users(id) on delete cascade,
+  season      text not null,
+  points      int  not null default 0,
+  counts      jsonb not null default '{}',   -- { like: 12, com: 4, … }
+  trophies    jsonb not null default '{}',   -- { like: 2 (palier argent), hello: 1 (rare), … }
+  updated_at  bigint
+);
+create unique index if not exists member_progress_key on public.member_progress(club_id, user_id, season);
+create index if not exists member_progress_rank_idx on public.member_progress(club_id, season, points desc);
+create index if not exists member_progress_user_idx on public.member_progress(user_id);
+alter table public.member_progress enable row level security;

@@ -81,6 +81,13 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     await b('/api/me', { club: 'Autre club' });
     assert.equal((await b('/api/me')).user.clubId, ua.clubId);
     assert.equal((await b('/api/me/player')).linked.club, 'Chiquita Padel');
+    // progression calculée par le serveur : un like de Bruno compte dans ses points
+    const pid = s.items.find(i => i.coll === 'post') ? s.items.find(i => i.coll === 'post').id : 'p-test';
+    await a(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'post', id: pid, op: 'put', data: { by: 'club', kind: 'annonce', title: 'Bienvenue', body: '', at: Date.now() } }] });
+    await b(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'post', id: pid, op: 'patch', patch: [{ p: ['likers'], t: 'add', v: joined.key }] }] });
+    await new Promise(r => setTimeout(r, 3600));
+    const prog = (await b('/api/me/clubs')).progress.find(x => x.clubId === ua.clubId);
+    assert.ok(prog && prog.points >= 1 && prog.trophies >= 1, JSON.stringify(prog));
     // fiche du club : effectifs pour tous, liste nominative pour le bureau seulement
     const fiche = await a('/api/clubs/' + ua.clubId);
     assert.equal(fiche.counts.bureau, 1); assert.equal(fiche.counts.adherent, 1); assert.ok(fiche.bureau);

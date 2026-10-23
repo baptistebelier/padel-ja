@@ -153,8 +153,10 @@
         g.wait = g.wait || m.status === 'attente'; g.lic = g.lic || m.licenceClub;
         groups.set(k, g);
       });
+      // progression /RAM Club de la même saison : points d'investissement et trophées
+      (d.progress || []).forEach(p => { const g = groups.get(p.clubId + '|' + p.season); if (g) g.prog = p; });
       $('#myClubs').innerHTML = [...groups.values()].map(g => `<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><div><strong>${esc(g.club || 'Club')}</strong>
-        <small>Saison ${esc(g.season)} · ${g.roles.sort((a, b) => order.indexOf(a) - order.indexOf(b)).map(r => ROLE[r] || r).join(', ')}${g.lic ? ' · club de licence' : ''} · via ${g.src.map(s => SRC[s] || s).join(', ')}</small></div>
+        <small>Saison ${esc(g.season)} · ${g.roles.sort((a, b) => order.indexOf(a) - order.indexOf(b)).map(r => ROLE[r] || r).join(', ')}${g.lic ? ' · club de licence' : ''} · via ${g.src.map(s => SRC[s] || s).join(', ')}${g.prog ? ` · ${g.prog.points} pts, ${g.prog.trophies} trophée${g.prog.trophies > 1 ? 's' : ''}` : ''}</small></div>
         ${g.wait ? '<span class="tag ghost">En attente</span>' : g.season === d.season ? '<span class="tag lime">En cours</span>' : ''}</div>`).join('')
         || '<p class="empty">Aucun club pour l’instant : indiquez le vôtre dans « Mes informations ».</p>';
     }).catch(() => { $('#myClubs').innerHTML = ''; });
