@@ -27,16 +27,16 @@ function nvTiers(sport, list) {
   if (add) add.hidden = list.length >= NV_MAX;
 }
 Object.assign(A, {
-  /* créer une partie par niveaux ou une séance collective (enseignants et bureau) */
+  /* créer une partie dirigée ou une séance collective (enseignants et bureau) */
   nvNew(d) {
     if (!isAdmin()) return;
     const cours = d.m === 'cours';
     S.nvPl = cours ? 6 : 4;
     sheet(
-      cours ? 'Séance collective' : 'Partie par niveaux',
+      cours ? 'Séance collective' : 'Partie dirigée',
       `<form class="body" id="nv-form" data-m="${cours ? 'cours' : 'partie'}">${cours ? F('nv-theme', 'Thème de la séance', 'Service et retour, jeu au filet…') : ''}${O('nv-body', 'Précisions (facultatif)', cours ? 'Ce que l’on travaille, matériel…' : 'Format, court…')}
  <div class="two">${Sel('nv-sport', 'Sport', ['Tennis', 'Padel'])}${cours ? '' : Sel('nv-fmt', 'Format', ['Double', 'Simple'], 'Double')}</div>
- ${Dt('a-d1', cours ? 'Date (première séance)' : 'Date', 1)}<div class="two">${Sel('a-h1', 'Heure', HOURS, '18 h')}${Sel('a-dur', 'Durée', ['1 h', '1 h 30', '2 h'], '1 h 30')}</div>${O('nv-place', 'Lieu (facultatif)', 'Court 3, salle…')}
+ ${Dt('a-d1', cours ? 'Date (première séance)' : 'Date', 1)}<div class="two">${Sel('a-h1', 'Heure', HOURS, '18 h')}${Sel('a-dur', 'Durée', ['1 h', '1 h 30', '2 h'], '1 h 30')}</div>${O('nv-place', 'Lieu (facultatif)', 'Court 3, salle…')}${O('nv-price', 'Tarif', cours ? '15 € par séance' : '10 € par joueur')}
  ${cours ? Sel('nv-rep', 'Récurrence', ['Une seule fois', 'Chaque semaine · 4 semaines', 'Chaque semaine · 6 semaines', 'Chaque semaine · 8 semaines', 'Chaque semaine · 10 semaines', 'Chaque semaine · 12 semaines']) : ''}
  <div class="fld"><span class="lb">Fourchettes de niveau</span><p class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première fourchette complète valide ${cours ? 'la séance' : 'la partie'} ; les inscrits des autres passent en liste d'attente.</p></div>
  <div id="nv-tiers" class="stack"></div><button type="button" class="btn ghost full" id="nv-add" data-a="nvRowAdd">${ic('plus')}Ajouter une fourchette</button>
@@ -133,6 +133,7 @@ document.addEventListener('submit', e => {
       time: val('a-h1'),
       dur: val('a-dur'),
       place: val('nv-place'),
+      price: val('nv-price'),
       dates: Array.from({ length: weeks }, (_, i) => isoIn(7 * i, d0)),
       tiers,
       ins: {},

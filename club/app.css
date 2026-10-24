@@ -685,3 +685,4 @@ body{touch-action:manipulation}
 .nv-who.wait{opacity:.5}
 .nv-row{gap:8px}
 .note.ok{display:flex;gap:8px;align-items:center}
+.nv-price{font-family:var(--f-display);font-size:18px;color:var(--accent);white-space:nowrap}

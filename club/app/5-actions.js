@@ -539,7 +539,7 @@ const A = {
         ['score', 'Ajouter un résultat', 'result'],
         S.role !== 'kid' && ['search', 'Chercher une partie', 'newPost', 'data-k="play"'],
         // enseignants et bureau : plusieurs fourchettes de niveau dans une même publication
-        st && ['users', 'Partie par niveaux', 'nvNew', 'data-m="partie"'],
+        st && ['users', 'Partie dirigée', 'nvNew', 'data-m="partie"'],
         st && ['school', 'Séance collective à thème', 'nvNew', 'data-m="cours"'],
         st && ['info', 'Annonce', 'newPost', 'data-k="annonce"'],
         st && ['cal', 'Événement', 'newPost', 'data-k="event"'],

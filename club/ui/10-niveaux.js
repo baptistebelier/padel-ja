@@ -1,4 +1,4 @@
-/* /RAM Club — ui/10-niveaux.js : publications par niveaux des enseignants (parties et séances collectives).
+/* /RAM Club — ui/10-niveaux.js : publications par niveaux des enseignants (parties dirigées et séances collectives).
    Une publication propose plusieurs fourchettes de niveau, chacune avec ses places. Chaque adhérent ne voit que
    la fourchette de son niveau ; l'enseignant les voit toutes. La première fourchette complète valide le créneau :
    les inscrits des autres fourchettes passent automatiquement en liste d'attente.
@@ -6,7 +6,7 @@
    Données (post.kind 'niveaux', post.nv) :
      { mode: 'partie' | 'cours', sport, theme, body, time, dur, place, fmt, dates: [iso…],
        tiers: [{ id, lo, hi, places }], ins: { 'iso|tid': [clés] }, at: { clé: { iso: horodatage } } } */
-const NV_MODE = { partie: 'Partie par niveaux', cours: 'Séance collective' };
+const NV_MODE = { partie: 'Partie dirigée', cours: 'Séance collective' };
 /* niveau d'un adhérent : classement tennis (rang dans RANKS) ou niveau padel (1 à 10) */
 const nvLevel = (k, sport) =>
   sport === 'Padel' ? (M[k] && M[k].pl != null ? +M[k].pl : null) : M[k] ? rIdx(M[k].r) : null;
@@ -72,8 +72,8 @@ function nvBody(p) {
     me = ME(),
     staff = nvStaff(p),
     dates = nv.dates || [];
-  const head = `<span class="kicker">${NV_MODE[nv.mode] || 'Créneau'} · ${esc(nv.sport)}</span><h2 class="tilt sm">${esc(nv.theme || nv.fmt || 'Partie')}${nv.mode === 'partie' && nv.fmt ? ` <em>${esc(nv.fmt)}</em>` : ''}</h2>${nv.body ? `<p>${esc(nv.body)}</p>` : ''}`;
-  const meta = `<div class="meta"><span>${ic('cal')}${dates.length > 1 ? 'Chaque ' + DAYS[new Date(dates[0] + 'T12:00').getDay()].toLowerCase() + ' · ' + nv.time : fmtD(iso) + ' · ' + nv.time}</span><span>${ic('clock')}${esc(nv.dur || '')}</span>${nv.place ? `<span>${ic('pin')}${esc(nv.place)}</span>` : ''}</div>`;
+  const head = `<span class="kicker">${NV_MODE[nv.mode] || 'Créneau'} · ${esc(nv.sport)}</span><h2 class="tilt sm">${esc(nv.theme || 'Partie')}${nv.mode === 'partie' && nv.fmt ? ` <em>${esc(nv.fmt)}</em>` : ''}</h2>${nv.body ? `<p>${esc(nv.body)}</p>` : ''}`;
+  const meta = `<div class="meta"><span>${ic('cal')}${dates.length > 1 ? 'Chaque ' + DAYS[new Date(dates[0] + 'T12:00').getDay()].toLowerCase() + ' · ' + nv.time : fmtD(iso) + ' · ' + nv.time}</span><span>${ic('clock')}${esc(nv.dur || '')}</span>${nv.price ? `<span class="nv-price">${esc(nv.price)}</span>` : ''}${nv.place ? `<span>${ic('pin')}${esc(nv.place)}</span>` : ''}</div>`;
   const pick =
     dates.length > 1
       ? `<div class="chips nv-dates">${dates.map(d => `<button class="chip" data-a="nvDay" data-id="${p.id}" data-d="${d}" aria-pressed="${d === iso}">${fmtD(d)}${nvState(nv, d).win ? ' ✓' : ''}</button>`).join('')}</div>`
