@@ -658,6 +658,19 @@ document.addEventListener('submit', e => {
         toast("L'âge minimum est plus grand que l'âge maximum");
         return;
       }
+      // padel avec /RAM JA : le tournoi est créé dans /RAM JA, qui le publie lui-même sur le mur
+      if (pad && /RAM JA/.test(val('tr-mgr')) && window.RAM && RAM.live) {
+        jaCreateTournament({
+          name: val('a-title'),
+          d1,
+          d2: one ? d1 : d2,
+          dl,
+          cat: val('tr-cat'),
+          gen: val('tr-gen'),
+          max: mx === 'Sans limite' ? 0 : +mx
+        });
+        return;
+      }
       const trn = {
         sport: sp,
         gen: val('tr-gen'),

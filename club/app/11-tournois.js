@@ -85,3 +85,41 @@ document.addEventListener('submit', async e => {
     toast(x.message);
   }
 });
+/* « Nouveau tournoi » du club, organisé avec /RAM JA : création dans /RAM JA (même compte /RAM) ;
+   /RAM JA le publie ensuite sur le mur, avec les inscriptions dans l'appli */
+async function jaCreateTournament(o) {
+  try {
+    const r = await fetch('/api/tournaments', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: o.name })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.id) throw new Error(d.error || 'Création impossible dans /RAM JA');
+    await jaCall('/api/t/' + d.id + '/action', {
+      type: 'tournament/update',
+      payload: {
+        name: o.name,
+        club: club().name,
+        category: o.cat,
+        gender: { Hommes: 'Messieurs', Femmes: 'Dames', Mixte: 'Mixte' }[o.gen] || 'Messieurs',
+        dateStart: o.d1,
+        dateEnd: o.d2 || o.d1,
+        deadline: o.dl ? o.dl + 'T20:00' : '',
+        maxPairs: o.max || 16,
+        regMode: ''
+      }
+    });
+    closeSheet();
+    S.tab = 'home';
+    S.stack = [];
+    render();
+    sheet(
+      'Tournoi créé dans /RAM JA',
+      `<div class="body"><div class="note ok">${ic('check')}<span><b>${esc(o.name)}</b> est créé dans /RAM JA et sera publié sur le mur dans un instant, avec les inscriptions dans l’appli.</span></div><p class="muted small">Le juge-arbitre gère ensuite le tirage, la programmation et les scores dans /RAM JA.</p><a class="btn full" href="${/^club\./.test(location.hostname) ? 'https://ja.riseandmove.fr' : ''}/t/${d.id}" target="_blank" rel="noopener">Ouvrir dans /RAM JA ${ic('link')}</a></div>`
+    );
+  } catch (e) {
+    toast(e.message);
+  }
+}

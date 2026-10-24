@@ -148,7 +148,7 @@ function forms(k, cid) {
           '12 ans'
         )}</div>` +
         `<div id="tr-tennis" class="stack">${Sel('tr-fmt', 'Format', ['Traditionnel', 'TMC (multi-chances)'])}<div class="fld"><label class="chk" for="tr-open"><input type="checkbox" id="tr-open" checked data-hide="tr-range">Open : tous classements</label></div><div class="two" id="tr-range" hidden>${Sel('tr-lo', 'Classement de', RANKS, '30/2')}${Sel('tr-hi', 'à', RANKS, '15/1')}</div></div>` +
-        `<div id="tr-padel" hidden>${Sel('tr-cat', 'Catégorie de tournoi', ['P25', 'P50', 'P100', 'P250', 'P500', 'P1000'], 'P100')}</div>` +
+        `<div id="tr-padel" hidden>${Sel('tr-cat', 'Catégorie de tournoi', ['P25', 'P50', 'P100', 'P250', 'P500', 'P1000'], 'P100')}${Sel('tr-mgr', 'Organisation', ['Avec /RAM JA : inscriptions dans l’appli, tirage, scores en direct', 'Ailleurs (Ten’Up…)'])}<p class="muted small">Avec /RAM JA, le tournoi est créé dans /RAM JA (même compte) et publié ici automatiquement : les adhérents s’inscrivent dans l’appli, voient le tirage, leurs horaires et les résultats.</p></div>` +
         Sel('tr-max', 'Nombre de participants maximum', [
           'Sans limite',
           '8',
@@ -166,8 +166,7 @@ function forms(k, cid) {
         `<div class="two">${Sel('a-h1', 'Début des matchs', HOURS, '9 h')}${Dt('tr-dl', 'Fin des inscriptions', 1, isoIn(4))}</div>` +
         F('a-place', 'Lieu', 'Au club') +
         `<div class="fld"><label for="a-body">Description (facultative)</label><textarea id="a-body" placeholder="Dotation, balles, restauration…"></textarea></div>` +
-        O('tr-url', "Lien Ten'Up du tournoi", 'https://tenup.fft.fr/…') +
-        `<div class="note">Les joueurs s'inscrivent sur Ten'Up : la publication affiche un bouton qui ouvre ce lien.</div>`,
+        `<div id="tr-ext">${O('tr-url', "Lien Ten'Up du tournoi", 'https://tenup.fft.fr/…')}<div class="note">Les joueurs s'inscrivent sur Ten'Up : la publication affiche un bouton qui ouvre ce lien.</div></div>`,
       'Publier le tournoi'
     ],
     cta: [

@@ -371,10 +371,12 @@ document.addEventListener('change', e => {
     $('v-rk').hidden = el.value === 'Padel';
     $('v-nv').hidden = el.value === 'Tennis';
   }
-  if (el.id === 'tr-sport') {
-    const pad = el.value === 'Padel';
+  if (el.id === 'tr-sport' || el.id === 'tr-mgr') {
+    const pad = $('tr-sport').value === 'Padel';
     $('tr-tennis').hidden = pad;
     $('tr-padel').hidden = !pad;
+    // tournoi organisé avec /RAM JA : pas de lien Ten'Up (inscriptions dans l'appli)
+    if ($('tr-ext')) $('tr-ext').hidden = pad && /RAM JA/.test($('tr-mgr').value);
   }
   if (el.id === 'tr-pub') {
     $('tr-jeunes').hidden = el.value !== 'Jeunes';
@@ -475,4 +477,3 @@ document.addEventListener('change', e => {
       toast('Photo ajoutée · la publication du mur est à jour');
     });
 });
-
