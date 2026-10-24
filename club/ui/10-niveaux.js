@@ -72,7 +72,11 @@ function nvBody(p) {
     me = ME(),
     staff = nvStaff(p),
     dates = nv.dates || [];
-  const head = `<span class="kicker">${NV_MODE[nv.mode] || 'Créneau'} · ${esc(nv.sport)}</span><h2 class="tilt sm">${esc(nv.theme || 'Partie')}${nv.mode === 'partie' && nv.fmt ? ` <em>${esc(nv.fmt)}</em>` : ''}</h2>${nv.body ? `<p>${esc(nv.body)}</p>` : ''}`;
+  // partie dirigée : « Partie dirigée avec Prénom Nom » (l'enseignant qui la propose), sport et format au-dessus
+  const head =
+    nv.mode === 'partie'
+      ? `<span class="kicker">${esc(nv.sport)}${nv.fmt ? ' · ' + esc(nv.fmt) : ''}</span><h2 class="tilt sm">Partie dirigée <em>avec ${esc(M[p.by] ? name(p.by) : 'l’enseignant')}</em></h2>${nv.body ? `<p>${esc(nv.body)}</p>` : ''}`
+      : `<span class="kicker">${NV_MODE[nv.mode] || 'Créneau'} · ${esc(nv.sport)}</span><h2 class="tilt sm">${esc(nv.theme || 'Séance')}</h2>${nv.body ? `<p>${esc(nv.body)}</p>` : ''}`;
   const meta = `<div class="meta"><span>${ic('cal')}${dates.length > 1 ? 'Chaque ' + DAYS[new Date(dates[0] + 'T12:00').getDay()].toLowerCase() + ' · ' + nv.time : fmtD(iso) + ' · ' + nv.time}</span><span>${ic('clock')}${esc(nv.dur || '')}</span>${nv.price ? `<span class="nv-price">${esc(nv.price)}</span>` : ''}${nv.place ? `<span>${ic('pin')}${esc(nv.place)}</span>` : ''}</div>`;
   const pick =
     dates.length > 1
