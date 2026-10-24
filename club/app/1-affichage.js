@@ -24,7 +24,10 @@ const ROLE = {
 const TITLES = {
   home: () => ['Accueil', 'Le mur du club'],
   chans: () => ['Groupes', club().name],
-  agenda: () => ['Agenda', 'Cours, équipes et événements'],
+  agenda: () => [
+    'Agenda',
+    S.plan.scope === 'me' ? 'Tout ce où je suis inscrit' : 'Cours, parties, événements, tournois'
+  ],
   teamarch: () => {
     const [id, s] = view().id.split('|');
     return [teamName(grp(id)), 'Saison ' + s];

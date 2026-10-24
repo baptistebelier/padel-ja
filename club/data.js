@@ -1218,7 +1218,13 @@ const S = {
   grpAll: false,
   share: { tel: true, mail: false, soc: true },
   nset: { club: true, follow: true, chan: true, team: true, live: false, play: true, mine: true },
-  plan: { mode: 'events', d: TODAY, cat: { ens: 1, ani: 1, eq: 1 }, sp: { Tennis: 1, Padel: 1 } },
+  plan: {
+    scope: 'me',
+    mode: 'next',
+    d: TODAY,
+    cat: { ens: 1, ani: 1, eq: 1, jeu: 1, tour: 1, repas: 1 },
+    sp: { Tennis: 1, Padel: 1 }
+  },
   list: { sort: 'tennis', f: 'all', q: '' },
   palm: 'tennis',
   season: '2026-2027',

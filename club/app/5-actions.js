@@ -380,6 +380,11 @@ const A = {
     S.plan.mine = !S.plan.mine;
     render(true);
   },
+  /* « Mon agenda » ou « Agenda du club » */
+  planScope(d) {
+    S.plan.scope = d.k;
+    render(true);
+  },
   clubInfo() {
     const I2 = CLUBINFO,
       num = a => a.map(String);

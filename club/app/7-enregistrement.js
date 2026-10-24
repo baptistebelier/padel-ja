@@ -884,6 +884,7 @@ document.addEventListener('submit', e => {
         play: {
           sport: pad ? 'Padel' : 'Tennis',
           date: fmtD(val('a-d1')),
+          d: val('a-d1'), // date ISO : la partie apparaît dans l'agenda
           time: val('a-h1'),
           dur: val('a-dur'),
           fmt,

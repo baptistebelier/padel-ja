@@ -694,3 +694,6 @@ body{touch-action:manipulation}
 .ja-res{display:grid;gap:0}
 .ja-res .price.me{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .note.ok svg{width:20px;height:20px;flex:none}
+/* agenda : parties (libres, dirigées), tournois /RAM JA, repas au bar */
+.jeu{--c:var(--padel);--oc:#fff}.tour{--c:var(--accent2,var(--hot));--oc:#fff}.repas{--c:var(--muted);--oc:var(--bg)}
+.plan-scope{margin-bottom:4px}

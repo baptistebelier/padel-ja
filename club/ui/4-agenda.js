@@ -56,18 +56,101 @@ function planItems(iso) {
         title: p.title.replace(/<[^>]+>/g, ''),
         v: 'post',
         id: p.id,
-        my: true
+        my: p.by === me || p.my === 'yes' || p.my === 'wait' || (p.vol || []).includes(me)
       });
     });
+  planMore(iso, out, me, mine);
   return out
     .filter(
       i =>
-        S.plan.cat[i.cat] &&
+        S.plan.cat[i.cat] !== 0 &&
+        S.plan.cat[i.cat] !== false &&
         (!i.sport || S.plan.sp[i.sport]) &&
         (i.v !== 'grp' || seesMinors()) &&
-        (!S.plan.mine || i.my)
+        (S.plan.scope === 'me' ? i.my : !i.priv && (!S.plan.mine || i.my))
     )
     .sort((a, b) => hMin(a.t) - hMin(b.t));
+}
+/* tout ce où l'on se positionne, en plus des cours, rencontres et événements : parties libres, parties dirigées,
+   séances collectives, tournois et animations /RAM JA, repas réservés au bar */
+const hhmm = t => {
+  const m = String(t || '').match(/^(\d{1,2}):(\d{2})/);
+  return m ? +m[1] + ' h' + (m[2] !== '00' ? ' ' + m[2] : '') : t || '';
+};
+function planMore(iso, out, me, mine) {
+  const keys = [me, ...((M[me] && M[me].kids) || [])];
+  posts.forEach(p => {
+    if (p.arch || !canSee(p)) return;
+    // partie libre (« Chercher une partie »)
+    if (p.kind === 'play' && p.play && p.play.d === iso) {
+      const y = p.play,
+        inn = y.in.some(mine),
+        wt = y.wait.some(mine);
+      out.push({
+        cat: 'jeu',
+        sport: y.sport,
+        t: y.time,
+        dur: hMin(y.dur) || 90,
+        sub: `Partie libre · ${y.fmt}${inn ? ' · inscrit' : wt ? ' · liste d’attente' : ''} · ${y.in.length}/${y.places}`,
+        title: `Partie ${y.fmt.toLowerCase()} de ${first(p.by)}`,
+        v: 'post',
+        id: p.id,
+        my: p.by === me || inn || wt
+      });
+    }
+    // partie dirigée, séance collective : une ligne par date
+    if (p.kind === 'niveaux' && p.nv && (p.nv.dates || []).includes(iso)) {
+      const nv = p.nv,
+        st = nvState(nv, iso),
+        mineK = Object.keys(st.status).find(k => keys.includes(k.split('|')[1])),
+        s = mineK && st.status[mineK];
+      out.push({
+        cat: nv.mode === 'cours' ? 'ens' : 'jeu',
+        sport: nv.sport,
+        t: nv.time,
+        dur: hMin(nv.dur) || 90,
+        sub: `${NV_MODE[nv.mode]}${s === 'ok' ? ' · validée' : s === 'wait' ? ' · liste d’attente' : s === 'in' ? ' · inscrit' : ''}${st.win ? '' : ' · en attente de joueurs'}`,
+        title:
+          nv.mode === 'cours'
+            ? nv.theme || 'Séance collective'
+            : 'Partie dirigée avec ' + (M[p.by] ? name(p.by) : 'l’enseignant'),
+        v: 'post',
+        id: p.id,
+        my: p.by === me || !!s
+      });
+    }
+    // tournoi ou animation /RAM JA
+    if (p.kind === 'jatour' && p.ja && p.d && iso >= p.d && iso <= (p.d2 || p.d)) {
+      const inn = (p.ja.list || []).some(x => keys.includes(x.k1) || keys.includes(x.k2));
+      out.push({
+        cat: 'tour',
+        all: !!p.d2 || !p.ja.time,
+        sport: p.sport || 'Padel',
+        t: hhmm(p.ja.time),
+        dur: p.ja.ani ? 180 : 480,
+        sub: `${p.ja.ani ? 'Animation · ' + (p.ja.fmt || '') : 'Tournoi · ' + (p.ja.cat || '')}${inn ? ' · inscrit' : ''}`,
+        title: p.title,
+        v: 'post',
+        id: p.id,
+        my: inn
+      });
+    }
+  });
+  // repas réservés au bar (privés : seulement dans « Mon agenda »)
+  if (typeof ORDERS !== 'undefined')
+    ORDERS.filter(o => o.date === iso && o.st !== 'annule' && keys.includes(o.by)).forEach(o =>
+      out.push({
+        cat: 'repas',
+        t: o.moment === 'soir' ? '19 h 30' : '12 h',
+        dur: 60,
+        sub: `Bar · ${o.qty} × ${o.name}${o.st === 'servi' ? ' · servi' : ''}`,
+        title: o.moment === 'soir' ? 'Repas du soir' : 'Repas du midi',
+        v: 'barday',
+        id: o.date,
+        my: true,
+        priv: true
+      })
+    );
 }
 function planGrid(days, detail) {
   const H0 = 8,
@@ -149,9 +232,29 @@ function planView() {
     mon = isoIn(-((new Date(y, m - 1, d).getDay() + 6) % 7), P.d),
     days = [0, 1, 2, 3, 4, 5, 6].map(i => isoIn(i, mon)),
     byDay = P.mode === 'day';
-  const mode = (k, l, i) =>
-      `<button class="chip" data-a="planMode" data-m="${k}" aria-pressed="${P.mode === k}">${ic(i)}${l}</button>`,
-    modes = `<div class="chips">${mode('events', 'Événements', 'flag')}${mode('week', 'Semaine', 'cal')}${mode('day', 'Jour', 'clock')}${mode('list', 'Liste', 'list')}</div>`;
+  // deux agendas : le mien (tout ce où je me suis positionné) et celui du club ; chacun avec ses vues
+  const me = P.scope === 'me',
+    views = me ? ['next', 'week', 'day'] : ['events', 'week', 'day', 'list'];
+  if (!views.includes(P.mode)) P.mode = views[0];
+  const LBL = {
+    next: ['À venir', 'list'],
+    events: ['Événements', 'flag'],
+    week: ['Semaine', 'cal'],
+    day: ['Jour', 'clock'],
+    list: ['Liste', 'list']
+  };
+  const mode = k =>
+      `<button class="chip" data-a="planMode" data-m="${k}" aria-pressed="${P.mode === k}">${ic(LBL[k][1])}${LBL[k][0]}</button>`,
+    scopes = `<div class="chips plan-scope">${[
+      ['me', 'Mon agenda', 'user'],
+      ['club', 'Agenda du club', 'club']
+    ]
+      .map(
+        ([k, l, i]) =>
+          `<button class="chip" data-a="planScope" data-k="${k}" aria-pressed="${P.scope === k}">${ic(i)}${l}</button>`
+      )
+      .join('')}</div>`,
+    modes = scopes + `<div class="chips">${views.map(mode).join('')}</div>`;
   if (P.mode === 'events') return eventsView().replace('<div class="pad">', '<div class="pad" id="plan">' + modes);
   const chip = (g2, k, l, c) =>
     `<button class="chip" data-a="planF" data-g="${g2}" data-k="${k}" aria-pressed="${!!P[g2][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
@@ -168,7 +271,13 @@ function planView() {
       return `<button class="wd ${iso === TODAY ? 'today' : ''}" data-a="planDay" data-d="${iso}" aria-pressed="${byDay && iso === P.d}" aria-label="${fmtD(iso)}"><span>${DA[new Date(yy, mm - 1, dd).getDay()]}</span><b>${dd}</b><i>${n || ''}</i></button>`;
     })
     .join('')}</div>`;
+  const filters = `<div class="chips">${me ? '' : `<button class="chip" data-a="planMine" aria-pressed="${!!P.mine}">${ic('user')}Seulement les miens</button>`}${chip('cat', 'ens', 'Cours', 'ens')}${chip('cat', 'jeu', 'Parties', 'jeu')}${chip('cat', 'ani', 'Événements', 'ani')}${chip('cat', 'tour', 'Tournois', 'tour')}${chip('cat', 'eq', 'Équipes', 'eq')}${me ? chip('cat', 'repas', 'Repas', 'repas') : ''}${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>`;
+  // « À venir » : les 45 prochains jours, seulement ceux où quelque chose est prévu
+  if (P.mode === 'next') {
+    const next = Array.from({ length: 45 }, (_, i) => isoIn(i, TODAY)).filter(iso => planItems(iso).length);
+    return `<div class="pad" id="plan">${modes}${filters}${next.length ? next.map(dayBlock).join('') : empty('cal', 'Rien de prévu', 'Inscris-toi à une partie, un cours, un événement ou un tournoi : tout ce où tu te positionnes apparaît ici.')}</div>`;
+  }
   return `<div class="pad" id="plan">${modes}<div class="row" style="justify-content:space-between"><button class="ib rnd" data-a="planNav" data-n="-1" aria-label="${byDay ? 'Jour précédent' : 'Semaine précédente'}">${ic('back')}</button><span class="h3">${byDay ? fmtD(P.d) : 'Du ' + fmtD(days[0], 1) + ' au ' + fmtD(days[6], 1)}</span><button class="ib rnd" style="rotate:180deg" data-a="planNav" data-n="1" aria-label="${byDay ? 'Jour suivant' : 'Semaine suivante'}">${ic('back')}</button></div>
- <div class="chips"><button class="chip" data-a="planMine" aria-pressed="${!!P.mine}">${ic('user')}Mes groupes et équipes</button>${chip('cat', 'ens', 'Enseignement', 'ens')}${chip('cat', 'ani', 'Animation', 'ani')}${chip('cat', 'eq', 'Équipes', 'eq')}${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>
+ ${filters}
  ${P.mode === 'week' ? planGrid(days, false) + '<p class="muted small">Touche un bloc pour l\'ouvrir, un jour pour voir son détail. Glisse à gauche ou à droite pour changer de semaine.</p>' : byDay ? strip + planGrid([P.d], true) : strip + days.map(dayBlock).join('')}</div>`;
 }

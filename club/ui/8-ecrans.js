@@ -54,7 +54,10 @@ const V = {
   /* les modes de l'agenda (Événements, Semaine, Jour, Liste) deviennent des onglets, comme sur les autres pages */
   agenda() {
     const h = agendaView(),
-      m = h.match(/<div class="chips">((?:<button class="chip" data-a="planMode"[^>]*>[\s\S]*?<\/button>)+)<\/div>/);
+      // en haut de la page : « Mon agenda » / « Agenda du club » ; les vues (À venir, Semaine…) restent dessous
+      m = h.match(
+        /<div class="chips plan-scope">((?:<button class="chip" data-a="planScope"[^>]*>[\s\S]*?<\/button>)+)<\/div>/
+      );
     if (!m) return h;
     return (
       `<div class="seg" role="tablist">${m[1].replace(/class="chip"/g, 'role="tab"').replace(/aria-pressed=/g, 'aria-selected=')}</div>` +

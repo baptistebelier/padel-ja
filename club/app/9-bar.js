@@ -175,3 +175,12 @@ document.addEventListener('submit', e => {
     toast(`Réservé : ${it.name}, ${barDay(B.d).toLowerCase()} ${MOMENT[B.m].toLowerCase()}`);
   }
 });
+/* un repas réservé, touché dans l'agenda : ouvre le bar à ce jour */
+const barOpenView = A.open;
+A.open = d => {
+  if (d.v !== 'barday') return barOpenView(d);
+  closeSheet();
+  Object.assign(S.bar, { v: 'carte', d: d.id });
+  S.clubTab = 'bar';
+  A.tab({ t: 'club' });
+};
