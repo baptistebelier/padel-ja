@@ -55,9 +55,10 @@ before(async () => {
 
 after(async () => {
   await browser?.close();
-  server?.kill();
+  // on attend l'arrêt du serveur avant d'effacer ses fichiers (sinon il peut encore écrire pendant l'effacement)
+  if (server && server.exitCode == null) await new Promise(r => { server.once('exit', r); server.kill(); setTimeout(r, 3000); });
   demoServer?.close();
-  rmSync(dataDir, { recursive: true, force: true });
+  try { rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } catch (e) { /* dossier temporaire : sans conséquence */ }
 });
 
 /* ---------- outils ---------- */
