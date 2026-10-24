@@ -257,6 +257,10 @@
         if (p.name != null) T.tournament.name = String(p.name).slice(0, 80);
         if (p.club != null) T.tournament.club = String(p.club).slice(0, 80);
         if (p.date) T.tournament.dateStart = T.tournament.dateEnd = String(p.date).slice(0, 10);
+        if (p.time != null) T.tournament.startTime = String(p.time).slice(0, 5);
+        // publication sur /RAM Club : inscriptions dans l'appli (''), ailleurs ('ext', où), ou pas de publication ('none')
+        if (p.regMode != null) T.tournament.regMode = ['ext', 'none'].includes(p.regMode) ? p.regMode : '';
+        if (p.regWhere != null) T.tournament.regWhere = String(p.regWhere).slice(0, 160);
         if (p.format && FORMATS[p.format]) { if (started) throw new Error('Le format ne change plus une fois l’animation lancée.'); A.format = p.format; T.tournament.gender = FORMATS[p.format].name; }
         if (p.scoring) {
           const s = p.scoring;
@@ -278,7 +282,7 @@
         if (!name) throw new Error('Nom du joueur manquant');
         if (A.players.length >= 64) throw new Error('64 joueurs au plus.');
         if (A.format === 'montee' && started) throw new Error('Montée-descente : les joueurs ne changent plus une fois lancée.');
-        A.players.push({ id: p.id || uid('j'), name, sex: p.sex === 'F' ? 'F' : p.sex === 'H' ? 'H' : '', lvl: p.lvl != null && p.lvl !== '' ? +p.lvl : '', playerId: p.playerId || '' });
+        A.players.push({ id: p.id || uid('j'), name, sex: p.sex === 'F' ? 'F' : p.sex === 'H' ? 'H' : '', lvl: p.lvl != null && p.lvl !== '' ? +p.lvl : '', playerId: p.playerId || '', src: p.src && p.src.u ? { u: String(p.src.u) } : undefined });   // src : inscrit depuis /RAM Club
         return T;
       }
       case 'ani/player/update': {

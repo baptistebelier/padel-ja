@@ -188,6 +188,7 @@ function saveRoom(room) {
   room.timer = setTimeout(() => {
     room.row.updated_at = Date.now();
     store.saveTournament(room.row).catch(e => console.error('Sauvegarde impossible :', e.message));
+    jaClub.schedule(room, msg => console.error(msg));   // publication /RAM Club tenue à jour
   }, 700);
 }
 /* images (logos du club, des partenaires) : envoyées une seule fois, à part.
@@ -279,6 +280,9 @@ function applyServerAction(room, action) {
   room.history.push(before); if (room.history.length > 60) room.history.shift();
   room.row.state = draft; room.rev++; saveRoom(room); broadcast(room);
 }
+
+/* tournois et animations publiés sur /RAM Club, inscriptions depuis l'appli du club (lib/jaclub.js) */
+const jaClub = require('./lib/jaclub.js').createJaClub({ store, ram, clubs, Engine, Ani, getRoom, applyServerAction });
 
 /* ---------------------------------------------------------------------
    base de joueurs : un joueur = une licence (ou, à défaut, NOM + prénom)
@@ -943,6 +947,13 @@ const server = http.createServer(async (req, res) => {
       const q = norm(url.searchParams.get('q') || '');
       const hit = r => !q || norm(`${r.first} ${r.last}`).includes(q) || norm(`${r.last} ${r.first}`).includes(q);
       return json(res, 200, { referees: refDir.list.filter(hit).slice(0, 20) });
+    }
+    /* s'inscrire (ou se désinscrire) à un tournoi /RAM JA depuis /RAM Club */
+    if ((p === '/api/ja/inscription' || p === '/api/ja/desinscription') && req.method === 'POST') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connectez-vous avec votre compte /RAM.' });
+      const b = await readBody(req);
+      try { return json(res, 200, p === '/api/ja/inscription' ? await jaClub.register(u, String(b.tid || ''), b.partner || null) : await jaClub.unregister(u, String(b.tid || ''))); }
+      catch (e) { return json(res, 400, { error: e.message }); }
     }
     /* mes clubs : adhésions de mon compte et de ma fiche joueur, saison par saison */
     if (p === '/api/me/clubs') {

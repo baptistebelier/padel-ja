@@ -1042,6 +1042,32 @@
         );
       }
     }
+    // tournoi /RAM JA : inscrit par son partenaire, puis résultat à la clôture
+    if (coll === 'post' && a && b.kind === 'jatour' && b.ja && a.ja) {
+      const go = { v: 'post', id },
+        keys = [me, ...kids],
+        inn = j => (j.list || []).find(x => keys.includes(x.k1) || keys.includes(x.k2));
+      if (!inn(a.ja) && inn(b.ja))
+        once(`jain/${id}`, () =>
+          notify('mine', 'club', `: tu es inscrit au tournoi « ${b.title} » (${fmtD(b.d)})`, go)
+        );
+      if (a.ja.status !== 'done' && b.ja.status === 'done') {
+        const r = (b.ja.results || []).find(x => (x.k || []).some(k => keys.includes(k)));
+        if (r || inn(b.ja))
+          once(`jares/${id}`, () =>
+            notify(
+              'mine',
+              'club',
+              r
+                ? `: résultat du tournoi « ${b.title} » : ${jaPlace(r.place, r.lo)} place`
+                : `: le tournoi « ${b.title} » est terminé, les résultats sont publiés`,
+              go
+            )
+          );
+      }
+      if (a.ja.status === 'open' && b.ja.status === 'drawn' && inn(b.ja))
+        once(`jadraw/${id}`, () => notify('mine', 'club', `: le tirage du tournoi « ${b.title} » est fait`, go));
+    }
     // publications par niveaux : l'enseignant voit arriver les inscriptions ; chacun est prévenu quand sa date est validée
     if (coll === 'post' && a && b.kind === 'niveaux' && b.nv && a.nv) {
       const go = { v: 'post', id },

@@ -184,6 +184,10 @@ body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-f
       ${a.format === 'americano' || a.format === 'mexicano' ? `<label class="chk" style="margin-top:12px"><input type="checkbox" id="an-mixte" ${a.mixte ? 'checked' : ''}> Mixte : chaque équipe est un homme et une femme</label>` : ''}
       ${a.format === 'montee' ? `<label class="chk" style="margin-top:12px"><input type="checkbox" id="an-split" ${a.split ? 'checked' : ''}> Partenaires séparés à chaque manche (sinon les paires restent ensemble)</label>` : ''}
       <p class="muted small">${sc.mode === 'points' && a.format !== 'montee' ? `Match en ${sc.points} points : le total des deux équipes fait ${sc.points} (par exemple 14 à 10).` : sc.mode === 'temps' ? 'Le chronomètre est commun à tous les terrains ; on compte les points marqués.' : 'Montée-descente : il faut un gagnant à chaque match.'}</p></section>
+    <section class="card"><span class="eyebrow">/RAM Club</span><h2>Date et inscriptions</h2>
+      <div class="an-row"><label>Date<input type="date" id="an-date" value="${esc(S.tournament.dateStart || '')}"></label><label>Heure<input type="time" id="an-time" value="${esc(S.tournament.startTime || '')}"></label></div>
+      <div class="an-row" style="margin-top:10px"><label>Inscriptions<select id="an-reg"><option value="" ${!S.tournament.regMode ? 'selected' : ''}>Dans l'appli /RAM Club du club</option><option value="ext" ${S.tournament.regMode === 'ext' ? 'selected' : ''}>Ailleurs (préciser où)</option><option value="none" ${S.tournament.regMode === 'none' ? 'selected' : ''}>Ne pas publier sur /RAM Club</option></select></label>${S.tournament.regMode === 'ext' ? `<label>Où s'inscrire<input id="an-where" value="${esc(S.tournament.regWhere || '')}" placeholder="Au club-house, lien…"></label>` : ''}</div>
+      <p class="muted small">${S.tournament.club ? `Publiée sur /RAM Club si ${esc(S.tournament.club)} y a son espace : les adhérents la voient sur le mur et dans l'agenda${S.tournament.regMode ? '' : ', et s’inscrivent depuis l’appli'}.` : 'Indiquez votre club dans « Mon profil » pour publier l’animation sur /RAM Club.'}</p></section>
     <section class="card"><span class="eyebrow">Joueurs · ${a.players.length}</span><h2>Inscrits</h2>
       <form class="an-add" id="an-add" autocomplete="off"><input name="n" list="an-base" placeholder="Prénom NOM (cherchez dans la base)" required>${a.mixte ? '<select name="s"><option value="H">Homme</option><option value="F">Femme</option></select>' : ''}${a.format === 'montee' || a.format === 'mexicano' ? '<input name="l" type="number" min="1" max="10" placeholder="Niveau" style="width:96px" title="Niveau padel (facultatif) : les meilleurs commencent en haut">' : ''}<button class="btn primary">Ajouter</button></form>
       <datalist id="an-base"></datalist>
@@ -222,6 +226,10 @@ body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-f
     on('an-mixte', 'onchange', e => send('ani/setup', { mixte: e.target.checked }));
     on('an-split', 'onchange', e => send('ani/setup', { split: e.target.checked }));
     on('an-name', 'onchange', e => send('ani/setup', { name: e.target.value }));
+    on('an-date', 'onchange', e => send('ani/setup', { date: e.target.value }));
+    on('an-time', 'onchange', e => send('ani/setup', { time: e.target.value }));
+    on('an-reg', 'onchange', e => send('ani/setup', { regMode: e.target.value }));
+    on('an-where', 'onchange', e => send('ani/setup', { regWhere: e.target.value }));
     on('an-go', 'onclick', () => send('ani/round/next'));
     on('an-next', 'onclick', () => send('ani/round/next'));
     on('an-cancel', 'onclick', () => send('ani/round/cancel'));

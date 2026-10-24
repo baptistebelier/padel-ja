@@ -453,7 +453,7 @@
           <td class="num">${kind === 'main' && ts ? `<span class="ts">TS${ts}</span>` : i + 1}</td>
           <td>${plCell(p.p1, 'p1')}</td><td>${plCell(p.p2, 'p2')}</td>
           <td class="num"><b>${E.weightOf(p) >= 99999 ? 'NC' : E.weightOf(p)}</b></td>
-          <td>${fmtDate(p.registeredAt)} ${p.wc ? '<span class="tag">WC</span>' : ''}</td>
+          <td>${fmtDate(p.registeredAt)} ${p.wc ? '<span class="tag">WC</span>' : ''}${p.src ? '<span class="tag lime" title="Inscrite par les joueurs depuis l’appli /RAM Club">/RAM Club</span>' : ''}</td>
           <td class="acts">
             <button class="ghost sm" data-a="edit" title="Modifier">✎</button>
             ${kind === 'wd' ? '<button class="ghost sm" data-a="restore">Réintégrer</button>' : '<button class="ghost sm" data-a="wd" title="Forfait / retrait">Forfait</button>'}
