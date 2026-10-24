@@ -2,7 +2,7 @@
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- club ---------- */
 const artCard = a =>
-  `<button class="art" data-a="open" data-v="art" data-id="${a.id}">${a.img ? `<span class="ph wide" style="background-image:url(${a.img})"></span>` : ''}<span class="row" style="gap:8px"><span class="kicker">${a.cat} · ${a.date}</span>${sportTag(a.sport)}</span><span class="h3">${a.title}</span><span class="muted">${a.lead}</span></button>`;
+  `<button class="art" data-a="open" data-v="art" data-id="${a.id}">${a.img ? `<span class="ph wide" style="background-image:url(${a.img})"></span>` : ''}<span class="row" style="gap:8px"><span class="kicker">${a.cat} · ${a.date}</span>${a.sport ? sportTag(a.sport) : a.both ? sportTag('Tennis') + sportTag('Padel') : ''}</span><span class="h3">${a.title}</span><span class="muted">${a.lead}</span></button>`;
 function archView() {
   const seasons = [...new Set([...arts, ...recs, ...posts].filter(x => x.arch).map(x => x.arch))].sort().reverse();
   if (!seasons.length)

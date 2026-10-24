@@ -58,7 +58,12 @@ function readVis() {
       vis.push('Niveau ' + rule.pd[0] + ' à ' + rule.pd[1]);
     }
   }
-  return { vis, rule: Object.keys(rule).length ? rule : null, sport: sp === 'Tennis et padel' ? '' : sp };
+  return {
+    vis,
+    rule: Object.keys(rule).length ? rule : null,
+    sport: sp === 'Tennis et padel' ? '' : sp,
+    both: sp === 'Tennis et padel'
+  };
 }
 function forms(k, cid) {
   if (k === 'stage') {
@@ -232,4 +237,3 @@ function forms(k, cid) {
     ]
   }[k];
 }
-

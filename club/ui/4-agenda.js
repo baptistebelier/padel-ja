@@ -128,7 +128,7 @@ function eventsView() {
           .map(p => {
             const [yy, mm, dd] = (p.d || TODAY).split('-').map(Number),
               sp = postSport(p);
-            return `<div class="card"><div class="row" style="align-items:flex-start;gap:12px"><div class="grow"><span class="h3">${p.title}</span><div class="tags" style="display:flex;margin-top:6px">${sportTag(sp)}${p.done ? '<span class="bd done">Terminé</span>' : ''}</div><p class="muted small" style="margin-top:8px">${p.body}</p></div><span class="dblk"><b>${dd}</b>${MO[mm - 1]}</span></div>${evBox(p)}<button class="btn sm ghost" data-a="pmenu" data-id="${p.id}">${ic('more')}Options</button></div>`;
+            return `<div class="card"><div class="row" style="align-items:flex-start;gap:12px"><div class="grow"><span class="h3">${p.title}</span><div class="tags" style="display:flex;margin-top:6px">${sp ? sportTag(sp) : postBoth(p) ? sportTag('Tennis') + sportTag('Padel') : ''}${p.done ? '<span class="bd done">Terminé</span>' : ''}</div><p class="muted small" style="margin-top:8px">${p.body}</p></div><span class="dblk"><b>${dd}</b>${MO[mm - 1]}</span></div>${evBox(p)}<button class="btn sm ghost" data-a="pmenu" data-id="${p.id}">${ic('more')}Options</button></div>`;
           })
           .join('')
       : empty('cal', 'Aucun événement à venir', 'Les prochains événements du club apparaîtront ici.')
@@ -172,4 +172,3 @@ function planView() {
  <div class="chips"><button class="chip" data-a="planMine" aria-pressed="${!!P.mine}">${ic('user')}Mes groupes et équipes</button>${chip('cat', 'ens', 'Enseignement', 'ens')}${chip('cat', 'ani', 'Animation', 'ani')}${chip('cat', 'eq', 'Équipes', 'eq')}${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>
  ${P.mode === 'week' ? planGrid(days, false) + '<p class="muted small">Touche un bloc pour l\'ouvrir, un jour pour voir son détail. Glisse à gauche ou à droite pour changer de semaine.</p>' : byDay ? strip + planGrid([P.d], true) : strip + days.map(dayBlock).join('')}</div>`;
 }
-

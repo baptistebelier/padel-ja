@@ -501,7 +501,12 @@ document.addEventListener('submit', e => {
       cid = f.dataset.c,
       V2 = $('v-pub')
         ? readVis()
-        : { vis: [], rule: null, sport: $('v-sport') && val('v-sport') !== 'Tennis et padel' ? val('v-sport') : '' },
+        : {
+            vis: [],
+            rule: null,
+            sport: $('v-sport') && val('v-sport') !== 'Tennis et padel' ? val('v-sport') : '',
+            both: !!$('v-sport') && val('v-sport') === 'Tennis et padel'
+          },
       img = S.img,
       base = {
         id: 'p' + Date.now(),
@@ -510,6 +515,7 @@ document.addEventListener('submit', e => {
         likes: 0,
         com: [],
         sport: V2.sport,
+        both: V2.both || undefined, // « Tennis et padel » : les deux étiquettes
         vis: V2.vis,
         rule: V2.rule
       };
@@ -724,6 +730,7 @@ document.addEventListener('submit', e => {
         id: 'a' + Date.now(),
         img,
         sport: V2.sport,
+        both: V2.both || undefined,
         cat: val('a-cat'),
         title: g('a-title'),
         date: "Aujourd'hui",

@@ -4,6 +4,7 @@
 function postSport(p) {
   if (p.sport) return p.sport;
   if (p.play) return p.play.sport;
+  if (p.nv) return p.nv.sport; // parties dirigées et séances collectives
   if (p.rec) {
     const r = recs.find(r => r.id === p.rec);
     return r ? recSport(r) : '';
@@ -14,6 +15,13 @@ function postSport(p) {
   }
   return '';
 }
+/* étiquette du coin de la publication : le sport choisi, ou les deux pour « Tennis et padel » */
+const postBoth = p => !postSport(p) && (p.both || (p.art && (arts.find(a => a.id === p.art) || {}).both));
+const sportCorner = p => {
+  const sp = postSport(p);
+  if (sp) return `<span class="sp ${sp === 'Padel' ? 'padel' : ''}">${sp}</span>`;
+  return postBoth(p) ? '<span class="sp duo"><i>Tennis</i><i class="padel">Padel</i></span>' : '';
+};
 /* Règles de visibilité : appliquées à tous sauf au bureau, qui voit tout */
 function ruleOk(rule) {
   if (!rule || isAdmin()) return true;
@@ -200,7 +208,7 @@ function postHTML(p) {
   if (p.kind === 'ad') return adBand(p);
   const liked = S.liked.has(p.id),
     sp = postSport(p);
-  return `<article class="post">${sp ? `<span class="sp ${sp === 'Padel' ? 'padel' : ''}">${sp}</span>` : ''}<div class="hd">${av(p.by)}<div class="grow"><div class="row" style="gap:6px;flex-wrap:wrap">${who(p.by)}${bd(p.by, sp)}</div><div class="muted small">${p.pin ? '<span class="bd pin">Épinglé</span> ' : ''}${isNew('home', p.at, p.by) ? '<span class="bd new">Nouveau</span> ' : ''}${p.t}</div></div><button class="ib" data-a="pmenu" data-id="${p.id}" aria-label="Options de la publication">${ic('more')}</button></div>
+  return `<article class="post">${sportCorner(p)}<div class="hd">${av(p.by)}<div class="grow"><div class="row" style="gap:6px;flex-wrap:wrap">${who(p.by)}${bd(p.by, sp)}</div><div class="muted small">${p.pin ? '<span class="bd pin">Épinglé</span> ' : ''}${isNew('home', p.at, p.by) ? '<span class="bd new">Nouveau</span> ' : ''}${p.t}</div></div><button class="ib" data-a="pmenu" data-id="${p.id}" aria-label="Options de la publication">${ic('more')}</button></div>
  ${isAdmin() && p.vis && p.vis.length ? `<div class="vis">${ic('eye')}Visible par ${p.vis.map(v => `<span class="tag">${v}</span>`).join('')}</div>` : ''}${isMinor(p.by) ? `<div class="vis">${ic('shield')}Visible par son groupe, ses parents et les encadrants</div>` : ''}${postBody(p)}
  <div class="acts"><button class="act ${liked ? 'on' : ''} ${S.pop === p.id ? 'pop' : ''}" data-a="like" data-id="${p.id}" aria-pressed="${liked}" aria-label="J'aime">${ic('heart')}${p.likes + (liked ? 1 : 0)}</button><button class="act" data-a="comments" data-id="${p.id}" aria-label="Commentaires">${ic('com')}${p.com.length}</button></div></article>`;
 }
