@@ -1567,6 +1567,20 @@
     ramRender();
     schedule();
     listen();
+    // bureau : les logos des partenaires pas encore détourés le sont une fois (partagé avec tout le club)
+    if (R.role === 'bureau') {
+      const todo = PARTNERS.filter(x => x.logo && !x.cut);
+      const next = () => {
+        const x = todo.shift();
+        if (!x) return render(true);
+        detour(x.logo, l => {
+          x.logo = l;
+          x.cut = 1;
+          next();
+        });
+      };
+      if (todo.length) setTimeout(next, 1500);
+    }
     api('/api/me/player')
       .then(d => {
         R.ja = d;
@@ -1715,7 +1729,8 @@
     api('/api/ram/main', { id: d.id }).then(
       async () => {
         R.clubs = (await api('/api/ram/clubs')).clubs;
-        A.ramClubs();
+        if ($('sheet')) A.ramClubs();
+        else ramRender(true); // depuis le profil : la carte « Mes clubs » se met à jour
         toast('Club principal enregistré : il apparaît sur ta fiche joueur /RAM JA');
       },
       x => toast(x.message)
@@ -1785,6 +1800,19 @@
     'submit',
     ev => {
       const f = ev.target;
+      if (f.id === 'ram-join2') {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        api('/api/ram/join', { code: $('rj2-code').value }).then(
+          async c => {
+            R.clubs = (await api('/api/ram/clubs')).clubs;
+            ramRender(true);
+            toast(`Demande envoyée à ${c.name} · le bureau va valider ton accès`);
+          },
+          x => toast(x.message)
+        );
+        return;
+      }
       if (f.id !== 'ram-join' && f.id !== 'ram-new') return;
       ev.preventDefault();
       ev.stopImmediatePropagation();
@@ -1820,7 +1848,26 @@
     const nm = e([u.first, u.last].filter(Boolean).join(' ') || u.name || u.email);
     return `${logo}<div class="grow"><b>Compte /RAM</b><span>${nm} · ${e(u.email || '')}</span><small>${R.live ? `<button class="nm" data-a="ramClubs" style="color:var(--accent)">${R.clubs.length > 1 ? `Mes clubs (${R.clubs.length}) · changer` : 'Mes clubs · en rejoindre un autre'}</button>` : `<button class="nm" data-a="ramStart" style="color:var(--accent)">Créer ou rejoindre mon club</button>`}</small></div><button class="btn sm ghost" data-a="logout">Se déconnecter</button>`;
   }
+  /* profil : mes clubs (principal et secondaires), changer de club, en rejoindre un autre */
+  function clubsCard() {
+    const ROLE_P = { bureau: 'Bureau', coach: 'Enseignant', mem: 'Adhérent' },
+      list = [...R.clubs].sort((a, b) => Number(b.main) - Number(a.main) || String(a.name).localeCompare(b.name));
+    return `<div class="card"><span class="kicker">Mes clubs</span>${list
+      .map(
+        c =>
+          `<div class="item" style="gap:10px"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${ROLE_P[c.role] || ''}${c.main ? ' · club principal (licence)' : ' · club secondaire'}</span></span>${c.id === R.club ? '<span class="tag lime">Ouvert</span>' : `<button class="btn sm" data-a="ramSwitch" data-id="${c.id}">Ouvrir</button>`}${c.main ? '' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}" title="Le club de ta licence, repris sur ta fiche /RAM JA">Principal</button>`}</div>`
+      )
+      .join(
+        ''
+      )}<form id="ram-join2" class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap"><input id="rj2-code" required autocomplete="off" autocapitalize="characters" placeholder="Code d’un autre club (TPC-4821)" aria-label="Code du club à rejoindre" style="flex:1 1 180px"><button class="btn">Rejoindre</button></form><p class="muted small">Tu peux être adhérent de plusieurs clubs (par exemple un club de tennis et un club de padel). Le club principal est celui de ta licence. <button class="nm" data-a="ramStart" style="color:var(--accent)">Créer l’appli d’un club</button></p></div>`;
+  }
   function fill() {
+    const box = document.getElementById('ramClubsBox');
+    if (box && R.live && box.dataset.v !== J(R.clubs)) {
+      box.dataset.v = J(R.clubs);
+      box.hidden = false;
+      box.innerHTML = clubsCard();
+    }
     const el = document.getElementById('ramAccount');
     if (!el || el.dataset.done || R.user === undefined || !served) return;
     el.dataset.done = '1';

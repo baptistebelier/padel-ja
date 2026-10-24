@@ -185,7 +185,7 @@ function postBody(p) {
 /* Bandeau partenaires : pas une publication, une frise colorée qui défile */
 const plogo = (x, c) =>
   x.logo
-    ? `<img class="${c || ''}" src="${x.logo}" alt="" style="${x.dark ? 'background:#0B0B0B;padding:4px' : ''}">`
+    ? `<img class="${c || ''}${x.cut ? ' cut' : ''}" src="${x.logo}" alt="" style="${x.dark && !x.cut ? 'background:#0B0B0B;padding:4px' : ''}">`
     : `<span class="adl ${c || ''}">${x.name
         .split(' ')
         .filter(w => w.length > 2)
@@ -196,7 +196,11 @@ function adBand(p) {
   const ps = p.partners.map(id => PARTNERS.find(x => x.id === id)).filter(Boolean);
   if (!ps.length) return '';
   const items = ps
-    .map(x => `<button class="adi" data-a="open" data-v="partners">${plogo(x)}<span>${x.name}</span></button>`)
+    // frise : le logo seul, à toute la hauteur du bandeau ; le nom en grand si le partenaire n'a pas de logo
+    .map(
+      x =>
+        `<button class="adi${x.logo ? '' : ' txt'}" data-a="open" data-v="partners" aria-label="${esc(x.name)}">${x.logo ? `<img src="${x.logo}" alt="">` : `<span>${x.name}</span>`}</button>`
+    )
     .join('');
   return `<section class="adband ${p.color === 'hot' ? 'hot' : ''}" aria-label="${esc(p.title)}"><div class="adh"><span>${p.title}</span>${isAdmin() ? `<button class="ib" data-a="pmenu" data-id="${p.id}" aria-label="Options du bandeau">${ic('more')}</button>` : ''}</div><div class="adw"><div class="track">${items}${items.replace(/<button /g, '<button tabindex="-1" aria-hidden="true" ')}</div></div></section>`;
 }
