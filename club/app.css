@@ -698,11 +698,11 @@ body{touch-action:manipulation}
 .jeu{--c:var(--padel);--oc:#fff}.tour{--c:var(--accent2,var(--hot));--oc:#fff}.repas{--c:var(--muted);--oc:var(--bg)}
 .plan-scope{margin-bottom:4px}
 .bd.ja{background:var(--fg);color:var(--bg)}
-/* frise des partenaires : logos détourés, à la hauteur maximale du bandeau */
+/* frise des partenaires : logos à la hauteur maximale du bandeau (transparence des PNG respectée) */
 .adband .adw{height:96px;display:flex;align-items:center}
 .adband .track{gap:34px;align-items:center;height:100%;padding-left:20px}
 .adband .adi{height:100%;min-height:0;padding:4px 0;background:none;border-radius:0}
 .adband .adi img{height:100%;width:auto;max-width:240px;object-fit:contain;background:none;border-radius:0}
 .adband .adi.txt span{font-family:var(--f-display);font-style:italic;text-transform:uppercase;font-size:30px;line-height:1}
 @media (min-width:1024px){.adband .adw{height:120px}}
-.pcard img.big.cut,.adi img.cut{background:none}
+.pcard img.big.png,.adi img.png{background:none}   /* logo PNG transparent : sans vignette blanche */

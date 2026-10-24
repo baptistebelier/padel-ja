@@ -605,21 +605,10 @@ document.addEventListener('submit', e => {
       return;
     }
     if (k === 'partner') {
-      const add = logo => {
-        PARTNERS.push({
-          id: 'pa' + Date.now(),
-          name: g('a-title'),
-          desc: g('a-body'),
-          logo: logo || null,
-          cut: logo ? 1 : undefined
-        });
-        render(true);
-      };
-      // logo détouré : fond retiré, recadré au plus près (frise défilante)
-      if (img) detour(img, add);
-      else add(null);
+      PARTNERS.push({ id: 'pa' + Date.now(), name: g('a-title'), desc: g('a-body'), logo: img || null });
       S.img = null;
       closeSheet();
+      render(true);
       toast('Partenaire ajouté');
       return;
     }

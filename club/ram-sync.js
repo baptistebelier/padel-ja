@@ -1567,20 +1567,6 @@
     ramRender();
     schedule();
     listen();
-    // bureau : les logos des partenaires pas encore détourés le sont une fois (partagé avec tout le club)
-    if (R.role === 'bureau') {
-      const todo = PARTNERS.filter(x => x.logo && !x.cut);
-      const next = () => {
-        const x = todo.shift();
-        if (!x) return render(true);
-        detour(x.logo, l => {
-          x.logo = l;
-          x.cut = 1;
-          next();
-        });
-      };
-      if (todo.length) setTimeout(next, 1500);
-    }
     api('/api/me/player')
       .then(d => {
         R.ja = d;

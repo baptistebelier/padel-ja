@@ -269,7 +269,7 @@ const V = {
   ${can ? `<button class="btn full ghost" data-a="newPost" data-k="commpromo" data-c="${c.id}">Promouvoir sur le mur</button>` : ''}</div>`;
   },
   partners() {
-    return `<div class="pad"><p class="muted">Les entreprises qui soutiennent ${club().name}.</p>${PARTNERS.length ? `<div class="pgrid">${PARTNERS.map(x => `<div class="pcard">${plogo(x, 'big')}<span class="nm">${x.name}</span><span class="muted small">${x.desc || ''}</span>${isAdmin() ? `<button class="btn sm ghost" data-a="delPartner" data-id="${x.id}">Retirer</button>` : ''}</div>`).join('')}</div>` : empty('club', 'Aucun partenaire', 'Ajoute le premier partenaire du club.')}
+    return `<div class="pad"><p class="muted">Les entreprises qui soutiennent ${club().name}.</p>${PARTNERS.length ? `<div class="pgrid">${PARTNERS.map(x => `<div class="pcard">${plogo(x, 'big')}<span class="nm">${x.name}</span><span class="muted small">${x.desc || ''}</span>${isAdmin() ? `<label class="btn sm ghost">Changer le logo<input type="file" accept="image/*" data-plogo="${x.id}" hidden></label><button class="btn sm ghost" data-a="delPartner" data-id="${x.id}">Retirer</button>` : ''}</div>`).join('')}</div>` : empty('club', 'Aucun partenaire', 'Ajoute le premier partenaire du club.')}
   ${isAdmin() ? `<div class="ctl"><button class="btn grow" data-a="newPost" data-k="partner">Ajouter un partenaire</button><button class="btn grow ghost" data-a="newPost" data-k="ad">Créer une pub</button></div>` : ''}</div>`;
   },
   member(id) {

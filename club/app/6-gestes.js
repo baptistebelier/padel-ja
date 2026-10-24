@@ -371,6 +371,17 @@ document.addEventListener('change', e => {
     $('v-rk').hidden = el.value === 'Padel';
     $('v-nv').hidden = el.value === 'Tennis';
   }
+  // changer le logo d'un partenaire (PNG transparent gardé tel quel)
+  if (el.dataset.plogo && el.files[0]) {
+    const x = PARTNERS.find(y => y.id === el.dataset.plogo);
+    if (x)
+      shrink(el.files[0], u => {
+        x.logo = u;
+        delete x.cut;
+        render(true);
+        toast('Logo du partenaire mis à jour');
+      });
+  }
   if (el.id === 'tr-sport' || el.id === 'tr-mgr') {
     const pad = $('tr-sport').value === 'Padel';
     $('tr-tennis').hidden = pad;

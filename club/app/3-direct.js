@@ -257,93 +257,21 @@ function shrink(file, cb) {
         c = document.createElement('canvas');
       c.width = im.width * k;
       c.height = im.height * k;
-      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-      cb(c.toDataURL('image/jpeg', 0.8));
+      const x = c.getContext('2d');
+      x.drawImage(im, 0, 0, c.width, c.height);
+      // image avec transparence (logo PNG détouré) : gardée en PNG, sinon JPEG (plus léger)
+      let alpha = false;
+      try {
+        const px = x.getImageData(0, 0, c.width, c.height).data;
+        for (let i = 3; i < px.length; i += 4)
+          if (px[i] < 250) {
+            alpha = true;
+            break;
+          }
+      } catch (e) {}
+      cb(alpha ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.8));
     };
     im.src = fr.result;
   };
   fr.readAsDataURL(file);
-}
-
-/* Logo détouré : le fond uni (blanc ou de couleur) est retiré à partir des bords, avec des contours adoucis,
-   puis l'image est recadrée au plus près du logo (pour qu'il prenne toute la hauteur d'une frise).
-   Un fond déjà transparent est gardé ; un fond qui n'est pas uni (photo) n'est pas touché. Sortie : PNG transparent. */
-function detour(src, cb) {
-  const im = new Image();
-  im.onload = () => {
-    const k = Math.min(1, 480 / Math.max(im.width, im.height)),
-      w = Math.max(1, Math.round(im.width * k)),
-      h = Math.max(1, Math.round(im.height * k)),
-      c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    const x = c.getContext('2d');
-    x.drawImage(im, 0, 0, w, h);
-    let d;
-    try {
-      d = x.getImageData(0, 0, w, h);
-    } catch (e) {
-      return cb(src);
-    }
-    const px = d.data,
-      at = (i, j) => (j * w + i) * 4;
-    // couleur du fond : celle des bords, si elle est uniforme
-    const edge = [];
-    for (let i = 0; i < w; i += Math.max(1, w >> 5)) edge.push(at(i, 0), at(i, h - 1));
-    for (let j = 0; j < h; j += Math.max(1, h >> 5)) edge.push(at(0, j), at(w - 1, j));
-    const transparent = edge.filter(o => px[o + 3] < 40).length > edge.length / 2;
-    const bg = [0, 1, 2].map(ch => edge.reduce((a, o) => a + px[o + ch], 0) / edge.length);
-    const dist = o => Math.hypot(px[o] - bg[0], px[o + 1] - bg[1], px[o + 2] - bg[2]);
-    const uniform = edge.filter(o => dist(o) < 40).length > edge.length * 0.8;
-    if (!transparent && uniform) {
-      // remplissage depuis les bords : tout ce qui ressemble au fond devient transparent
-      const T1 = 42,
-        T2 = 90,
-        seen = new Uint8Array(w * h),
-        stack = [];
-      for (let i = 0; i < w; i++) stack.push(i, (h - 1) * w + i);
-      for (let j = 0; j < h; j++) stack.push(j * w, j * w + w - 1);
-      while (stack.length) {
-        const p = stack.pop();
-        if (seen[p]) continue;
-        seen[p] = 1;
-        const o = p * 4,
-          dd = dist(o);
-        if (dd >= T2) continue;
-        if (dd < T1) px[o + 3] = 0;
-        else {
-          px[o + 3] = Math.min(px[o + 3], Math.round(((dd - T1) / (T2 - T1)) * 255)); // contour adouci
-          continue;
-        }
-        const i = p % w,
-          j = (p - i) / w;
-        if (i > 0) stack.push(p - 1);
-        if (i < w - 1) stack.push(p + 1);
-        if (j > 0) stack.push(p - w);
-        if (j < h - 1) stack.push(p + w);
-      }
-      x.putImageData(d, 0, 0);
-    } else if (!transparent) return cb(src); // photo ou fond dégradé : on n'y touche pas
-    // recadrage au plus près du logo
-    let x0 = w,
-      y0 = h,
-      x1 = -1,
-      y1 = -1;
-    for (let j = 0; j < h; j++)
-      for (let i = 0; i < w; i++)
-        if (px[at(i, j) + 3] > 24) {
-          if (i < x0) x0 = i;
-          if (i > x1) x1 = i;
-          if (j < y0) y0 = j;
-          if (j > y1) y1 = j;
-        }
-    if (x1 < 0) return cb(src);
-    const o = document.createElement('canvas');
-    o.width = x1 - x0 + 1;
-    o.height = y1 - y0 + 1;
-    o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
-    cb(o.toDataURL('image/png'));
-  };
-  im.onerror = () => cb(src);
-  im.src = src;
 }
