@@ -28,5 +28,15 @@ test('profil sportif recopié sur la fiche ; un enfant sans compte reçoit sa fi
     assert.ok(kid.data._ja, 'la fiche de l’enfant est reliée à son profil du club');
     const fiche = (await api('/api/players/' + kid.data._ja)).player;
     assert.deepEqual([fiche.first, fiche.last, fiche.sex, fiche.birthYear, fiche.club], ['Léo', 'TEST', 'H', 2014, 'TC Fiches']);
+
+    // identité du club : l'adresse et les pistes de padel saisies dans /RAM Club servent aux nouveaux tournois /RAM JA
+    await api(`/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'conf', id: 'main', op: 'patch', patch: [{ p: ['info', 'addr'], t: 'set', v: '12 allée des Tilleuls' }, { p: ['info', 'pistes'], t: 'set', v: 4 }] }] });
+    await wait(4600);
+    await api('/api/me', { club: 'TC Fiches' });
+    await api('/api/profile', { profile: { club: 'TC Fiches' } });
+    const { id } = await api('/api/tournaments', { name: 'Open' });
+    const st = await api(`/api/t/${id}/export`);
+    assert.equal(st.tournament.address, '12 allée des Tilleuls');
+    assert.deepEqual(st.courts.map(c => c.name), ['Piste 1', 'Piste 2', 'Piste 3', 'Piste 4']);
   } finally { srv.kill(); }
 });

@@ -33,6 +33,20 @@ const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, on
 const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
 const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
+/* identité du club : celle de son espace /RAM Club (logo, sigle, couleur, adresse, terrains) recopiée dans le
+   référentiel des clubs, et reprise par /RAM JA pour les nouveaux tournois */
+async function syncClubIdentity(spaceId) {
+  const sp = (await ram.spaces()).find(s => s.id === spaceId);
+  const conf = sp && sp.club_id && await ram.confOf(spaceId);
+  if (!conf) return;
+  const info = conf.info || {}, tc = +info.courts || 0, pc = +info.pistes || 0;
+  await clubs.update(sp.club_id, { logo: conf.logo || conf.logoD || null, short: conf.short || null, accent: conf.accent || null, address: info.addr || null,
+    tennis_courts: tc || null, padel_courts: pc || null, sports: [tc && 'Tennis', pc && 'Padel'].filter(Boolean) });
+}
+function watchClubIdentity() {
+  const timers = new Map();
+  ram.onChange(id => { clearTimeout(timers.get(id)); timers.set(id, setTimeout(() => { timers.delete(id); syncClubIdentity(id).catch(e => console.error('Identité du club :', e.message)); }, 4000)); });
+}
 /* le club d'un compte suit son club /RAM Club (adhésion validée la plus récente) ;
    sans club /RAM Club, il garde celui qu'il a choisi */
 /* club principal d'un compte (celui de sa licence) : celui qu'il a choisi parmi ses clubs /RAM Club,
@@ -265,6 +279,14 @@ async function newTournament(owner, opts) {
   }
   if (opts.name) state.tournament.name = opts.name;
   if (opts.example) state.tournament.example = true;   // tournoi d'exemple de l'inscription : hors limite de l'essai
+  // identité du club (référentiel, venue de /RAM Club) : adresse, logo et pistes de padel par défaut
+  const cl = !opts.state && clubs.lookup((state.tournament || {}).club);
+  if (cl) {
+    if (!state.tournament.address && cl.address) state.tournament.address = cl.address;
+    if (!state.tournament.logo && cl.logo) state.tournament.logo = cl.logo;
+    const defCourts = state.courts.every((c, i) => c.name === 'Terrain ' + (i + 1));
+    if (cl.padel_courts && defCourts) state.courts = Array.from({ length: Math.min(16, cl.padel_courts) }, (_, i) => ({ id: 'c' + (i + 1), name: 'Piste ' + (i + 1), start: state.tournament.startTime || '09:00' }));
+  }
   if (opts.state) Object.assign(state, Ani.isAnimation(opts.state) ? JSON.parse(JSON.stringify(opts.state)) : Engine.migrate(JSON.parse(JSON.stringify(opts.state))));
   const row = { id: Auth.randomId(10), owner, key: Auth.randomId(16), pin: Auth.randomPin(), created_at: Date.now(), updated_at: Date.now(), state };
   await store.saveTournament(row);
@@ -391,6 +413,7 @@ async function ensureClubLinks(log) {
   await progression.syncAllSpaces();
   await groupes.syncAllSpaces();
   await fiches.syncAllSpaces();
+  await ram.eachSpace(id => syncClubIdentity(id));
   for (const meta of await store.listAllTournaments()) {
     const s = meta.summary || meta;
     if (meta.club_id || !s.closed || s.example || !String(s.club || '').trim()) continue;
@@ -1204,7 +1227,8 @@ server.listen(PORT, '0.0.0.0', () => {
   adhesions.watch(msg => console.error('  ' + msg));
   progression.watch(msg => console.error('  ' + msg));   // et sa progression (trophées, points)
   groupes.watch(msg => console.error('  ' + msg));
-  fiches.watch(msg => console.error('  ' + msg));        // et ses groupes   // chaque changement d'un espace /RAM Club met à jour ses adhésions
+  fiches.watch(msg => console.error('  ' + msg));
+  watchClubIdentity();   // logo, adresse, terrains du club        // et ses groupes   // chaque changement d'un espace /RAM Club met à jour ses adhésions
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);
