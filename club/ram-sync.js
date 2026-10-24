@@ -1065,6 +1065,13 @@
             )
           );
       }
+      // horaire de mon match : nouveau, ou déplacé de plus d'un quart d'heure, ou changement de terrain
+      const na = (inn(a.ja) || {}).next,
+        nb = (inn(b.ja) || {}).next;
+      if (nb && !nb.live && (!na || Math.abs(nb.at - na.at) >= 15 * 60000 || nb.court !== na.court))
+        once(`janext/${id}/${nb.at}/${nb.court}`, () =>
+          notify('team', 'club', `: ton match du tournoi « ${b.title} » : ${jaNext(nb)}`, go)
+        );
       if (a.ja.status === 'open' && b.ja.status === 'drawn' && inn(b.ja))
         once(`jadraw/${id}`, () => notify('mine', 'club', `: le tirage du tournoi « ${b.title} » est fait`, go));
     }

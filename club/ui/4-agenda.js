@@ -122,6 +122,23 @@ function planMore(iso, out, me, mine) {
     // tournoi ou animation /RAM JA
     if (p.kind === 'jatour' && p.ja && p.d && iso >= p.d && iso <= (p.d2 || p.d)) {
       const inn = (p.ja.list || []).some(x => keys.includes(x.k1) || keys.includes(x.k2));
+      // mon match programmé ce jour-là : à son heure, avec terrain et adversaires
+      const row = (p.ja.list || []).find(x => keys.includes(x.k1) || keys.includes(x.k2)),
+        nx = row && row.next;
+      if (nx && !nx.live && new Date(nx.at).toDateString() === new Date(iso + 'T12:00').toDateString()) {
+        out.push({
+          cat: 'tour',
+          sport: p.sport || 'Padel',
+          t: jaHour(nx.at),
+          dur: 90,
+          sub: `Ton match${nx.court ? ' · ' + nx.court : ''}${nx.vs ? ' · contre ' + nx.vs : ''}`,
+          title: p.title,
+          v: 'post',
+          id: p.id,
+          my: true
+        });
+        return;
+      }
       out.push({
         cat: 'tour',
         all: !!p.d2 || !p.ja.time,

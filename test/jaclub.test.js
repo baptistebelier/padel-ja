@@ -82,3 +82,37 @@ test('tournoi et animation /RAM JA publiés sur /RAM Club, inscriptions depuis l
     assert.ok(((await mem(`/api/ram/c/${space.id}/sync?since=0`)).counts[j.key] || {}).palm >= 1);
   } finally { srv.kill(); }
 });
+
+test('horaire du prochain match publié pour les paires du club après le tirage', async () => {
+  const PORT = 39600 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'jaclub2-'));
+  const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
+  ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
+  const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    const B = `http://127.0.0.1:${PORT}`;
+    for (let i = 0; i < 50; i++) { try { await fetch(B + '/'); break; } catch (e) { await wait(100); } }
+    const signup = async (email, first, club) => {
+      const r = await fetch(B + '/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: 'motdepasse1', first, last: 'Test', club }) });
+      const cookie = [].concat(r.headers.getSetCookie()).map(c => c.split(';')[0]).filter(c => !/=$/.test(c)).join('; ');
+      const H = { 'Content-Type': 'application/json', Cookie: cookie };
+      return (p, body) => fetch(B + p, body ? { method: 'POST', headers: H, body: JSON.stringify(body) } : { headers: H }).then(async x => Object.assign(await x.json().catch(() => ({})), { status: x.status }));
+    };
+    const bur = await signup('b@exemple.test', 'Bea', 'TC Test');
+    const space = await bur('/api/ram/clubs', { name: 'TC Test', short: 'TCT' });
+    const { id: tid } = await bur('/api/tournaments', { name: 'Open' });
+    await bur(`/api/t/${tid}/action`, { type: 'tournament/update', payload: { club: 'TC Test', dateStart: '2030-11-15', startTime: '09:00' } });
+    await wait(2000);
+    assert.equal((await bur('/api/ja/inscription', { tid, partner: { last: 'Dupont', first: 'Paul' } })).ok, true);
+    for (const n of ['A', 'B', 'C']) await bur(`/api/t/${tid}/action`, { type: 'pair/add', payload: { p1: { last: n + '1', first: 'X' }, p2: { last: n + '2', first: 'Y' } } });
+    assert.equal((await bur(`/api/t/${tid}/action`, { type: 'draw/create', payload: {} })).ok, true);
+    await wait(2600);
+    const p = (await bur(`/api/ram/c/${space.id}/sync?since=0`)).items.find(i => i.id === 'ja-' + tid);
+    assert.equal(p.data.ja.status, 'drawn');
+    const mine = p.data.ja.list.find(x => x.k1 === space.key);
+    assert.ok(mine && mine.next && mine.next.at > 0, 'prochain match de la paire du club');
+    assert.ok(mine.next.court, 'terrain du match');
+    assert.match(mine.next.vs, /\//);
+    assert.equal(p.data.ja.list.filter(x => x.next).length, 1, 'seulement pour les paires du club');
+  } finally { srv.kill(); }
+});
