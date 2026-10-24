@@ -1042,6 +1042,44 @@
         );
       }
     }
+    // publications par niveaux : l'enseignant voit arriver les inscriptions ; chacun est prévenu quand sa date est validée
+    if (coll === 'post' && a && b.kind === 'niveaux' && b.nv && a.nv) {
+      const go = { v: 'post', id },
+        what = b.nv.mode === 'cours' ? 'la séance' : 'la partie';
+      (b.nv.dates || []).forEach(d => {
+        const sa = nvState(a.nv, d),
+          sb = nvState(b.nv, d);
+        if (b.by === me)
+          b.nv.tiers.forEach(t =>
+            added(sa.lists[t.id], sb.lists[t.id]).forEach(
+              k =>
+                k !== me &&
+                known(k) &&
+                once(`nv/${id}/${d}/${k}`, () =>
+                  notify('mine', k, `s'inscrit à ${what} du ${fmtD(d)} (${nvRange(t, b.nv.sport).toLowerCase()})`, go)
+                )
+            )
+          );
+        if (!sa.win && sb.win) {
+          const t = b.nv.tiers.find(x => x.id === sb.win),
+            mine = Object.keys(sb.status).find(x => x.endsWith('|' + me));
+          if (b.by === me || mine)
+            once(`nvok/${id}/${d}`, () =>
+              notify(
+                b.by === me ? 'mine' : 'play',
+                // l'enseignant voit qui a complété la fourchette ; les inscrits voient l'enseignant
+                b.by === me ? sb.lists[t.id][t.places - 1] || 'club' : b.by,
+                b.by === me
+                  ? `complète ${what} du ${fmtD(d)} (${nvRange(t, b.nv.sport).toLowerCase()}) : les autres fourchettes passent en liste d'attente`
+                  : sb.status[mine] === 'ok'
+                    ? `valide ${what} du ${fmtD(d)} : tu y es inscrit`
+                    : `: ${what} du ${fmtD(d)} est complète dans une autre fourchette, tu es en liste d'attente`,
+                go
+              )
+            );
+        }
+      });
+    }
     if (coll === 'msg') {
       if (a && b.by === me)
         Object.keys(b.reBy || {}).forEach(k => {
