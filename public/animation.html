@@ -250,7 +250,7 @@ body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-f
       f.onsubmit = async e => {
         e.preventDefault();
         const name = f.n.value.trim(), hit = found.find(p => (p.first + ' ' + p.last) === name);
-        if (await send('ani/player/add', { name, sex: f.s ? f.s.value : '', lvl: f.l ? f.l.value : '', playerId: hit && !String(hit.id).startsWith('rc-') ? hit.id : '' })) { f.n.value = ''; setTimeout(() => { const x = $('#an-add'); if (x) x.n.focus(); }, 150); }
+        if (await send('ani/player/add', { name, sex: (hit && hit.sex) || (f.s ? f.s.value : ''), lvl: (f.l && f.l.value) || (hit && hit.padelLevel) || '', playerId: hit && !String(hit.id).startsWith('rc-') ? hit.id : '' })) { f.n.value = ''; setTimeout(() => { const x = $('#an-add'); if (x) x.n.focus(); }, 150); }
       };
     }
     bindScores(document);

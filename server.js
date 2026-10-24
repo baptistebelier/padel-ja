@@ -30,8 +30,9 @@ const { createClubs, withClubLinks } = require('./lib/clubs.js');
 const clubs = createClubs(store);   // référentiel des clubs commun aux deux applis
 withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le club_id de leur texte « club »
 const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, onUsers: ids => Promise.all(ids.map(id => followRamClub(id).catch(() => {}))) });   // qui appartient à quel club, rôle et saison
-const progression = require('./lib/progression.js').createProgression({ store, ram });
-const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres   // trophées et points de chaque adhérent, par club et saison
+const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
+const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
+const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
 /* le club d'un compte suit son club /RAM Club (adhésion validée la plus récente) ;
    sans club /RAM Club, il garde celui qu'il a choisi */
 /* club principal d'un compte (celui de sa licence) : celui qu'il a choisi parmi ses clubs /RAM Club,
@@ -294,7 +295,8 @@ const jaClub = require('./lib/jaclub.js').createJaClub({ store, ram, clubs, Engi
 /* ---------------------------------------------------------------------
    base de joueurs : un joueur = une licence (ou, à défaut, NOM + prénom)
    --------------------------------------------------------------------- */
-const publicPlayer = pl => ({ id: pl.id, last: pl.last, first: pl.first, licence: pl.licence, rank: pl.rank, clubId: pl.club_id || null, club: clubs.name(pl.club_id) || undefined });
+const publicPlayer = pl => ({ id: pl.id, last: pl.last, first: pl.first, licence: pl.licence, rank: pl.rank, clubId: pl.club_id || null, club: clubs.name(pl.club_id) || undefined,
+  sex: pl.sex || undefined, birthYear: pl.birth_year || undefined, padelLevel: pl.padel_level || undefined, tennisRank: pl.tennis_rank || undefined });
 async function upsertPlayerFrom(pl, owner) {
   const licence = String(pl.licence || '').replace(/\s+/g, '').toUpperCase();   // chiffres et une lettre : même numéro quelle que soit la casse
   const last = String(pl.last || '').trim().toUpperCase(), first = String(pl.first || '').trim();
@@ -388,6 +390,7 @@ async function ensureClubLinks(log) {
   await adhesions.syncAllSpaces();
   await progression.syncAllSpaces();
   await groupes.syncAllSpaces();
+  await fiches.syncAllSpaces();
   for (const meta of await store.listAllTournaments()) {
     const s = meta.summary || meta;
     if (meta.club_id || !s.closed || s.example || !String(s.club || '').trim()) continue;
@@ -1200,7 +1203,8 @@ server.listen(PORT, '0.0.0.0', () => {
     .then(() => ensureClubLinks(msg => console.log('  ' + msg))).catch(e => console.error('  Clubs :', e.message));
   adhesions.watch(msg => console.error('  ' + msg));
   progression.watch(msg => console.error('  ' + msg));   // et sa progression (trophées, points)
-  groupes.watch(msg => console.error('  ' + msg));        // et ses groupes   // chaque changement d'un espace /RAM Club met à jour ses adhésions
+  groupes.watch(msg => console.error('  ' + msg));
+  fiches.watch(msg => console.error('  ' + msg));        // et ses groupes   // chaque changement d'un espace /RAM Club met à jour ses adhésions
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);
