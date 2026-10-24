@@ -35,6 +35,12 @@
     <h2 style="font-size:26px;margin-bottom:14px">Partir d'un modèle</h2>
     <div class="tpls" id="tpls"></div>
   </section>
+  <section class="card" id="animation">
+    <span class="eyebrow">Nouvelle animation</span>
+    <h2 style="font-size:26px;margin-bottom:14px">Americano, mexicano, montée-descente</h2>
+    <p class="muted small" style="margin-top:0">Formats conviviaux hors classement FFT : rotation des partenaires, classement individuel en direct, chronomètre commun et écran TV.</p>
+    <div class="tpls" id="anis"></div>
+  </section>
   <section id="closedSec" hidden>
     <span class="eyebrow" id="clotures">Tournois clôturés</span>
     <div class="tlist" id="tclosed"></div>
@@ -66,16 +72,23 @@
     const tpl = (t, mine) => `<button class="tpl" data-t="${t.id}"><span class="tag ${mine ? 'lime' : ''}">${mine ? 'Mon modèle' : esc(t.fields.category)}</span><b>${esc(t.name)}</b><small>${esc(t.desc || '')}</small></button>`;
     $('#tpls').innerHTML = `<button class="tpl blank" data-t=""><span class="tag ink">Vierge</span><b>Tournoi vierge</b><small>Je configure tout moi-même.</small></button>` +
       d.mine.map(t => tpl(t, true)).join('') + d.presets.map(t => tpl(t, false)).join('');
-    document.querySelectorAll('.tpl').forEach(b => b.onclick = () => {
+    // animations : americano, mexicano, par équipes, montée-descente
+    const ANIS = [['americano', 'Americano', 'Nouveau partenaire à chaque manche, classement individuel aux points.'], ['mexicano', 'Mexicano', 'Équipes formées selon le classement : des matchs serrés.'], ['equipes', 'Americano par équipes', 'Paires fixes qui se rencontrent toutes.'], ['montee', 'Montée-descente', 'Les gagnants montent d’un terrain, les perdants descendent.']];
+    $('#anis').innerHTML = ANIS.map(a => `<button class="tpl" data-ani="${a[0]}"><span class="tag lime">Animation</span><b>${a[1]}</b><small>${a[2]}</small></button>`).join('');
+    document.querySelectorAll('[data-ani]').forEach(b => b.onclick = () => {
+      const name = prompt('Nom de l’animation ?', b.querySelector('b').textContent + ' du ' + new Date().toLocaleDateString('fr-FR', { weekday: 'long' }));
+      if (name !== null) create({ kind: 'animation', format: b.dataset.ani, name: name || b.querySelector('b').textContent });
+    });
+    document.querySelectorAll('.tpl[data-t]').forEach(b => b.onclick = () => {
       const name = prompt('Nom du tournoi ?', b.dataset.t ? b.querySelector('b').textContent : 'Mon tournoi');
       if (name !== null) create({ name: name || 'Tournoi', template: b.dataset.t || undefined });
     });
     const fmt = s => s ? new Date(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     const card = t => `
       <article class="tcard">
-        <div class="tc-top"><span class="tag">${esc(t.category || '')} · ${esc(t.gender || '')}</span><span class="st ${t.closed ? 'fin' : t.drawn ? 'on' : ''}">${t.closed ? 'Clôturé' : t.drawn ? `${t.done}/${t.matches} matchs` : 'Inscriptions'}</span></div>
+        <div class="tc-top"><span class="tag ${t.kind === 'animation' ? 'lime' : ''}">${esc(t.category || '')} · ${esc(t.gender || '')}</span><span class="st ${t.closed ? 'fin' : t.drawn ? 'on' : ''}">${t.closed ? (t.kind === 'animation' ? 'Terminée' : 'Clôturé') : t.drawn ? (t.kind === 'animation' ? `Manche ${t.rounds}` : `${t.done}/${t.matches} matchs`) : 'Inscriptions'}</span></div>
         <h3>${esc(t.name || 'Sans nom')}</h3>${t.closed ? `<p class="closed-on">Clôturé le ${fmt(t.closedAt)}</p>` : ''}
-        <p>${esc([fmt(t.dateStart), t.club, t.pairs + ' paires'].filter(Boolean).join(' · '))}</p>
+        <p>${esc([fmt(t.dateStart), t.club, t.kind === 'animation' ? t.players + ' joueurs' : t.pairs + ' paires'].filter(Boolean).join(' · '))}</p>
         <div class="tc-act"><a class="btn primary sm" href="/t/${t.id}">Ouvrir</a><a class="btn ghost sm" href="/t/${t.id}/tv" target="_blank">Écran TV</a>
           <button class="btn ghost sm" data-dup="${t.id}">Dupliquer</button><button class="btn ghost sm danger" data-del="${t.id}">Supprimer</button></div>
       </article>`;

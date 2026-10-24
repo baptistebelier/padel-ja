@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#120A0C">
+<link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
+<title>Animation — /RAM JA</title>
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/shell.css">
+<link rel="stylesheet" href="/css/street.css">
+<script src="/js/theme.js"></script>
+<script src="/js/animation.js"></script>
+<style>
+/* Animations : americano, mexicano, par équipes, montée-descente */
+.an-formats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.an-formats button { text-align: left; display: grid; gap: 4px; padding: 14px; border-radius: var(--ui-r-sm); border: 2px solid var(--ui-border); background: var(--ui-surface-2); color: var(--ui-text); cursor: pointer; font: inherit; }
+.an-formats button b { font-family: var(--display); font-weight: 400; font-size: 20px; text-transform: uppercase; }
+.an-formats button small { color: var(--ui-text-mut); font-size: 13px; line-height: 1.35; }
+.an-formats button[aria-pressed="true"] { border-color: var(--ui-accent-line); background: color-mix(in srgb, var(--ui-accent-line) 10%, var(--ui-surface-2)); }
+.an-formats button:disabled { opacity: .55; cursor: default; }
+.an-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+.an-row label { flex: 1 1 140px; }
+.an-players { display: grid; gap: 6px; margin-top: 12px; }
+.an-p { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--ui-r-sm); background: var(--ui-surface-2); min-width: 0; }
+.an-p .n { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an-p .num { color: var(--ui-text-mut); font-variant-numeric: tabular-nums; width: 22px; }
+.an-p.out .n { opacity: .45; text-decoration: line-through; }
+.an-pair { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ui-text-mut); margin-top: 6px; }
+.ib2 { border: 0; background: transparent; color: var(--ui-text-mut); cursor: pointer; padding: 6px; border-radius: 8px; font: inherit; }
+.ib2:hover { background: var(--ui-surface); color: var(--ui-text); }
+.an-add { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.an-add input[name="n"] { flex: 1 1 200px; }
+.an-add select, .an-add input[name="l"] { flex: 0 0 auto; width: auto; }
+.an-hint { margin-top: 10px; }
+.an-round-h { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; justify-content: space-between; }
+.an-timer { font-family: var(--display); font-size: 44px; line-height: 1; font-variant-numeric: tabular-nums; }
+.an-timer.end { color: var(--ui-accent2); animation: blink 1s infinite; }
+.an-courts { display: grid; gap: 10px; margin-top: 14px; }
+.an-m { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 14px; border-radius: var(--ui-r-sm); background: var(--ui-surface-2); border: 1px solid var(--ui-border); }
+.an-m.done { border-color: color-mix(in srgb, var(--ui-switch) 50%, var(--ui-border)); }
+.an-m .ct { grid-column: 1 / -1; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ui-text-mut); }
+.an-m .teams { display: grid; gap: 4px; min-width: 0; }
+.an-m .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.an-m .t.w { color: var(--ui-text); } .an-m .t.l { color: var(--ui-text-mut); }
+.an-sc { display: grid; grid-template-rows: 1fr 1fr; gap: 4px; }
+.an-sc input { width: 64px; text-align: center; font-size: 18px; font-weight: 700; padding: 6px; }
+.an-sc b { font-family: var(--display); font-size: 24px; text-align: center; min-width: 44px; }
+.an-m .act { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+.an-rest { margin-top: 10px; }
+.an-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.an-table th, .an-table td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--ui-border); }
+.an-table th:nth-child(2), .an-table td:nth-child(2) { text-align: left; }
+.an-table th { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ui-text-mut); font-weight: 700; }
+.an-table td:nth-child(2) { font-weight: 600; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 60%; }
+.an-table tr.top td:first-child { color: var(--ui-accent2); font-weight: 800; }
+.an-tw { overflow-x: auto; }
+.an-links { display: grid; gap: 10px; }
+.an-links code { display: block; padding: 8px 10px; border-radius: 8px; background: var(--ui-surface-2); overflow-wrap: anywhere; font-size: 13px; }
+.an-old summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.an-old .an-m { padding: 8px 12px; }
+.acct label.chk { display: flex; flex-direction: row; align-items: center; gap: 10px; font-size: 14px; color: var(--ui-text); }
+.acct label.chk input { width: auto; flex: none; }
+#an-next, #an-go { white-space: nowrap; }
+.rmw .an-m .t.w { color: #fff; } .rmw .an-m .t.l { color: #8a8a8a; } .rmw .an-m .ct { color: #9a9a9a; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ui-text); color: var(--ui-surface); padding: 12px 18px; border-radius: 10px; z-index: 99; font-weight: 600; max-width: calc(100vw - 32px); }
+/* écran TV et saisie par les joueurs */
+body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-family: var(--body); }
+.tvw { padding: 3vh 3vw; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 3vw; min-height: 100vh; box-sizing: border-box; }
+.tvw h1 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 4.2vw; margin: 0 0 1vh; line-height: 1; }
+.tvw .k { font-family: var(--label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-size: 1.3vw; }
+.tvw .an-timer { font-size: 7vw; color: var(--accent); }
+.tvw .an-timer.end { color: var(--accent2); }
+.tvc { display: grid; gap: 1.2vh; margin-top: 2vh; }
+.tvm { display: grid; grid-template-columns: 6vw minmax(0, 1fr) 6vw minmax(0, 1fr); align-items: center; gap: 1vw; background: #171717; padding: 1.4vh 1.2vw; font-size: 1.7vw; }
+.tvm .c { font-family: var(--display); font-size: 2.2vw; color: var(--accent); }
+.tvm .s { font-family: var(--display); font-size: 2.4vw; text-align: center; }
+.tvm.king { outline: 3px solid var(--accent); }
+.tvl table { width: 100%; border-collapse: collapse; font-size: 1.6vw; }
+.tvl td { padding: .7vh .6vw; border-bottom: 1px solid #262626; }
+.tvl td:last-child { text-align: right; font-family: var(--display); font-size: 2vw; color: var(--accent); }
+.tvl tr:first-child td { color: var(--accent); }
+.rmw { padding: 16px; display: grid; gap: 12px; max-width: 520px; margin: 0 auto; }
+.rmw h1 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 28px; margin: 4px 0; }
+.rmw .an-m { background: #171717; border-color: #333; color: #fff; }
+.rmw input, .rmw button { font: inherit; }
+.rmw input { background: #0b0b0b; color: #fff; border: 2px solid #333; padding: 10px; }
+.rmw .btn { background: var(--accent); color: #111; border: 0; padding: 12px 16px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
+@media (max-width: 760px) { .tvw { grid-template-columns: 1fr; } .tvw h1 { font-size: 30px; } .tvm { font-size: 16px; grid-template-columns: 40px 1fr 40px 1fr; } .tvm .c, .tvm .s { font-size: 20px; } .tvl table { font-size: 16px; } .tvw .k { font-size: 12px; } .tvw .an-timer { font-size: 48px; } }
+</style>
+</head>
+<body class="acct" data-page="tournois">
+<main class="page" id="app"><p class="muted">Chargement…</p></main>
+<script>
+(function () {
+  'use strict';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = s => document.querySelector(s);
+  const tid = location.pathname.split('/')[2], mode = /\/tv\/?$/.test(location.pathname) ? 'tv' : /\/remote\/?$/.test(location.pathname) ? 'remote' : 'ja';
+  const qs = new URLSearchParams(location.search), key = qs.get('k') || '', pinKey = 'padelja-pin-' + tid;
+  let pin = qs.get('pin') || (() => { try { return localStorage.getItem(pinKey) || ''; } catch (e) { return ''; } })();
+  const base = '/api/t/' + tid;
+  let S = null, info = null, es = null, draft = {};
+  // le menu de /RAM JA seulement sur la page du juge-arbitre (pas sur l'écran TV ni chez les joueurs)
+  if (mode !== 'ja') document.body.className = 'an-' + mode;
+  else document.head.appendChild(Object.assign(document.createElement('script'), { src: '/js/rail.js', defer: true }));
+
+  function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
+  async function send(type, payload) {
+    const r = await fetch(base + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pin': pin, 'X-Key': key }, body: JSON.stringify({ type, payload: payload || {} }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { toast(d.error || 'Action refusée'); return false; }
+    return true;
+  }
+  function connect() {
+    if (es) es.close();
+    const q = [key && 'k=' + encodeURIComponent(key), pin && 'pin=' + encodeURIComponent(pin)].filter(Boolean).join('&');
+    es = new EventSource(base + '/events' + (q ? '?' + q : ''));
+    es.onmessage = ev => { const d = JSON.parse(ev.data); S = d.state; render(); };
+    es.onerror = () => { if (mode === 'remote' && !S) { es.close(); es = null; askPin(); } };
+  }
+
+  const A = () => S.ani, F = () => Ani.FORMATS[A().format];
+  const pname = id => { const p = A().players.find(x => x.id === id); return p ? p.name : '?'; };
+  const team = t => t.map(pname).join(' & ');
+  const courtName = i => (S.courts[i] && S.courts[i].name) || 'Terrain ' + (i + 1);
+  const cur = () => A().rounds[A().rounds.length - 1];
+  const left = () => (A().timer.endsAt ? Math.max(0, A().timer.endsAt - Date.now()) : null);
+  const mmss = ms => { const s = Math.ceil(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+
+  /* ---------- classement ---------- */
+  function table(limit) {
+    const st = Ani.standings(S), mont = st.montee;
+    const rows = st.rows.slice(0, limit || 99);
+    return `<div class="an-tw"><table class="an-table"><thead><tr><th>#</th><th>${st.team ? 'Paire' : 'Joueur'}</th>${mont ? '<th>Terrain</th>' : ''}<th>J</th><th>G</th><th>Pts</th><th>+/-</th></tr></thead><tbody>${rows.map((x, i) =>
+      `<tr class="${i < 3 ? 'top' : ''}"><td>${i + 1}</td><td>${esc(team(x.ids))}</td>${mont ? `<td>${x.court == null ? '–' : Math.floor(x.court / 2) + 1}</td>` : ''}<td>${x.played}</td><td>${x.won}</td><td><b>${x.pf}</b></td><td>${x.pf - x.pa > 0 ? '+' : ''}${x.pf - x.pa}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  /* ---------- un match : équipes, score, saisie ---------- */
+  function matchHTML(r, m, editable) {
+    const w = m.done ? (m.sa > m.sb ? 'a' : m.sb > m.sa ? 'b' : '') : '';
+    const k = r.n + '|' + m.id, open = editable && (!m.done || draft[k]);
+    const king = A().format === 'montee' && m.court === 0 ? ' · terrain du roi' : '';
+    return `<div class="an-m ${m.done ? 'done' : ''}"><span class="ct">${esc(courtName(m.court))}${king}</span>
+      <div class="teams"><span class="t ${w === 'a' ? 'w' : w ? 'l' : ''}">${esc(team(m.a))}</span><span class="t ${w === 'b' ? 'w' : w ? 'l' : ''}">${esc(team(m.b))}</span></div>
+      <div class="an-sc">${open ? `<input type="number" inputmode="numeric" min="0" max="99" data-sa="${k}" value="${m.sa ?? ''}" aria-label="Score de ${esc(team(m.a))}"><input type="number" inputmode="numeric" min="0" max="99" data-sb="${k}" value="${m.sb ?? ''}" aria-label="Score de ${esc(team(m.b))}">` : `<b>${m.sa ?? '–'}</b><b>${m.sb ?? '–'}</b>`}</div>
+      ${editable ? `<div class="act">${open ? `<button class="btn primary sm" data-ok="${k}">Valider</button>` : `<button class="btn ghost sm" data-edit="${k}">Corriger</button>`}</div>` : ''}</div>`;
+  }
+  function bindScores(root) {
+    root.querySelectorAll('[data-ok]').forEach(b => b.onclick = async () => {
+      const k = b.dataset.ok, [rn, mid] = k.split('|');
+      const sa = root.querySelector(`[data-sa="${k}"]`).value, sb = root.querySelector(`[data-sb="${k}"]`).value;
+      if (sa === '' || sb === '') return toast('Saisissez les deux scores');
+      if (await send('ani/score', { round: +rn, match: mid, sa: +sa, sb: +sb })) delete draft[k];
+    });
+    root.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { draft[b.dataset.edit] = 1; render(); });
+    // total imposé (match en 24 points) : le 2e score se remplit tout seul
+    root.querySelectorAll('[data-sa],[data-sb]').forEach(inp => inp.oninput = () => {
+      const sc = A().scoring; if (sc.mode !== 'points' || A().format === 'montee') return;
+      const k = inp.dataset.sa || inp.dataset.sb, other = root.querySelector(inp.dataset.sa ? `[data-sb="${k}"]` : `[data-sa="${k}"]`);
+      if (inp.value !== '' && +inp.value <= sc.points) other.value = sc.points - +inp.value;
+    });
+  }
+
+  /* ---------- page du juge-arbitre ---------- */
+  function setupHTML() {
+    const a = A(), started = a.rounds.length > 0, n = a.players.filter(p => !p.out).length, courts = S.courts.length;
+    const fmt = Object.entries(Ani.FORMATS).map(([k, f]) => `<button data-fmt="${k}" aria-pressed="${a.format === k}" ${started ? 'disabled' : ''}><b>${esc(f.name)}</b><small>${esc(f.desc)}</small></button>`).join('');
+    const sc = a.scoring;
+    const opt = (l, v) => l.map(x => `<option value="${x}" ${+x === +v ? 'selected' : ''}>${x}</option>`).join('');
+    const per = Math.min(courts, Math.floor(n / 4)), playing = per * 4;
+    const hint = a.format === 'montee'
+      ? (n % 4 ? `Montée-descente : il faut un multiple de 4 joueurs (${n} inscrits).` : `${n / 4} terrain${n / 4 > 1 ? 's' : ''} utilisé${n / 4 > 1 ? 's' : ''}, 4 joueurs par terrain.`)
+      : a.format === 'equipes'
+        ? `${Math.floor(n / 2)} paires (joueurs 1 et 2, 3 et 4…)${n % 2 ? ' · un joueur sans partenaire' : ''} · ${Math.min(courts, Math.floor(n / 4))} match${Math.min(courts, Math.floor(n / 4)) > 1 ? 's' : ''} par manche.`
+        : n < 4 ? 'Ajoutez au moins 4 joueurs.' : `${per} match${per > 1 ? 's' : ''} par manche${n - playing ? `, ${n - playing} joueur${n - playing > 1 ? 's' : ''} au repos à tour de rôle` : ''}.${a.format === 'americano' && n % 4 === 0 && n <= courts * 4 ? ` En ${n - 1} manches, chacun joue une fois avec chacun.` : ''}`;
+    const players = a.players.map((p, i) => `${a.format === 'equipes' && i % 2 === 0 ? `<div class="an-pair">Paire ${i / 2 + 1}</div>` : ''}<div class="an-p ${p.out ? 'out' : ''}"><span class="num">${i + 1}</span><span class="n">${esc(p.name)}</span>${a.mixte ? `<button class="ib2" data-sex="${p.id}" title="Changer">${p.sex === 'F' ? 'F' : p.sex === 'H' ? 'H' : '?'}</button>` : ''}${p.lvl !== '' && p.lvl != null ? `<span class="tag">Niv. ${esc(p.lvl)}</span>` : ''}${a.format === 'equipes' && !started ? `<button class="ib2" data-up="${p.id}" aria-label="Monter">↑</button><button class="ib2" data-down="${p.id}" aria-label="Descendre">↓</button>` : ''}${started ? `<button class="ib2" data-out="${p.id}">${p.out ? 'Revient' : 'Absent'}</button>` : `<button class="ib2" data-rm="${p.id}" aria-label="Retirer ${esc(p.name)}">✕</button>`}</div>`).join('');
+    return `<section class="card"><span class="eyebrow">Format</span><h2>Type d'animation</h2><div class="an-formats">${fmt}</div></section>
+    <section class="card"><span class="eyebrow">Règles</span><h2>Manches</h2>
+      <div class="an-row"><label>Chaque manche se joue<select id="an-mode"><option value="points" ${sc.mode === 'points' ? 'selected' : ''}>En points</option><option value="temps" ${sc.mode === 'temps' ? 'selected' : ''}>Au temps (chronomètre)</option></select></label>
+      ${sc.mode === 'points' ? `<label>${a.format === 'montee' ? 'Jeu en' : 'Total de points par match'}<select id="an-pts">${opt(Ani.POINTS, sc.points)}</select></label>` : `<label>Durée d'une manche (min)<select id="an-min">${opt(Ani.MINUTES, sc.minutes)}</select></label>`}
+      <label>Terrains<select id="an-courts">${opt([1, 2, 3, 4, 5, 6, 7, 8, 10, 12], courts)}</select></label></div>
+      ${a.format === 'americano' || a.format === 'mexicano' ? `<label class="chk" style="margin-top:12px"><input type="checkbox" id="an-mixte" ${a.mixte ? 'checked' : ''}> Mixte : chaque équipe est un homme et une femme</label>` : ''}
+      ${a.format === 'montee' ? `<label class="chk" style="margin-top:12px"><input type="checkbox" id="an-split" ${a.split ? 'checked' : ''}> Partenaires séparés à chaque manche (sinon les paires restent ensemble)</label>` : ''}
+      <p class="muted small">${sc.mode === 'points' && a.format !== 'montee' ? `Match en ${sc.points} points : le total des deux équipes fait ${sc.points} (par exemple 14 à 10).` : sc.mode === 'temps' ? 'Le chronomètre est commun à tous les terrains ; on compte les points marqués.' : 'Montée-descente : il faut un gagnant à chaque match.'}</p></section>
+    <section class="card"><span class="eyebrow">Joueurs · ${a.players.length}</span><h2>Inscrits</h2>
+      <form class="an-add" id="an-add" autocomplete="off"><input name="n" list="an-base" placeholder="Prénom NOM (cherchez dans la base)" required>${a.mixte ? '<select name="s"><option value="H">Homme</option><option value="F">Femme</option></select>' : ''}${a.format === 'montee' || a.format === 'mexicano' ? '<input name="l" type="number" min="1" max="10" placeholder="Niveau" style="width:96px" title="Niveau padel (facultatif) : les meilleurs commencent en haut">' : ''}<button class="btn primary">Ajouter</button></form>
+      <datalist id="an-base"></datalist>
+      <div class="an-players">${players || '<p class="muted small">Ajoutez les joueurs un par un.</p>'}</div>
+      <p class="muted small an-hint">${esc(hint)}</p>
+      ${started ? '' : `<button class="btn primary" id="an-go" style="margin-top:8px">Lancer la 1re manche</button>`}</section>`;
+  }
+  function roundHTML() {
+    const a = A(), r = cur(), done = a.status === 'done';
+    const all = r && r.matches.every(m => m.done), t = left();
+    const timer = !done && (a.scoring.mode === 'temps' || a.timer.endsAt) ? `<div class="row" style="gap:10px;align-items:center"><span class="an-timer ${t === 0 ? 'end' : ''}" id="an-t">${t == null ? mmss(a.timer.minutes * 60000) : t === 0 ? 'Temps !' : mmss(t)}</span>${a.timer.endsAt ? '<button class="btn ghost sm" id="an-stop">Arrêter</button>' : `<button class="btn primary sm" id="an-start">Lancer le chrono</button>`}</div>` : '';
+    const rest = r && r.rest && r.rest.length ? `<p class="muted small an-rest">Au repos : ${esc(r.rest.map(pname).join(', '))}</p>` : '';
+    return `<section class="card"><div class="an-round-h"><div><span class="eyebrow">${done ? 'Animation terminée' : F().name}</span><h2 style="margin:0">${r ? 'Manche ' + r.n : 'Aucune manche'}</h2></div>${timer}</div>
+      <div class="an-courts" id="an-cur">${r ? r.matches.map(m => matchHTML(r, m, true)).join('') : ''}</div>${rest}
+      <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:14px">${done ? '<button class="btn ghost" id="an-reopen">Rouvrir</button>' : `<button class="btn primary" id="an-next" ${all ? '' : 'disabled'}>Manche suivante</button>${r && !r.matches.some(m => m.done) ? '<button class="btn ghost" id="an-cancel">Annuler la manche</button>' : ''}<button class="btn ghost" id="an-finish">Terminer l'animation</button>`}</div>
+      ${!done && !all ? '<p class="muted small">La manche suivante se lance quand tous les scores sont saisis.</p>' : ''}</section>`;
+  }
+  function jaHTML() {
+    const a = A(), started = a.rounds.length > 0;
+    const old = a.rounds.slice(0, -1).reverse();
+    const links = info ? `<section class="card"><span class="eyebrow">Partager</span><h2>Écrans</h2><div class="an-links">
+      <div><b>Écran TV</b> (classement, manche en cours, chrono)<code>${esc(info.origin)}/t/${tid}/tv?k=${esc(info.key)}</code><a class="btn ghost sm" target="_blank" href="/t/${tid}/tv?k=${esc(info.key)}">Ouvrir</a></div>
+      <div><b>Saisie des scores par les joueurs</b> (code ${esc(info.pin)})<code>${esc(info.origin)}/t/${tid}/remote?pin=${esc(info.pin)}</code></div></div></section>` : '';
+    return `<header class="phead"><div><span class="eyebrow">${esc(F().name)} · ${a.players.length} joueurs</span><h1><input id="an-name" value="${esc(S.tournament.name)}" aria-label="Nom de l'animation" style="font:inherit;color:inherit;background:transparent;border:0;padding:0;width:100%;max-width:100%"></h1></div><div class="phead-act"><a class="btn" href="/app">Mes tournois</a></div></header>
+      <div class="grid g-2"><div class="grid" style="align-content:start">${started ? roundHTML() : ''}${!started || a.status !== 'done' ? setupHTML() : ''}</div>
+      <div class="grid" style="align-content:start">${started ? `<section class="card"><span class="eyebrow">Classement</span><h2>${a.format === 'montee' ? 'Du terrain du roi au dernier' : 'Points marqués'}</h2>${table()}</section>` : ''}
+      ${old.length ? `<section class="card an-old"><span class="eyebrow">Historique</span>${old.map(r => `<details><summary>Manche ${r.n}</summary><div class="an-courts">${r.matches.map(m => matchHTML(r, m, a.status !== 'done')).join('')}</div></details>`).join('')}</section>` : ''}${links}</div></div>`;
+  }
+  function bindJA() {
+    const on = (id, ev, fn) => { const el = $('#' + id); if (el) el[ev] = fn; };
+    document.querySelectorAll('[data-fmt]').forEach(b => b.onclick = () => send('ani/setup', { format: b.dataset.fmt }));
+    on('an-mode', 'onchange', e => send('ani/setup', { scoring: { mode: e.target.value } }));
+    on('an-pts', 'onchange', e => send('ani/setup', { scoring: { points: +e.target.value } }));
+    on('an-min', 'onchange', e => send('ani/setup', { scoring: { minutes: +e.target.value } }));
+    on('an-courts', 'onchange', e => send('ani/setup', { courts: +e.target.value }));
+    on('an-mixte', 'onchange', e => send('ani/setup', { mixte: e.target.checked }));
+    on('an-split', 'onchange', e => send('ani/setup', { split: e.target.checked }));
+    on('an-name', 'onchange', e => send('ani/setup', { name: e.target.value }));
+    on('an-go', 'onclick', () => send('ani/round/next'));
+    on('an-next', 'onclick', () => send('ani/round/next'));
+    on('an-cancel', 'onclick', () => send('ani/round/cancel'));
+    on('an-finish', 'onclick', () => { if (confirm('Terminer l’animation ? Le classement sera figé (vous pourrez la rouvrir).')) send('ani/finish'); });
+    on('an-reopen', 'onclick', () => send('ani/reopen'));
+    on('an-start', 'onclick', () => send('ani/timer/start', { minutes: A().scoring.minutes }));
+    on('an-stop', 'onclick', () => send('ani/timer/stop'));
+    document.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => send('ani/player/remove', { id: b.dataset.rm }));
+    document.querySelectorAll('[data-out]').forEach(b => b.onclick = () => { const p = A().players.find(x => x.id === b.dataset.out); send('ani/player/update', { id: p.id, out: !p.out }); });
+    document.querySelectorAll('[data-up]').forEach(b => b.onclick = () => send('ani/player/move', { id: b.dataset.up, dir: -1 }));
+    document.querySelectorAll('[data-down]').forEach(b => b.onclick = () => send('ani/player/move', { id: b.dataset.down, dir: 1 }));
+    document.querySelectorAll('[data-sex]').forEach(b => b.onclick = () => { const p = A().players.find(x => x.id === b.dataset.sex); send('ani/player/update', { id: p.id, sex: p.sex === 'H' ? 'F' : 'H' }); });
+    const f = $('#an-add');
+    if (f) {
+      // joueurs de la base /RAM JA proposés pendant la saisie
+      let tm = null, found = [];
+      f.n.oninput = () => { clearTimeout(tm); const q = f.n.value.trim(); if (q.length < 2) return; tm = setTimeout(() => fetch('/api/players?q=' + encodeURIComponent(q)).then(r => r.json()).then(d => { found = d.players || []; $('#an-base').innerHTML = found.map(p => `<option value="${esc(p.first + ' ' + p.last)}">${esc([p.licence && 'Lic. ' + p.licence, p.club].filter(Boolean).join(' · '))}</option>`).join(''); }).catch(() => {}), 200); };
+      f.onsubmit = async e => {
+        e.preventDefault();
+        const name = f.n.value.trim(), hit = found.find(p => (p.first + ' ' + p.last) === name);
+        if (await send('ani/player/add', { name, sex: f.s ? f.s.value : '', lvl: f.l ? f.l.value : '', playerId: hit && !String(hit.id).startsWith('rc-') ? hit.id : '' })) { f.n.value = ''; setTimeout(() => { const x = $('#an-add'); if (x) x.n.focus(); }, 150); }
+      };
+    }
+    bindScores(document);
+  }
+
+  /* ---------- écran TV ---------- */
+  function tvHTML() {
+    const a = A(), r = cur(), t = left();
+    return `<div class="tvw"><div><span class="k">${esc(F().name)}${r ? ' · manche ' + r.n : ''}</span><h1>${esc(S.tournament.name)}</h1>
+      ${a.timer.endsAt ? `<div class="an-timer ${t === 0 ? 'end' : ''}" id="an-t">${t === 0 ? 'Temps !' : mmss(t)}</div>` : ''}
+      <div class="tvc">${r ? r.matches.map(m => `<div class="tvm ${a.format === 'montee' && m.court === 0 ? 'king' : ''}"><span class="c">${m.court + 1}</span><span>${esc(team(m.a))}<br>${esc(team(m.b))}</span><span class="s">${m.done ? m.sa + '<br>' + m.sb : '–'}</span><span class="muted">${esc(courtName(m.court))}</span></div>`).join('') : '<p>La première manche arrive…</p>'}</div>
+      ${r && r.rest && r.rest.length ? `<p class="k" style="margin-top:2vh">Au repos : ${esc(r.rest.map(pname).join(', '))}</p>` : ''}</div>
+      <div class="tvl"><span class="k">Classement</span><table>${Ani.standings(S).rows.slice(0, 16).map((x, i) => `<tr><td>${i + 1}. ${esc(team(x.ids))}</td><td>${x.pf}</td></tr>`).join('')}</table></div></div>`;
+  }
+  /* ---------- saisie par les joueurs (code du tournoi) ---------- */
+  function askPin() {
+    $('#app').innerHTML = `<div class="rmw"><h1>Saisie des scores</h1><p>Entrez le code donné par le juge-arbitre.</p><form id="pf"><input name="p" inputmode="numeric" autocomplete="one-time-code" placeholder="Code" required><button class="btn" style="margin-top:10px;width:100%">Entrer</button></form></div>`;
+    $('#pf').onsubmit = e => { e.preventDefault(); pin = e.target.p.value.trim(); try { localStorage.setItem(pinKey, pin); } catch (x) {} connect(); };
+  }
+  function remoteHTML() {
+    const r = cur(), a = A();
+    return `<div class="rmw"><span class="k" style="color:var(--accent);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px">${esc(F().name)}</span><h1>${esc(S.tournament.name)}</h1>
+      ${a.status === 'done' ? '<p>L’animation est terminée. Merci !</p>' : r ? `<p>Manche ${r.n} · saisissez le score de votre terrain.</p>${r.matches.map(m => matchHTML(r, m, true)).join('')}` : '<p>La première manche n’a pas commencé.</p>'}
+      <h1 style="font-size:20px;margin-top:10px">Classement</h1>${table(10)}</div>`;
+  }
+
+  function render() {
+    if (!S || !S.ani) return;
+    const ae = document.activeElement, focusKey = ae && (ae.dataset.sa || ae.dataset.sb) ? (ae.dataset.sa ? 'sa:' : 'sb:') + (ae.dataset.sa || ae.dataset.sb) : ae && ae.name === 'n' ? 'add' : '';
+    const typed = {}; document.querySelectorAll('[data-sa],[data-sb]').forEach(i => { typed[(i.dataset.sa ? 'sa:' : 'sb:') + (i.dataset.sa || i.dataset.sb)] = i.value; });
+    const addVal = $('#an-add') ? $('#an-add').n.value : '';
+    document.title = S.tournament.name + ' — /RAM JA';
+    $('#app').innerHTML = mode === 'tv' ? tvHTML() : mode === 'remote' ? remoteHTML() : jaHTML();
+    // ce qui était en cours de saisie reste en place après une mise à jour venue d'ailleurs
+    Object.entries(typed).forEach(([k, v]) => { const [w, id] = [k.slice(0, 2), k.slice(3)]; const el = document.querySelector(`[data-${w}="${id}"]`); if (el && v !== '') el.value = v; });
+    if ($('#an-add') && addVal) $('#an-add').n.value = addVal;
+    if (focusKey === 'add' && $('#an-add')) $('#an-add').n.focus();
+    else if (focusKey) { const el = document.querySelector(`[data-${focusKey.slice(0, 2)}="${focusKey.slice(3)}"]`); if (el) el.focus(); }
+    if (mode === 'ja') bindJA(); else if (mode === 'remote') bindScores(document);
+  }
+  // chronomètre : rafraîchi chaque seconde, signal sonore à la fin
+  let rang = null;
+  setInterval(() => {
+    const el = $('#an-t'); if (!el || !S || !A().timer.endsAt) return;
+    const t = left();
+    el.textContent = t === 0 ? 'Temps !' : mmss(t); el.classList.toggle('end', t === 0);
+    if (t === 0 && rang !== A().timer.endsAt && mode !== 'remote') {
+      rang = A().timer.endsAt;
+      try { const c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(); o.frequency.value = 880; o.connect(c.destination); o.start(); setTimeout(() => { o.stop(); c.close(); }, 900); } catch (e) {}
+    }
+  }, 1000);
+
+  if (mode === 'remote' && !pin) askPin(); else connect();
+  if (mode === 'ja') fetch(base + '/info').then(r => r.json()).then(d => { if (d.level === 'owner') { info = d; render(); } }).catch(() => {});
+})();
+</script>
+</body>
+</html>

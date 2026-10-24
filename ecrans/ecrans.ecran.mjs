@@ -153,3 +153,26 @@ test('JA : l’éditeur sur téléphone ne déborde pas et sa barre d’onglets 
   assert.deepEqual(m.errors, []);
   await desk.close(); await ctx.close();
 });
+
+test('JA : animation americano (page du juge-arbitre, TV, saisie des joueurs) sans erreur ni débordement', async () => {
+  const desk = await browser.newContext({ viewport: { width: 1366, height: 860 } });
+  const { page } = await openPage(desk, JA + '/demo');
+  // une animation de 8 joueurs, première manche lancée
+  const id = await page.evaluate(async () => {
+    const d = await fetch('/api/tournaments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'animation', format: 'americano', name: 'Americano test' }) }).then(r => r.json());
+    const act = (type, payload) => fetch('/api/t/' + d.id + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, payload }) });
+    for (let i = 1; i <= 8; i++) await act('ani/player/add', { name: 'Joueur ' + i });
+    await act('ani/round/next', {});
+    return d.id;
+  });
+  assert.ok(id, 'animation non créée');
+  const info = await page.evaluate(async id => fetch('/api/t/' + id + '/info').then(r => r.json()), id);
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 760 }, isMobile: true, hasTouch: true, storageState: await desk.storageState() });
+  for (const [c, url] of [[desk, `${JA}/t/${id}`], [ctx, `${JA}/t/${id}`], [desk, `${JA}/t/${id}/tv?k=${info.key}`], [ctx, `${JA}/t/${id}/remote?pin=${info.pin}`]]) {
+    const o = await openPage(c, url);
+    await o.page.waitForSelector('.an-m, .tvm', { timeout: 5000 }).catch(async () => assert.fail(url + ' : ' + (await o.page.evaluate(() => document.body.innerText.slice(0, 200))) + ' ' + o.errors.join(' ')));
+    assert.ok(await overflow(o.page) <= 1, url + ' déborde horizontalement');
+    assert.deepEqual(o.errors, [], url);
+  }
+  await desk.close(); await ctx.close();
+});

@@ -12,6 +12,8 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
+const Ani = require('./public/js/animation.js');   // animations : americano, mexicano, par équipes, montée-descente
+const reducerOf = T => (Ani.isAnimation(T) ? Ani : Engine);
 const { createStore, norm } = require('./lib/store.js');
 const Backup = require('./lib/backup.js');
 const Retention = require('./lib/retention.js');
@@ -176,7 +178,7 @@ async function getRoom(id) {
   const row = await store.getTournament(id);
   if (!row) return null;
   if (rooms.has(id)) return rooms.get(id);
-  row.state = Engine.migrate(row.state || Engine.initialState());
+  row.state = Ani.isAnimation(row.state) ? row.state : Engine.migrate(row.state || Engine.initialState());
   room = { row, rev: 1, history: [], clients: new Set(), timer: null, seen: Date.now() };
   rooms.set(id, room);
   return room;
@@ -224,7 +226,7 @@ setInterval(() => {
 
 /* droits d'accès à un tournoi */
 const VIEW_ACTIONS = new Set(['noop', 'draw/flip', 'draw/flipRandom']);
-const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/game', 'match/ungame', 'match/server', 'match/start', 'display/set']);
+const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/game', 'match/ungame', 'match/server', 'match/start', 'display/set', 'ani/score']);
 // anti-force brute : au-delà de 10 codes PIN / clés faux en 15 min, l'appareil est bloqué pour ce tournoi
 const accessFails = new Map();
 const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
@@ -245,13 +247,16 @@ async function access(req, url, room) {
 }
 
 async function newTournament(owner, opts) {
-  const state = Engine.initialState();
-  if (opts.demo) Engine.reduce(state, { type: 'demo/load', payload: { n: 16 } });
-  if (opts.profile) Engine.reduce(state, { type: 'profile/apply', payload: { profile: opts.profile } });
-  if (opts.template) Engine.reduce(state, { type: 'template/apply', payload: { template: opts.template } });
+  // animation (americano…) : son propre état, son propre moteur
+  const state = opts.animation ? Ani.initialState(opts.animation) : Engine.initialState();
+  if (!opts.animation) {
+    if (opts.demo) Engine.reduce(state, { type: 'demo/load', payload: { n: 16 } });
+    if (opts.profile) Engine.reduce(state, { type: 'profile/apply', payload: { profile: opts.profile } });
+    if (opts.template) Engine.reduce(state, { type: 'template/apply', payload: { template: opts.template } });
+  }
   if (opts.name) state.tournament.name = opts.name;
   if (opts.example) state.tournament.example = true;   // tournoi d'exemple de l'inscription : hors limite de l'essai
-  if (opts.state) Object.assign(state, Engine.migrate(JSON.parse(JSON.stringify(opts.state))));
+  if (opts.state) Object.assign(state, Ani.isAnimation(opts.state) ? JSON.parse(JSON.stringify(opts.state)) : Engine.migrate(JSON.parse(JSON.stringify(opts.state))));
   const row = { id: Auth.randomId(10), owner, key: Auth.randomId(16), pin: Auth.randomPin(), created_at: Date.now(), updated_at: Date.now(), state };
   await store.saveTournament(row);
   return row;
@@ -270,7 +275,7 @@ async function rememberCourts(room) {
 function applyServerAction(room, action) {
   const before = JSON.stringify(room.row.state);
   const draft = JSON.parse(before);
-  Engine.reduce(draft, action);
+  reducerOf(draft).reduce(draft, action);
   room.history.push(before); if (room.history.length > 60) room.history.shift();
   room.row.state = draft; room.rev++; saveRoom(room); broadcast(room);
 }
@@ -395,6 +400,11 @@ async function ensureClubLinks(log) {
 
 async function closeTournament(room, u) {
   const T = room.row.state;
+  // animation : terminée par son moteur (classement figé), sans résultats FFT à enregistrer
+  if (Ani.isAnimation(T)) {
+    try { applyServerAction(room, { type: 'ani/finish' }); } catch (e) { return { error: e.message }; }
+    return { ok: true, saved: 0, skipped: 0, unfinished: 0, guest: !!u.guest };
+  }
   if (!T.draw || !T.draw.built) return { error: 'Le tirage n\'a pas été fait : rien à clôturer.' };
   const R = Engine.resolve(T);
   const left = T.matches.filter(m => !R[m.id].staticBye && R[m.id].state !== 'done').length;
@@ -556,8 +566,11 @@ const server = http.createServer(async (req, res) => {
         const row = await store.getTournament(m[1]);
         if (!row) return redirect(res, '/app');
         if (!uid || uid !== row.owner) return redirect(res, '/connexion?retour=' + encodeURIComponent(p));
-        return sendFile(res, '/editor.html');
+        return sendFile(res, Ani.isAnimation(row.state) ? '/animation.html' : '/editor.html');
       }
+      // animation : une seule page, qui s'adapte (écran TV, saisie des scores par les joueurs)
+      const room = await getRoom(m[1]).catch(() => null);
+      if (room && Ani.isAnimation(room.row.state)) return sendFile(res, '/animation.html');
       return sendFile(res, '/' + PAGES[m[2]]);
     }
     // anciennes adresses de la version 1
@@ -807,6 +820,8 @@ const server = http.createServer(async (req, res) => {
         accessCache.delete(u.id);
         const b = await readBody(req);
         let opts = { name: b.name, demo: !!b.demo, profile: u.guest ? null : await store.getProfile(u.id) };
+        // animation (americano, mexicano, par équipes, montée-descente)
+        if (b.kind === 'animation') opts = { animation: { format: b.format, name: b.name, club: (opts.profile && opts.profile.club) || u.club || '' } };
         if (b.template) {
           const mine = await store.getTemplates(u.id);
           opts.template = Engine.PRESETS.find(t => t.id === b.template) || mine.find(t => t.id === b.template);
@@ -841,6 +856,7 @@ const server = http.createServer(async (req, res) => {
         const st = JSON.parse(JSON.stringify(room.row.state));
         delete st.tournament.example;
         Object.assign(st, { pairs: [], draw: null, matches: [], poules: [] });
+        if (Ani.isAnimation(st)) { Object.assign(st.ani, { players: [], rounds: [], status: 'setup', seed: Math.floor(Math.random() * 1e9) }); st.ani.timer.endsAt = null; st.tournament.closed = false; st.tournament.closedAt = null; }
         st.tournament.name = st.tournament.name + ' (copie)';
         const row = await newTournament(u.id, { state: st });
         return json(res, 200, { id: row.id });
@@ -1121,7 +1137,7 @@ const server = http.createServer(async (req, res) => {
         if (action.type === 'noop') return json(res, 200, { ok: true, rev: room.rev });
         const before = JSON.stringify(room.row.state);
         const draft = JSON.parse(before);
-        try { Engine.reduce(draft, action); } catch (e) { return json(res, 400, { error: e.message }); }
+        try { reducerOf(draft).reduce(draft, action); } catch (e) { return json(res, 400, { error: e.message }); }
         if (!/^match\/(point|undoPoint|game|ungame)$/.test(action.type)) { room.history.push(before); if (room.history.length > 60) room.history.shift(); }
         room.row.state = draft; room.rev++; saveRoom(room); broadcast(room);
         // terrains renommés / ajoutés / supprimés : mémorisés aussitôt dans les réglages du compte
