@@ -33,6 +33,19 @@ const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, on
 const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
 const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
+/* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
+const titlesCache = new Map();
+async function jaTitlesOf(spaceId) {
+  const c = titlesCache.get(spaceId);
+  if (c && Date.now() - c.at < 600000) return c.map;
+  const g = await ram.groupsOf(spaceId), map = {};
+  for (const [key, userId] of Object.entries((g && g.users) || {})) {
+    const id = await store.getIdentity(userId).catch(() => null);
+    if (id && Array.isArray(id.jaTitles) && id.jaTitles.length) map[key] = id.jaTitles;
+  }
+  titlesCache.set(spaceId, { at: Date.now(), map });
+  return map;
+}
 /* identité du club : celle de son espace /RAM Club (logo, sigle, couleur, adresse, terrains) recopiée dans le
    référentiel des clubs, et reprise par /RAM JA pour les nouveaux tournois */
 async function syncClubIdentity(spaceId) {
@@ -770,7 +783,7 @@ const server = http.createServer(async (req, res) => {
       } else if (b.name != null) u.name = String(b.name).trim().slice(0, 80);
       if (b.jaTitles != null) {   // titres de juge-arbitre : un pour le tennis, un pour le padel, au plus
         const list = (Array.isArray(b.jaTitles) ? b.jaTitles : []).map(x => String(x).toUpperCase());
-        id.jaTitles = Object.values(JA_TITLES).map(set => list.find(x => set.includes(x))).filter(Boolean); changed = true; refDir = null;
+        id.jaTitles = Object.values(JA_TITLES).map(set => list.find(x => set.includes(x))).filter(Boolean); changed = true; refDir = null; titlesCache.clear();
       }
       if (b.avatar != null) {   // photo de profil : image réduite (data URL), ou '' pour la retirer
         const a = String(b.avatar);
@@ -851,6 +864,8 @@ const server = http.createServer(async (req, res) => {
       }
       if (m && m[2] === 'sync') {
         const out = await ram.sync(u.id, m[1], url.searchParams.get('since'));
+        // titres de juge-arbitre /RAM JA des adhérents (badge dans le club), au premier chargement
+        if (out && !+url.searchParams.get('since')) out.jaTitles = await jaTitlesOf(m[1]).catch(() => ({}));
         return out ? json(res, 200, out) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
       }
       if (m && req.method === 'POST') {
@@ -993,7 +1008,11 @@ const server = http.createServer(async (req, res) => {
       }
       const q = norm(url.searchParams.get('q') || '');
       const hit = r => !q || norm(`${r.first} ${r.last}`).includes(q) || norm(`${r.last} ${r.first}`).includes(q);
-      return json(res, 200, { referees: refDir.list.filter(hit).slice(0, 20) });
+      // les juges-arbitres de mon club d'abord (« mon club » dans la liste)
+      const mine = u.club_id ? clubs.name(u.club_id) : '';
+      const list = refDir.list.filter(hit).map(r => Object.assign({}, r, { sameClub: !!mine && r.club === mine }));
+      list.sort((a, b) => Number(b.sameClub) - Number(a.sameClub));
+      return json(res, 200, { referees: list.slice(0, 20) });
     }
     /* s'inscrire (ou se désinscrire) à un tournoi /RAM JA depuis /RAM Club */
     if ((p === '/api/ja/inscription' || p === '/api/ja/desinscription') && req.method === 'POST') {

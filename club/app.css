@@ -697,3 +697,4 @@ body{touch-action:manipulation}
 /* agenda : parties (libres, dirigées), tournois /RAM JA, repas au bar */
 .jeu{--c:var(--padel);--oc:#fff}.tour{--c:var(--accent2,var(--hot));--oc:#fff}.repas{--c:var(--muted);--oc:var(--bg)}
 .plan-scope{margin-bottom:4px}
+.bd.ja{background:var(--fg);color:var(--bg)}

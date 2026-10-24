@@ -1524,6 +1524,7 @@
     R.roles = d.roles || {};
     R.scores = d.scores || {};
     R.counts = d.counts || {};
+    R.jaTitles = d.jaTitles || {}; // titres de juge-arbitre /RAM JA des adhérents (badge)
     R.wallet = d.wallet || null; // points bar (gagnés en consommant au bar), calculés par le serveur
     R.base = new Map();
     R.bad = new Map();

@@ -283,7 +283,7 @@
     const load = text => fetch('/api/referees?q=' + encodeURIComponent(text || '')).then(r => r.json()).then(d => {
       found = d.referees || [];
       const dl = document.getElementById('ram-ja') || (document.querySelector('.rail') || document.body).appendChild(Object.assign(document.createElement('datalist'), { id: 'ram-ja' }));
-      dl.innerHTML = found.map(r => `<option value="${q(label(r))}">${q([r.titles.join(' · '), r.club].filter(Boolean).join(' — '))}</option>`).join('');
+      dl.innerHTML = found.map(r => `<option value="${q(label(r))}">${q([r.titles.join(' · '), r.sameClub ? 'mon club' : r.club].filter(Boolean).join(' — '))}</option>`).join('');
     }).catch(() => {});
     document.addEventListener('focusin', e => { if (isJa(e.target)) { e.target.setAttribute('list', 'ram-ja'); if (!found.length) load(''); } });
     document.addEventListener('input', e => { if (!isJa(e.target)) return; clearTimeout(timer); timer = setTimeout(() => load(e.target.value.trim()), 200); });

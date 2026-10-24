@@ -26,7 +26,7 @@ test('titres de juge-arbitre et juges-arbitres proposés', async () => {
     assert.deepEqual(me.jaTitles, ['JAT1', 'JAP2']);
     const list = (await b('/api/referees?q=mart')).referees;
     assert.equal(list.length, 1);
-    assert.deepEqual(list[0], { id: list[0].id, first: 'Alice', last: 'MARTIN', titles: ['JAT1', 'JAP2'], club: 'TC Test' });
+    assert.deepEqual(list[0], { id: list[0].id, first: 'Alice', last: 'MARTIN', titles: ['JAT1', 'JAP2'], club: 'TC Test', sameClub: true });
     assert.equal(list[0].email, undefined);
     // retirer ses titres : plus proposé
     await a('/api/me', { jaTitles: [] });

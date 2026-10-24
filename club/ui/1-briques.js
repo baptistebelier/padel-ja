@@ -40,7 +40,9 @@ function bd(id, sport) {
   if (id === 'club') return '<span class="bds"><span class="bd club">Club</span></span>';
   const m = M[id],
     r = rk(id, sport);
-  return `<span class="bds">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}${r ? `<span class="bd rk">${r}</span>` : ''}</span>`;
+  // juge-arbitre /RAM JA : son titre (JAP2, JAT1…) en badge
+  const ja = (window.RAM && RAM.jaTitles && RAM.jaTitles[id]) || [];
+  return `<span class="bds">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}${r ? `<span class="bd rk">${r}</span>` : ''}${ja.length ? `<span class="bd ja" title="Juge-arbitre /RAM JA">JA ${ja.join(' · ')}</span>` : ''}</span>`;
 }
 const who = id =>
   id === 'club' || id === ME()
@@ -79,4 +81,3 @@ function recCard(r) {
  <span class="vs"><span class="t">${teamName(g)}<br><span class="muted small" style="font-weight:500">${club().name}</span></span><span class="n" data-live2="${r.id}">${r.st === 'soon' ? '–' : `<b>${s[0]}</b> · ${s[1]}`}</span><span class="t">${r.opp}</span></span>
  <span class="muted small">${r.comp} · ${r.when}</span></button>`;
 }
-
