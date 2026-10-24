@@ -51,4 +51,11 @@ jobs:
         run: npx playwright install-deps chromium
       - name: Tests d'écran
         timeout-minutes: 4
-        run: npm run test:ecrans
+        shell: bash
+        # en cas d'échec, les erreurs sont aussi publiées en annotations (lisibles sans ouvrir le journal)
+        run: |
+          set -o pipefail
+          npm run test:ecrans 2>&1 | tee ecrans.log || {
+            grep -E "✖|Error|error|expected|actual|AssertionError|ERR_" ecrans.log | head -25 | sed 's/^/::error::/'
+            exit 1
+          }
