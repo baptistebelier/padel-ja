@@ -34,9 +34,16 @@ const progression = require('./lib/progression.js').createProgression({ store, r
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres   // trophées et points de chaque adhérent, par club et saison
 /* le club d'un compte suit son club /RAM Club (adhésion validée la plus récente) ;
    sans club /RAM Club, il garde celui qu'il a choisi */
+/* club principal d'un compte (celui de sa licence) : celui qu'il a choisi parmi ses clubs /RAM Club,
+   sinon son adhésion validée la plus récente ; les autres sont ses clubs secondaires */
+async function mainClubOf(userId) {
+  const id = await store.getIdentity(userId).catch(() => null), want = id && id.mainClub;
+  if (want && (await store.listMemberships('user_id', userId)).some(r => r.source === 'ramclub' && r.status === 'actif' && r.club_id === want)) return want;
+  return adhesions.ramClubOf(userId);
+}
 async function followRamClub(userId) {
   const u = await store.getUser(userId); if (!u || u.guest) return;
-  const clubId = await adhesions.ramClubOf(userId); if (!clubId || clubId === u.club_id) return;
+  const clubId = await mainClubOf(userId); if (!clubId || clubId === u.club_id) return;
   u.club = clubs.name(clubId); await store.saveUser(u);
   await syncAccountPlayer(u).catch(() => {});
 }
@@ -745,7 +752,7 @@ const server = http.createServer(async (req, res) => {
         id.avatar = a; changed = true;
       }
       // le club d'un adhérent /RAM Club est celui de /RAM Club : il ne se change pas ici
-      if (b.club != null && !(await adhesions.ramClubOf(u.id).catch(() => null))) u.club = String(b.club).trim().slice(0, 120);
+      if (b.club != null && !(await mainClubOf(u.id).catch(() => null))) u.club = String(b.club).trim().slice(0, 120);
       await store.saveUser(u);
       if (changed) await store.saveIdentity(u.id, id);
       await syncAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // la fiche joueur suit le profil
@@ -773,7 +780,21 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req);
       if (!u || u.guest) return json(res, 401, { error: 'Connectez-vous avec votre compte /RAM.' });
       const fail = e => json(res, 400, { error: e.message });
-      if (p === '/api/ram/clubs' && req.method === 'GET') return json(res, 200, { clubs: await ram.myClubs(u.id) });
+      // mes clubs /RAM Club, avec le club du référentiel et lequel est mon club principal
+      if (p === '/api/ram/clubs' && req.method === 'GET') {
+        const main = await mainClubOf(u.id).catch(() => null), sps = await ram.spaces();
+        return json(res, 200, { clubs: (await ram.myClubs(u.id)).map(c => { const cid = (sps.find(s => s.id === c.id) || {}).club_id || null; return Object.assign(c, { clubId: cid, main: !!cid && cid === main }); }) });
+      }
+      // choisir son club principal (celui de sa licence) parmi ses clubs
+      if (p === '/api/ram/main' && req.method === 'POST') {
+        const b = await readBody(req), sp = (await ram.spaces()).find(s => s.id === b.id);
+        const me = sp && await ram.memberInfo(sp.id, u.id);
+        if (!me || !me.valid || !sp.club_id) return json(res, 400, { error: 'Choisissez un club dont l’adhésion est validée.' });
+        const id = Object.assign({}, await store.getIdentity(u.id).catch(() => null), { mainClub: sp.club_id });
+        await store.saveIdentity(u.id, id);
+        await followRamClub(u.id);
+        return json(res, 200, { ok: true });
+      }
       if (p === '/api/ram/clubs' && req.method === 'POST') {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
         // l'espace /RAM Club est relié au club du référentiel (créé s'il n'y est pas encore)
@@ -960,7 +981,7 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       const id = await store.getIdentity(u.id).catch(() => null);
       const rows = await adhesions.ofUser(u.id, id && id.player).catch(() => []);
-      const managed = await adhesions.ramClubOf(u.id).catch(() => null);
+      const managed = await mainClubOf(u.id).catch(() => null);
       const prog = await progression.ofUser(u.id).catch(() => []), grs = await groupes.ofUser(u.id).catch(() => []);
       return json(res, 200, { season: adhesions.seasonOf(), managed: managed ? { clubId: managed, club: clubs.name(managed) } : null, memberships: rows.map(r => ({ clubId: r.club_id, club: clubs.name(r.club_id), role: r.role, status: r.status, season: r.season, source: r.source, licenceClub: !!r.licence_club })),
         // progression /RAM Club : points et trophées, par club et par saison
