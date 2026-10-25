@@ -32,6 +32,67 @@ function jaMine(ja) {
 const jaPostBody = postBody;
 postBody = p => (p.kind === 'jatour' && p.ja ? jaBody(p) : jaPostBody(p));
 
+/* le direct du tournoi (ou de l'animation), tenu à jour par /RAM JA : en cours, à venir, derniers résultats */
+function jaDirect(ja) {
+  const d = ja.direct;
+  if (!d) return '';
+  const row = (l, r, cls) =>
+    `<div class="price${cls ? ' ' + cls : ''}"><span>${l}</span>${r != null && r !== '' ? `<span class="nb">${r}</span>` : ''}</div>`;
+  const sub = t => `<span class="kicker">${t}</span>`;
+  let h = '';
+  if (ja.ani) {
+    h +=
+      sub('Manche ' + d.round) +
+      (d.on || [])
+        .map(m =>
+          row(
+            `<span class="muted small">${esc(m.c)}</span><br>${esc(m.a)} – ${esc(m.b)}`,
+            m.done || m.sa != null ? esc(m.sa) + ' – ' + esc(m.sb) : 'En jeu'
+          )
+        )
+        .join('');
+    if ((d.top || []).length)
+      h += sub('Classement') + d.top.map((x, i) => row(`<b>${i + 1}</b> ${esc(x.n)}`, x.pts + ' pts')).join('');
+  } else {
+    if ((d.on || []).length)
+      h +=
+        sub('En cours') +
+        d.on
+          .map(m =>
+            row(
+              `<span class="muted small">${esc(m.c)} · ${esc(m.l)}</span><br>${esc(m.a)}<br>${esc(m.b)}`,
+              esc(m.s || '0-0'),
+              'on'
+            )
+          )
+          .join('');
+    if ((d.up || []).length)
+      h +=
+        sub('À venir') +
+        d.up
+          .map(m =>
+            row(
+              `<span class="muted small">${jaHour(m.at)}${m.c ? ' · ' + esc(m.c) : ''} · ${esc(m.l)}</span><br>${esc(m.a)} – ${esc(m.b)}`
+            )
+          )
+          .join('');
+    if ((d.last || []).length)
+      h +=
+        sub('Derniers résultats') +
+        d.last
+          .map(m =>
+            row(`<span class="muted small">${esc(m.l)}</span><br><b>${esc(m.w)}</b> bat ${esc(m.lo)}`, esc(m.s))
+          )
+          .join('');
+  }
+  if (!h) return '';
+  const live = ja.ani ? (d.on || []).filter(m => !m.done).length : (d.on || []).length,
+    tv = ja.tv
+      ? `<a class="btn ghost full" href="${/^club\./.test(location.hostname) ? 'https://ja.riseandmove.fr' : ''}${esc(ja.tv)}" target="_blank" rel="noopener">Grand écran du tournoi ${ic('link')}</a>`
+      : '';
+  return `<details class="more ja-direct"><summary>${ic('score')}Suivre le direct${live ? ` <span class="tag hot">${live} en jeu</span>` : ''}</summary><div class="in">${h}${tv}</div></details>`;
+}
+
 function jaBody(p) {
   const ja = p.ja,
     fam = jaFamily(),
@@ -77,5 +138,5 @@ function jaBody(p) {
   const res = (ja.results || []).length
     ? `<div class="ja-res"><span class="kicker">Résultats</span>${ja.results.map(r => `<div class="price ${(r.k || []).some(k => me.includes(k)) ? 'me' : ''}"><span><b>${jaPlace(r.place, r.lo)}</b> ${esc(r.n)}</span>${(r.k || []).length ? '<span class="tag lime">Club</span>' : ''}</div>`).join('')}</div>`
     : '';
-  return `<span class="kicker">${kicker}</span><h2 class="tilt sm">${esc(p.title || 'Tournoi')}</h2><div class="ev">${meta}${status}${ja.prize ? `<p class="muted small">Dotation : ${esc(ja.prize)}</p>` : ''}${res}${next}${ja.status !== 'done' ? reg : ''}${list}</div>`;
+  return `<span class="kicker">${kicker}</span><h2 class="tilt sm">${esc(p.title || 'Tournoi')}</h2><div class="ev">${meta}${status}${ja.prize ? `<p class="muted small">Dotation : ${esc(ja.prize)}</p>` : ''}${res}${next}${ja.status !== 'done' ? reg : ''}${jaDirect(ja)}${list}</div>`;
 }

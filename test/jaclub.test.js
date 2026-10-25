@@ -126,5 +126,11 @@ test('horaire du prochain match publié pour les paires du club après le tirage
     assert.ok(mine.next.court, 'terrain du match');
     assert.match(mine.next.vs, /\//);
     assert.equal(p.data.ja.list.filter(x => x.next).length, 1, 'seulement pour les paires du club');
+    // le direct pour tous : matchs à venir avec horaire, terrain et paires ; lien vers le grand écran en lecture seule
+    const d = p.data.ja.direct;
+    assert.ok(d && d.up.length >= 1, 'matchs à venir');
+    assert.ok(d.up[0].at > 0 && d.up[0].c && /\//.test(d.up[0].a));
+    assert.match(p.data.ja.tv, new RegExp('^/t/' + tid + '/tv\\?k=\\w+'));
+    assert.equal((await fetch(B + p.data.ja.tv)).status, 200);
   } finally { srv.kill(); }
 });

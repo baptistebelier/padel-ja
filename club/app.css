@@ -693,6 +693,12 @@ body{touch-action:manipulation}
 /* tournois /RAM JA publiés */
 .ja-res{display:grid;gap:0}
 .ja-res .price.me{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.ja-direct .kicker{margin-top:6px}
+.ja-direct .price b{font:inherit;font-weight:700;white-space:normal}
+.ja-direct .price>span:first-child{min-width:0}
+.ja-direct .price .nb{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.ja-direct .price.on .nb{color:var(--accent)}
+.ja-direct summary svg{width:20px;height:20px;flex:none}
 .note.ok svg{width:20px;height:20px;flex:none}
 /* agenda : parties (libres, dirigées), tournois /RAM JA, repas au bar */
 .jeu{--c:var(--padel);--oc:#fff}.tour{--c:var(--accent2,var(--hot));--oc:#fff}.repas{--c:var(--muted);--oc:var(--bg)}
