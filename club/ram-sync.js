@@ -1693,6 +1693,11 @@
     closeSheet();
     start(d.id).catch(x => toast(x.message));
   };
+  /* notification d'un autre de mes clubs : on ouvre ce club, puis l'écran concerné */
+  window.ramOpen = async (id, url) => {
+    if (id !== R.club && R.clubs.some(c => c.id === id)) await start(id).catch(x => toast(x.message));
+    if (id === R.club) openFromUrl(url);
+  };
   /* mes clubs : le principal (celui de ma licence, repris par /RAM JA) et les secondaires (adhérent, autre sport…) */
   const ROLE_L = { bureau: 'Bureau', coach: 'Enseignant', mem: 'Adhérent' };
   A.ramClubs = () => {
@@ -2012,9 +2017,11 @@
       R.user = me.user && !me.user.guest ? me.user : null;
       if (R.user) {
         R.clubs = (await api('/api/ram/clubs')).clubs;
-        const want = LS.get('ram-club'),
-          c = R.clubs.find(x => x.id === want) || R.clubs[0];
+        const fromUrl = (location.hash.match(/[?&]club=([\w-]+)/) || [])[1],
+          want = LS.get('ram-club'),
+          c = R.clubs.find(x => x.id === fromUrl) || R.clubs.find(x => x.id === want) || R.clubs[0];
         if (c) await start(c.id);
+        if (c && location.hash) openFromUrl(location.hash); // ouvert depuis une notification
       }
     } catch (x) {
       console.warn('/RAM Club : démarrage', x.message);

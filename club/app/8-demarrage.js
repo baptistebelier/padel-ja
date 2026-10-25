@@ -247,6 +247,12 @@ matchMedia('(min-width:1024px)').addEventListener('change', () => {
 function openFromUrl(u) {
   const m = String(u || '').match(/#\/([a-z]+)(?:\/([^/?#]+))?/i);
   if (!m) return false;
+  // notification d'un autre de mes clubs : ce club s'ouvre d'abord
+  const cl = (String(u).match(/[?&]club=([\w-]+)/) || [])[1];
+  if (cl && window.RAM && RAM.club && cl !== RAM.club && window.ramOpen) {
+    ramOpen(cl, String(u).replace(/[?&]club=[\w-]+/, ''));
+    return true;
+  }
   const [, v, id] = m;
   closeSheet();
   if (v === 'ecole' || (v === 'agenda' && id === 'cours')) {
@@ -289,31 +295,47 @@ if ('serviceWorker' in navigator)
     if (e.data && e.data.type === 'open') openFromUrl(e.data.url);
   });
 
-/* ---------- Notifications push : abonnement (préparé, en attente du serveur) ----------
-   À BRANCHER CÔTÉ SERVEUR :
-   1. Générer une paire de clés VAPID (ex. « npx web-push generate-vapid-keys ») et coller la clé PUBLIQUE ci-dessous.
-   2. Envoyer l'abonnement retourné par pushSubscribe() (sub.toJSON()) à l'API du club, avec l'identifiant de l'adhérent,
-      par exemple POST /api/push/subscribe { memberId, club, subscription } (voir le TODO dans pushSubscribe).
-   3. Côté serveur, envoyer les notifications avec la clé PRIVÉE (bibliothèque web-push), au format attendu par sw.js :
-      {"title":"…","body":"…","url":"#/rec/r1","tag":"direct-r1"}.
-   Sans clé, ou si le navigateur ne connaît pas le push (iPhone hors appli installée, iOS < 16.4…), rien n'est bloqué. */
-const VAPID_PUBLIC_KEY = '';
+/* ---------- Notifications push : abonnement de ce téléphone ----------
+   La clé publique vient du serveur (/api/ram/push/key) ; l'abonnement est rattaché au compte connecté.
+   Le serveur envoie {"title":"…","body":"…","url":"#/post/p1","tag":"post-p1"} (voir sw.js).
+   Sans serveur (démo) ou si le navigateur ne connaît pas le push (iPhone hors appli installée, iOS < 16.4…), rien n'est bloqué. */
 const pushReady = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 function b64ToU8(s) {
   const p = '='.repeat((4 - (s.length % 4)) % 4),
     b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/'));
   return Uint8Array.from([...b].map(c => c.charCodeAt(0)));
 }
-async function pushSubscribe() {
-  if (!VAPID_PUBLIC_KEY || !pushReady()) return null;
+async function pushKey() {
+  const r = await fetch('/api/ram/push/key', { credentials: 'include' });
+  const d = await r.json().catch(() => ({}));
+  return r.ok && d.key ? d.key : '';
+}
+/* ask : demander l'autorisation (bouton « Activer ») ; sinon, seulement renouveler un abonnement déjà autorisé */
+async function pushSubscribe(ask) {
+  if (!pushReady() || (!ask && Notification.permission !== 'granted')) return null;
   try {
-    if ((await Notification.requestPermission()) !== 'granted') return null;
+    const key = await pushKey();
+    if (!key) return null;
+    if (ask && (await Notification.requestPermission()) !== 'granted') return null;
     const reg = await navigator.serviceWorker.ready;
-    const sub =
-      (await reg.pushManager.getSubscription()) ||
-      (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(VAPID_PUBLIC_KEY) }));
-    /* TODO serveur : await fetch('/api/push/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({memberId:ME(),subscription:sub.toJSON()})}); */
-    return sub;
+    let sub = await reg.pushManager.getSubscription();
+    // abonnement créé avec une autre clé : on le remplace
+    if (sub && sub.options && sub.options.applicationServerKey) {
+      const old = new Uint8Array(sub.options.applicationServerKey),
+        k = b64ToU8(key);
+      if (old.length !== k.length || old.some((x, i) => x !== k[i])) {
+        await sub.unsubscribe();
+        sub = null;
+      }
+    }
+    sub = sub || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) }));
+    const r = await fetch('/api/ram/push/subscribe', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON() })
+    });
+    return r.ok ? sub : null;
   } catch (e) {
     return null;
   }
@@ -327,17 +349,21 @@ A.pushOn = async () => {
     );
     return;
   }
-  if (!VAPID_PUBLIC_KEY) {
-    toast('Les notifications sur le téléphone arriveront quand le serveur du club sera branché');
+  if (!window.RAM) {
+    toast("Les notifications sur le téléphone fonctionnent dans l'appli du club, une fois connecté");
     return;
   }
-  const sub = await pushSubscribe();
+  const sub = await pushSubscribe(true);
   toast(
     sub
       ? 'Notifications activées sur ce téléphone'
-      : 'Notifications non autorisées : tu peux changer ça dans les réglages du téléphone'
+      : Notification.permission === 'denied'
+        ? 'Notifications refusées : tu peux changer ça dans les réglages du téléphone'
+        : "Les notifications n'ont pas pu être activées, réessaie dans un instant"
   );
 };
+// déjà autorisées sur ce téléphone : l'abonnement est renouvelé et rattaché au compte connecté
+window.addEventListener('load', () => setTimeout(() => window.RAM && pushSubscribe(false), 4000));
 
 /* L'appli installable (index.html, avec manifeste) enregistre le service worker ; la version de démo n'en a pas */
 const isPWAPage = !!document.querySelector('link[rel="manifest"]');

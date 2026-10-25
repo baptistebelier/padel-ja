@@ -33,6 +33,8 @@ const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, on
 const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
 const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
+const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m) });   // notifications sur le téléphone
+require('./lib/pushnotif.js').createNotifier({ ram, push, log: m => console.warn('/RAM Club : ' + m) });   // qui prévenir à chaque changement d'un club
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
 async function jaTitlesOf(spaceId) {
@@ -823,6 +825,16 @@ const server = http.createServer(async (req, res) => {
       if (p === '/api/ram/clubs' && req.method === 'GET') {
         const main = await mainClubOf(u.id).catch(() => null), sps = await ram.spaces();
         return json(res, 200, { clubs: (await ram.myClubs(u.id)).map(c => { const cid = (sps.find(s => s.id === c.id) || {}).club_id || null; return Object.assign(c, { clubId: cid, main: !!cid && cid === main }); }) });
+      }
+      // notifications sur le téléphone : clé publique, abonnement de cet appareil, désabonnement
+      if (p === '/api/ram/push/key' && req.method === 'GET') return json(res, 200, { key: await push.publicKey() });
+      if (p === '/api/ram/push/subscribe' && req.method === 'POST') {
+        const b = await readBody(req);
+        return push.subscribe(u.id, b.subscription, req.headers['user-agent']).then(() => json(res, 200, { ok: true }), fail);
+      }
+      if (p === '/api/ram/push/unsubscribe' && req.method === 'POST') {
+        const b = await readBody(req);
+        return push.unsubscribe(String(b.endpoint || '')).then(() => json(res, 200, { ok: true }), fail);
       }
       // choisir son club principal (celui de sa licence) parmi ses clubs
       if (p === '/api/ram/main' && req.method === 'POST') {
