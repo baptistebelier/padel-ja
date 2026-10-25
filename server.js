@@ -1030,7 +1030,7 @@ const server = http.createServer(async (req, res) => {
     if ((p === '/api/ja/inscription' || p === '/api/ja/desinscription') && req.method === 'POST') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connectez-vous avec votre compte /RAM.' });
       const b = await readBody(req);
-      try { return json(res, 200, p === '/api/ja/inscription' ? await jaClub.register(u, String(b.tid || ''), b.partner || null) : await jaClub.unregister(u, String(b.tid || ''))); }
+      try { return json(res, 200, p === '/api/ja/inscription' ? await jaClub.register(u, String(b.tid || ''), b.partner || null, b.kid ? String(b.kid) : null) : await jaClub.unregister(u, String(b.tid || ''), b.kid ? String(b.kid) : null)); }
       catch (e) { return json(res, 400, { error: e.message }); }
     }
     /* mes clubs : adhésions de mon compte et de ma fiche joueur, saison par saison */

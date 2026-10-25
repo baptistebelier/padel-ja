@@ -45,6 +45,18 @@ test('tournoi et animation /RAM JA publiés sur /RAM Club, inscriptions depuis l
     assert.equal(p.data.ja.count, 1);
     assert.equal(p.data.ja.list[0].k1, j.key, 'l’adhérent est reconnu dans la liste');
     assert.equal(p.data.ja.list[0].n2, 'Paul DUPONT');
+    // un parent inscrit son enfant (sans compte) en plus de lui-même ; personne d'autre ne peut l'inscrire
+    const kid = 'k' + Date.now();
+    await mem(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'member', id: kid, op: 'put', data: { n: 'Léo Test', parent: j.key, role: 'Jeune' } }] });
+    const kr = await mem('/api/ja/inscription', { tid, kid, partner: { last: 'Petit', first: 'Tom' } });
+    assert.equal(kr.ok, true, JSON.stringify(kr));
+    assert.match((await mem('/api/ja/inscription', { tid, kid, partner: { last: 'Roux' } })).error, /Léo est déjà inscrit/);
+    assert.match((await bur('/api/ja/inscription', { tid, kid, partner: { last: 'Roux' } })).error, /que tes enfants/);
+    await wait(2600);
+    p = await post();
+    assert.equal(p.data.ja.count, 2);
+    assert.ok(p.data.ja.list.some(x => x.k1 === kid && x.n1 === 'Léo TEST'), 'l’enfant est reconnu dans la liste');
+    assert.equal((await mem('/api/ja/desinscription', { tid, kid })).ok, true);
     // désinscription avant le tirage
     assert.equal((await mem('/api/ja/desinscription', { tid })).ok, true);
     // inscriptions ailleurs : plus de bouton dans l'appli
