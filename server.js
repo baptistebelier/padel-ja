@@ -480,6 +480,20 @@ async function aniParticipations(room) {
   await store.addParticipations(rows);
 }
 
+/* clubs probablement en double : même clé à une lettre près, ou l'un contient l'autre (« TC Brive » / « Tennis Club Brive ») */
+function probableDoubles(list) {
+  const key = s => clubs.clubKey(String(s).replace(/\b(tennis|padel|club|tc|pc|asso|association|sporting|de|du|des|la|le|les)\b/gi, ' '));
+  const lev = (a, b) => { if (Math.abs(a.length - b.length) > 2) return 9; const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
+  const out = [];
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    const a = key(list[i].name), b = key(list[j].name);
+    if (a.length < 3 || b.length < 3) continue;
+    if (a === b || lev(a, b) <= 1 || (Math.min(a.length, b.length) >= 5 && (a.includes(b) || b.includes(a)))) out.push([list[i].id, list[j].id]);
+  }
+  return out.slice(0, 50);
+}
+
 async function closeTournament(room, u) {
   const T = room.row.state;
   // animation : terminée par son moteur (classement figé), sans résultats FFT à enregistrer
@@ -769,6 +783,29 @@ const server = http.createServer(async (req, res) => {
         if (!until && x.plan === 'actif') { x.plan = 'essai'; await store.saveUser(x); }
         accessCache.delete(x.id);
         return json(res, 200, { ok: true, access: await accessFor(x) });
+      }
+      // référentiel des clubs : liste avec ce qui y est rattaché, doublons probables, fusion
+      if (p === '/api/admin/clubs' && req.method === 'GET') {
+        await clubs.load();
+        const users = (await store.listUsers()).filter(x => !x.guest), tours = await store.listAllTournaments(), sps = await ram.spaces();
+        const n = (l, id) => l.filter(x => x.club_id === id).length;
+        const list = clubs.list().map(c => ({ id: c.id, name: c.name, city: c.city || '', address: c.address || '', users: n(users, c.id), tournaments: n(tours, c.id), spaces: sps.filter(s => s.club_id === c.id).map(s => s.name) }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+        return json(res, 200, { clubs: list, doubles: probableDoubles(list) });
+      }
+      if (p === '/api/admin/clubs/merge' && req.method === 'POST') {
+        const b = await readBody(req), from = String(b.from || ''), to = String(b.to || '');
+        try {
+          if (!clubs.get(from) || !clubs.get(to) || from === to) throw new Error('Choisissez deux clubs différents du référentiel.');
+          for (const s of (await ram.spaces()).filter(s => s.club_id === from)) await ram.linkClub(s.id, to);   // espaces /RAM Club d'abord
+          const kept = await clubs.merge(from, to);
+          // club principal (licence) choisi dans /RAM Club
+          for (const x of await store.listIdentities().catch(() => [])) if (x.identity && x.identity.mainClub === from) await store.saveIdentity(x.owner, Object.assign({}, x.identity, { mainClub: to }));
+          // adhésions, progression et groupes refaits sous le bon club ; comptes rattachés recalculés
+          for (const x of (await store.listUsers()).filter(x => !x.guest && x.club_id === to)) { const id = await store.getIdentity(x.id).catch(() => null); await adhesions.syncAccount(x, id && id.player).catch(() => {}); }
+          await adhesions.syncAllSpaces(); await progression.syncAllSpaces(); await groupes.syncAllSpaces();
+          return json(res, 200, { ok: true, club: kept });
+        } catch (e) { return json(res, 400, { error: e.message }); }
       }
       // sauvegardes : liste, sauvegarde immédiate, téléchargement
       if (p === '/api/admin/backups' && req.method === 'GET') {

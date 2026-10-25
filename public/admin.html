@@ -31,6 +31,18 @@
     <div id="backups"><p class="muted">Chargement…</p></div>
   </section>
   <section class="card">
+    <span class="eyebrow">Référentiel des clubs</span>
+    <h2 class="h2s">Clubs en double</h2>
+    <p class="muted small">Un même club saisi sous deux noms (« TC Brive » et « Tennis Club de Brive ») ? Fusionnez-les : comptes, fiches joueurs, tournois, résultats et applis /RAM Club passent au club gardé, et l'autre nom reste reconnu.</p>
+    <div id="cdoubles"><p class="muted">Chargement…</p></div>
+    <form id="cmerge" class="cmerge">
+      <label>Club à fusionner (disparaît)<select name="from" required></select></label>
+      <label>Club gardé<select name="to" required></select></label>
+      <button class="btn sm danger" type="submit">Fusionner</button>
+    </form>
+    <p class="small" id="cmsg" role="status"></p>
+  </section>
+  <section class="card">
     <span class="eyebrow">Base de joueurs</span>
     <h2 class="h2s">Droit à l'effacement (RGPD)</h2>
     <p class="muted small">Un joueur demande la suppression de ses données ? Recherchez-le puis supprimez sa fiche : son historique de tournois est effacé de la base partagée.</p>
@@ -111,6 +123,39 @@
     });
   };
   $('#pq').oninput = () => { clearTimeout(qt); qt = setTimeout(search, 200); };
+
+  // clubs en double : suggestions, puis fusion confirmée
+  let CL = [];
+  const clLabel = c => `${c.name}${c.city ? ' (' + c.city + ')' : ''} · ${c.users} compte(s), ${c.tournaments} tournoi(s)${c.spaces.length ? ', appli /RAM Club' : ''}`;
+  async function loadClubs() {
+    const d = await api('/api/admin/clubs').catch(e => ({ error: e.message }));
+    if (d.error) { $('#cdoubles').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }
+    CL = d.clubs;
+    const byId = id => CL.find(c => c.id === id);
+    $('#cdoubles').innerHTML = d.doubles.length
+      ? `<p class="small"><b>Doublons probables</b></p>${d.doubles.map(([a, b]) => `<div class="pr2 prdel"><span>${esc(clLabel(byId(a)))}<br>${esc(clLabel(byId(b)))}</span><button class="btn sm" type="button" data-pick="${a}|${b}">Choisir</button></div>`).join('')}`
+      : '<p class="muted small">Aucun doublon probable repéré.</p>';
+    const opts = '<option value="">Choisir…</option>' + CL.map(c => `<option value="${c.id}">${esc(clLabel(c))}</option>`).join('');
+    const f = $('#cmerge'); f.from.innerHTML = opts; f.to.innerHTML = opts;
+    document.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+      const [a, c] = b.dataset.pick.split('|'), A = byId(a), C = byId(c);
+      // on garde par défaut celui qui a le plus de comptes et de tournois
+      const keepA = A.users + A.tournaments + A.spaces.length * 10 >= C.users + C.tournaments + C.spaces.length * 10;
+      f.from.value = keepA ? c : a; f.to.value = keepA ? a : c; f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+  $('#cmerge').onsubmit = async e => {
+    e.preventDefault();
+    const f = e.target, A = CL.find(c => c.id === f.from.value), B = CL.find(c => c.id === f.to.value);
+    if (!A || !B || A === B) { $('#cmsg').textContent = 'Choisissez deux clubs différents.'; return; }
+    if (!confirm(`Fusionner « ${A.name} » dans « ${B.name} » ?\n\nTout ce qui est rattaché à « ${A.name} » passe à « ${B.name} », et « ${A.name} » disparaît du référentiel. Cette opération ne se défait pas (une sauvegarde est faite juste avant).`)) return;
+    $('#cmsg').textContent = 'Sauvegarde puis fusion…';
+    await api('/api/admin/backups', { method: 'POST' }).catch(() => {});
+    const r = await api('/api/admin/clubs/merge', { method: 'POST', body: JSON.stringify({ from: A.id, to: B.id }) }).catch(x => ({ error: x.message }));
+    $('#cmsg').textContent = r.error ? 'Fusion impossible : ' + r.error : `« ${A.name} » est fusionné dans « ${B.name} ».`;
+    loadClubs(); loadBackups();
+  };
+  loadClubs();
 })();
 </script>
 </body>

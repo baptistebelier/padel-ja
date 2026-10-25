@@ -219,6 +219,10 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 .ucard p { margin: 4px 0 0; }
 .ucard .tag { margin-left: 6px; }
 .prdel { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: default; }
+.cmerge { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end; margin-top: 14px; }
+.cmerge label { display: grid; gap: 4px; font-size: 13px; min-width: 0; }
+.cmerge select { width: 100%; min-width: 0; }
+@media (max-width: 640px) { .cmerge { grid-template-columns: 1fr; } }
 .acct .h2s { font-size: 26px; margin-bottom: 8px; }
 
 /* ---------- tablette ---------- */

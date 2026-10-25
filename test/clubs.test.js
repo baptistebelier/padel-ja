@@ -111,3 +111,35 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     assert.equal((await b('/api/me')).user.club, 'TC Les Tilleuls');
   } finally { srv.kill(); }
 });
+
+test('fusion de deux clubs en double : tout passe au club gardé, l’ancien nom reste reconnu', async () => {
+  const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fusion-'));
+  const saved = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY };
+  delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  const { createStore } = require('../lib/store.js');
+  const store = createStore(DIR);
+  if (saved.url) process.env.SUPABASE_URL = saved.url;
+  if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
+  const clubs = createClubs(store);
+  const a = await clubs.resolve('TC Brive'), b = await clubs.resolve('Tennis Club de Brive');
+  await clubs.update(b.id, { address: '1 rue du Stade, Brive' });
+  await clubs.update(a.id, { logo: 'logo.png', address: 'autre adresse' });
+  await store.saveUser({ id: 'u1', email: 'x@exemple.test', club_id: a.id });
+  await store.savePlayer({ id: 'j1', last: 'MARTIN', first: 'Paul', club_id: a.id, search: 'martin paul', name_key: 'martin|paul' });
+  await store.addParticipations([{ id: 'pa1', player_id: 'j1', tournament_id: 't1', club_id: a.id }]);
+  await store.saveMembership({ id: 'm1', club_id: a.id, user_id: 'u1', season: '2026-2027' });
+  await clubs.merge(a.id, b.id);
+  assert.equal((await store.getUser('u1')).club_id, b.id);
+  assert.equal((await store.getPlayer('j1')).club_id, b.id);
+  assert.equal((await store.participationsOf('player_id', 'j1'))[0].club_id, b.id);
+  assert.equal((await store.listMemberships('club_id', a.id)).length, 0, 'adhésions recalculées ensuite');
+  assert.equal(clubs.get(a.id), null);
+  assert.equal(clubs.lookup('TC Brive').id, b.id, 'l’ancien nom mène au club gardé');
+  assert.equal(clubs.get(b.id).logo, 'logo.png', 'ce qui manquait est repris');
+  assert.equal(clubs.get(b.id).address, '1 rue du Stade, Brive', 'ce qui existait est gardé');
+  // relu depuis le disque : même résultat
+  const again = createClubs(store);
+  await again.load();
+  assert.equal(again.lookup('TC BRIVE').id, b.id);
+  await assert.rejects(clubs.merge(b.id, b.id));
+});
