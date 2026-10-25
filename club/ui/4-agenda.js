@@ -276,7 +276,7 @@ function planView() {
   const chip = (g2, k, l, c) =>
     `<button class="chip" data-a="planF" data-g="${g2}" data-k="${k}" aria-pressed="${!!P[g2][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
   const item = i =>
-    `<button class="pit ${i.cat} ${i.cx ? 'cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><i class="sq"></i><span class="tm">${i.t || 'Journée'}</span><span class="grow"><span class="nm">${i.title}</span><br><span class="muted small">${i.sub}</span></span>${sportTag(i.sport)}</button>`;
+    `<button class="pit ${i.cat} ${i.cx ? 'cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><i class="sq"></i><span class="tm">${i.t || 'Journée'}</span><span class="grow"><span class="nm">${i.title}</span><br><span class="muted small">${i.sub}</span>${i.sport ? ' ' + sportTag(i.sport) : ''}</span></button>`;
   const dayBlock = iso => {
     const it = planItems(iso);
     return `<div class="stack"><span class="kicker" ${iso === TODAY ? 'style="color:var(--accent)"' : ''}>${fmtD(iso)}${iso === TODAY ? " · aujourd'hui" : ''}</span>${it.length ? it.map(item).join('') : '<span class="muted small">Rien de prévu</span>'}</div>`;

@@ -89,7 +89,7 @@ function render(keep) {
     (clubLogo()
       ? `<img class="toplogo${S.stack.length ? ' sub' : ''}" src="${clubLogo()}" alt="${esc(club().name)}">`
       : '') +
-    `<h1>${t}<span class="sub">${sub}</span></h1>${v.v === 'chan' ? muteBtn(chans.find(c => c.id === v.id)) : ''}${(isAdmin() || S.role === 'cap') && !pending() ? `<button class="ib" data-a="admin" aria-label="${isAdmin() ? 'Gérer le club' : 'Gérer mon équipe'}">${ic('gear')}</button>` : ''}<button class="ib modebtn" data-a="ramMode" aria-label="${effDark() ? 'Passer en mode jour' : 'Passer en mode nuit'}">${ic(effDark() ? 'sun' : 'moon')}</button><button class="ib" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending() && NOTIFS.some(n => n.n && nVis(n)) ? '<span class="dot"></span>' : ''}</button>`;
+    `<h1>${t}<span class="sub">${sub}</span></h1>${v.v === 'chan' ? muteBtn(chans.find(c => c.id === v.id)) : ''}${!S.stack.length && (isAdmin() || S.role === 'cap') && !pending() ? `<button class="ib" data-a="admin" aria-label="${isAdmin() ? 'Gérer le club' : 'Gérer mon équipe'}">${ic('gear')}</button>` : ''}${S.stack.length ? '' : `<button class="ib modebtn" data-a="ramMode" aria-label="${effDark() ? 'Passer en mode jour' : 'Passer en mode nuit'}">${ic(effDark() ? 'sun' : 'moon')}</button>`}<button class="ib" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending() && NOTIFS.some(n => n.n && nVis(n)) ? '<span class="dot"></span>' : ''}</button>`;
   const strips = '.seg,.chips,.stories',
     sx = key === lastKey ? [...main.querySelectorAll(strips)].map(e => e.scrollLeft) : [];
   const oldSeg = main.querySelector(':scope > .seg');

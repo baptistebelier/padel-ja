@@ -499,7 +499,9 @@ details.more .fld input,details.more .fld select{background:var(--card)}
 .wd[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
 .wd[aria-pressed="true"] b,.wd[aria-pressed="true"] i{color:var(--bg)}
 .pit{display:flex;gap:10px;align-items:center;width:100%;min-height:56px;background:var(--card);border-radius:var(--rb);padding:10px 12px}
-.pit .tm{font-family:var(--f-display);font-size:16px;width:62px;flex:none;font-variant-numeric:tabular-nums}
+.pit .grow{flex:1;min-width:0;text-align:left}
+.pit .grow .tag{font-size:10px;padding:1px 6px;vertical-align:1px}
+.pit .tm{font-family:var(--f-display);font-size:16px;width:50px;flex:none;font-variant-numeric:tabular-nums}
 .grid{--ph:26px;background:var(--card);border-radius:var(--rb);overflow:hidden;font-family:var(--f-sub);touch-action:pan-y}
 .grid.detail{--ph:48px}
 .ghead,.gallrow,.gbody{display:grid;grid-template-columns:34px repeat(var(--n),minmax(0,1fr))}
