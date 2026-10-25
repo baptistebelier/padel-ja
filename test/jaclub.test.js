@@ -92,6 +92,16 @@ test('tournoi et animation /RAM JA publiés sur /RAM Club, inscriptions depuis l
     assert.ok(pa.data.ja.results.some(r => r.k.includes(j.key)), 'la place de l’adhérent est reconnue');
     // et compte pour son palmarès (trophée)
     assert.ok(((await mem(`/api/ram/c/${space.id}/sync?since=0`)).counts[j.key] || {}).palm >= 1);
+    // sa place entre dans l'historique de sa fiche joueur /RAM JA
+    const fiche = await mem('/api/me/player');
+    const h = (fiche.linked && fiche.linked.history || []).find(x => x.tournament === 'Americano du vendredi');
+    assert.ok(h, 'animation dans l’historique : ' + JSON.stringify(fiche.linked));
+    assert.match(h.category, /^Animation · /);
+    assert.ok(h.place >= 1 && h.place <= 4);
+    // rouverte, elle en ressort
+    await bur(`/api/t/${aid}/action`, { type: 'ani/reopen' });
+    await wait(1500);
+    assert.ok(!((await mem('/api/me/player')).linked.history || []).some(x => x.tournament === 'Americano du vendredi'));
   } finally { srv.kill(); }
 });
 

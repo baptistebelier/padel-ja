@@ -226,6 +226,7 @@ function saveRoom(room) {
     room.row.updated_at = Date.now();
     store.saveTournament(room.row).catch(e => console.error('Sauvegarde impossible :', e.message));
     jaClub.schedule(room, msg => console.error(msg));   // publication /RAM Club tenue à jour
+    if (Ani.isAnimation(room.row.state)) aniParticipations(room).catch(e => console.error('Animation, historique des joueurs :', e.message));
   }, 700);
 }
 /* images (logos du club, des partenaires) : envoyées une seule fois, à part.
@@ -448,6 +449,35 @@ async function ensureClubLinks(log) {
     } catch (e) {}
   }
   if (nU + nR + nT + nP) log(`Clubs : ${clubs.list().length} au référentiel — ${nU} compte(s), ${nR} espace(s) /RAM Club, ${nT} tournoi(s), ${nP} fiche(s) joueur rattaché(s)`);
+}
+
+/* animation terminée : sa place entre dans l'historique de chaque joueur reconnu (compte /RAM ou fiche de la base),
+   comme un tournoi (sans points FFT) ; rouverte, elle en ressort */
+async function aniParticipations(room) {
+  const T = room.row.state, A = T.ani, t = T.tournament || {};
+  if (t.example || A.players.some(p => p.demo)) return;
+  const done = A.status === 'done';
+  const st = done ? Ani.standings(T) : null;
+  const sig = done ? JSON.stringify(st.rows.map(x => [x.ids, x.pf])) + t.name + t.dateStart : '';
+  if (room.aniSig === sig || (!done && room.aniSig === undefined && !(await store.participationsOf('tournament_id', room.row.id).catch(() => [])).length)) { room.aniSig = sig; return; }
+  room.aniSig = sig;
+  await store.deleteParticipationsForTournament(room.row.id);
+  if (!done) return;
+  const byId = Object.fromEntries(A.players.map(p => [p.id, p]));
+  const playerOf = async p => {
+    if (p.playerId) return p.playerId;
+    if (p.src && p.src.u && !p.src.k) { const id = await store.getIdentity(p.src.u).catch(() => null); return (id && id.player) || null; }
+    return null;
+  };
+  const club = await clubs.resolve(t.club, { by: room.row.owner }).catch(() => null), rows = [], now = Date.now();
+  for (const [i, x] of st.rows.entries()) for (const id of x.ids) {
+    const p = byId[id], pid = p && await playerOf(p);
+    if (!pid) continue;
+    rows.push({ id: 'pa' + Auth.randomId(12), player_id: pid, tournament_id: room.row.id, owner: room.row.owner, club_id: club ? club.id : null,
+      t_name: t.name, t_club: t.club, t_category: 'Animation · ' + ((Ani.FORMATS[A.format] || {}).name || ''), t_gender: '', t_date: t.dateStart,
+      place: i + 1, place_lo: null, points: 0, partner: x.ids.filter(y => y !== id).map(y => (byId[y] || {}).name || '').join(' & '), n_pairs: st.rows.length, closed_at: now });
+  }
+  await store.addParticipations(rows);
 }
 
 async function closeTournament(room, u) {

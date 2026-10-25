@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/css/street.css">
 <script src="/js/theme.js"></script>
 <script src="/js/animation.js"></script>
+<script src="/js/qr.js"></script>
 <style>
 /* Animations : americano, mexicano, par équipes, montée-descente */
 .an-formats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
@@ -57,6 +58,13 @@
 .an-table tr.top td:first-child { color: var(--ui-accent2); font-weight: 800; }
 .an-tw { overflow-x: auto; }
 .an-links { display: grid; gap: 10px; }
+.an-qr { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 14px; align-items: start; }
+.an-qr .qr svg, .tvqr .qr svg, .an-qrbig .qr svg { display: block; width: 100%; height: auto; border-radius: 6px; }
+.an-qrbig { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.85); display: grid; place-items: center; padding: 16px; }
+.an-qrbig > div { background: #fff; color: #0b0b0b; border-radius: 14px; padding: 20px; width: min(92vw, 78vh); text-align: center; display: grid; gap: 12px; }
+.tvqr { display: grid; grid-template-columns: 13vw minmax(0, 1fr); gap: 1.4vw; align-items: center; margin-bottom: 3vh; font-size: 1.5vw; position: relative; z-index: 1; }
+.tvqr .qr { background: #fff; padding: .5vw; border-radius: 8px; }
+@media (max-width: 480px) { .an-qr { grid-template-columns: 1fr; } .an-qr .qr { max-width: 180px; } }
 .an-links code { display: block; padding: 8px 10px; border-radius: 8px; background: var(--ui-surface-2); overflow-wrap: anywhere; font-size: 13px; }
 .an-old summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
 .an-old .an-m { padding: 8px 12px; }
@@ -99,6 +107,7 @@ body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-f
   const $ = s => document.querySelector(s);
   const tid = location.pathname.split('/')[2], mode = /\/tv\/?$/.test(location.pathname) ? 'tv' : /\/remote\/?$/.test(location.pathname) ? 'remote' : 'ja';
   const qs = new URLSearchParams(location.search), key = qs.get('k') || '', pinKey = 'padelja-pin-' + tid;
+  const tvPin = mode === 'tv' ? qs.get('pin') || '' : '';   // écran TV ouvert avec le code : QR de saisie des scores
   let pin = qs.get('pin') || (() => { try { return localStorage.getItem(pinKey) || ''; } catch (e) { return ''; } })();
   const base = '/api/t/' + tid;
   let S = null, info = null, es = null, draft = {};
@@ -210,14 +219,25 @@ body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-f
     const old = a.rounds.slice(0, -1).reverse();
     const links = info ? `<section class="card"><span class="eyebrow">Partager</span><h2>Écrans</h2><div class="an-links">
       <div><b>Écran TV</b> (classement, manche en cours, chrono)<code>${esc(info.origin)}/t/${tid}/tv?k=${esc(info.key)}</code><a class="btn ghost sm" target="_blank" href="/t/${tid}/tv?k=${esc(info.key)}">Ouvrir</a></div>
-      <div><b>Saisie des scores par les joueurs</b> (code ${esc(info.pin)})<code>${esc(info.origin)}/t/${tid}/remote?pin=${esc(info.pin)}</code></div></div></section>` : '';
+      <div class="an-qr"><span class="qr" aria-hidden="true">${qrSvg(remoteUrl())}</span><div><b>Saisie des scores par les joueurs</b> (code ${esc(info.pin)}) : chacun scanne le QR code avec son téléphone<code>${esc(remoteUrl())}</code><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" id="an-qrbig">Afficher le QR en grand</button><a class="btn ghost sm" target="_blank" href="/t/${tid}/tv?k=${esc(info.key)}&pin=${esc(info.pin)}">Écran TV avec le QR</a></div></div></div></div></section>` : '';
     return `<header class="phead"><div><span class="eyebrow">${esc(F().name)} · ${a.players.length} joueurs</span><h1><input id="an-name" value="${esc(S.tournament.name)}" aria-label="Nom de l'animation" style="font:inherit;color:inherit;background:transparent;border:0;padding:0;width:100%;max-width:100%"></h1></div><div class="phead-act"><a class="btn" href="/app">Mes tournois</a></div></header>
       <div class="grid g-2"><div class="grid" style="align-content:start">${started ? roundHTML() : ''}${!started || a.status !== 'done' ? setupHTML() : ''}</div>
       <div class="grid" style="align-content:start">${started ? `<section class="card"><span class="eyebrow">Classement</span><h2>${a.format === 'montee' ? 'Du terrain du roi au dernier' : 'Points marqués'}</h2>${table()}</section>` : ''}
       ${old.length ? `<section class="card an-old"><span class="eyebrow">Historique</span>${old.map(r => `<details><summary>Manche ${r.n}</summary><div class="an-courts">${r.matches.map(m => matchHTML(r, m, a.status !== 'done')).join('')}</div></details>`).join('')}</section>` : ''}${links}</div></div>`;
   }
+  /* QR code de la saisie des scores (lien avec le code du tournoi) */
+  const remoteUrl = (pinCode) => `${(info && info.origin) || location.origin}/t/${tid}/remote?pin=${encodeURIComponent(pinCode || (info && info.pin) || '')}`;
+  const qrSvg = url => { try { return QR.svg(url, { label: 'QR code de la saisie des scores' }); } catch (e) { return ''; } };
+  function qrBig() {
+    const d = document.createElement('div');
+    d.className = 'an-qrbig';
+    d.innerHTML = `<div><span class="qr">${qrSvg(remoteUrl())}</span><p><b>Saisissez vos scores</b><br>Scannez avec l’appareil photo du téléphone · code ${esc(info.pin)}</p><button class="btn primary">Fermer</button></div>`;
+    d.onclick = () => d.remove();
+    document.body.appendChild(d);
+  }
   function bindJA() {
     const on = (id, ev, fn) => { const el = $('#' + id); if (el) el[ev] = fn; };
+    on('an-qrbig', 'onclick', qrBig);
     document.querySelectorAll('[data-fmt]').forEach(b => b.onclick = () => send('ani/setup', { format: b.dataset.fmt }));
     on('an-mode', 'onchange', e => send('ani/setup', { scoring: { mode: e.target.value } }));
     on('an-pts', 'onchange', e => send('ani/setup', { scoring: { points: +e.target.value } }));
@@ -263,7 +283,7 @@ body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-f
       ${a.timer.endsAt ? `<div class="an-timer ${t === 0 ? 'end' : ''}" id="an-t">${t === 0 ? 'Temps !' : mmss(t)}</div>` : ''}
       <div class="tvc">${r ? r.matches.map(m => `<div class="tvm ${a.format === 'montee' && m.court === 0 ? 'king' : ''}"><span class="c">${m.court + 1}</span><span>${esc(team(m.a))}<br>${esc(team(m.b))}</span><span class="s">${m.done ? m.sa + '<br>' + m.sb : '–'}</span><span class="muted">${esc(courtName(m.court))}</span></div>`).join('') : '<p>La première manche arrive…</p>'}</div>
       ${r && r.rest && r.rest.length ? `<p class="k" style="margin-top:2vh">Au repos : ${esc(r.rest.map(pname).join(', '))}</p>` : ''}</div>
-      <div class="tvl"><span class="k">Classement</span><table>${Ani.standings(S).rows.slice(0, 16).map((x, i) => `<tr><td>${i + 1}. ${esc(team(x.ids))}</td><td>${x.pf}</td></tr>`).join('')}</table></div></div>`;
+      <div class="tvl">${tvPin ? `<div class="tvqr"><span class="qr">${qrSvg(remoteUrl(tvPin))}</span><span><b>Vos scores</b><br>Scannez avec votre téléphone</span></div>` : ''}<span class="k">Classement</span><table>${Ani.standings(S).rows.slice(0, 16).map((x, i) => `<tr><td>${i + 1}. ${esc(team(x.ids))}</td><td>${x.pf}</td></tr>`).join('')}</table></div></div>`;
   }
   /* ---------- saisie par les joueurs (code du tournoi) ---------- */
   function askPin() {
