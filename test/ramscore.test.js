@@ -85,3 +85,15 @@ test("lien /RAM JA : le champ « _ja » d'un profil n'est écrit que par le serv
   const club2 = { items: new Map([['member/b', { coll: 'member', id: 'b', data: { n: 'Karim' } }]]) };
   assert.strictEqual(checkOp(club2, { key: 'b', valid: true, staff: false }, { coll: 'member', id: 'b', op: 'patch', patch: [{ t: 'set', p: ['_ja'], v: 'j1' }] })._ja, undefined);
 });
+
+test('trophée « Roi du terrain » : vainqueur d’une animation montée-descente terminée', () => {
+  const { memberProgress } = require('../lib/ram-score');
+  const post = (id, fmt, k) => [`post/${id}`, { coll: 'post', id, data: { by: 'club', kind: 'jatour', ja: { ani: true, fmt, status: 'done', results: [{ place: 1, k }] } } }];
+  const items = new Map([
+    ['member/a', { coll: 'member', id: 'a', data: {} }], ['member/b', { coll: 'member', id: 'b', data: {} }],
+    post('p1', 'Montée-descente', ['a']), post('p2', 'Americano', ['b'])
+  ]);
+  const p = memberProgress(items, {});
+  assert.equal(p.a.trophies.roi, 1);
+  assert.equal(p.b.trophies.roi, undefined, 'un americano ne donne pas ce trophée');
+});

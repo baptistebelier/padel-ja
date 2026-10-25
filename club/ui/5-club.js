@@ -129,6 +129,7 @@ function clubView() {
     `<div class="pad"><div class="poster"><span class="kicker" style="color:var(--fg)">Tennis · Padel · saison ${S.season}</span><span class="big">${club().name.replace(' ', '<br>')}</span></div>
  <div class="stats"><div><b>${I2.courts}</b><span>Courts</span></div><div><b>${I2.pistes}</b><span>Pistes padel</span></div><div><b>${I2.members}</b><span>Adhérents</span></div><div><b>${GROUPS.filter(g => g.type === 'team').length}</b><span>Équipes</span></div></div>
  <div class="note">${I2.joined} adhérents sur ${I2.members} ont rejoint l'appli.${isAdmin() ? ` <button class="nm" data-a="open" data-v="join" style="color:var(--accent)">Inviter les autres</button>` : ''}</div>
+ ${typeof leagueCard === 'function' ? leagueCard() : ''}
  <div class="ctl">${S.role === 'kid' ? '' : `<button class="btn grow" data-a="open" data-v="list">${ic('users')}Les adhérents</button>`}<button class="btn ghost grow" data-a="open" data-v="partners">Partenaires</button></div>
  ${I2.book || I2.pay || I2.shop ? `<div class="ctl" style="flex-wrap:wrap">${lk(I2.book, 'Réserver un court')}${lk(I2.pay, 'Payer ma cotisation')}${lk(I2.shop, 'Boutique')}</div>` : ''}
  <div><h2 class="tilt sm">Formules <em>et tarifs</em><i class="dd"></i></h2><div class="card" style="margin-top:10px;gap:0">${FORM.map(f => `<div class="price"><span><span class="nm">${f[0]}</span><br><span class="muted small">${f[1]}</span></span><b>${f[2]}</b></div>`).join('')}</div></div>

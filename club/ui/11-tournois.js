@@ -93,6 +93,46 @@ function jaDirect(ja) {
   return `<details class="more ja-direct"><summary>${ic('score')}Suivre le direct${live ? ` <span class="tag hot">${live} en jeu</span>` : ''}</summary><div class="in">${h}${tv}</div></details>`;
 }
 
+/* ligue des animations de la saison : points selon la place (10, 8, 6, 5, 4, 3, 2, 1) et 1 point de participation */
+const LIGUE_PTS = [10, 8, 6, 5, 4, 3, 2, 1];
+function jaLeague() {
+  const y = parseInt(S.season, 10),
+    from = y ? y + '-09-01' : '',
+    to = y ? y + 1 + '-08-31' : '9';
+  const T = {},
+    evs = posts.filter(
+      p => p.kind === 'jatour' && p.ja && p.ja.ani && p.ja.status === 'done' && (!p.d || (p.d >= from && p.d <= to))
+    );
+  const row = k => T[k] || (T[k] = { k, pts: 0, n: 0, wins: 0 });
+  evs.forEach(p => {
+    new Set((p.ja.list || []).map(x => x.k1).filter(k => k && M[k])).forEach(k => {
+      row(k).pts += 1;
+      row(k).n++;
+    });
+    (p.ja.results || []).forEach(r =>
+      (r.k || []).forEach(k => {
+        if (!M[k]) return;
+        row(k).pts += LIGUE_PTS[r.place - 1] || 0;
+        if (r.place === 1) row(k).wins++;
+      })
+    );
+  });
+  return { count: evs.length, rows: Object.values(T).sort((a, b) => b.pts - a.pts || b.wins - a.wins || b.n - a.n) };
+}
+function leagueRows(rows) {
+  return rows
+    .map(
+      (x, i) =>
+        `<button class="item" data-a="member" data-id="${x.k}"><span class="tile" style="font-weight:700">${i + 1}</span><span class="grow"><span class="nm">${esc(M[x.k].n)}</span><br><span class="muted small">${x.n} animation${x.n > 1 ? 's' : ''}${x.wins ? ' · ' + x.wins + ' victoire' + (x.wins > 1 ? 's' : '') : ''}</span></span><b>${x.pts} pts</b></button>`
+    )
+    .join('');
+}
+function leagueCard() {
+  const L = jaLeague();
+  if (!L.count) return '';
+  return `<div class="card"><span class="kicker">Ligue des animations · saison ${esc(S.season)}</span>${leagueRows(L.rows.slice(0, 5))}<button class="btn ghost full" data-a="league">Toute la ligue (${L.rows.length} joueur${L.rows.length > 1 ? 's' : ''})</button></div>`;
+}
+
 function jaBody(p) {
   const ja = p.ja,
     fam = jaFamily(),

@@ -13,6 +13,14 @@ async function jaCall(path, body) {
   return d;
 }
 Object.assign(A, {
+  /* ligue des animations de la saison : classement complet et barème */
+  league() {
+    const L = jaLeague();
+    sheet(
+      'Ligue des animations',
+      `<div class="body"><p class="muted small">${L.count} animation${L.count > 1 ? 's' : ''} /RAM JA terminée${L.count > 1 ? 's' : ''} cette saison. Points selon la place : ${LIGUE_PTS.join(', ')} du 1er au 8e, plus 1 point par participation.</p>${leagueRows(L.rows)}</div>`
+    );
+  },
   /* s'inscrire : seul (animation) ou avec un partenaire du club, ou extérieur (tournoi) */
   /* d.k : un de mes enfants (sinon, moi) */
   jaIn(d) {

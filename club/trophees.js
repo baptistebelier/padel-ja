@@ -194,6 +194,24 @@ const RARES = [
     ok: () => false
   },
   {
+    id: 'roi',
+    cl: 1,
+    n: 'Roi du terrain',
+    d: 'Gagner une animation montée-descente /RAM JA du club (finir 1er sur le terrain du roi)',
+    r: 2,
+    i: 'trophy',
+    ok: id =>
+      posts.some(
+        p =>
+          p.kind === 'jatour' &&
+          p.ja &&
+          p.ja.ani &&
+          p.ja.status === 'done' &&
+          /^Mont/.test(p.ja.fmt || '') &&
+          (((p.ja.results || [])[0] || {}).k || []).includes(id)
+      )
+  },
+  {
     id: 'bureau',
     cl: 1,
     n: 'Au bureau',
