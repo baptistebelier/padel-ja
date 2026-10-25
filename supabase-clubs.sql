@@ -127,3 +127,21 @@ create index if not exists club_group_members_user_idx on public.club_group_memb
 create index if not exists club_group_members_club_idx on public.club_group_members(club_id);
 alter table public.club_groups enable row level security;
 alter table public.club_group_members enable row level security;
+
+-- présences aux cours : annoncée (élève ou parents), relevée à l'appel (enseignant), cours annulé
+create table if not exists public.club_attendance (
+  id text primary key,
+  group_id text not null references public.club_groups(id) on delete cascade,
+  club_id text not null references public.clubs(id) on delete cascade,
+  session_date text not null,
+  user_id text references public.users(id) on delete set null,
+  member_key text not null,
+  announced text,
+  present boolean,
+  cancelled boolean not null default false,
+  updated_at bigint
+);
+create index if not exists club_attendance_club_idx on public.club_attendance(club_id);
+create index if not exists club_attendance_group_idx on public.club_attendance(group_id);
+create index if not exists club_attendance_user_idx on public.club_attendance(user_id);
+alter table public.club_attendance enable row level security;
