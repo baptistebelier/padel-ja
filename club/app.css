@@ -712,3 +712,4 @@ body{touch-action:manipulation}
 .adband .adi.txt span{font-family:var(--f-display);font-style:italic;text-transform:uppercase;font-size:30px;line-height:1}
 @media (min-width:1024px){.adband .adw{height:120px}}
 .pcard img.big.png,.adi img.png{background:none}   /* logo PNG transparent : sans vignette blanche */
+.item.me{background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:var(--rb)}

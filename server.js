@@ -494,6 +494,41 @@ function probableDoubles(list) {
   return out.slice(0, 50);
 }
 
+/* classements inter-clubs de la saison (gardés 10 minutes) :
+   - activité : points d'investissement /RAM Club moyens par adhérent (clubs d'au moins 3 adhérents)
+   - tournois : points et titres gagnés par les joueurs de chaque club (club de leur fiche) */
+const rankCache = new Map();
+async function interClubRankings(season) {
+  const c = rankCache.get(season);
+  if (c && Date.now() - c.at < 600000) return c.data;
+  await clubs.load();
+  const y = parseInt(season, 10), from = y + '-09-01', to = y + 1 + '-08-31';
+  const act = {};
+  for (const r of await store.listProgress('season', season).catch(() => [])) {
+    const a = act[r.club_id] = act[r.club_id] || { members: 0, points: 0 };
+    a.members++; a.points += r.points || 0;
+  }
+  const parts = await store.participationsBetween(from, to).catch(() => []);
+  const ids = [...new Set(parts.map(x => x.player_id))], clubOf = {};
+  for (let i = 0; i < ids.length; i += 150) (await store.getPlayers(ids.slice(i, i + 150)).catch(() => [])).forEach(pl => { clubOf[pl.id] = pl.club_id; });
+  const tour = {};
+  for (const x of parts) {
+    const cid = clubOf[x.player_id]; if (!cid) continue;
+    const t = tour[cid] = tour[cid] || { points: 0, titles: 0, players: new Set(), entries: 0 };
+    t.points += x.points || 0; t.entries++; t.players.add(x.player_id); if (x.place === 1) t.titles++;
+  }
+  const row = id => { const cl = clubs.get(id); return cl ? { id, name: cl.name, city: cl.city || '', logo: cl.logo || '' } : null; };
+  const data = {
+    season,
+    activity: Object.entries(act).filter(([, a]) => a.members >= 3).map(([id, a]) => Object.assign(row(id) || {}, { members: a.members, avg: Math.round(a.points / a.members) }))
+      .filter(x => x.id).sort((a, b) => b.avg - a.avg).slice(0, 50),
+    tournaments: Object.entries(tour).map(([id, t]) => Object.assign(row(id) || {}, { points: t.points, titles: t.titles, players: t.players.size, entries: t.entries }))
+      .filter(x => x.id).sort((a, b) => b.points - a.points || b.titles - a.titles).slice(0, 50)
+  };
+  rankCache.set(season, { at: Date.now(), data });
+  return data;
+}
+
 async function closeTournament(room, u) {
   const T = room.row.state;
   // animation : terminée par son moteur (classement figé), sans résultats FFT à enregistrer
@@ -902,6 +937,11 @@ const server = http.createServer(async (req, res) => {
       if (p === '/api/ram/push/unsubscribe' && req.method === 'POST') {
         const b = await readBody(req);
         return push.unsubscribe(String(b.endpoint || '')).then(() => json(res, 200, { ok: true }), fail);
+      }
+      // classements inter-clubs de la saison
+      if (p === '/api/ram/classements' && req.method === 'GET') {
+        const s = String(url.searchParams.get('saison') || ''), cur = (() => { const d = new Date(), y = d.getFullYear(); return d.getMonth() >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`; })();
+        return json(res, 200, await interClubRankings(/^\d{4}-\d{4}$/.test(s) ? s : cur));
       }
       // pastilles : nouveautés de chacun de mes clubs depuis ma dernière visite
       if (p === '/api/ram/badges' && req.method === 'POST') {

@@ -13,6 +13,53 @@ async function jaCall(path, body) {
   return d;
 }
 Object.assign(A, {
+  /* classements inter-clubs : activité des adhérents, résultats en tournoi */
+  async ranks(d) {
+    const tab = d.t || S.rankTab || 'activity';
+    S.rankTab = tab;
+    if (!(window.RAM && RAM.live)) return toast('Classements disponibles dans l’appli de ton club');
+    let data;
+    try {
+      const r = await fetch('/api/ram/classements?saison=' + encodeURIComponent(S.season || ''), {
+        credentials: 'include'
+      });
+      data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Erreur ' + r.status);
+    } catch (e) {
+      return toast(e.message);
+    }
+    const mine = ((RAM.clubs || []).find(c => c.id === RAM.club) || {}).clubId,
+      list = data[tab] || [],
+      chips = [
+        ['activity', 'Les plus actifs'],
+        ['tournaments', 'Tournois']
+      ]
+        .map(([k, l]) => `<button class="chip" data-a="ranks" data-t="${k}" aria-pressed="${k === tab}">${l}</button>`)
+        .join(''),
+      rows = list
+        .map(
+          (c, i) =>
+            `<div class="item ${c.id === mine ? 'me' : ''}"><span class="tile" style="font-weight:700">${i + 1}</span><span class="grow"><span class="nm">${esc(c.name)}</span>${c.id === mine ? ' <span class="tag lime">Mon club</span>' : ''}<br><span class="muted small">${
+              tab === 'activity'
+                ? c.members + ' adhérents dans l’appli'
+                : c.players +
+                  ' joueur' +
+                  (c.players > 1 ? 's' : '') +
+                  (c.titles ? ' · ' + c.titles + ' titre' + (c.titles > 1 ? 's' : '') : '')
+            }</span></span><b>${tab === 'activity' ? c.avg + ' pts' : c.points + ' pts'}</b></div>`
+        )
+        .join('');
+    sheet(
+      'Classement des clubs',
+      `<div class="body"><div class="chips">${chips}</div><p class="muted small">${
+        tab === 'activity'
+          ? 'Points d’investissement moyens par adhérent dans /RAM Club, saison ' +
+            esc(data.season) +
+            ' (clubs d’au moins 3 adhérents).'
+          : 'Points gagnés en tournoi /RAM JA par les joueurs de chaque club, saison ' + esc(data.season) + '.'
+      }</p>${rows || '<p class="muted small">Pas encore de classement cette saison.</p>'}</div>`
+    );
+  },
   /* ligue des animations de la saison : classement complet et barème */
   league() {
     const L = jaLeague();
