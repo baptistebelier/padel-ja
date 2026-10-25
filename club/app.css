@@ -729,3 +729,8 @@ body{touch-action:manipulation}
 @keyframes ring{0%,100%{rotate:0deg}15%{rotate:-18deg}35%{rotate:15deg}55%{rotate:-10deg}75%{rotate:5deg}}
 .tabs svg.bnc{animation:bnc .5s cubic-bezier(.3,1.6,.5,1)}
 @keyframes bnc{0%{scale:.6}100%{scale:1}}
+/* page Aide */
+details.aide summary svg{width:20px;height:20px;flex:none;color:var(--accent)}
+details.aide .aq{display:grid;gap:4px;padding:10px 0;border-bottom:1px solid var(--line)}
+details.aide .aq:last-child{border-bottom:0}
+details.aide .aq p{margin:0;line-height:1.5}

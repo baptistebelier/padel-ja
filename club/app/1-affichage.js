@@ -39,6 +39,7 @@ const TITLES = {
   list: () => ['Adhérents', club().name],
   reports: () => ['Signalements', 'Modération'],
   legal: () => ['Mentions', club().name],
+  aide: () => ['Aide', 'Guide de l’appli'],
   post: () => ['Publication', club().name],
   art: () => ['Actus', club().name],
   partners: () => ['Partenaires', club().name],

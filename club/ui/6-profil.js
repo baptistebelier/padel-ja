@@ -150,7 +150,7 @@ function profile(id) {
             )}</div><p class="muted small">Le bureau voit tout et gère le club. Le capitaine gère son équipe. L'enseignante gère ses groupes (appel, annulation). L'adhérent et le jeune ne voient que ce qui leur est destiné.</p></div>
   <div class="card"><span class="kicker">Démo · les couleurs du club</span><div class="sw">${CLUBS.map((c, i) => `<button data-a="theme" data-i="${i}" aria-pressed="${S.club === i}"><i><span style="background:${c.bg || (c.dark ? '#0B0B0B' : '#F3F5FA')}"></span><span style="background:${c.accent}"></span></i>${c.label}</button>`).join('')}</div>${isAdmin() ? `<button class="btn sm ghost" data-a="look">Personnaliser nom, logo et couleur</button>` : ''}</div>`
     }
-  <div class="menu"><button data-a="open" data-v="legal">${ic('shield')}Conditions et confidentialité</button>${kid ? '' : `<button class="danger" data-a="delAccount">${ic('trash')}Supprimer mon compte</button>`}</div>${kid ? '<p class="muted small">Seul ton parent peut supprimer ton compte.</p>' : ''}
+  <div class="menu"><button data-a="open" data-v="aide">${ic('info')}Aide : tout savoir sur l’appli</button><button data-a="open" data-v="legal">${ic('shield')}Conditions et confidentialité</button>${kid ? '' : `<button class="danger" data-a="delAccount">${ic('trash')}Supprimer mon compte</button>`}</div>${kid ? '<p class="muted small">Seul ton parent peut supprimer ton compte.</p>' : ''}
   <div class="powered"><span>Propulsé par</span><img src="${ramLogo()}" alt="/RAM Club"></div>`;
   }
   return h + '</div>';
