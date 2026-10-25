@@ -836,6 +836,11 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req);
         return push.unsubscribe(String(b.endpoint || '')).then(() => json(res, 200, { ok: true }), fail);
       }
+      // pastilles : nouveautés de chacun de mes clubs depuis ma dernière visite
+      if (p === '/api/ram/badges' && req.method === 'POST') {
+        const b = await readBody(req);
+        return json(res, 200, { badges: await ram.badges(u.id, b.since && typeof b.since === 'object' ? b.since : {}) });
+      }
       // choisir son club principal (celui de sa licence) parmi ses clubs
       if (p === '/api/ram/main' && req.method === 'POST') {
         const b = await readBody(req), sp = (await ram.spaces()).find(s => s.id === b.id);

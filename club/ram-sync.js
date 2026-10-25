@@ -1275,6 +1275,42 @@
       console.warn('/RAM Club : trophées', x.message);
     }
   }
+  /* pastilles : nouveautés de mes autres clubs depuis ma dernière visite (gardée sur cet appareil) */
+  R.badges = {};
+  const seenAll = () => {
+    try {
+      return JSON.parse(LS.get('ram-seen')) || {};
+    } catch (x) {
+      return {};
+    }
+  };
+  function seenNow() {
+    if (!R.club) return;
+    const s = seenAll();
+    s[R.club] = Date.now();
+    LS.set('ram-seen', J(s));
+  }
+  async function badges() {
+    if (!R.live || R.clubs.length < 2) return;
+    seenNow();
+    const s = seenAll();
+    // un club jamais ouvert sur cet appareil : on part d'aujourd'hui
+    R.clubs.forEach(c => {
+      if (!s[c.id]) s[c.id] = Date.now();
+    });
+    LS.set('ram-seen', J(s));
+    try {
+      const b = (await api('/api/ram/badges', { since: s })).badges || {};
+      delete b[R.club];
+      if (J(b) !== J(R.badges)) {
+        R.badges = b;
+        if (S.tab === 'home' || S.tab === 'me') ramRender(true);
+      }
+    } catch (x) {}
+  }
+  setInterval(badges, 120000);
+  const newsClubs = () => R.clubs.filter(c => c.id !== R.club && R.badges[c.id] > 0);
+  const pastille = c => (R.badges[c.id] > 0 ? `<span class="un">${R.badges[c.id]}</span>` : '');
   async function pull() {
     const d = await api('/api/ram/c/' + R.club + '/sync?since=' + R.rev);
     // accès validé par le bureau ou rôle changé : ce qu'on a le droit de voir change, on recharge tout le club
@@ -1519,6 +1555,7 @@
   }
   async function start(id) {
     const d = await api('/api/ram/c/' + id + '/sync?since=0');
+    seenNow(); // le club que je quitte : vu jusqu'ici
     stop();
     wipe();
     R.club = id;
@@ -1557,6 +1594,8 @@
       'report'
     ];
     d.items.sort((a, b) => order.indexOf(a.coll) - order.indexOf(b.coll)).forEach(it => applyItem(it, true));
+    R.badges = {};
+    setTimeout(badges, 1500);
     applyCounts(R.counts);
     trophyCheck();
     if (!M[R.key]) M[R.key] = { n: 'Moi', r: 'NC', team: '', fol: 0, g: 'H', bd: '', res: [] };
@@ -1703,7 +1742,7 @@
   A.ramClubs = () => {
     const main = R.clubs.find(c => c.main),
       row = c =>
-        `<div class="item"><button class="grow" data-a="ramSwitch" data-id="${c.id}" style="text-align:left;display:flex;gap:10px;align-items:center">${ic(c.id === R.club ? 'check' : 'club')}<span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${ROLE_L[c.role] || ''}${c.id === R.club ? ' · ouvert' : ''}</span></span></button>${c.main ? '<span class="tag lime">Principal</span>' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}">Principal</button>`}</div>`;
+        `<div class="item"><button class="grow" data-a="ramSwitch" data-id="${c.id}" style="text-align:left;display:flex;gap:10px;align-items:center">${ic(c.id === R.club ? 'check' : 'club')}<span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${ROLE_L[c.role] || ''}${c.id === R.club ? ' · ouvert' : ''}</span></span>${pastille(c)}</button>${c.main ? '<span class="tag lime">Principal</span>' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}">Principal</button>`}</div>`;
     sheet(
       'Mes clubs',
       `<div class="body">${main ? `<span class="kicker">Club principal · licence</span>${row(main)}` : ''}${
@@ -1846,7 +1885,7 @@
     return `<div class="card"><span class="kicker">Mes clubs</span>${list
       .map(
         c =>
-          `<div class="item" style="gap:10px"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${ROLE_P[c.role] || ''}${c.main ? ' · club principal (licence)' : ' · club secondaire'}</span></span>${c.id === R.club ? '<span class="tag lime">Ouvert</span>' : `<button class="btn sm" data-a="ramSwitch" data-id="${c.id}">Ouvrir</button>`}${c.main ? '' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}" title="Le club de ta licence, repris sur ta fiche /RAM JA">Principal</button>`}</div>`
+          `<div class="item" style="gap:10px"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${ROLE_P[c.role] || ''}${c.main ? ' · club principal (licence)' : ' · club secondaire'}</span></span>${c.id === R.club ? '<span class="tag lime">Ouvert</span>' : `${pastille(c)}<button class="btn sm" data-a="ramSwitch" data-id="${c.id}">Ouvrir</button>`}${c.main ? '' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}" title="Le club de ta licence, repris sur ta fiche /RAM JA">Principal</button>`}</div>`
       )
       .join(
         ''
@@ -1854,8 +1893,8 @@
   }
   function fill() {
     const box = document.getElementById('ramClubsBox');
-    if (box && R.live && box.dataset.v !== J(R.clubs)) {
-      box.dataset.v = J(R.clubs);
+    if (box && R.live && box.dataset.v !== J([R.clubs, R.badges])) {
+      box.dataset.v = J([R.clubs, R.badges]);
       box.hidden = false;
       box.innerHTML = clubsCard();
     }
@@ -1871,8 +1910,17 @@
   V.home = function () {
     const h = _home.apply(this, arguments);
     if (R.live) {
-      const ask = jaAsk();
-      return ask ? '<div class="pad" style="padding-bottom:0">' + ask + '</div>' + h : h;
+      const o = newsClubs(),
+        news = o.length
+          ? `<div class="card"><span class="kicker">Du nouveau dans tes autres clubs</span>${o
+              .map(
+                c =>
+                  `<div class="item" style="gap:10px"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${R.badges[c.id]} nouveauté${R.badges[c.id] > 1 ? 's' : ''}</span></span><button class="btn sm" data-a="ramSwitch" data-id="${c.id}">Ouvrir</button></div>`
+              )
+              .join('')}</div>`
+          : '',
+        ask = jaAsk();
+      return ask || news ? '<div class="pad" style="padding-bottom:0">' + (ask || '') + news + '</div>' + h : h;
     } // « Est-ce toi ? » aussi sur l'accueil
     if (!served || R.user === undefined) return h;
     const card = R.user

@@ -81,3 +81,20 @@ test('notifications : publications, groupes, commentaires, réglages', async () 
   assert.equal(sent.length, 1);
   assert.match(sent[0][1].body, /Ton match : 14 h 30 · Piste 2/);
 });
+
+test('pastilles : nouveautés de mes autres clubs depuis ma dernière visite', async () => {
+  const c1 = await ram.create({ id: 'P1', name: 'Pia Dumas' }, { name: 'TC Un', short: 'TC1' });
+  const c2 = await ram.create({ id: 'P2', name: 'Rémi Blanc' }, { name: 'Padel Deux', short: 'PD2' });
+  const j = await ram.join({ id: 'Z', name: 'Zoé Morel' }, c2.code);
+  await ram.join({ id: 'Z', name: 'Zoé Morel' }, c1.code);
+  const season = item(await ram.sync('P2', c2.id, 0), 'conf', 'main').season;
+  await ram.ops('P2', c2.id, [{ coll: 'member', id: j.key, op: 'patch', patch: [{ p: ['valid'], t: 'set', v: season }, { p: ['req'], t: 'unset' }] }]);
+  const t0 = Date.now() - 1000;
+  await ram.ops('P2', c2.id, [{ coll: 'post', id: 'n1', op: 'put', data: { by: 'club', kind: 'news', title: 'Soirée padel', at: Date.now() } },
+    { coll: 'post', id: 'n0', op: 'put', data: { by: 'club', kind: 'news', title: 'Ancienne', at: t0 - 5000 } },
+    { coll: 'msg', id: 'mm', op: 'put', data: { ref: 'c:general', by: 'club', x: 'Bonjour', at: Date.now() } },
+    { coll: 'chan', id: 'general', op: 'put', data: { g: 'club', name: 'Général' } }]);
+  const b = await ram.badges('Z', { [c2.id]: t0 });
+  assert.equal(b[c2.id], 2, 'une publication et un message depuis ma visite');
+  assert.equal(b[c1.id], undefined, 'adhésion pas encore validée : rien');
+});
