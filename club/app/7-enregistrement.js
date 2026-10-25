@@ -214,6 +214,8 @@ document.addEventListener('submit', e => {
     I2.shop = esc(toUrl(val('i-shop')));
     I2.mods = { actus: $('i-actus').checked, comm: $('i-comm').checked, bar: $('i-bar').checked };
     I2.barCut = parseInt(val('i-cut'), 10) || 20;
+    I2.barRate = parseInt(val('i-rate'), 10) || 1;
+    I2.barReset = $('i-reset').checked;
     closeSheet();
     render(true);
     toast('Infos du club mises à jour');

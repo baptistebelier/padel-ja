@@ -83,3 +83,17 @@ test('bar : carte du bureau, réservations personnelles avant la date limite', a
   assert.equal((await ram.ops('A', club.id, [{ coll: 'redeem', id: 'r3', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'annule' }] }])).rejected.length, 1);
   assert.equal((await wallet('A')).balance, 5);
 });
+
+test('points bar : taux choisi par le club, remise à zéro à chaque saison', () => {
+  const { walletOf, barRules } = require('../lib/ram-score');
+  const conf = info => ['conf/main', { coll: 'conf', id: 'main', data: { season: '2026-2027', info } }];
+  const items = info => new Map([conf(info),
+    ['order/o1', { coll: 'order', id: 'o1', data: { by: 'a', st: 'servi', price: '6 €', qty: 2, date: '2026-06-15' } }],   // saison passée
+    ['order/o2', { coll: 'order', id: 'o2', data: { by: 'a', st: 'servi', price: '4,50 €', qty: 1, date: '2026-10-02' } }],
+    ['redeem/r1', { coll: 'redeem', id: 'r1', data: { by: 'a', st: 'ok', pts: 5, at: Date.UTC(2026, 5, 20) } }]]);
+  const w = info => { const it = items(info); return walletOf(it, 'a', barRules(it)); };
+  assert.deepEqual(w({}), { earned: 16, spent: 5, balance: 11 }, 'par défaut : 1 point par euro, sans remise à zéro');
+  assert.deepEqual(w({ barRate: 2 }), { earned: 33, spent: 5, balance: 28 });
+  assert.deepEqual(w({ barRate: 2, barReset: true }), { earned: 9, spent: 0, balance: 9 }, 'seule la saison en cours compte');
+  assert.equal(barRules(items({ barRate: 50 })).perEuro, 10, 'au plus 10 points par euro');
+});
