@@ -1,11 +1,12 @@
 /* Juges-arbitres /RAM JA : titres (un pour le tennis, un pour le padel) et suggestions dans les tournois */
 const test = require('node:test');
 const assert = require('node:assert');
+const { freePort } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
 test('titres de juge-arbitre et juges-arbitres proposés', async () => {
-  const PORT = 39600 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'ja-'));
+  const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'ja-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });

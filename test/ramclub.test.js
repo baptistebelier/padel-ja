@@ -1,6 +1,7 @@
 /* RAM Club : clubs, adhésions, droits d'écriture et synchronisation (stockage fichiers temporaire) */
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { freePort } = require('./helpers');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -124,7 +125,7 @@ test('les données survivent à un redémarrage du serveur', async () => {
 
 /* de bout en bout : un vrai serveur, un compte /RAM, l'API /api/ram */
 test('API : créer un compte puis un club, synchroniser', async () => {
-  const PORT = 39900 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'ramclub-api-'));
+  const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'ramclub-api-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });

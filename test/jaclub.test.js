@@ -1,11 +1,12 @@
 /* Pont /RAM JA ↔ /RAM Club : tournoi publié sur le mur du club, inscription depuis l'appli, résultats en retour */
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { freePort } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
 test('tournoi et animation /RAM JA publiés sur /RAM Club, inscriptions depuis le club, résultats', async () => {
-  const PORT = 39500 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'jaclub-'));
+  const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'jaclub-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });
@@ -106,7 +107,7 @@ test('tournoi et animation /RAM JA publiés sur /RAM Club, inscriptions depuis l
 });
 
 test('horaire du prochain match publié pour les paires du club après le tirage', async () => {
-  const PORT = 39600 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'jaclub2-'));
+  const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'jaclub2-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });

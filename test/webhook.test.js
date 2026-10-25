@@ -6,13 +6,15 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
+const { freePort } = require('./helpers');
 
 const SECRET = 'cle-de-test-webhook';
-const PORT = 39000 + Math.floor(Math.random() * 900);
+let PORT;
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'padelja-webhook-'));
 let srv;
 
 test.before(async () => {
+  PORT = await freePort();
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA, SHOPIFY_WEBHOOK_SECRET: SECRET });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });

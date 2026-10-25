@@ -1,11 +1,12 @@
 /* Fiches joueurs /RAM JA nourries par /RAM Club : profil sportif du compte, fiche des enfants sans compte */
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { freePort } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
 test('profil sportif recopié sur la fiche ; un enfant sans compte reçoit sa fiche', async () => {
-  const PORT = 39300 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'fiches-'));
+  const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'fiches-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });

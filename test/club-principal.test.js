@@ -1,11 +1,12 @@
 /* Plusieurs clubs sur /RAM Club : un club principal (celui de la licence, repris par /RAM JA) et des clubs secondaires */
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { freePort } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
 test('club principal choisi parmi ses clubs, repris par le compte et la fiche joueur', async () => {
-  const PORT = 39400 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'principal-'));
+  const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'principal-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });

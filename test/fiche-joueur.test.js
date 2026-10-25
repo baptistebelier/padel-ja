@@ -1,11 +1,12 @@
 /* Fiche joueur des comptes /RAM : créée à l'inscription, elle suit le profil (nom, licence, classement padel) */
 const test = require('node:test');
 const assert = require('node:assert');
+const { freePort } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
 test('compte /RAM : une fiche joueur par compte, qui suit le profil', async () => {
-  const PORT = 39800 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'fiche-joueur-'));
+  const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'fiche-joueur-'));
   // une fiche saisie par un juge-arbitre, avec une licence, à personne
   fs.writeFileSync(path.join(DATA, 'joueurs.json'), JSON.stringify([{ id: 'jref', licence: 'A123456', last: 'MARTIN', first: 'Paul', rank: '', name_key: 'martin|paul', search: 'martin paul a123456', created_by: 'ja', user_id: null }]));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });

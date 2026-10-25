@@ -1,6 +1,7 @@
 /* Référentiel des clubs commun à /RAM JA et /RAM Club : un club = une ligne, retrouvé quelle que soit l'écriture */
 const test = require('node:test');
 const assert = require('node:assert');
+const { freePort } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 const { createClubs, clubKey } = require('../lib/clubs.js');
@@ -25,7 +26,7 @@ test('référentiel : un nom déjà connu ne crée pas de doublon, même saisi d
 });
 
 test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', async () => {
-  const PORT = 39700 + Math.floor(Math.random() * 90), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'clubs-'));
+  const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'clubs-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });

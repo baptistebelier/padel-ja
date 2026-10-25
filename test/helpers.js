@@ -44,4 +44,13 @@ function playAll(T, pick = () => 'A') {
 const game = w => [w, w, w, w];
 const repeat = (arr, n) => Array.from({ length: n }, () => arr).flat();
 
-module.exports = { E, seeded, act, demoTournament, playAll, game, repeat };
+// port libre donné par le système : deux tests lancés en même temps n'ont jamais le même
+function freePort() {
+  return new Promise((ok, ko) => {
+    const s = require('net').createServer();
+    s.on('error', ko);
+    s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => ok(p)); });
+  });
+}
+
+module.exports = { freePort, E, seeded, act, demoTournament, playAll, game, repeat };
