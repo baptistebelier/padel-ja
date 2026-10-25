@@ -105,6 +105,8 @@
   const others = (map, me) => Object.entries(map || {}).filter(([k]) => k !== me);
   const POST_LOCAL = ['t', 'my', 'yes', 'maybe', 'wl', 'likes', 'com', 'ins'];
   function postOut(p, prev) {
+    // publication du club : on garde qui l'a écrite (elle n'est pas « Nouveau » pour son auteur)
+    if (p.by === 'club' && !p.wr && !R.base.has('post/' + p.id)) p.wr = R.key;
     const s = copy(p);
     POST_LOCAL.forEach(k => delete s[k]);
     if (!p.at && !R.base.has('post/' + p.id)) p.at = Date.now();

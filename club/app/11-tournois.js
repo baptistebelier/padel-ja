@@ -158,6 +158,8 @@ async function jaCreateTournament(o) {
       body: JSON.stringify({ name: o.name })
     });
     const d = await r.json().catch(() => ({}));
+    // essai ou pass /RAM JA épuisé : on explique pourquoi, et quoi faire, plutôt qu'une simple erreur
+    if (r.status === 402) return jaAccessBlocked(d, o);
     if (!r.ok || !d.id) throw new Error(d.error || 'Création impossible dans /RAM JA');
     await jaCall('/api/t/' + d.id + '/action', {
       type: 'tournament/update',
@@ -179,9 +181,29 @@ async function jaCreateTournament(o) {
     render();
     sheet(
       'Tournoi créé dans /RAM JA',
-      `<div class="body"><div class="note ok">${ic('check')}<span><b>${esc(o.name)}</b> est créé dans /RAM JA et sera publié sur le mur dans un instant, avec les inscriptions dans l’appli.</span></div><p class="muted small">Le juge-arbitre gère ensuite le tirage, la programmation et les scores dans /RAM JA.</p><a class="btn full" href="${/^club\./.test(location.hostname) ? 'https://ja.riseandmove.fr' : ''}/t/${d.id}" target="_blank" rel="noopener">Ouvrir dans /RAM JA ${ic('link')}</a></div>`
+      `<div class="body"><div class="note ok">${ic('check')}<span><b>${esc(o.name)}</b> est créé dans /RAM JA et sera publié sur le mur dans un instant, avec les inscriptions dans l’appli.</p><p class="muted small">Le juge-arbitre gère ensuite le tirage, la programmation et les scores dans /RAM JA.</p><a class="btn full" href="${/^club\./.test(location.hostname) ? 'https://ja.riseandmove.fr' : ''}/t/${d.id}" target="_blank" rel="noopener">Ouvrir dans /RAM JA ${ic('link')}</a></div>`
     );
   } catch (e) {
     toast(e.message);
   }
+}
+/* création refusée par /RAM JA (essai gratuit ou pass déjà utilisé, accès terminé) : explication et solutions */
+function jaAccessBlocked(d, o) {
+  const a = d.access || {},
+    shop = /^https:\/\//.test(a.shop || '') ? a.shop : '',
+    why =
+      a.state === 'trial'
+        ? 'L’essai gratuit de /RAM JA comprend un seul tournoi, et il est déjà utilisé sur ton compte.'
+        : a.state === 'pass'
+          ? 'Ton pass tournoi /RAM JA est déjà utilisé.'
+          : 'Ton accès /RAM JA est terminé : tes tournois restent consultables, mais tu ne peux plus en créer.';
+  closeSheet();
+  sheet(
+    'Tournoi non créé',
+    `<div class="body"><div class="note"><span><b>${esc(o.name)}</b> n’a pas été créé. Les tournois du club sont organisés avec /RAM JA, sur le compte de la personne qui les crée. ${why}</span></div>
+ <span class="kicker">Pour l’organiser quand même</span>
+ <p>1. Prendre une offre /RAM JA (pass tournoi ou abonnement du club), puis recommencer ici.</p>
+ <p>2. Ou demander au juge-arbitre du club de le créer dans /RAM JA avec le nom du club : il apparaîtra tout seul sur le mur, avec les inscriptions dans l’appli.</span></div>
+ ${shop ? `<a class="btn full" href="${esc(shop)}" target="_blank" rel="noopener">Voir les offres /RAM JA ${ic('link')}</a>` : ''}<button class="btn ghost full" data-a="close">Fermer</button></div>`
+  );
 }

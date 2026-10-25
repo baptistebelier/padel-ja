@@ -130,7 +130,7 @@ function ago(n) {
    SEEN.at : dernière visite (enregistrée et partagée entre appareils par ram-sync.js) ;
    SEEN.prev : visite d'avant, figée pendant qu'on regarde l'onglet. Démo : rien n'est marqué. */
 const SEEN = { at: {}, prev: {} };
-const isNew = (tab, at, by) => !!at && by !== ME() && SEEN.prev[tab] != null && at > SEEN.prev[tab];
+const isNew = (tab, at, by, wr) => !!at && by !== ME() && wr !== ME() && SEEN.prev[tab] != null && at > SEEN.prev[tab];
 function tabNews(tab) {
   const since = SEEN.at[tab],
     me = ME(),

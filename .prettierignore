@@ -1,0 +1,9 @@
+# Prettier ne met en forme que le JavaScript de l'appli /RAM Club (réglages : club/.prettierrc.json).
+# Le reste du dépôt (serveur, /RAM JA, tests) et le CSS / HTML du Club gardent leur écriture compacte.
+/*
+!/club/
+club/logo.js
+club/*.css
+club/*.html
+club/*.webmanifest
+club/*.json

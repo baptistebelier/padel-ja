@@ -14,7 +14,10 @@
   `index.html` compte. Un nouveau fichier doit aussi être ajouté à la liste `CORE` de `sw.js`.
 - Après toute modification du Club, change `VERSION` dans `club/sw.js`, sinon les applis
   installées gardent l'ancienne version en cache.
-- Mise en forme : `npx prettier --write club` (réglages dans `club/.prettierrc.json`).
+- Mise en forme : `npx prettier --write club`, lancé depuis la racine du dépôt (réglages dans
+  `club/.prettierrc.json`). Seul le JavaScript du Club est mis en forme : le `.prettierignore` de la
+  racine laisse de côté le CSS, le HTML et `logo.js` du Club, ainsi que tout le reste du dépôt
+  (serveur, /RAM JA, tests), qui gardent leur écriture compacte. Ne pas lancer Prettier ailleurs.
 
 ## Avant chaque envoi
 - `npm test` doit passer. Render lance ces tests à chaque mise en ligne : si un test
