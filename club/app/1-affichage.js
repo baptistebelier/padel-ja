@@ -113,7 +113,7 @@ function render(keep) {
       foot.innerHTML =
         c && c.ro && !isAdmin()
           ? '<div class="muted small" style="text-align:center;padding:8px">Seul le club publie dans ce groupe.</div>'
-          : `<div class="att" id="att" hidden></div><form class="composer" id="composer"><label class="attach" aria-label="Joindre une photo">${ic('image')}<input type="file" id="m-img" accept="image/*"></label><textarea id="msg-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="${c ? (c.ro ? 'Publier au nom du club' : 'Écrire dans ' + esc(c.name)) : "Encourager l'équipe en direct"}" aria-label="Message"></textarea><button class="send" aria-label="Envoyer">${ic('send')}</button></form>`;
+          : `<div class="att" id="att" hidden></div><form class="composer" id="composer"><label class="attach" aria-label="Joindre une photo">${ic('image')}<input type="file" id="m-img" accept="image/*"></label><textarea id="msg-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="${c ? (c.ro ? 'Publier au nom du club' : 'Écrire dans ' + esc(c.name)) : "Encourager l'équipe"}" aria-label="Message"></textarea><button class="send" aria-label="Envoyer">${ic('send')}</button></form>`;
     }
   } else foot.hidden = true;
   if (showTabs) {

@@ -95,15 +95,15 @@ function evBox(p) {
   return `<div class="ev">${meta}${reg}${vol}${p.pay ? `<a class="btn ghost full" href="${p.pay}" target="_blank" rel="noopener">Payer en ligne ${ic('link')}</a>` : ''}<button class="btn sm ghost" data-a="ics" data-id="${p.id}">${ic('cal')}Ajouter à mon agenda</button></div>`;
 }
 
-/* Fiche d'un tournoi : tableau, catégorie, classements, limite de participants, fin des inscriptions */
+/* Fiche d'un tournoi : tableau, catégorie, classements, limite de participants, fin des inscriptions
+   (sans étiquettes en double : le sport est déjà dans le coin de la publication) */
 const trnAge = t => (t.pub === 'Jeunes' ? `${t.a1} à ${t.a2} ans` : t.pub === 'Seniors +' ? t.vet : 'Seniors');
 function trnBox(p) {
   const t = p.trn,
     pad = t.sport === 'Padel',
     row = (l, v) => `<div class="price"><span class="muted">${l}</span><b class="tv">${v}</b></div>`,
     past = t.dl && t.dl < TODAY;
-  return `<div class="card" style="background:var(--card2);gap:8px"><div class="tags" style="display:flex">${sportTag(t.sport)}<span class="tag ${t.gen === 'Femmes' ? 'f' : ''}">${t.gen}</span><span class="tag">${trnAge(t)}</span>${pad ? `<span class="tag padel">${t.cat}</span>` : `<span class="tag">${t.fmt}</span><span class="tag">${t.open ? 'Open' : 'Limité'}</span>`}</div>
- <div>${row('Tableau', t.gen)}${row('Catégorie', trnAge(t))}${pad ? row('Catégorie de tournoi', t.cat) : row('Format', t.fmt === 'TMC' ? 'TMC (multi-chances)' : 'Traditionnel') + row('Classements', t.open ? 'Open, tous classements' : t.lo + ' à ' + t.hi)}${row('Participants', t.max ? t.max + ' ' + (pad ? 'paires' : 'joueurs') + ' maximum' : 'Sans limite')}${row('Fin des inscriptions', t.dl ? fmtD(t.dl) + (past ? ' · terminé' : '') : 'Non précisée')}</div></div>`;
+  return `<div class="card" style="background:var(--card2);gap:8px"><div>${row('Tableau', t.gen)}${row('Catégorie', trnAge(t))}${pad ? row('Catégorie de tournoi', t.cat) : row('Format', t.fmt === 'TMC' ? 'TMC (multi-chances)' : 'Traditionnel') + row('Classements', t.open ? 'Open, tous classements' : t.lo + ' à ' + t.hi)}${row('Participants', t.max ? t.max + ' ' + (pad ? 'paires' : 'joueurs') + ' maximum' : 'Sans limite')}${row('Fin des inscriptions', t.dl ? fmtD(t.dl) + (past ? ' · terminé' : '') : 'Non précisée')}</div></div>`;
 }
 function postBody(p) {
   const k = p.kind;

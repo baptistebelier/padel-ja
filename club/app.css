@@ -442,7 +442,8 @@ div.nrow{display:flex;gap:10px;align-items:flex-start}
 .ct .v{user-select:all;overflow-wrap:anywhere}
 .tg{width:52px;height:44px;position:relative;flex:none}
 .tg::before{content:"";position:absolute;inset:8px 0;border-radius:14px;background:var(--card2);transition:background .2s}
-.tg::after{content:"";position:absolute;top:11px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.tg::after{content:"";position:absolute;top:11px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:transform .38s cubic-bezier(.3,1.6,.5,1),background .2s}
+.tg::before{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--fg) 14%,transparent)}
 .tg[aria-checked="true"]::before{background:var(--accent)}
 .tg[aria-checked="true"]::after{transform:translateX(24px);background:var(--on-accent)}
 .sw{display:flex;gap:8px}
@@ -642,6 +643,7 @@ body{touch-action:manipulation}
 .phone.kb .addfab{display:none}
 .composer textarea.ta{flex:1;min-width:0;min-height:46px;max-height:128px;height:46px;resize:none;overflow-y:auto;background:var(--card);color:var(--fg);border:0;border-radius:23px;padding:12px 16px;line-height:22px;font-family:var(--f-body);display:block}
 .sheet .composer textarea.ta{background:var(--card2)}
+.composer textarea.ta::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .composer{align-items:flex-end}
 /* Barre du bas : même marge (5 px) entre le curseur et le bord de la barre, coins du curseur concentriques à ceux de la barre */
 .tabs{padding:5px}
@@ -715,3 +717,15 @@ body{touch-action:manipulation}
 @media (min-width:1024px){.adband .adw{height:120px}}
 .pcard img.big.png,.adi img.png{background:none}   /* logo PNG transparent : sans vignette blanche */
 .item.me{background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:var(--rb)}
+/* finitions (app/12-finitions.js) : appui qui s'enfonce, cœurs, confettis, cloche, onglet qui rebondit */
+:is(.btn,.chip,.ib,.act,.item,.pit,.menu button,.seg button){transition:scale .12s ease}
+:is(.btn,.chip,.ib,.act,.item,.pit,.menu button,.seg button):active{scale:.96}
+.fx{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:200}
+.fx i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--c);animation:fxp var(--t,.6s) cubic-bezier(.15,.7,.3,1) forwards}
+.fx.conf i{width:7px;height:11px;border-radius:1px;animation-name:fxc;animation-timing-function:cubic-bezier(.2,.6,.4,1)}
+@keyframes fxp{0%{transform:translate(0,0) scale(.4);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+@keyframes fxc{0%{transform:translate(0,0) rotate(0);opacity:1}70%{opacity:1}100%{transform:translate(var(--dx),calc(var(--dy) + 120px)) rotate(var(--r));opacity:0}}
+.ib.ring svg{animation:ring .8s ease;transform-origin:50% 12%}
+@keyframes ring{0%,100%{rotate:0deg}15%{rotate:-18deg}35%{rotate:15deg}55%{rotate:-10deg}75%{rotate:5deg}}
+.tabs svg.bnc{animation:bnc .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes bnc{0%{scale:.6}100%{scale:1}}

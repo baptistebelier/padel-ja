@@ -587,3 +587,10 @@ html, body { background: var(--bg); }
   .addfab svg { width: 28px; height: 28px; }
   .fab #main { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* notifications : avatar centré sur sa ligne, lignes séparées, texte bien aligné */
+.nrow { align-items: center !important; gap: 12px; margin-top: 0 !important; padding: 12px 10px; border-bottom: 1px solid var(--line); }
+.nrow > .av, .nrow > .medal { align-self: center !important; margin: 0 !important; }
+.nrow .grow { line-height: 1.35; }
+.nrow time { margin-top: 2px; }
+.nrow .st.no { flex: none; align-self: center; }

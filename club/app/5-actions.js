@@ -539,27 +539,49 @@ const A = {
     }
     const st = isAdmin(),
       coach = S.role === 'coach',
-      mng = st || S.role === 'cap',
-      it = [
-        ['score', 'Ajouter un résultat', 'result'],
-        S.role !== 'kid' && ['search', 'Chercher une partie', 'newPost', 'data-k="play"'],
-        // enseignants et bureau : plusieurs fourchettes de niveau dans une même publication
-        st && ['users', 'Partie dirigée', 'nvNew', 'data-m="partie"'],
-        st && ['school', 'Séance collective à thème', 'nvNew', 'data-m="cours"'],
-        st && ['info', 'Annonce', 'newPost', 'data-k="annonce"'],
-        st && ['cal', 'Événement', 'newPost', 'data-k="event"'],
-        coach && ['ball', 'Stage', 'newPost', 'data-k="stage"'],
-        coach && ['school', "Groupe d'entraînement", 'newPost', 'data-k="train"'],
-        st && ['score', 'Tournoi', 'newPost', 'data-k="tournoi"'],
-        st && ['poll', 'Sondage', 'newPost', 'data-k="poll"'],
-        st && ['link', 'Publication avec lien', 'newPost', 'data-k="cta"'],
-        st && ['club', 'Mettre en avant nos partenaires', 'newPost', 'data-k="ad"'],
-        st && CLUBINFO.mods.actus && ['news', 'Actu', 'newPost', 'data-k="article"'],
-        ...myComms().map(c => ['flag', 'Promouvoir · ' + c.name, 'newPost', `data-k="commpromo" data-c="${c.id}"`])
-      ].filter(Boolean);
+      // rangés par rubriques : ce qu'on joue, ce qu'on annonce, la vie du club
+      groups = [
+        [
+          'Jouer',
+          [
+            ['score', 'Ajouter un résultat', 'result'],
+            S.role !== 'kid' && ['search', 'Chercher une partie', 'newPost', 'data-k="play"'],
+            // enseignants et bureau : plusieurs fourchettes de niveau dans une même publication
+            st && ['users', 'Partie dirigée', 'nvNew', 'data-m="partie"'],
+            st && ['school', 'Séance collective à thème', 'nvNew', 'data-m="cours"'],
+            coach && ['ball', 'Stage', 'newPost', 'data-k="stage"'],
+            coach && ['cal', "Groupe d'entraînement", 'newPost', 'data-k="train"']
+          ]
+        ],
+        [
+          'Annoncer',
+          [
+            st && ['info', 'Annonce', 'newPost', 'data-k="annonce"'],
+            st && ['cal', 'Événement', 'newPost', 'data-k="event"'],
+            st && ['trophy', 'Tournoi', 'newPost', 'data-k="tournoi"'],
+            st && ['poll', 'Sondage', 'newPost', 'data-k="poll"'],
+            st && ['link', 'Publication avec lien', 'newPost', 'data-k="cta"'],
+            st && CLUBINFO.mods.actus && ['news', 'Actu', 'newPost', 'data-k="article"']
+          ]
+        ],
+        [
+          'Vie du club',
+          [
+            st && ['heart', 'Mettre en avant nos partenaires', 'newPost', 'data-k="ad"'],
+            ...myComms().map(c => ['flag', 'Promouvoir · ' + c.name, 'newPost', `data-k="commpromo" data-c="${c.id}"`])
+          ]
+        ]
+      ]
+        .map(([t, l]) => [t, l.filter(Boolean)])
+        .filter(([, l]) => l.length);
     sheet(
       'Publier',
-      `<div class="body"><div class="menu">${it.map(i => `<button data-a="${i[2]}" ${i[3] || ''}>${ic(i[0])}${i[1]}</button>`).join('')}</div></div>`
+      `<div class="body">${groups
+        .map(
+          ([t, l]) =>
+            `${groups.length > 1 ? `<span class="kicker nsec">${t}</span>` : ''}<div class="menu">${l.map(i => `<button data-a="${i[2]}" ${i[3] || ''}>${ic(i[0])}${i[1]}</button>`).join('')}</div>`
+        )
+        .join('')}</div>`
     );
   },
   newPost(d) {
