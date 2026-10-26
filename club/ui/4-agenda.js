@@ -222,6 +222,28 @@ function planGrid(days, detail) {
 function agendaView() {
   return planView();
 }
+I.filter = '<path d="M4 6h16M7 12h10M10 18h4"/>';
+/* filtres de l'agenda : nombre de filtres actifs (types masqués, sport masqué, « seulement les miens ») */
+function planFilterCount() {
+  const P = S.plan,
+    cats = ['ens', 'jeu', 'ani', 'tour', 'eq'].concat(P.scope === 'me' ? ['repas'] : []);
+  return (
+    cats.filter(k => !P.cat[k]).length +
+    ['Tennis', 'Padel'].filter(k => !P.sp[k]).length +
+    (P.scope !== 'me' && P.mine ? 1 : 0)
+  );
+}
+/* panneau des filtres (monte du bas de l'écran) */
+function planFiltersBody() {
+  const P = S.plan,
+    me = P.scope === 'me',
+    chip = (g, k, l, c) =>
+      `<button class="chip" data-a="planF" data-g="${g}" data-k="${k}" aria-pressed="${!!P[g][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
+  return `<div class="body">${me ? '' : `<span class="kicker">Afficher</span><div class="chips wrap"><button class="chip" data-a="planMine" aria-pressed="${!!P.mine}">${ic('user')}Seulement les miens</button></div>`}
+ <span class="kicker">Types</span><div class="chips wrap">${chip('cat', 'ens', 'Cours', 'ens')}${chip('cat', 'jeu', 'Parties', 'jeu')}${chip('cat', 'ani', 'Événements', 'ani')}${chip('cat', 'tour', 'Tournois', 'tour')}${chip('cat', 'eq', 'Équipes', 'eq')}${me ? chip('cat', 'repas', 'Repas', 'repas') : ''}</div>
+ <span class="kicker">Sports</span><div class="chips wrap">${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>
+ <div class="ctl"><button class="btn ghost grow" data-a="planReset">Tout afficher</button><button class="btn grow" data-a="close">Voir l’agenda</button></div></div>`;
+}
 /* une ligne d'agenda (vues À venir, Événements, Liste) */
 const planRow = i =>
   `<button class="pit ${i.cat} ${i.cx ? 'cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><i class="sq"></i><span class="tm">${i.t || 'Journée'}</span><span class="grow"><span class="nm">${i.title}</span><br><span class="muted small">${i.sub}</span>${i.sport ? ' ' + sportTag(i.sport) : ''}</span></button>`;
@@ -229,12 +251,15 @@ const planRow = i =>
    tournois du club, tournois et animations /RAM JA, parties dirigées, séances collectives, parties),
    à venir sur 4 mois, une seule fois chacun (un stage sur plusieurs jours apparaît à son premier jour) */
 function eventsView() {
-  const seen = new Set(),
+  const me = S.plan.scope === 'me',
+    seen = new Set(),
     days = [];
-  for (let n = 0; n < 120; n++) {
+  for (let n = 0; n < (me ? 60 : 120); n++) {
     const iso = isoIn(n, TODAY),
-      l = planItems(iso).filter(i => i.v === 'post' && !seen.has(i.id));
-    l.forEach(i => seen.add(i.id));
+      // mon agenda : tout ce où je suis positionné (cours, rencontres, repas compris), chaque jour ;
+      // agenda du club : ce qui est publié sur le mur, une fois chacun
+      l = planItems(iso).filter(i => (me ? !seen.has(i.v + i.id + iso) : i.v === 'post' && !seen.has(i.id)));
+    l.forEach(i => seen.add(me ? i.v + i.id + iso : i.id));
     if (l.length) days.push([iso, l]);
   }
   return `<div class="pad">${
@@ -245,11 +270,17 @@ function eventsView() {
               `<div class="stack"><span class="kicker" ${iso === TODAY ? 'style="color:var(--accent)"' : ''}>${fmtD(iso)}${iso === TODAY ? " · aujourd'hui" : ''}</span>${l.map(planRow).join('')}</div>`
           )
           .join('')
-      : empty(
-          'cal',
-          'Aucun événement à venir',
-          'Les événements, stages, tournois et parties publiés sur le mur apparaîtront ici.'
-        )
+      : me
+        ? empty(
+            'cal',
+            'Rien de prévu',
+            'Inscris-toi à une partie, un cours, un événement ou un tournoi : tout ce où tu te positionnes apparaît ici.'
+          )
+        : empty(
+            'cal',
+            'Aucun événement à venir',
+            'Les événements, stages, tournois et parties publiés sur le mur apparaîtront ici.'
+          )
   }</div>`;
 }
 function myTeamsView() {
@@ -269,7 +300,7 @@ function planView() {
     byDay = P.mode === 'day';
   // deux agendas : le mien (tout ce où je me suis positionné) et celui du club ; chacun avec ses vues
   const me = P.scope === 'me',
-    views = me ? ['next', 'week', 'day'] : ['events', 'week', 'day', 'list'];
+    views = ['events', 'week', 'day', 'list'];
   if (!views.includes(P.mode)) P.mode = views[0];
   const LBL = {
     next: ['À venir', 'list'],
@@ -289,7 +320,10 @@ function planView() {
           `<button class="chip" data-a="planScope" data-k="${k}" aria-pressed="${P.scope === k}">${ic(i)}${l}</button>`
       )
       .join('')}</div>`,
-    modes = scopes + `<div class="chips">${views.map(mode).join('')}</div>`;
+    nf = planFilterCount(),
+    modes =
+      scopes +
+      `<div class="chips plan-modes">${views.map(mode).join('')}<button class="chip fbtn" data-a="planFilters" aria-pressed="${nf > 0}" aria-label="Filtres${nf ? ', ' + nf + ' actifs' : ''}">${ic('filter')}${nf ? `<span class="cnt">${nf}</span>` : ''}</button></div>`;
   if (P.mode === 'events') return eventsView().replace('<div class="pad">', '<div class="pad" id="plan">' + modes);
   const chip = (g2, k, l, c) =>
     `<button class="chip" data-a="planF" data-g="${g2}" data-k="${k}" aria-pressed="${!!P[g2][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
@@ -305,13 +339,6 @@ function planView() {
       return `<button class="wd ${iso === TODAY ? 'today' : ''}" data-a="planDay" data-d="${iso}" aria-pressed="${byDay && iso === P.d}" aria-label="${fmtD(iso)}"><span>${DA[new Date(yy, mm - 1, dd).getDay()]}</span><b>${dd}</b><i>${n || ''}</i></button>`;
     })
     .join('')}</div>`;
-  const filters = `<div class="chips">${me ? '' : `<button class="chip" data-a="planMine" aria-pressed="${!!P.mine}">${ic('user')}Seulement les miens</button>`}${chip('cat', 'ens', 'Cours', 'ens')}${chip('cat', 'jeu', 'Parties', 'jeu')}${chip('cat', 'ani', 'Événements', 'ani')}${chip('cat', 'tour', 'Tournois', 'tour')}${chip('cat', 'eq', 'Équipes', 'eq')}${me ? chip('cat', 'repas', 'Repas', 'repas') : ''}${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>`;
-  // « À venir » : les 45 prochains jours, seulement ceux où quelque chose est prévu
-  if (P.mode === 'next') {
-    const next = Array.from({ length: 45 }, (_, i) => isoIn(i, TODAY)).filter(iso => planItems(iso).length);
-    return `<div class="pad" id="plan">${modes}${filters}${next.length ? next.map(dayBlock).join('') : empty('cal', 'Rien de prévu', 'Inscris-toi à une partie, un cours, un événement ou un tournoi : tout ce où tu te positionnes apparaît ici.')}</div>`;
-  }
   return `<div class="pad" id="plan">${modes}<div class="row" style="justify-content:space-between"><button class="ib rnd" data-a="planNav" data-n="-1" aria-label="${byDay ? 'Jour précédent' : 'Semaine précédente'}">${ic('back')}</button><span class="h3">${byDay ? fmtD(P.d) : 'Du ' + fmtD(days[0], 1) + ' au ' + fmtD(days[6], 1)}</span><button class="ib rnd" style="rotate:180deg" data-a="planNav" data-n="1" aria-label="${byDay ? 'Jour suivant' : 'Semaine suivante'}">${ic('back')}</button></div>
- ${filters}
  ${P.mode === 'week' ? planGrid(days, false) + '<p class="muted small">Touche un bloc pour l\'ouvrir, un jour pour voir son détail. Glisse à gauche ou à droite pour changer de semaine.</p>' : byDay ? strip + planGrid([P.d], true) : strip + days.map(dayBlock).join('')}</div>`;
 }

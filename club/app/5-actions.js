@@ -1,6 +1,16 @@
 /* /RAM Club — app/5-actions.js : Table des actions (A) : chaque bouton data-a="…" de l'appli.
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- actions ---------- */
+/* agenda : changer de vue ou d'agenda fait remonter la page en défilant, comme retoucher un onglet */
+function planTop(change) {
+  const m = $('main'),
+    y = m.scrollTop,
+    calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  change();
+  render(true);
+  m.scrollTop = Math.min(y, m.scrollHeight);
+  if (m.scrollTop > 0) m.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
+}
 const A = {
   tab(d) {
     // onglet déjà ouvert, sur sa page principale : on remonte en haut en douceur
@@ -386,11 +396,22 @@ const A = {
   planMine() {
     S.plan.mine = !S.plan.mine;
     render(true);
+    if ($('sheet')) A.planFilters();
   },
-  /* « Mon agenda » ou « Agenda du club » */
+  /* « Mon agenda » ou « Agenda du club » : la page remonte en haut en défilant */
   planScope(d) {
-    S.plan.scope = d.k;
+    planTop(() => (S.plan.scope = d.k));
+  },
+  /* filtres de l'agenda : panneau qui monte du bas */
+  planFilters() {
+    sheet('Filtres de l’agenda', planFiltersBody());
+  },
+  planReset() {
+    Object.keys(S.plan.cat).forEach(k => (S.plan.cat[k] = 1));
+    S.plan.sp = { Tennis: 1, Padel: 1 };
+    S.plan.mine = false;
     render(true);
+    A.planFilters();
   },
   clubInfo() {
     const I2 = CLUBINFO,
@@ -1029,13 +1050,12 @@ const A = {
     scrollFirst();
   },
   planMode(d) {
-    S.plan.mode = d.m;
-    render(true);
-    if (d.m === 'day') scrollFirst();
+    planTop(() => (S.plan.mode = d.m));
   },
   planF(d) {
     S.plan[d.g][d.k] = !S.plan[d.g][d.k];
     render(true);
+    if ($('sheet')) A.planFilters();
   },
   arch(d) {
     S.arch[d.k] = d.val;

@@ -745,3 +745,11 @@ details.aide .aq p{margin:0;line-height:1.5}
 /* frise du mur : cadre de couleur seulement quand il y a du nouveau (comme une story), sinon gris */
 .ring.calm{border-color:color-mix(in srgb,var(--fg) 18%,transparent)}
 .btn.logout{margin-top:6px}
+/* agenda : les 4 vues et le bouton Filtres sur une seule ligne, sans défilement */
+.chips.plan-modes{overflow:visible;-webkit-mask-image:none;mask-image:none;gap:6px}
+.plan-modes .chip{flex:1 1 auto;justify-content:center;padding:0 10px;min-width:0}
+.plan-modes .chip svg{display:none}
+.plan-modes .fbtn{flex:none;padding:0 12px;position:relative}
+.plan-modes .fbtn svg{display:block;width:20px;height:20px}
+.plan-modes .fbtn .cnt{position:absolute;top:-6px;right:-6px;background:var(--hot);color:var(--on-hot);font-size:11px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
+.chips.wrap{flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none}

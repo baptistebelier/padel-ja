@@ -1220,7 +1220,7 @@ const S = {
   nset: { club: true, follow: true, chan: true, team: true, live: false, play: true, mine: true },
   plan: {
     scope: 'me',
-    mode: 'next',
+    mode: 'events',
     d: TODAY,
     cat: { ens: 1, ani: 1, eq: 1, jeu: 1, tour: 1, repas: 1 },
     sp: { Tennis: 1, Padel: 1 }
