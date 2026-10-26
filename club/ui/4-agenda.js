@@ -92,6 +92,7 @@ function planMore(iso, out, me, mine) {
         wt = y.wait.some(mine);
       out.push({
         cat: 'jeu',
+        priv: true, // partie d'un adhérent : dans son agenda et celui des inscrits, pas dans l'agenda du club
         sport: y.sport,
         t: y.time,
         dur: hMin(y.dur) || 90,
@@ -257,7 +258,7 @@ const planCard = (i, iso) => {
 const planRow = i =>
   `<button class="pit ${i.cat} ${i.cx ? 'cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><i class="sq"></i><span class="tm">${i.t || 'Journée'}</span><span class="grow"><span class="nm">${i.title}</span><br><span class="muted small">${i.sub}</span>${i.sport ? ' ' + sportTag(i.sport) : ''}</span></button>`;
 /* Événements de l'agenda du club : tout ce qui est publié sur le mur avec une date (événements, stages,
-   tournois du club, tournois et animations /RAM JA, parties dirigées, séances collectives, parties),
+   tournois du club, tournois et animations /RAM JA, parties dirigées, séances collectives ; pas les parties des adhérents),
    à venir sur 4 mois, une seule fois chacun (un stage sur plusieurs jours apparaît à son premier jour) */
 function eventsView() {
   const me = S.plan.scope === 'me',
@@ -283,7 +284,7 @@ function eventsView() {
         : empty(
             'cal',
             'Aucun événement à venir',
-            'Les événements, stages, tournois et parties publiés sur le mur apparaîtront ici.'
+            'Les événements, stages, tournois et séances du club apparaîtront ici.'
           )
   }</div>`;
 }
