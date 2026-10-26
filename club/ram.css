@@ -618,3 +618,11 @@ html, body { background: var(--bg); }
 .msg:not(.me) .bub.tail::after { left: -11px; bottom: 0; width: 12px; height: 12px; }
 /* texte des messages : même taille et même couleur partout (groupes, direct, commentaires) */
 .bub .tx { font-size: var(--t2, 15px); color: inherit; }
+
+/* Full street : la carte « Investissement » garde son cadre (bronze, argent, or…) en plus de l'ombre décalée
+   (l'ombre forcée des cartes en full street effaçait le cadre, dessiné lui aussi en box-shadow) */
+:root[data-style="street"] #main .tcard.cf1 { box-shadow: 0 0 0 2px #C8834B, 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] #main .tcard.cf2 { box-shadow: 0 0 0 2px #DDE3EA, 0 0 0 4px #8E99A6, 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] #main .tcard.cf3 { box-shadow: 0 0 0 2px #F2C230, 0 0 0 4px var(--bg), 0 0 0 6px #F2C230, 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] #main .tcard.cf4 { box-shadow: 0 0 0 2px #7FE3D8, 0 0 0 4px var(--bg), 0 0 0 6px #3FB8C9, 0 0 14px 6px rgba(127, 227, 216, .2), 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] #main .tcard.cf5 { box-shadow: 0 0 0 2px #6FB7FF, 0 0 0 4px #A78BFA, 0 0 0 6px var(--bg), 0 0 0 7px #6FB7FF, 0 0 18px 8px rgba(111, 183, 255, .25), 7px 7px 0 var(--ram-hard) !important; }
