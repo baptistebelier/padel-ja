@@ -737,3 +737,5 @@ details.aide summary svg{width:20px;height:20px;flex:none;color:var(--accent)}
 details.aide .aq{display:grid;gap:4px;padding:10px 0;border-bottom:1px solid var(--line)}
 details.aide .aq:last-child{border-bottom:0}
 details.aide .aq p{margin:0;line-height:1.5}
+.adm-sec{gap:0;padding-block:12px 6px}
+.adm-sec>.kicker{margin-bottom:4px}

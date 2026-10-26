@@ -116,16 +116,16 @@ const V = {
         .join('');
     if (false) {
       const mine = [];
-      return `<div class="pad"><div class="note">En tant qu'enseignante, tu gères tes groupes : appel, annulation d'un cours, message au groupe.</div><div><span class="kicker">Mes groupes</span>${mine.map(g => it('open', 'ball', g.name, g.sub, `data-v="grp" data-id="${g.id}"`)).join('')}</div></div>`;
+      return `<div class="pad"><div class="note">En tant qu'enseignante, tu gères tes groupes : appel, annulation d'un cours, message au groupe.</div><div class="card adm-sec"><span class="kicker">Mes groupes</span>${mine.map(g => it('open', 'ball', g.name, g.sub, `data-v="grp" data-id="${g.id}"`)).join('')}</div></div>`;
     }
     if (!isAdmin()) {
       const mine = GROUPS.filter(g => g.type === 'team' && g.cap === ME());
-      return `<div class="pad"><div class="note">En tant que capitaine, tu gères ton équipe : effectif, calendrier, convocations et scores en direct.</div><div><span class="kicker">Mes équipes</span>${mine.map(g => it('open', 'users', teamName(g), g.sub, `data-v="team" data-id="${g.id}"`)).join('')}</div></div>`;
+      return `<div class="pad"><div class="note">En tant que capitaine, tu gères ton équipe : effectif, calendrier, convocations et scores en direct.</div><div class="card adm-sec"><span class="kicker">Mes équipes</span>${mine.map(g => it('open', 'users', teamName(g), g.sub, `data-v="team" data-id="${g.id}"`)).join('')}</div></div>`;
     }
     const nj = JOINREQ.length;
-    return `<div class="pad">${setupCard()}<div><span class="kicker">Adhérents</span>${it('open', 'users', 'Faire entrer les adhérents', nj ? `${nj} demande${nj > 1 ? 's' : ''} à valider · code ${CLUBINFO.code}` : `Code du club ${CLUBINFO.code} · import d'une liste`, 'data-v="join"')}</div>
-  <div><span class="kicker">Publier sur le mur</span>${it('newPost', 'info', 'Annonce', 'Un message du club à tous les adhérents', 'data-k="annonce"')}${it('newPost', 'cal', 'Événement', "Avec inscription dans l'appli ou sur Ten'Up", 'data-k="event"')}${it('newPost', 'score', 'Tournoi', "Tennis ou padel, catégories, lien Ten'Up", 'data-k="tournoi"')}${it('newPost', 'poll', 'Sondage', "Jusqu'à six réponses, date de clôture", 'data-k="poll"')}${it('newPost', 'link', 'Publication avec lien', 'Un titre, un texte et un gros bouton vers un site', 'data-k="cta"')}${CLUBINFO.mods.actus ? it('newPost', 'news', 'Actu', 'Un récit, un portrait, un compte rendu', 'data-k="article"') : ''}</div>
-  <div><span class="kicker">Championnats et équipes</span>${CHAMPS.map(c => {
+    return `<div class="pad">${setupCard()}<div class="card adm-sec"><span class="kicker">Adhérents</span>${it('open', 'users', 'Faire entrer les adhérents', nj ? `${nj} demande${nj > 1 ? 's' : ''} à valider · code ${CLUBINFO.code}` : `Code du club ${CLUBINFO.code} · import d'une liste`, 'data-v="join"')}</div>
+  <div class="card adm-sec"><span class="kicker">Publier sur le mur</span>${it('newPost', 'info', 'Annonce', 'Un message du club à tous les adhérents', 'data-k="annonce"')}${it('newPost', 'cal', 'Événement', "Avec inscription dans l'appli ou sur Ten'Up", 'data-k="event"')}${it('newPost', 'score', 'Tournoi', "Tennis ou padel, catégories, lien Ten'Up", 'data-k="tournoi"')}${it('newPost', 'poll', 'Sondage', "Jusqu'à six réponses, date de clôture", 'data-k="poll"')}${it('newPost', 'link', 'Publication avec lien', 'Un titre, un texte et un gros bouton vers un site', 'data-k="cta"')}${CLUBINFO.mods.actus ? it('newPost', 'news', 'Actu', 'Un récit, un portrait, un compte rendu', 'data-k="article"') : ''}</div>
+  <div class="card adm-sec"><span class="kicker">Championnats et équipes</span>${CHAMPS.map(c => {
     const n = GROUPS.filter(g => g.champ === c.id).length;
     return it(
       'open',
@@ -137,8 +137,8 @@ const V = {
   }).join(
     ''
   )}${it('newPost', 'plus', 'Créer un championnat', 'Puis ajoute ses équipes, leurs capitaines et leur calendrier', 'data-k="champ"')}</div>
-  <div><span class="kicker">Groupes</span>${grps('train')}${S.role === 'coach' ? it('newPost', 'plus', "Créer un groupe d'entraînement", 'Jour, heure, lieu et critères', 'data-k="train"') : ''}${it('newPost', 'chat', 'Créer un groupe de discussion', 'Covoiturage, petites annonces, bénévoles…', 'data-k="chan"')}</div>
-  <div><span class="kicker">Le club</span>${it('open', 'info', 'Aide · guide du bureau', 'Tout ce que fait l’appli, rubrique par rubrique', 'data-v="aide"') + it('open', 'flag', 'Signalements', REPORTS.length ? `${REPORTS.length} contenu${REPORTS.length > 1 ? 's' : ''} à examiner` : 'Aucun contenu signalé', 'data-v="reports"')}${it('clubInfo', 'info', 'Infos du club', 'Courts, horaires, adresse, tarifs, liens, modules')}${
+  <div class="card adm-sec"><span class="kicker">Groupes</span>${grps('train')}${S.role === 'coach' ? it('newPost', 'plus', "Créer un groupe d'entraînement", 'Jour, heure, lieu et critères', 'data-k="train"') : ''}${it('newPost', 'chat', 'Créer un groupe de discussion', 'Covoiturage, petites annonces, bénévoles…', 'data-k="chan"')}</div>
+  <div class="card adm-sec"><span class="kicker">Le club</span>${it('open', 'info', 'Aide · guide du bureau', 'Tout ce que fait l’appli, rubrique par rubrique', 'data-v="aide"') + it('open', 'flag', 'Signalements', REPORTS.length ? `${REPORTS.length} contenu${REPORTS.length > 1 ? 's' : ''} à examiner` : 'Aucun contenu signalé', 'data-v="reports"')}${it('clubInfo', 'info', 'Infos du club', 'Courts, horaires, adresse, tarifs, liens, modules')}${
     CLUBINFO.mods.comm && isBureau()
       ? it(
           'goClub',
