@@ -1209,3 +1209,8 @@ const A = {
     );
   }
 };
+/* onglets de mon profil : Mon jeu, Mes infos, Réglages */
+A.meTab = d => {
+  S.meTab = d.k;
+  render(true);
+};

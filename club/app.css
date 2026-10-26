@@ -682,6 +682,9 @@ body{touch-action:manipulation}
 .bar-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:0 10px;margin-bottom:-2px;border-bottom:3px solid transparent;font-family:var(--f-sub);font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);position:relative}
 .bar-tabs button svg{width:18px;height:18px}
 .bar-tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.item .ed{flex:none;color:var(--muted)}
+.item .ed svg{width:18px;height:18px}
+.me-tabs{margin-top:4px}
 .bar-tabs .cnt{background:var(--hot);color:var(--on-hot);font-size:11px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px;letter-spacing:0}
 /* Publications par niveaux (enseignants) */
 .nv-tier{display:grid;gap:8px;padding:12px;background:var(--card2);border:1px solid var(--line)}

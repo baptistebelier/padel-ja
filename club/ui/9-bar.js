@@ -1,5 +1,6 @@
-/* /RAM Club — ui/9-bar.js : Bar et club-house (onglet Club › Bar) : la carte, la réservation des repas,
-   les commandes du jour pour le bureau.
+/* /RAM Club — ui/9-bar.js : Bar et club-house (onglet Club › Bar).
+   En haut, « Mes points bar » (dès qu'on en a) ; puis la Carte, côté adhérent : réserver, prendre avec ses points ;
+   et, pour le bureau, l'onglet Gestion : bons à remettre, commandes du jour, produits de la carte.
    Les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 Object.assign(I, {
   cup: '<path d="M5 8h11v6a5 5 0 01-5 5h-1a5 5 0 01-5-5zM16 10h2a2 2 0 010 4h-2M8 3v2M11 3v2M14 3v2"/>',
@@ -37,21 +38,23 @@ function barView() {
   if (!days.includes(B.d)) B.d = isoIn(1);
   const chip = (k, v, l) =>
     `<button class="chip" data-a="barSet" data-k="${k}" data-val="${v}" aria-pressed="${B[k] === v}">${l}</button>`;
-  // deux onglets pour le bureau : la carte, et les commandes (bons à remettre, réservations du jour) ;
+  // deux onglets pour le bureau : la Carte (comme un adhérent) et la Gestion (bons, commandes, produits) ;
   // les adhérents n'ont que la carte
-  if (!staff) B.v = 'carte';
+  if (!staff || !['carte', 'cmd'].includes(B.v)) B.v = staff && B.v === 'cmd' ? 'cmd' : 'carte';
   const tab = (v, i, l, n) =>
     `<button role="tab" aria-selected="${B.v === v}" data-a="barSet" data-k="v" data-val="${v}">${ic(i)}${l}${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
   const top = staff
-    ? `<div class="bar-tabs" role="tablist">${tab('carte', 'cup', 'Carte')}${tab('cmd', 'list', 'Commandes', REDEEMS.filter(r => r.st === 'ok').length + ORDERS.filter(o => o.date === isoIn(1) && o.st === 'ok').length)}</div>`
+    ? `<div class="bar-tabs" role="tablist">${tab('carte', 'cup', 'Carte')}${tab('cmd', 'gear', 'Gestion', REDEEMS.filter(r => r.st === 'ok').length + ORDERS.filter(o => o.date === isoIn(1) && o.st === 'ok').length)}</div>`
     : '';
   const when = `<div class="chips">${days.map(d => chip('d', d, barDay(d))).join('')}</div>`;
-  if (staff && B.v === 'cmd') return `<div class="pad">${top}${barVouchers()}${when}${barOrders(B.d)}</div>`;
+  const wal = myWallet(),
+    bons = REDEEMS.filter(r => r.by === ME() && r.st === 'ok'),
+    wtop = wal.earned > 0 || wal.balance > 0 || bons.length ? barWallet(wal, bons) : '';
+  if (staff && B.v === 'cmd')
+    return `<div class="pad">${wtop}${top}${barVouchers()}<span class="kicker">Commandes</span>${when}${barOrders(B.d)}${barProducts()}</div>`;
   const open = barOpen(B.d),
     mine = ORDERS.filter(o => myBarKeys().includes(o.by) && o.st !== 'annule'),
-    list = BAR.filter(it => staff || it.on !== false),
-    wal = myWallet(),
-    bons = REDEEMS.filter(r => r.by === ME() && r.st === 'ok');
+    list = BAR.filter(it => it.on !== false);
   const card = it => {
     const ok = it.on !== false && it.resa && barMoments(it).includes(B.m),
       got = mine.filter(o => o.item === it.id && o.date === B.d && o.moment === B.m).reduce((a, o) => a + o.qty, 0);
@@ -62,7 +65,7 @@ function barView() {
    .join(
      ''
    )}${it.resa ? '' : '<span class="tag ghost">Au bar seulement</span>'}${it.on === false ? '<span class="tag">Indisponible</span>' : ''}${got ? `<span class="tag lime">Réservé · ${got}</span>` : ''}</div>
- <div class="ctl">${ok ? (open ? `<button class="btn grow" data-a="barBook" data-id="${it.id}">Réserver pour ${barDay(B.d).toLowerCase()} ${MOMENT[B.m].toLowerCase()}</button>` : '<span class="muted small grow">Réservations closes pour ce jour</span>') : ''}${it.on !== false && +it.pts > 0 ? `<button class="btn ${ok ? 'ghost' : ''} grow" data-a="barRedeem" data-id="${it.id}" ${wal.balance < it.pts ? 'disabled' : ''}>${ic('trophy')}${wal.balance < it.pts ? `${it.pts} pts (il t’en manque ${it.pts - wal.balance})` : `Prendre avec ${it.pts} pts`}</button>` : ''}${staff ? `<button class="btn ghost" data-a="barEdit" data-id="${it.id}">${ic('edit')}Modifier</button>` : ''}</div></div>`;
+ <div class="ctl">${ok ? (open ? `<button class="btn grow" data-a="barBook" data-id="${it.id}">Réserver pour ${barDay(B.d).toLowerCase()} ${MOMENT[B.m].toLowerCase()}</button>` : '<span class="muted small grow">Réservations closes pour ce jour</span>') : ''}${it.on !== false && +it.pts > 0 ? `<button class="btn ${ok ? 'ghost' : ''} grow" data-a="barRedeem" data-id="${it.id}" ${wal.balance < it.pts ? 'disabled' : ''}>${ic('trophy')}${wal.balance < it.pts ? `${it.pts} pts (il t’en manque ${it.pts - wal.balance})` : `Prendre avec ${it.pts} pts`}</button>` : ''}</div></div>`;
   };
   const byCat = [...BAR_CATS, ...new Set(list.map(it => it.cat).filter(c => !BAR_CATS.includes(c)))]
     .map(c => {
@@ -71,14 +74,11 @@ function barView() {
     })
     .join('');
   const next = mine.filter(o => o.date >= TODAY).sort((a, b) => (a.date + a.moment).localeCompare(b.date + b.moment));
-  const wcard = `<div class="card wallet"><div class="row" style="gap:12px"><span class="medal t2">${ic('trophy')}</span><span class="grow"><span class="kicker">Mes points bar</span><br><b class="wal-n">${wal.balance} pts</b><span class="muted small"> · ${wal.earned} gagnés${wal.spent ? `, ${wal.spent} échangés` : ''}</span></span></div>
- <details class="more"><summary>Comment gagner des points</summary><div class="in"><div class="price"><span>Consommer au bar avec l’appli : réserve, puis le bar marque ta commande servie</span><b>${(wal.rules && wal.rules.perEuro) || 1} pt${((wal.rules && wal.rules.perEuro) || 1) > 1 ? 's' : ''} / €</b></div><p class="muted small">Par exemple, 2 croque-monsieur à 6 € servis rapportent ${12 * ((wal.rules && wal.rules.perEuro) || 1)} points.${wal.rules && wal.rules.from ? ' Les points repartent de zéro à chaque saison : ils comptent depuis le 1er septembre.' : ''} Les achats faits au bar sans réservation dans l’appli ne comptent pas.</p><p class="muted small">Échange-les au bar contre une boisson ou un verre offert : cherche le bouton « Prendre avec … pts ».</p></div></details>
- ${bons.length ? `<span class="kicker">Mes bons à utiliser</span>${bons.map(r => `<div class="item"><span class="tile">${ic('cup')}</span><span class="grow"><span class="nm">${esc(r.name)}</span><br><span class="muted small">${r.pts} pts · bon ${barCode(r)}</span></span><button class="btn sm" data-a="barVoucher" data-id="${r.id}">Montrer au bar</button></div>`).join('')}` : ''}</div>`;
-  return `<div class="pad">${top}${wcard}<p class="muted small">Réserve ton repas à l'avance : le club prévoit les quantités. Réservations jusqu'à la veille, ${barCut()} h.${CLUBINFO.house ? ' Club-house : ' + esc(CLUBINFO.house) + '.' : ''}</p>
+  return `<div class="pad">${wtop}${top}<p class="muted small">Réserve ton repas à l'avance : le club prévoit les quantités. Réservations jusqu'à la veille, ${barCut()} h.${CLUBINFO.house ? ' Club-house : ' + esc(CLUBINFO.house) + '.' : ''}</p>
  ${when}<div class="chips">${chip('m', 'midi', 'Midi')}${chip('m', 'soir', 'Soir')}</div>
  ${open ? '' : `<div class="note">Les réservations pour ${barDay(B.d).toLowerCase()} sont closes depuis la veille, ${barCut()} h. Les articles restent en vente au bar.</div>`}
- ${byCat || empty('cup', 'La carte est vide', staff ? 'Ajoute les plats et boissons du bar.' : 'Le bureau ajoutera bientôt la carte du bar.')}
- ${staff ? `<button class="btn full" data-a="barEdit">${ic('plus')}Ajouter un article</button>` : ''}
+ ${byCat || empty('cup', 'La carte est vide', staff ? 'Ajoute les plats et boissons dans l’onglet Gestion.' : 'Le bureau ajoutera bientôt la carte du bar.')}
+ ${wtop ? '' : `<details class="more"><summary>${ic('trophy')}Gagner des points bar</summary><div class="in">${barRules(wal)}</div></details>`}
  ${
    next.length
      ? `<div><span class="kicker">Mes réservations</span>${next
@@ -89,6 +89,45 @@ function barView() {
          .join('')}</div>`
      : ''
  }</div>`;
+}
+/* « Mes points bar » : le solde, les bons à utiliser et comment gagner des points */
+function barRules(wal) {
+  const r = (wal.rules && wal.rules.perEuro) || 1;
+  return `<div class="price"><span>Consommer au bar avec l’appli : réserve, puis le bar marque ta commande servie</span><b>${r} pt${r > 1 ? 's' : ''} / €</b></div><p class="muted small">Par exemple, 2 croque-monsieur à 6 € servis rapportent ${12 * r} points.${wal.rules && wal.rules.from ? ' Les points repartent de zéro à chaque saison : ils comptent depuis le 1er septembre.' : ''} Les achats faits au bar sans réservation dans l’appli ne comptent pas.</p><p class="muted small">Échange-les au bar contre une boisson ou un verre offert : cherche le bouton « Prendre avec … pts » sur la carte.</p>`;
+}
+function barWallet(wal, bons) {
+  return `<section class="card wallet"><div class="row" style="gap:12px"><span class="medal t2">${ic('trophy')}</span><span class="grow"><span class="kicker">Mes points bar</span><br><b class="wal-n">${wal.balance} pts</b><span class="muted small"> · ${wal.earned} gagnés${wal.spent ? `, ${wal.spent} échangés` : ''}</span></span></div>
+ ${bons.length ? `<span class="kicker">Mes bons à utiliser</span>${bons.map(r => `<div class="item"><span class="tile">${ic('cup')}</span><span class="grow"><span class="nm">${esc(r.name)}</span><br><span class="muted small">${r.pts} pts · bon ${barCode(r)}</span></span><button class="btn sm" data-a="barVoucher" data-id="${r.id}">Montrer au bar</button></div>`).join('')}` : ''}
+ <details class="more"><summary>Comment gagner des points</summary><div class="in">${barRules(wal)}</div></details></section>`;
+}
+/* Bureau : les produits de la carte, à modifier ou à compléter */
+function barProducts() {
+  const cats = [...BAR_CATS, ...new Set(BAR.map(it => it.cat).filter(c => c && !BAR_CATS.includes(c)))];
+  const rows = cats
+    .map(c => {
+      const l = BAR.filter(it => (it.cat || 'Plat') === c);
+      return l.length
+        ? `<span class="kicker">${esc(c)}s</span>${l
+            .map(
+              it =>
+                `<button class="item${it.on === false ? ' dim' : ''}" data-a="barEdit" data-id="${it.id}"><span class="tile">${ic(c === 'Boisson' ? 'cup' : 'list')}</span><span class="grow"><span class="nm">${esc(it.name)}</span><br><span class="muted small">${[
+                  it.price,
+                  barMoments(it)
+                    .map(m => MOMENT[m])
+                    .join(', '),
+                  it.resa ? 'réservable' : 'au bar seulement',
+                  +it.pts > 0 ? it.pts + ' pts' : '',
+                  it.on === false ? 'indisponible' : ''
+                ]
+                  .filter(Boolean)
+                  .map(esc)
+                  .join(' · ')}</span></span><span class="ed">${ic('edit')}</span></button>`
+            )
+            .join('')}`
+        : '';
+    })
+    .join('');
+  return `<section class="card" style="gap:0"><span class="kicker">Produits de la carte · ${BAR.length}</span>${rows || '<p class="muted small">La carte est vide.</p>'}<button class="btn full" data-a="barEdit" style="margin-top:10px">${ic('plus')}Ajouter un article</button></section>`;
 }
 /* code court d'un bon, à vérifier au bar */
 const barCode = r =>

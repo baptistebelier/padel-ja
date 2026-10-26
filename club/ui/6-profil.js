@@ -80,80 +80,101 @@ function profile(id) {
     pf = m.res.filter(r => r.perf).length,
     blk = S.blocked.has(id),
     parent = (M[ME()].kids || []).includes(id);
-  let h = `<div class="pad">${self ? '<div id="ramAccount" class="ram-acc" hidden></div><div id="ramClubsBox" hidden></div>' : ''}${self && pending() ? lockCard() : ''}<div class="phero"><div class="row" style="gap:14px">${self ? `<label class="avedit" aria-label="Changer ma photo de profil">${av(id)}<span class="cam">${ic('image')}</span><input type="file" id="me-photo" accept="image/*"></label>` : m.photo ? `<button class="avbtn" data-a="photo" style="background-image:url(${m.photo})" aria-label="Agrandir la photo de profil">${av(id)}</button>` : av(id)}<div class="grow"><h2 class="tilt">${m.n.replace(' ', '<br>')}</h2></div></div>
+  let h = `<div class="pad">${self && pending() ? lockCard() : ''}<div class="phero"><div class="row" style="gap:14px">${self ? `<label class="avedit" aria-label="Changer ma photo de profil">${av(id)}<span class="cam">${ic('image')}</span><input type="file" id="me-photo" accept="image/*"></label>` : m.photo ? `<button class="avbtn" data-a="photo" style="background-image:url(${m.photo})" aria-label="Agrandir la photo de profil">${av(id)}</button>` : av(id)}<div class="grow"><h2 class="tilt">${m.n.replace(' ', '<br>')}</h2></div></div>
  <div class="row" style="flex-wrap:wrap;gap:6px">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}<span class="muted small">${m.team}</span></div>
  <div class="rtiles">${m.r && m.r !== 'NC' ? `<span class="rt tennis"><b>${m.r}</b>Tennis</span>` : ''}${m.pl ? `<span class="rt padel"><b>Niv ${m.pl}</b>Padel</span>` : ''}${m.pad ? `<span class="rt"><b>${m.pad}</b>Classement padel</span>` : ''}${(!m.r || m.r === 'NC') && !m.pl && !m.pad ? '<span class="rt"><b>NC</b>Non classé</span>' : ''}</div>
  ${self || kid ? '' : `<div class="ctl">${blk ? `<button class="btn grow ghost" data-a="unblock" data-id="${id}">Débloquer ${first(id)}</button>` : `<button class="btn grow ${f ? 'on' : ''}" data-a="follow" data-id="${id}" aria-pressed="${f}">${ic(f ? 'check' : 'plus')}${f ? 'Suivi' : 'Suivre ' + first(id)}</button>`}<button class="ib rnd" data-a="umenu" data-id="${id}" aria-label="Options">${ic('more')}</button></div>`}</div>
- <div class="stats"><div><b>${kid ? '—' : m.fol + (f ? 1 : 0)}</b><span>Abonnés</span></div><div><b>${w}</b><span>Victoires</span></div><div><b>${m.res.length - w}</b><span>Défaites</span></div><div><b>${pf}</b><span>Perfs</span></div></div>${trophyCard(id)}`;
-  if (self)
-    h += `<div class="stack">${(isAdmin() || S.role === 'cap') && !pending() ? `<button class="btn full" data-a="admin">${ic('gear')}${isAdmin() && S.role !== 'coach' ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Gérer mon équipe'}</button>` : ''}<div class="ctl"><button class="btn grow" data-a="result">Ajouter un résultat</button>${kid ? '' : `<button class="btn grow ghost" data-a="newPost" data-k="play">Chercher une partie</button>`}</div><div class="ctl"><button class="btn sm ghost grow" data-a="rank" data-k="tennis">Classement tennis</button><button class="btn sm ghost grow" data-a="rank" data-k="padel">Classement padel</button></div></div>`;
+ <div class="stats"><div><b>${kid ? '—' : m.fol + (f ? 1 : 0)}</b><span>Abonnés</span></div><div><b>${w}</b><span>Victoires</span></div><div><b>${m.res.length - w}</b><span>Défaites</span></div><div><b>${pf}</b><span>Perfs</span></div></div>${self ? '' : trophyCard(id)}`;
+  /* mon profil : la carte d'identité en haut, puis trois onglets au lieu d'une longue colonne */
+  if (self) {
+    const T = ['jeu', 'infos', 'reglages'].includes(S.meTab) ? S.meTab : 'jeu',
+      tab = (k, i, l) =>
+        `<button role="tab" aria-selected="${T === k}" data-a="meTab" data-k="${k}">${ic(i)}${l}</button>`;
+    if ((isAdmin() || S.role === 'cap') && !pending())
+      h += `<button class="btn full" data-a="admin">${ic('gear')}${isAdmin() && S.role !== 'coach' ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Gérer mon équipe'}</button>`;
+    h += `<div class="bar-tabs me-tabs" role="tablist">${tab('jeu', 'ball', 'Mon jeu')}${tab('infos', 'user', 'Mes infos')}${tab('reglages', 'gear', 'Réglages')}</div>`;
+    return h + meTabBody(T, id, m, kid) + '</div>';
+  }
   if (kid && parent) h += parentCard(id);
   else if (kid && !self)
     h += `<div class="note">Compte jeune : pas de messagerie privée ni d'abonnés. Ses résultats ne sont visibles que de son groupe, de ses parents et des encadrants.</div>`;
   h +=
     contact(id) +
     `<div class="stack"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
-  if (self) {
-    const N = [
-      ['club', 'Annonces et événements du club'],
-      ['follow', 'Résultats des adhérents que je suis'],
-      ['chan', 'Messages dans mes groupes'],
-      ['team', 'Convocations et scores de mon équipe'],
-      ['live', 'Détail des matchs en direct (chaque match, pas seulement le début et la fin de la rencontre)'],
-      ['play', 'Recherches de partie à mon niveau et joueurs qui rejoignent les miennes'],
-      ['mine', 'Nouveaux abonnés, likes, commentaires et réactions à mes publications']
-    ];
-    h += `<div class="card"><span class="kicker">Affichage</span><div class="chips">${[
-      ['jour', 'Jour', 'sun'],
-      ['nuit', 'Nuit', 'moon'],
-      ['systeme', 'Système', 'screen']
-    ]
-      .map(
-        ([k, l, i]) =>
-          `<button class="chip" data-a="mode" data-k="${k}" aria-pressed="${(S.mode || 'systeme') === k}">${ic(i)}${l}</button>`
-      )
-      .join('')}</div><span class="kicker" style="margin-top:14px">Style de l'interface</span><div class="chips">${[
-      ['epure', 'Épuré'],
-      ['', 'Street dosé'],
-      ['street', 'Full street']
-    ]
-      .map(
-        ([k, l]) =>
-          `<button class="chip" data-a="ustyle" data-k="${k}" aria-pressed="${(S.ustyle || '') === k}">${l}</button>`
-      )
-      .join(
-        ''
-      )}</div><p class="muted small">Les couleurs sont celles du club, choisies par le bureau. Tu choisis seulement le jour, la nuit ou le réglage de ton appareil.</p></div>`;
-    h += `<div class="card"><span class="kicker">Fond de l'appli</span><div class="motifs">${MOTIFS.map(([k, l]) => `<button data-a="motif" data-k="${k}" aria-pressed="${S.motif === k}"><i class="${k}"></i>${l}</button>`).join('')}</div><p class="muted small">Le motif reste immobile derrière le contenu.</p></div>`;
-    h += `<div class="card"><span class="kicker">Mes notifications</span>${N.map(x => `<div class="ct"><span class="grow">${x[1]}</span><button class="tg" role="switch" aria-checked="${S.nset[x[0]]}" aria-label="${x[1]}" data-a="nset" data-k="${x[0]}"></button></div>`).join('')}<div class="ct"><span class="grow">Notifications sur ce téléphone<br><span class="muted small">Même quand l'appli est fermée${/iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone ? " · sur iPhone, installe d'abord l'appli" : ''}</span></span><button class="btn sm ghost" data-a="pushOn">Activer</button></div>${/iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone && document.querySelector('link[rel="manifest"]') ? '<button class="btn sm ghost full" data-a="installHelp">Installer l\'appli sur l\'écran d\'accueil</button>' : ''}<div class="ct"><span class="grow">Sons et vibrations<br><span class="muted small">Like, message, notification, trophée, inscription</span></span><button class="tg" role="switch" aria-checked="${!!S.sound}" aria-label="Sons et vibrations" data-a="sound"></button></div></div>`;
-    if (id === ME())
+  return h + '</div>';
+}
+/* onglets de mon profil :
+   Mon jeu : publier un résultat, chercher une partie, classements, palmarès ;
+   Mes infos : ce que voient les adhérents, ma famille, mes clubs, mon compte /RAM ;
+   Réglages : affichage, fond, notifications, apparence du club, aide et compte */
+function meTabBody(T, id, m, kid) {
+  let h = '';
+  if (T === 'jeu')
+    return `${trophyCard(id)}<div class="stack"><div class="ctl"><button class="btn grow" data-a="result">Ajouter un résultat</button>${kid ? '' : `<button class="btn grow ghost" data-a="newPost" data-k="play">Chercher une partie</button>`}</div><div class="ctl"><button class="btn sm ghost grow" data-a="rank" data-k="tennis">Classement tennis</button><button class="btn sm ghost grow" data-a="rank" data-k="padel">Classement padel</button></div></div><div class="stack"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
+  if (T === 'infos') {
+    h = contact(id);
+    if (!kid)
       h += `<div class="card"><span class="kicker">Ma famille</span>${(m.kids || []).map(k => `<button class="item" data-a="member" data-id="${k}">${av(k, 'sm')}<span class="grow"><span class="nm">${M[k].n}</span> ${bd(k)}<br><span class="muted small">${catOf(k)} · ${M[k].team}</span></span></button>`).join('')}<button class="btn sm ghost" data-a="addKid">Ajouter un enfant</button></div>`;
-    h += `${
-      window.RAM_KEY
-        ? isAdmin()
-          ? `<div class="card"><span class="kicker">Apparence du club</span><p class="muted small">Nom, sigle, logo et couleur, visibles par tous les adhérents.</p><button class="btn sm ghost" data-a="look">Personnaliser</button></div>`
-          : ''
-        : `<div class="card"><span class="kicker">Démo · voir l'appli en tant que</span><div class="chips">${[
-            ['admin', 'Bureau'],
-            ['cap', 'Capitaine'],
-            ['mem', 'Adhérent et parent'],
-            ['coach', 'Enseignante'],
-            ['kid', 'Jeune (Léo)'],
-            ['wait', 'Nouvel inscrit (Lucas)']
-          ]
-            .map(
-              x =>
-                `<button class="chip" data-a="role" data-r="${x[0]}" aria-pressed="${S.role === x[0]}">${x[1]}</button>`
-            )
-            .join(
-              ''
-            )}</div><p class="muted small">Le bureau voit tout et gère le club. Le capitaine gère son équipe. L'enseignante gère ses groupes (appel, annulation). L'adhérent et le jeune ne voient que ce qui leur est destiné.</p></div>
+    // mes clubs et mon compte /RAM : remplis par ram-sync.js dans la vraie appli
+    return h + '<div id="ramClubsBox" hidden></div><div id="ramAccount" class="ram-acc" hidden></div>';
+  }
+  const N = [
+    ['club', 'Annonces et événements du club'],
+    ['follow', 'Résultats des adhérents que je suis'],
+    ['chan', 'Messages dans mes groupes'],
+    ['team', 'Convocations et scores de mon équipe'],
+    ['live', 'Détail des matchs en direct (chaque match, pas seulement le début et la fin de la rencontre)'],
+    ['play', 'Recherches de partie à mon niveau et joueurs qui rejoignent les miennes'],
+    ['mine', 'Nouveaux abonnés, likes, commentaires et réactions à mes publications']
+  ];
+  h += `<div class="card"><span class="kicker">Affichage</span><div class="chips">${[
+    ['jour', 'Jour', 'sun'],
+    ['nuit', 'Nuit', 'moon'],
+    ['systeme', 'Système', 'screen']
+  ]
+    .map(
+      ([k, l, i]) =>
+        `<button class="chip" data-a="mode" data-k="${k}" aria-pressed="${(S.mode || 'systeme') === k}">${ic(i)}${l}</button>`
+    )
+    .join('')}</div><span class="kicker" style="margin-top:14px">Style de l'interface</span><div class="chips">${[
+    ['epure', 'Épuré'],
+    ['', 'Street dosé'],
+    ['street', 'Full street']
+  ]
+    .map(
+      ([k, l]) =>
+        `<button class="chip" data-a="ustyle" data-k="${k}" aria-pressed="${(S.ustyle || '') === k}">${l}</button>`
+    )
+    .join(
+      ''
+    )}</div><p class="muted small">Les couleurs sont celles du club, choisies par le bureau. Tu choisis seulement le jour, la nuit ou le réglage de ton appareil.</p></div>`;
+  h += `<div class="card"><span class="kicker">Fond de l'appli</span><div class="motifs">${MOTIFS.map(([k, l]) => `<button data-a="motif" data-k="${k}" aria-pressed="${S.motif === k}"><i class="${k}"></i>${l}</button>`).join('')}</div><p class="muted small">Le motif reste immobile derrière le contenu.</p></div>`;
+  h += `<div class="card"><span class="kicker">Mes notifications</span>${N.map(x => `<div class="ct"><span class="grow">${x[1]}</span><button class="tg" role="switch" aria-checked="${S.nset[x[0]]}" aria-label="${x[1]}" data-a="nset" data-k="${x[0]}"></button></div>`).join('')}<div class="ct"><span class="grow">Notifications sur ce téléphone<br><span class="muted small">Même quand l'appli est fermée${/iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone ? " · sur iPhone, installe d'abord l'appli" : ''}</span></span><button class="btn sm ghost" data-a="pushOn">Activer</button></div>${/iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone && document.querySelector('link[rel="manifest"]') ? '<button class="btn sm ghost full" data-a="installHelp">Installer l\'appli sur l\'écran d\'accueil</button>' : ''}<div class="ct"><span class="grow">Sons et vibrations<br><span class="muted small">Like, message, notification, trophée, inscription</span></span><button class="tg" role="switch" aria-checked="${!!S.sound}" aria-label="Sons et vibrations" data-a="sound"></button></div></div>`;
+  h += `${
+    window.RAM_KEY
+      ? isAdmin()
+        ? `<div class="card"><span class="kicker">Apparence du club</span><p class="muted small">Nom, sigle, logo et couleur, visibles par tous les adhérents.</p><button class="btn sm ghost" data-a="look">Personnaliser</button></div>`
+        : ''
+      : `<div class="card"><span class="kicker">Démo · voir l'appli en tant que</span><div class="chips">${[
+          ['admin', 'Bureau'],
+          ['cap', 'Capitaine'],
+          ['mem', 'Adhérent et parent'],
+          ['coach', 'Enseignante'],
+          ['kid', 'Jeune (Léo)'],
+          ['wait', 'Nouvel inscrit (Lucas)']
+        ]
+          .map(
+            x =>
+              `<button class="chip" data-a="role" data-r="${x[0]}" aria-pressed="${S.role === x[0]}">${x[1]}</button>`
+          )
+          .join(
+            ''
+          )}</div><p class="muted small">Le bureau voit tout et gère le club. Le capitaine gère son équipe. L'enseignante gère ses groupes (appel, annulation). L'adhérent et le jeune ne voient que ce qui leur est destiné.</p></div>
   <div class="card"><span class="kicker">Démo · les couleurs du club</span><div class="sw">${CLUBS.map((c, i) => `<button data-a="theme" data-i="${i}" aria-pressed="${S.club === i}"><i><span style="background:${c.bg || (c.dark ? '#0B0B0B' : '#F3F5FA')}"></span><span style="background:${c.accent}"></span></i>${c.label}</button>`).join('')}</div>${isAdmin() ? `<button class="btn sm ghost" data-a="look">Personnaliser nom, logo et couleur</button>` : ''}</div>`
-    }
+  }
   <div class="menu"><button data-a="open" data-v="aide">${ic('info')}Aide : tout savoir sur l’appli</button><button data-a="open" data-v="legal">${ic('shield')}Conditions et confidentialité</button>${kid ? '' : `<button class="danger" data-a="delAccount">${ic('trash')}Supprimer mon compte</button>`}</div>${kid ? '<p class="muted small">Seul ton parent peut supprimer ton compte.</p>' : ''}
   <div class="powered"><span>Propulsé par</span><img src="${ramLogo()}" alt="/RAM Club"></div>`;
-  }
-  return h + '</div>';
+  return h;
 }
 /* Espace parent : prochains cours de l'enfant, absences, autorisation photo, second parent */
 const nextSessionOf = g => {
