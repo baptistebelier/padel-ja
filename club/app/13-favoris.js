@@ -111,6 +111,27 @@ const favUsual = () =>
     .sort((a, b) => b.n - a.n)
     .slice(0, 6)
     .map(x => x.f);
+/* du nouveau dans un favori : messages non lus, rencontre en direct, réservations ou demandes à traiter */
+function favNew(f) {
+  try {
+    const unread = c => !!c && !c.mute && c.un > 0;
+    if (f.v === 'chan') return unread(chans.find(x => x.id === f.id));
+    if (f.v === 'rec') return (recs.find(x => x.id === f.id) || {}).st === 'live';
+    if (f.v === 'team' || f.v === 'grp')
+      return unread(chans.find(x => x.id === f.id)) || recs.some(r => r.tid === f.id && r.st === 'live');
+    if (f.t === 'chans') return chans.some(c => (!f.s || c.g === f.s) && chanOk(c) && unread(c));
+    if (f.t === 'club') {
+      if (f.s === 'teams') return recs.some(r => r.st === 'live' && !r.arch);
+      if (f.s === 'bar')
+        return (
+          isBureau() && (REDEEMS.some(r => r.st === 'ok') || ORDERS.some(o => o.date === isoIn(1) && o.st === 'ok'))
+        );
+      if (f.s === 'comm') return isBureau() && COMMS.some(c => (c.req || []).length);
+      if (f.s === 'actus') return arts.some(a => !a.arch && isNew('club', a.at));
+    }
+  } catch (e) {}
+  return false;
+}
 /* tuiles de la frise : mes favoris (ou les pages que j'ouvre le plus), puis « Modifier » */
 function favStrip(st) {
   const mine = S.favs.filter(f => favMeta(f)),
@@ -122,12 +143,14 @@ function favStrip(st) {
         `data-k="${esc(favKey(f))}"`,
         m.a ? av(m.a, 'sm') : ic(m.i),
         esc(m.l),
-        mine.length ? 'fav' : ''
+        favNew(f) ? '' : 'calm'
       );
     };
   return {
     tiles: list.map(tile).join(''),
-    tail: mine.length ? st('favEdit', '', ic('edit'), 'Mes favoris') : st('favHelp', '', ic('star'), 'Mes favoris'),
+    tail: mine.length
+      ? st('favEdit', '', ic('edit'), 'Mes favoris', 'calm')
+      : st('favHelp', '', ic('star'), 'Mes favoris', 'calm'),
     any: list.length > 0
   };
 }

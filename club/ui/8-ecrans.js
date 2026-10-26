@@ -22,13 +22,21 @@ const V = {
       const F = typeof favStrip === 'function' ? favStrip(st) : null;
       if (F && F.any) return F.tiles + F.tail;
       return (
-        (S.role === 'kid' ? '' : st('newPost', 'data-k="play"', ic('search'), 'Chercher une partie')) +
+        (S.role === 'kid' ? '' : st('newPost', 'data-k="play"', ic('search'), 'Chercher une partie', 'calm')) +
         chans
           .filter(c => chanOk(c) && c.g !== 'club' && (S.role === 'kid' || !c.kid || (v.kids && v.kids.length)))
           .slice(0, 4)
-          .map(c => st('open', `data-v="chan" data-id="${c.id}"`, ic(c.g === 'team' ? 'users' : 'ball'), c.name))
+          .map(c =>
+            st(
+              'open',
+              `data-v="chan" data-id="${c.id}"`,
+              ic(c.g === 'team' ? 'users' : 'ball'),
+              c.name,
+              c.un && !c.mute ? '' : 'calm'
+            )
+          )
           .join('') +
-        (CLUBINFO.mods.actus ? st('goClub', 'data-t="actus"', ic('news'), 'Actus') : '') +
+        (CLUBINFO.mods.actus ? st('goClub', 'data-t="actus"', ic('news'), 'Actus', 'calm') : '') +
         (F ? F.tail : '')
       );
     })()}</div>
