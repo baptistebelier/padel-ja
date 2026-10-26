@@ -245,6 +245,8 @@ function dayLbl(at) {
     n = Math.round((new Date(dayOf(+t)) - new Date(d)) / 864e5);
   return n === 0 ? "Aujourd'hui" : n === 1 ? 'Hier' : n < 7 ? DAYS[new Date(at).getDay()] : fmtD(d);
 }
+/* fin d'une série de messages : classe « msg-end » (et non « last », déjà prise par l'aperçu gris
+   du dernier message dans la liste des groupes, qui donnait à ces messages un texte plus petit et grisé) */
 const msgRow = (m, i, sport, ref, fresh) => {
   if (S.blocked.has(m.by)) return '';
   const l = msgList(ref) || [],
@@ -255,7 +257,7 @@ const msgRow = (m, i, sport, ref, fresh) => {
     mine = m.by === ME(),
     pop = fresh || m._pop;
   delete m._pop;
-  return `${newDay ? `<div class="daysep"><span>${dayLbl(m.at)}</span></div>` : ''}<div class="msg ${mine ? 'me' : ''} ${cont ? 'cont' : ''} ${last ? 'last' : ''} ${pop ? 'in' : ''}">${mine ? '' : last ? av(m.by, 'sm') : '<span class="avsp" aria-hidden="true"></span>'}<div class="grow"><div class="bubw"><div class="bub${last ? ' tail' : ''}" data-lp="mmenu" data-ref="${ref}" data-i="${i}">${mine || cont ? '' : `<div class="hd">${who(m.by)}${bd(m.by, sport)}</div>`}${m.rep ? `<span class="quote">${m.rep.by === 'club' ? club().short : first(m.rep.by)} : ${esc(m.rep.x).slice(0, 80)}</span>` : ''}${m.img ? `<button class="ph mph" style="background-image:url(${m.img})" data-a="photo" aria-label="Agrandir la photo"></button>` : ''}${m.x ? `<span class="tx">${esc(m.x)}</span>` : ''}<time>${m.t || ''}</time></div><button class="bmore" data-a="mmenu" data-ref="${ref}" data-i="${i}" aria-label="Options du message">${ic('more')}</button></div>${
+  return `${newDay ? `<div class="daysep"><span>${dayLbl(m.at)}</span></div>` : ''}<div class="msg ${mine ? 'me' : ''} ${cont ? 'cont' : ''} ${last ? 'msg-end' : ''} ${pop ? 'in' : ''}">${mine ? '' : last ? av(m.by, 'sm') : '<span class="avsp" aria-hidden="true"></span>'}<div class="grow"><div class="bubw"><div class="bub${last ? ' tail' : ''}" data-lp="mmenu" data-ref="${ref}" data-i="${i}">${mine || cont ? '' : `<div class="hd">${who(m.by)}${bd(m.by, sport)}</div>`}${m.rep ? `<span class="quote">${m.rep.by === 'club' ? club().short : first(m.rep.by)} : ${esc(m.rep.x).slice(0, 80)}</span>` : ''}${m.img ? `<button class="ph mph" style="background-image:url(${m.img})" data-a="photo" aria-label="Agrandir la photo"></button>` : ''}${m.x ? `<span class="tx">${esc(m.x)}</span>` : ''}<time>${m.t || ''}</time></div><button class="bmore" data-a="mmenu" data-ref="${ref}" data-i="${i}" aria-label="Options du message">${ic('more')}</button></div>${
     m.re && Object.keys(m.re).length
       ? `<div class="reacts">${Object.entries(m.re)
           .map(

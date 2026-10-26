@@ -614,3 +614,5 @@ html, body { background: var(--bg); }
    le bas de la pointe forment une seule ligne droite, sans petite marche */
 .msg.me .bub.tail::after { right: -12px; bottom: -1px; width: 12px; height: 13px; }
 .msg:not(.me) .bub.tail::after { left: -11px; bottom: 0; width: 12px; height: 12px; }
+/* texte des messages : même taille et même couleur partout (groupes, direct, commentaires) */
+.bub .tx { font-size: var(--t2, 15px); color: inherit; }
