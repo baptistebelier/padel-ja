@@ -610,3 +610,7 @@ html, body { background: var(--bg); }
    sur l'ombre de la bulle) (26/10/2026) */
 .bub.tail { box-shadow: none; filter: drop-shadow(3px 3px 0 var(--ram-hard)); }
 .msg.me .bub.tail { box-shadow: none; filter: drop-shadow(3px 3px 0 var(--accent2, var(--hot))); }
+/* la pointe se cale sur le bord extérieur de la bulle (bordure de 1 px comprise) : le bas de la bulle et
+   le bas de la pointe forment une seule ligne droite, sans petite marche */
+.msg.me .bub.tail::after { right: -12px; bottom: -1px; width: 12px; height: 13px; }
+.msg:not(.me) .bub.tail::after { left: -11px; bottom: 0; width: 12px; height: 12px; }
