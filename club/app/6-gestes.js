@@ -262,7 +262,9 @@ document.addEventListener(
 );
 /* Qui peut publier sur le mur : bureau, enseignants, membres d'une commission */
 const myComms = () => COMMS.filter(c => c.mem.includes(ME()) || c.resp === ME());
-const canPublish = () => isAdmin() || myComms().length > 0;
+/* bouton « + » du mur : pour tout adhérent validé ; le choix s'adapte au rôle (adhérent : résultat, partie ;
+   commission : promotion ; enseignant et bureau : tout le reste) */
+const canPublish = () => true;
 /* Champ de message multiligne (comme WhatsApp) : une zone de texte et non un champ « texte »,
    ce qui évite la suggestion « Préremplir le contact » de Safari. Il grandit jusqu'à 5 lignes.
    Téléphone : la touche Entrée va à la ligne, on envoie avec le bouton. Ordinateur : Entrée envoie, Maj+Entrée va à la ligne. */

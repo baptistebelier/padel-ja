@@ -47,12 +47,16 @@ function planItems(iso) {
     .forEach(p => {
       const du = hMin(p.h2) - hMin(p.h1);
       out.push({
-        cat: 'ani',
+        cat: p.trn ? 'tour' : 'ani',
         all: !!p.d2,
         sport: p.sport || '',
         t: p.d2 ? '' : p.h1,
         dur: du > 0 ? du : 120,
-        sub: p.d2 ? 'Du ' + fmtD(p.d, 1) + ' au ' + fmtD(p.d2, 1) : p.h1 + ' – ' + p.h2 + ' · ' + p.place,
+        sub:
+          (p.stage ? 'Stage · ' : p.trn ? 'Tournoi · ' : '') +
+          (p.d2
+            ? 'Du ' + fmtD(p.d, 1) + ' au ' + fmtD(p.d2, 1)
+            : p.h1 + ' – ' + p.h2 + (p.place ? ' · ' + p.place : '')),
         title: p.title.replace(/<[^>]+>/g, ''),
         v: 'post',
         id: p.id,
@@ -218,20 +222,34 @@ function planGrid(days, detail) {
 function agendaView() {
   return planView();
 }
+/* une ligne d'agenda (vues À venir, Événements, Liste) */
+const planRow = i =>
+  `<button class="pit ${i.cat} ${i.cx ? 'cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><i class="sq"></i><span class="tm">${i.t || 'Journée'}</span><span class="grow"><span class="nm">${i.title}</span><br><span class="muted small">${i.sub}</span>${i.sport ? ' ' + sportTag(i.sport) : ''}</span></button>`;
+/* Événements de l'agenda du club : tout ce qui est publié sur le mur avec une date (événements, stages,
+   tournois du club, tournois et animations /RAM JA, parties dirigées, séances collectives, parties),
+   à venir sur 4 mois, une seule fois chacun (un stage sur plusieurs jours apparaît à son premier jour) */
 function eventsView() {
-  const ev = posts
-    .filter(p => p.kind === 'event' && !p.stage && !p.arch && ruleOk(p.rule))
-    .sort((a, b) => (a.d || '').localeCompare(b.d || ''));
+  const seen = new Set(),
+    days = [];
+  for (let n = 0; n < 120; n++) {
+    const iso = isoIn(n, TODAY),
+      l = planItems(iso).filter(i => i.v === 'post' && !seen.has(i.id));
+    l.forEach(i => seen.add(i.id));
+    if (l.length) days.push([iso, l]);
+  }
   return `<div class="pad">${
-    ev.length
-      ? ev
-          .map(p => {
-            const [yy, mm, dd] = (p.d || TODAY).split('-').map(Number),
-              sp = postSport(p);
-            return `<div class="card"><div class="row" style="align-items:flex-start;gap:12px"><div class="grow"><span class="h3">${p.title}</span><div class="tags" style="display:flex;margin-top:6px">${sp ? sportTag(sp) : postBoth(p) ? sportTag('Tennis') + sportTag('Padel') : ''}${p.done ? '<span class="bd done">Terminé</span>' : ''}</div><p class="muted small" style="margin-top:8px">${p.body}</p></div><span class="dblk"><b>${dd}</b>${MO[mm - 1]}</span></div>${evBox(p)}<button class="btn sm ghost" data-a="pmenu" data-id="${p.id}">${ic('more')}Options</button></div>`;
-          })
+    days.length
+      ? days
+          .map(
+            ([iso, l]) =>
+              `<div class="stack"><span class="kicker" ${iso === TODAY ? 'style="color:var(--accent)"' : ''}>${fmtD(iso)}${iso === TODAY ? " · aujourd'hui" : ''}</span>${l.map(planRow).join('')}</div>`
+          )
           .join('')
-      : empty('cal', 'Aucun événement à venir', 'Les prochains événements du club apparaîtront ici.')
+      : empty(
+          'cal',
+          'Aucun événement à venir',
+          'Les événements, stages, tournois et parties publiés sur le mur apparaîtront ici.'
+        )
   }</div>`;
 }
 function myTeamsView() {
@@ -275,8 +293,7 @@ function planView() {
   if (P.mode === 'events') return eventsView().replace('<div class="pad">', '<div class="pad" id="plan">' + modes);
   const chip = (g2, k, l, c) =>
     `<button class="chip" data-a="planF" data-g="${g2}" data-k="${k}" aria-pressed="${!!P[g2][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
-  const item = i =>
-    `<button class="pit ${i.cat} ${i.cx ? 'cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><i class="sq"></i><span class="tm">${i.t || 'Journée'}</span><span class="grow"><span class="nm">${i.title}</span><br><span class="muted small">${i.sub}</span>${i.sport ? ' ' + sportTag(i.sport) : ''}</span></button>`;
+  const item = planRow;
   const dayBlock = iso => {
     const it = planItems(iso);
     return `<div class="stack"><span class="kicker" ${iso === TODAY ? 'style="color:var(--accent)"' : ''}>${fmtD(iso)}${iso === TODAY ? " · aujourd'hui" : ''}</span>${it.length ? it.map(item).join('') : '<span class="muted small">Rien de prévu</span>'}</div>`;
