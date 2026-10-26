@@ -110,19 +110,31 @@ document.addEventListener(
 document.addEventListener('click', e => {
   if (e.target.closest && e.target.closest('.tg')) fxBuzz(6);
 });
-// nouvelle notification : la cloche s'agite
-const fxNotify = notify;
-notify = function () {
-  const before = NOTIFS.length,
-    out = fxNotify.apply(this, arguments);
-  if (NOTIFS.length > before && !fxCalm())
-    setTimeout(() => {
-      const b = document.querySelector('#top [data-a="notifs"]');
-      if (!b) return;
-      b.classList.remove('ramring');
-      void b.getBoundingClientRect();
-      b.classList.add('ramring');
-      setTimeout(() => b.classList.remove('ramring'), 900);
-    }, 60);
-  return out;
-};
+/* la cloche s'agite : à l'ouverture de l'appli s'il y a des notifications non lues, à chaque nouvelle notification
+   (qu'elle vienne de ce téléphone ou du serveur), puis toutes les 30 s tant qu'il en reste à lire.
+   L'en-tête est redessiné souvent (synchronisation) : la cloche reprend son mouvement là où il en était
+   (fxBellCls et fxBellStyle sont appelés à chaque dessin de l'en-tête, app/1-affichage.js). */
+const FX_RING = 800;
+let fxBellAt = 0,
+  fxBellN = -1;
+const fxUnread = () =>
+  typeof pending === 'function' && pending()
+    ? 0
+    : NOTIFS.filter(n => n.n && (typeof nVis !== 'function' || nVis(n))).length;
+function fxBellCls() {
+  const n = fxUnread();
+  if (n > 0 && n > fxBellN && !fxCalm()) fxBellAt = Date.now();
+  fxBellN = n;
+  return Date.now() - fxBellAt < FX_RING ? ' ramring' : '';
+}
+const fxBellStyle = () => `--rd:-${Math.min(FX_RING, Date.now() - fxBellAt)}ms`;
+setInterval(() => {
+  if (!fxUnread() || fxCalm() || document.hidden) return;
+  const b = document.querySelector('#top [data-a="notifs"]');
+  if (!b) return;
+  fxBellAt = Date.now();
+  b.style.setProperty('--rd', '0ms');
+  b.classList.remove('ramring');
+  void b.getBoundingClientRect();
+  b.classList.add('ramring');
+}, 30000);
