@@ -753,3 +753,13 @@ details.aide .aq p{margin:0;line-height:1.5}
 .plan-modes .fbtn svg{display:block;width:20px;height:20px}
 .plan-modes .fbtn .cnt{position:absolute;top:-6px;right:-6px;background:var(--hot);color:var(--on-hot);font-size:11px;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
 .chips.wrap{flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none}
+/* agenda, vue Événements : une carte par élément */
+.card.evc{flex-direction:row;align-items:center;gap:14px;width:100%;text-align:left;padding:12px 12px 12px 12px;border-left:5px solid var(--c);margin-bottom:12px}
+.evc .dblk{width:56px;height:56px;background:var(--c);color:var(--oc)}
+.evc .dblk b{font-size:26px}
+.evc .grow{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.evc .kicker{color:var(--c);margin:0}
+.evc .nm{font-weight:700;font-size:16px;line-height:1.25}
+.evc .tag{margin-top:3px}
+.evc>svg{flex:none;width:18px;height:18px;rotate:180deg;color:var(--muted)}
+.evc.cx{opacity:.55}

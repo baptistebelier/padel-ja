@@ -244,7 +244,16 @@ function planFiltersBody() {
  <span class="kicker">Sports</span><div class="chips wrap">${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>
  <div class="ctl"><button class="btn ghost grow" data-a="planReset">Tout afficher</button><button class="btn grow" data-a="close">Voir l’agenda</button></div></div>`;
 }
-/* une ligne d'agenda (vues À venir, Événements, Liste) */
+/* vue Événements : chaque élément sur sa carte (bloc date à la couleur de son type), pour la distinguer de la Liste */
+const PLAN_KIND = { ens: 'Cours', jeu: 'Partie', ani: 'Événement', tour: 'Tournoi', eq: 'Rencontre', repas: 'Repas' };
+const planCard = (i, iso) => {
+  const [, m, d] = iso.split('-').map(Number),
+    pre = (String(i.sub).match(/^(Stage|Tournoi) · /) || [])[1],
+    sub = pre ? String(i.sub).slice(pre.length + 3) : i.sub,
+    when = i.t && !String(sub).includes(i.t) ? i.t + ' · ' : '';
+  return `<button class="card evc ${i.cat}${i.cx ? ' cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><span class="dblk"><b>${d}</b>${MO[m - 1]}</span><span class="grow"><span class="kicker">${pre || PLAN_KIND[i.cat] || ''}${iso === TODAY ? " · aujourd'hui" : ''}</span><span class="nm">${i.title}</span><span class="muted small">${when}${sub}</span>${i.sport ? sportTag(i.sport) : ''}</span>${ic('back')}</button>`;
+};
+/* une ligne d'agenda (vues Liste, Jour) */
 const planRow = i =>
   `<button class="pit ${i.cat} ${i.cx ? 'cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><i class="sq"></i><span class="tm">${i.t || 'Journée'}</span><span class="grow"><span class="nm">${i.title}</span><br><span class="muted small">${i.sub}</span>${i.sport ? ' ' + sportTag(i.sport) : ''}</span></button>`;
 /* Événements de l'agenda du club : tout ce qui est publié sur le mur avec une date (événements, stages,
@@ -264,12 +273,7 @@ function eventsView() {
   }
   return `<div class="pad">${
     days.length
-      ? days
-          .map(
-            ([iso, l]) =>
-              `<div class="stack"><span class="kicker" ${iso === TODAY ? 'style="color:var(--accent)"' : ''}>${fmtD(iso)}${iso === TODAY ? " · aujourd'hui" : ''}</span>${l.map(planRow).join('')}</div>`
-          )
-          .join('')
+      ? days.map(([iso, l]) => l.map(i => planCard(i, iso)).join('')).join('')
       : me
         ? empty(
             'cal',
