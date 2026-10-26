@@ -22,7 +22,7 @@ function fxBurst(pt, conf) {
   const d = document.createElement('div'),
     cols = conf ? ['var(--accent)', 'var(--hot)', 'var(--accent2, var(--hot))', 'var(--fg)'] : ['var(--hot)'],
     n = conf ? 22 : 9;
-  d.className = 'fx' + (conf ? ' conf' : '');
+  d.className = 'ramfx' + (conf ? ' conf' : ''); // « fx » est déjà pris par les cadres d'avatar (trophées)
   d.style.transform = `translate(${pt[0]}px, ${pt[1]}px)`;
   d.setAttribute('aria-hidden', 'true');
   for (let i = 0; i < n; i++) {
@@ -87,6 +87,25 @@ fxWrap('tab', () => {
   void s.getBoundingClientRect();
   s.classList.add('bnc');
 });
+// appui sur un bouton : il s'enfonce (au moins 150 ms, même pour un tap éclair), puis revient avec un ressort
+const FX_PRESS = '.btn,.chip,.ib,.act,.item,.pit,.menu button,.seg button,.tabs button';
+document.addEventListener(
+  'pointerdown',
+  e => {
+    const el = e.target.closest && e.target.closest(FX_PRESS);
+    if (!el || fxCalm()) return;
+    el.classList.add('press');
+    const t0 = Date.now(),
+      up = () => {
+        setTimeout(() => el.classList.remove('press'), Math.max(0, 150 - (Date.now() - t0)));
+        document.removeEventListener('pointerup', up);
+        document.removeEventListener('pointercancel', up);
+      };
+    document.addEventListener('pointerup', up);
+    document.addEventListener('pointercancel', up);
+  },
+  { passive: true }
+);
 // interrupteurs : petite vibration
 document.addEventListener('click', e => {
   if (e.target.closest && e.target.closest('.tg')) fxBuzz(6);
@@ -100,10 +119,10 @@ notify = function () {
     setTimeout(() => {
       const b = document.querySelector('#top [data-a="notifs"]');
       if (!b) return;
-      b.classList.remove('ring');
+      b.classList.remove('ramring');
       void b.getBoundingClientRect();
-      b.classList.add('ring');
-      setTimeout(() => b.classList.remove('ring'), 900);
+      b.classList.add('ramring');
+      setTimeout(() => b.classList.remove('ramring'), 900);
     }, 60);
   return out;
 };

@@ -718,14 +718,14 @@ body{touch-action:manipulation}
 .pcard img.big.png,.adi img.png{background:none}   /* logo PNG transparent : sans vignette blanche */
 .item.me{background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:var(--rb)}
 /* finitions (app/12-finitions.js) : appui qui s'enfonce, cœurs, confettis, cloche, onglet qui rebondit */
-:is(.btn,.chip,.ib,.act,.item,.pit,.menu button,.seg button){transition:scale .12s ease}
-:is(.btn,.chip,.ib,.act,.item,.pit,.menu button,.seg button):active{scale:.96}
-.fx{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:200}
-.fx i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--c);animation:fxp var(--t,.6s) cubic-bezier(.15,.7,.3,1) forwards}
-.fx.conf i{width:7px;height:11px;border-radius:1px;animation-name:fxc;animation-timing-function:cubic-bezier(.2,.6,.4,1)}
+:is(.btn,.chip,.ib,.act,.item,.pit,.menu button,.seg button,.tabs button){transition:scale .28s cubic-bezier(.3,1.6,.5,1)}
+:is(.btn,.chip,.ib,.act,.item,.pit,.menu button,.seg button,.tabs button).press{scale:.93;transition:scale .08s ease}
+.ramfx{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:200}
+.ramfx i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--c);animation:fxp var(--t,.6s) cubic-bezier(.15,.7,.3,1) forwards}
+.ramfx.conf i{width:7px;height:11px;border-radius:1px;animation-name:fxc;animation-timing-function:cubic-bezier(.2,.6,.4,1)}
 @keyframes fxp{0%{transform:translate(0,0) scale(.4);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
 @keyframes fxc{0%{transform:translate(0,0) rotate(0);opacity:1}70%{opacity:1}100%{transform:translate(var(--dx),calc(var(--dy) + 120px)) rotate(var(--r));opacity:0}}
-.ib.ring svg{animation:ring .8s ease;transform-origin:50% 12%}
+.ib.ramring svg{animation:ring .8s ease;transform-origin:50% 12%}
 @keyframes ring{0%,100%{rotate:0deg}15%{rotate:-18deg}35%{rotate:15deg}55%{rotate:-10deg}75%{rotate:5deg}}
 .tabs svg.bnc{animation:bnc .5s cubic-bezier(.3,1.6,.5,1)}
 @keyframes bnc{0%{scale:.6}100%{scale:1}}

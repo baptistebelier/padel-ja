@@ -107,8 +107,8 @@ function play(k, x) {
 /* Branchements, une fois toute l'appli chargée */
 window.addEventListener('DOMContentLoaded', () => {
   const oLike = A.like;
-  A.like = d => {
-    oLike(d);
+  A.like = (d, el) => {
+    oLike(d, el); // le bouton suit : les cœurs partent de lui (app/12-finitions.js)
     if (S.liked.has(d.id)) play('like');
   };
   A.sound = () => {
