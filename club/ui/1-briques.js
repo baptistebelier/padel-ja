@@ -49,8 +49,10 @@ const who = id =>
     ? `<span class="nm">${name(id)}</span>`
     : `<button class="nm" data-a="member" data-id="${id}">${name(id)}</button>`;
 const view = () => (S.stack.length ? S.stack[S.stack.length - 1] : { v: S.tab });
+/* onglets d'une page ; à partir de 4 onglets (avec pictogrammes), sur téléphone : tous tiennent dans la largeur,
+   seul l'onglet ouvert affiche son titre à côté de son pictogramme (plus besoin de faire défiler) */
 const segs = (k, tabs) =>
-  `<div class="seg" role="tablist">${tabs.map(t => `<button role="tab" aria-selected="${S[k] === t[0]}" data-a="seg" data-k="${k}" data-val="${t[0]}">${t[2] ? ic(t[2]) : ''}${t[1]}</button>`).join('')}</div>`;
+  `<div class="seg${tabs.length > 3 && tabs.every(t => t[2]) ? ' ico' : ''}" role="tablist">${tabs.map(t => `<button role="tab" aria-selected="${S[k] === t[0]}" aria-label="${t[1]}" data-a="seg" data-k="${k}" data-val="${t[0]}">${t[2] ? ic(t[2]) : ''}<span class="lb">${t[1]}</span></button>`).join('')}</div>`;
 const sportTag = s => (s ? `<span class="tag ${s === 'Padel' ? 'padel' : 'tennis'}">${s}</span>` : '');
 function teamTags(tid) {
   const g = grp(tid),

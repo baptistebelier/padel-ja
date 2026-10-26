@@ -739,3 +739,6 @@ details.aide .aq:last-child{border-bottom:0}
 details.aide .aq p{margin:0;line-height:1.5}
 .adm-sec{gap:0;padding-block:12px 6px}
 .adm-sec>.kicker{margin-bottom:4px}
+
+/* favoris : étoile pleine quand la page est dans mes favoris */
+.ib.favb[aria-pressed="true"] svg{fill:currentColor;color:var(--accent)}

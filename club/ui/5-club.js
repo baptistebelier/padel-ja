@@ -104,9 +104,9 @@ function clubView() {
   const I2 = CLUBINFO,
     tl = [
       I2.mods.actus && ['actus', 'Actus', 'news'],
-      ['teams', 'Équipes', 'users'],
+      ['teams', 'Équipes', 'score'],
       ['club', 'Le club', 'club'],
-      I2.mods.comm && ['comm', 'Commissions', 'flag'],
+      I2.mods.comm && ['comm', 'Commissions', 'users'],
       I2.mods.bar && ['bar', 'Bar', 'cup']
     ].filter(Boolean);
   if (!tl.some(x => x[0] === S.clubTab)) S.clubTab = tl[0][0];

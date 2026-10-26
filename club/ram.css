@@ -594,3 +594,14 @@ html, body { background: var(--bg); }
 .nrow .grow { line-height: 1.35; }
 .nrow time { margin-top: 2px; }
 .nrow .st.no { flex: none; align-self: center; }
+
+/* Onglets compacts sur téléphone (4 onglets ou plus) : tous dans la largeur de l'écran, pictogrammes seuls,
+   l'onglet ouvert affiche aussi son titre (26/10/2026) */
+@media (max-width: 1023px) {
+  .seg.ico { overflow: visible; -webkit-mask-image: none; mask-image: none; gap: 6px; }
+  .seg.ico button { flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 6px; transition: flex-grow .3s cubic-bezier(.3, 1.3, .5, 1), background .2s; }
+  .seg.ico button[aria-selected="true"] { flex-grow: 2.6; }
+  .seg.ico button svg { flex: none; }
+  .seg.ico button:not([aria-selected="true"]) .lb { display: none; }
+  .seg.ico .lb { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+}

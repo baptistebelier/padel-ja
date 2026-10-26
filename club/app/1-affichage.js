@@ -80,6 +80,7 @@ function render(keep) {
     t = M[v.id].n;
     sub = 'Profil';
   }
+  if (typeof favVisit === 'function') favVisit();
   if (key !== lastKey) {
     $('top').classList.remove('hide');
     lastY = 0;
@@ -90,7 +91,7 @@ function render(keep) {
     (clubLogo()
       ? `<img class="toplogo${S.stack.length ? ' sub' : ''}" src="${clubLogo()}" alt="${esc(club().name)}">`
       : '') +
-    `<h1>${t}<span class="sub">${sub}</span></h1>${v.v === 'chan' ? muteBtn(chans.find(c => c.id === v.id)) : ''}<button class="ib" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending() && NOTIFS.some(n => n.n && nVis(n)) ? '<span class="dot"></span>' : ''}</button>`;
+    `<h1>${t}<span class="sub">${sub}</span></h1>${v.v === 'chan' ? muteBtn(chans.find(c => c.id === v.id)) : ''}${typeof favHere === 'function' && favHere() ? `<button class="ib favb" data-a="fav" aria-pressed="${isFav(favHere())}" aria-label="${isFav(favHere()) ? 'Retirer de mes favoris' : 'Ajouter à mes favoris'}">${ic('star')}</button>` : ''}<button class="ib" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending() && NOTIFS.some(n => n.n && nVis(n)) ? '<span class="dot"></span>' : ''}</button>`;
   const strips = '.seg,.chips,.stories',
     sx = key === lastKey ? [...main.querySelectorAll(strips)].map(e => e.scrollLeft) : [];
   const oldSeg = main.querySelector(':scope > .seg');

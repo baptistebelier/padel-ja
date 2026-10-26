@@ -320,7 +320,8 @@
       read,
       setup: S.setup || {},
       invited: S.invited || 0,
-      motif: S.motif || 'ram-mixte'
+      motif: S.motif || 'ram-mixte',
+      favs: S.favs || []
     });
     // messages : groupes, direct des rencontres, commentaires des publications
     const box = (ref, list) =>
@@ -695,6 +696,7 @@
         });
         mergeNotifs(s.nh, initial);
         if (s.motif && typeof setMotif === 'function') setMotif(s.motif);
+        if (Array.isArray(s.favs)) S.favs = s.favs.slice(0, 12); // mes favoris (frise du mur)
         R.prefs = s;
         return;
       }

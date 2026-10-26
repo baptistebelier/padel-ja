@@ -18,11 +18,20 @@ const V = {
           'lsq'
         )
       )
-      .join('')}${S.role === 'kid' ? '' : st('newPost', 'data-k="play"', ic('search'), 'Chercher une partie')}${chans
-      .filter(c => chanOk(c) && c.g !== 'club' && (S.role === 'kid' || !c.kid || (v.kids && v.kids.length)))
-      .slice(0, 4)
-      .map(c => st('open', `data-v="chan" data-id="${c.id}"`, ic(c.g === 'team' ? 'users' : 'ball'), c.name))
-      .join('')}${CLUBINFO.mods.actus ? st('goClub', 'data-t="actus"', ic('news'), 'Actus') : ''}</div>
+      .join('')}${(() => {
+      const F = typeof favStrip === 'function' ? favStrip(st) : null;
+      if (F && F.any) return F.tiles + F.tail;
+      return (
+        (S.role === 'kid' ? '' : st('newPost', 'data-k="play"', ic('search'), 'Chercher une partie')) +
+        chans
+          .filter(c => chanOk(c) && c.g !== 'club' && (S.role === 'kid' || !c.kid || (v.kids && v.kids.length)))
+          .slice(0, 4)
+          .map(c => st('open', `data-v="chan" data-id="${c.id}"`, ic(c.g === 'team' ? 'users' : 'ball'), c.name))
+          .join('') +
+        (CLUBINFO.mods.actus ? st('goClub', 'data-t="actus"', ic('news'), 'Actus') : '') +
+        (F ? F.tail : '')
+      );
+    })()}</div>
   ${isAdmin() && CLUBINFO.joined < CLUBINFO.members ? `<div class="pad" style="padding-bottom:4px"><button class="note" data-a="open" data-v="join" style="width:100%;text-align:left">${CLUBINFO.joined} adhérents sur ${CLUBINFO.members} ont rejoint l'appli. <b style="color:var(--accent)">Inviter les autres</b></button></div>` : ''}
   <div class="feed">${feed.length ? feed.map(postHTML).join('') : empty('home', 'Le mur est vide', 'Les annonces et les résultats du club apparaîtront ici.')}</div>`;
   },
