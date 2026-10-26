@@ -744,3 +744,4 @@ details.aide .aq p{margin:0;line-height:1.5}
 .ib.favb[aria-pressed="true"] svg{fill:currentColor;color:var(--accent)}
 /* frise du mur : cadre de couleur seulement quand il y a du nouveau (comme une story), sinon gris */
 .ring.calm{border-color:color-mix(in srgb,var(--fg) 18%,transparent)}
+.btn.logout{margin-top:6px}

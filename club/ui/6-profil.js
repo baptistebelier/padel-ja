@@ -93,7 +93,14 @@ function profile(id) {
     if ((isAdmin() || S.role === 'cap') && !pending())
       h += `<button class="btn full" data-a="admin">${ic('gear')}${isAdmin() && S.role !== 'coach' ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Gérer mon équipe'}</button>`;
     h += `<div class="bar-tabs me-tabs" role="tablist">${tab('jeu', 'ball', 'Mon jeu')}${tab('infos', 'user', 'Mes infos')}${tab('reglages', 'gear', 'Réglages')}</div>`;
-    return h + meTabBody(T, id, m, kid) + '</div>';
+    return (
+      h +
+      meTabBody(T, id, m, kid) +
+      (window.RAM && RAM.user
+        ? `<button class="btn ghost full logout" data-a="logout">${ic('logout')}Se déconnecter de /RAM Club</button>`
+        : '') +
+      '</div>'
+    );
   }
   if (kid && parent) h += parentCard(id);
   else if (kid && !self)

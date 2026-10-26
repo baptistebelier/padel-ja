@@ -2020,7 +2020,15 @@
     if (!R.live) return h;
     const ja = jaCards(id),
       anchor = '<div class="stack"><span class="kicker">Palmarès de la saison</span>';
-    if (ja) h = h.includes(anchor) ? h.replace(anchor, () => ja + anchor) : h + ja;
+    // à l'intérieur de la page (sinon la carte touche les bords de l'écran) ; dans mon profil :
+    // palmarès /RAM JA dans « Mon jeu », fiche /RAM JA dans « Mes infos »
+    const inside = (html, before) =>
+      html.includes(before) ? html.replace(before, () => ja + before) : html.replace(/<\/div>$/, () => ja + '</div>');
+    if (ja) {
+      if (id !== ME()) h = inside(h, anchor);
+      else if ((S.meTab || 'jeu') === 'jeu') h = inside(h, anchor);
+      else if (S.meTab === 'infos') h = inside(h, '<div id="ramClubsBox"');
+    }
     if (id === ME() && isBureau() && R.code)
       h = h.replace(
         '<div class="phero">',
