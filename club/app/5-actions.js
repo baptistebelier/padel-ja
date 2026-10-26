@@ -3,6 +3,13 @@
 /* ---------- actions ---------- */
 const A = {
   tab(d) {
+    // onglet déjà ouvert, sur sa page principale : on remonte en haut en douceur
+    if (d.t === S.tab && !S.stack.length) {
+      const m = $('main'),
+        calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (m.scrollTop > 0) m.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
+      return;
+    }
     const o = ['home', 'chans', 'agenda', 'ecole', 'club', 'me'];
     S.dir = d.t === S.tab && !S.stack.length ? 0 : S.stack.length || o.indexOf(d.t) < o.indexOf(S.tab) ? -1 : 1;
     S.tab = d.t;

@@ -46,6 +46,24 @@ const TITLES = {
   archive: () => ['Archives', 'Saisons précédentes'],
   join: () => ['Adhérents', 'Faire entrer le club']
 };
+/* position de défilement de chaque page (et de chaque onglet d'une page), retenue tant que l'appli reste ouverte :
+   revenir sur le mur après un passage ailleurs ramène là où on était */
+const SCROLLS = {};
+let lastMk = '';
+const subOf = () =>
+  S.stack.length
+    ? ''
+    : S.tab === 'club'
+      ? S.clubTab
+      : S.tab === 'ecole'
+        ? S.ecTab
+        : S.tab === 'chans'
+          ? S.chanTab
+          : S.tab === 'agenda'
+            ? S.plan.scope + S.plan.mode
+            : S.tab === 'me'
+              ? S.meTab || ''
+              : '';
 function render(keep) {
   const v = view(),
     key = v.v + (v.id || ''),
@@ -169,15 +187,23 @@ function render(keep) {
   const showFab = v.v === 'home' && !S.stack.length && canPublish() && !pending() && !tabs.hidden;
   fab.hidden = !showFab;
   $('phone').classList.toggle('fab', showFab);
-  /* discussion : si l'on était en bas, on y reste (nouveaux messages, mise à jour) */
-  main.scrollTop =
-    keep && key === lastKey
+  /* discussion : si l'on était en bas, on y reste (nouveaux messages, mise à jour) ;
+     autre page : on retrouve la position où on l'avait laissée (une discussion s'ouvre sur ses derniers messages) */
+  const mk = key + '|' + subOf();
+  if (lastMk && mk !== lastMk) SCROLLS[lastMk] = y;
+  main.scrollTop = S.toTop
+    ? 0
+    : keep && key === lastKey
       ? (v.v === 'chan' || v.v === 'rec') && atEnd
         ? main.scrollHeight
         : y
-      : v.v === 'chan'
-        ? main.scrollHeight
-        : 0;
+      : mk === lastMk
+        ? y
+        : v.v === 'chan'
+          ? main.scrollHeight
+          : SCROLLS[mk] || 0;
+  S.toTop = false;
+  lastMk = mk;
   if (S.dir && !wide) {
     slide((key !== lastKey ? 'pg-' : 'sg-') + (S.dir > 0 ? 'r' : 'l'));
     S.dir = 0;

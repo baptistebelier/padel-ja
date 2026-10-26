@@ -12,6 +12,7 @@ document.addEventListener('submit', e => {
       closeSheet();
       S.tab = 'home';
       S.stack = [];
+      S.toTop = true; // la nouvelle publication est en haut du mur
       render();
       toast(msg);
     };

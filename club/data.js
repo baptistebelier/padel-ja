@@ -1206,7 +1206,7 @@ const S = {
   blocked: new Set(),
   chanTab: 'club',
   recTab: 'now',
-  clubTab: 'actus',
+  clubTab: 'teams',
   champ: 'c1',
   scoring: false,
   flash: null,
