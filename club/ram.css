@@ -605,3 +605,8 @@ html, body { background: var(--bg); }
   .seg.ico button:not([aria-selected="true"]) .lb { display: none; }
   .seg.ico .lb { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 }
+
+/* bulle avec sa pointe : l'ombre décalée suit toute la forme, pointe comprise (sinon la pointe flotte
+   sur l'ombre de la bulle) (26/10/2026) */
+.bub.tail { box-shadow: none; filter: drop-shadow(3px 3px 0 var(--ram-hard)); }
+.msg.me .bub.tail { box-shadow: none; filter: drop-shadow(3px 3px 0 var(--accent2, var(--hot))); }
