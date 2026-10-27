@@ -339,6 +339,7 @@ function coEleve(id) {
     b = `<div class="card">${row('Sport', sp)}${row('Niveau', lv ? lv.n + ' · ' + lv.t : '')}${row('Main', e.hand === 'G' ? 'Gaucher' : e.hand === 'D' ? 'Droitier' : '')}${sp === 'Padel' ? row('Côté', e.side === 'G' ? 'Gauche' : e.side === 'D' ? 'Droite' : e.side === '2' ? 'Les deux' : '') : ''}${row('Groupes', gs.map(g => esc(g.name)).join(', '))}${e.mail ? row('E-mail', esc(e.mail)) : ''}</div>
 ${hd('Objectifs')}<div class="card"><p>${esc(e.goals || 'Aucun objectif noté.')}</p></div>
 ${hd('Note privée')}<div class="card"><p>${esc(e.note || 'Aucune note.')}</p><span class="muted small">Visible par l'équipe pédagogique seulement.</span></div>
+${coAchatsCard(id)}
 ${(e.parents || []).length ? hd('Parents') + `<div class="card">${e.parents.map(p => `<div class="cokv"><span>${esc(p.n)}</span><b>${esc(p.tel || p.mail || '')}</b></div>`).join('')}</div>` : ''}
 <div class="card cotools"><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte du club</button>`}</div>`;
   if (tab === 'histo') {
@@ -572,7 +573,7 @@ function coClubs() {
     })
     .join(
       ''
-    )}<div class="card cotools"><button class="btn ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button><button class="btn ghost" data-a="open" data-v="niveaux">${ic('ladder')}Échelles de niveaux</button></div></div>`;
+    )}<div class="card cotools"><button class="btn ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button><button class="btn ghost" data-a="open" data-v="niveaux">${ic('ladder')}Échelles de niveaux</button><button class="btn ghost" data-a="open" data-v="formules">${ic('ball')}Formules et tarifs</button></div></div>`;
 }
 const coGrpRow = g =>
   `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coOver(g) ? 'Du ' + fmtD(g.from) + ' au ' + fmtD(g.to) : coSlot(g) + ' · ' + g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${coStack(coStu(g))}</button>`;
@@ -725,6 +726,11 @@ function coProfile() {
     'Mes clubs',
     `<div class="colist">${clubs.map(c => `<div class="item"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">${c.role}</span></span>${c.main ? '<span class="tag copink">Club principal</span>' : ''}</div>`).join('')}</div><p class="muted small">Tous tes groupes et tous tes élèves, de tous tes clubs, sont dans /RAM Coach. Le club principal est celui de ta licence, choisi dans /RAM Club.</p><button class="btn full ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button>`
   );
+  const tarifs = coPCard(
+    'Tarifs',
+    'Formules et tarifs',
+    `<p class="muted small">${plural(OFFRES.formules.length, 'formule')} · ${plural(OFFRES.packs.length, 'pack')} · ${plural(OFFRES.abos.length, 'abonnement')}. Ils s'affichent sur ta fiche enseignant dans /RAM Club.</p><button class="btn full" data-a="open" data-v="formules">${ic('ball')}Mes formules et tarifs</button>`
+  );
   const look = coPCard(
     'Affichage',
     'Apparence',
@@ -749,7 +755,7 @@ function coProfile() {
     `<div class="colist"><div class="cokv"><span class="muted">E-mail</span><b>${user ? esc(user.email || '') : 'Démonstration'}</b></div><div class="cokv"><span class="muted">Applis</span><b>/RAM Coach · /RAM Club · /RAM JA</b></div></div><p class="muted small">Un seul compte /RAM pour les trois applis. Le mot de passe changé ici vaut aussitôt dans les trois.</p><div class="cotools">${user ? `<button class="btn ghost" data-a="ramPw">${ic('shield')}${user.hasPassword ? 'Changer le mot de passe' : 'Choisir un mot de passe'}</button>` : ''}<button class="btn ghost" data-a="open" data-v="aide">${ic('info')}Aide</button><button class="btn ghost" data-a="open" data-v="legal">${ic('shield')}Conditions</button>${user ? `<button class="btn ghost" data-a="logout">${ic('logout')}Se déconnecter</button>` : ''}</div>`
   );
   const stats = `<div class="stats"><div><b>${mine.length}</b><span>Groupes</span></div><div><b>${nEl}</b><span>Élèves</span></div><div><b>${fr(hrs)}</b><span>Heures / sem.</span></div><div><b>${p.since ? +TODAY.slice(0, 4) - +p.since : '–'}</b><span>Ans d'expérience</span></div></div>`;
-  return `<div class="pad coprof">${hero}${stats}${fiche}${mesClubs}${look}${notifs}${compte}</div>`;
+  return `<div class="pad coprof">${hero}${stats}${fiche}${tarifs}${mesClubs}${look}${notifs}${compte}</div>`;
 }
 Object.assign(V, {
   today: coToday,

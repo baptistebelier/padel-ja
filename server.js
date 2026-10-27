@@ -13,6 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
 const Ani = require('./public/js/animation.js');
+const Formules = require('./lib/formules.js');   // /RAM Coach : formules, packs et abonnements de chaque enseignant
 const Echelles = require('./lib/echelles.js');   // /RAM Coach : échelles de niveaux de chaque enseignant   // animations : americano, mexicano, par équipes, montée-descente
 const reducerOf = T => (Ani.isAnimation(T) ? Ani : Engine);
 const { createStore, norm } = require('./lib/store.js');
@@ -1329,6 +1330,17 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { profile: await store.getProfile(u.id), guest: !!u.guest });
     }
 
+    /* ---------- /RAM Coach : formules et tarifs de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
+    if (p === '/api/coach/formules') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      if (req.method === 'POST') return json(res, 200, { formules: await Formules.save(store, u.id, (await readBody(req)).formules) });
+      return json(res, 200, { formules: await Formules.get(store, u.id) });
+    }
+    // les tarifs d'un enseignant d'un club, pour sa fiche dans /RAM Club (des prix publics : ni nom ni coordonnées)
+    if (p === '/api/coach/formules/public') {
+      const m = await ram.memberByKey(url.searchParams.get('c') || '', url.searchParams.get('k') || '').catch(() => null);
+      return json(res, 200, { formules: m && m.user_id ? await Formules.get(store, m.user_id) : null });
+    }
     /* ---------- /RAM Coach : échelles de niveaux de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
     if (p === '/api/coach/echelles') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });

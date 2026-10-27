@@ -124,6 +124,15 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const rg = await w('coach_regrouper_seances', { nom_des_seances: 'Cycle test' });
   assert.deepEqual([rg.seances, rg.du, rg.au, rg.seances_deplacees, rg.semaines_sans_seance, rg.eleves.length], [4, '2026-04-07', '2026-04-28', 1, 1, 2]);
   await assert.rejects(w('coach_regrouper_seances', { nom_des_seances: 'Cycle test' }), /Aucune séance/);
+  // formules de l'enseignant (sur son compte) et achats notés dans la fiche des élèves, sans doublon
+  const Formules = require('../lib/formules');
+  const fo = await Formules.save(store, 'U1', { formules: [{ id: 'f1', nom: 'Cours individuel', joueurs: 1, duree: 60, prix: 35 }], packs: [{ id: 'p1', formule: 'f1', nom: 'Pack Découverte', seances: 3, prix: 99 }, { formule: 'inconnue', seances: 5 }], abos: [{ id: 'a1', nom: 'Academy', periode: '6 mois', prix: 600 }] });
+  assert.deepEqual([fo.packs.length, fo.abos[0].periode], [1, '6 mois'], 'un pack sans formule existante est retiré');
+  assert.equal((await use('coach_formules')).packs[0].prix_de_la_seance, 33);
+  const ach = [{ eleve: 'jules@test.fr', produit: 'Pack Découverte', date: '2026-04-01' }, { eleve: 'kid1', produit: 'a1', date: '2026-09-01' }, { eleve: 'Personne', produit: 'p1', date: '2026-04-01' }, { eleve: 'kid1', produit: 'Rien', date: '2026-04-01' }];
+  const na = await w('coach_noter_achats', { achats: ach });
+  assert.deepEqual([na.notes, na.eleves_introuvables, na.produits_inconnus], [2, ['Personne'], ['Rien']]);
+  assert.equal((await w('coach_noter_achats', { achats: ach.slice(0, 1) })).deja_notes, 1);
   await w('coach_envoyer_message', { eleve_id: 'kid1', texte: 'Pense à ta raquette' });
   await w('coach_bilan_brouillon', { groupe_id: g.groupe_id, date: '2026-11-17', bilan_groupe: 'Bandeja', personnels: { kid1: 'Bravo' } });
   await w('coach_niveau', { eleve_id: 'kid1', niveau: 4, sport: 'Padel' });
@@ -137,6 +146,8 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(it('eleve', 'kid1').tech.Revers, 2);
   assert.equal(it('brouillon', g.groupe_id + '.2026-11-17').recap, 'Bandeja');
   assert.equal(it('seance', g.groupe_id + '.2026-11-10').pres.kid1, 'P');
+  assert.deepEqual(it('eleve', 'kid1').achats.map(h => [h.t, h.fin]), [['abo', '2027-02-28']]);
+  assert.equal(it('eleve', nv.eleve_id).achats[0].n, 3);
   const cg = it('group', rg.groupe_id);
   assert.deepEqual([cg.day, cg.h, cg.extra, cg.skip, cg.to], [2, '19 h 30', ['2026-04-20'], ['2026-04-21'], '2026-04-28']);
   assert.ok(it('chan', rg.groupe_id), 'le groupe a sa discussion');

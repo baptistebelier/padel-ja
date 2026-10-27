@@ -169,19 +169,52 @@ const proLines = t =>
     .filter(Boolean);
 function proBody(k) {
   const p = proOf(k),
-    gs = GROUPS.filter(g => g.type === 'train' && g.coach === k),
+    gs = GROUPS.filter(g => g.type === 'train' && g.coach === k && !g.once && !(g.to && g.to < TODAY)),
+    off = proOffers(k),
     yrs = p.since ? +TODAY.slice(0, 4) - +p.since : 0,
     row = (l, v) => (v ? `<div class="prow"><span class="muted">${l}</span><span>${v}</span></div>` : ''),
     web = svLink(toUrlP(p.web)),
     book = svLink(toUrlP(p.book)),
     tel = String(p.tel || '').replace(/[^+\d]/g, '');
   return `<div class="pbody">${p.bio ? `<p>${esc(p.bio)}</p>` : ''}${row('Diplôme', esc(p.dip || ''))}${row('Enseigne depuis', p.since ? esc(p.since) + (yrs > 0 ? ` (${yrs} an${yrs > 1 ? 's' : ''})` : '') : '')}${row('Âge', p.age && M[k].bd ? age(k) + ' ans' : '')}${row('Sports', esc(p.sports || [...new Set(gs.map(g => g.sport))].join(', ')))}${row('Groupes', gs.map(g => esc(g.name)).join(', '))}${row('Téléphone', p.tel ? `<a href="tel:${tel}">${esc(p.tel)}</a>` : '')}${row('E-mail', p.mail ? `<a href="mailto:${esc(p.mail)}">${esc(p.mail)}</a>` : '')}${row('Site internet', web ? `<a href="${esc(web)}" target="_blank" rel="noopener">${esc(String(p.web).replace(/^https?:\/\//, ''))}</a>` : '')}${
-    proLines(p.tarifs).length
-      ? `<span class="kicker">Tarifs</span><ul class="ptar">${proLines(p.tarifs)
-          .map(x => `<li>${esc(x)}</li>`)
-          .join('')}</ul>`
-      : ''
+    off && off.formules.length
+      ? proOffersHtml(off)
+      : proLines(p.tarifs).length
+        ? `<span class="kicker">Tarifs</span><ul class="ptar">${proLines(p.tarifs)
+            .map(x => `<li>${esc(x)}</li>`)
+            .join('')}</ul>`
+        : ''
   }<div class="ctl" style="flex-wrap:wrap">${book ? `<a class="btn grow" href="${esc(book)}" target="_blank" rel="noopener">${ic('cal')}Réserver une séance</a>` : ''}${tel ? `<a class="btn grow ghost" href="tel:${tel}">${ic('phone')}Appeler</a>` : ''}${p.mail ? `<a class="btn grow ghost" href="mailto:${esc(p.mail)}">${ic('mail')}Écrire</a>` : ''}${k !== ME() ? `<button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button>` : ''}</div></div>`;
+}
+/* formules et tarifs d'un enseignant (rangés sur son compte /RAM), lus une fois par enseignant */
+const PRO_OFF = {};
+function proOffers(k) {
+  if (!(window.RAM && RAM.live)) return typeof OFFRES !== 'undefined' && k === ME() ? OFFRES : null;
+  if (!(k in PRO_OFF)) {
+    PRO_OFF[k] = null;
+    fetch('/api/coach/formules/public?c=' + encodeURIComponent(RAM.club) + '&k=' + encodeURIComponent(k), {
+      credentials: 'include'
+    })
+      .then(r => r.json())
+      .then(d => {
+        PRO_OFF[k] = d.formules;
+        if (d.formules && d.formules.formules.length) render(true);
+      })
+      .catch(() => {});
+  }
+  return PRO_OFF[k];
+}
+function proOffersHtml(o) {
+  const e = n => (Math.round(n * 100) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €',
+    mn = n => (n % 60 ? (n >= 60 ? Math.floor(n / 60) + ' h ' + (n % 60) : n + ' min') : n / 60 + ' h');
+  return `<span class="kicker">Tarifs</span><ul class="ptar">${o.formules
+    .map(f => {
+      const pk = o.packs.filter(p => p.formule === f.id);
+      return `<li><b>${esc(f.nom)}</b> · ${mn(f.duree)} · ${e(f.prix)}${f.par === 'personne' ? ' par personne' : ' la séance'}${pk.map(p => `<br><span class="muted small">${esc(p.nom || 'Pack')} : ${p.seances} séances pour ${e(p.prix)} (${e(p.prix / p.seances)} la séance)</span>`).join('')}</li>`;
+    })
+    .join(
+      ''
+    )}${o.abos.map(a => `<li><b>${esc(a.nom)}</b> · ${e(a.prix)} par ${a.periode}${a.duree > 1 ? ', engagement ' + a.duree + ' ' + a.periode : ''}</li>`).join('')}</ul>`;
 }
 const toUrlP = u => (u ? (/^https?:\/\//i.test(u) ? u : 'https://' + u) : '');
 /* une ligne par enseignant, qui s'ouvre comme un menu déroulant */

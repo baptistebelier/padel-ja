@@ -869,3 +869,51 @@
     display: none;
   }
 }
+/* formules et tarifs ; packs sous leur formule ; achats d'un élève avec la barre des séances utilisées */
+.cofop {
+  margin: 6px 0 0;
+  font-weight: 700;
+}
+.copk {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+.copki {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #3335);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.coach-a {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line, #3335);
+}
+.coach-a:last-of-type {
+  border-bottom: 0;
+}
+.cobarre {
+  height: 6px;
+  background: var(--line, #3335);
+  margin: 8px 0 4px;
+}
+.cobarre i {
+  display: block;
+  height: 100%;
+  background: var(--co-lime, #e0f50a);
+}
+.copki svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.copki .grow {
+  min-width: 0;
+}
