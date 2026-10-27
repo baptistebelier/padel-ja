@@ -9,7 +9,7 @@ const saved = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE
 delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
 const { createRamClub } = require('../lib/ramclub');
 const { createStore } = require('../lib/store');
-const { createMcp } = require('../lib/mcp');
+const { createMcp, seal } = require('../lib/mcp');
 const Engine = require('../public/js/engine.js'), Ani = require('../public/js/animation.js');
 const ram = createRamClub(DIR), store = createStore(DIR);
 if (saved.url) process.env.SUPABASE_URL = saved.url;
@@ -138,6 +138,11 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const ro = await (await tok({ grant_type: 'authorization_code', code: back2.searchParams.get('code'), client_id: reg.client_id, redirect_uri, code_verifier: verifier })).json();
   const roList = await (await call('/mcp', { method: 'POST', headers: { Authorization: 'Bearer ' + ro.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 9, method: 'tools/list' }) })).json();
   assert.ok(roList.result.tools.every(x => x.annotations.readOnlyHint), 'lecture seule');
+  // accès donné avant l'écriture (sans droits notés) : refusé, Claude redemande l'autorisation
+  const old = seal('acc', { u: 'U1', c: reg.client_id, exp: Date.now() + 60000 });
+  assert.equal((await call('/mcp', { method: 'POST', headers: { Authorization: 'Bearer ' + old, 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 7, method: 'tools/list' }) })).status, 401);
+  const oldRef = seal('ref', { u: 'U1', c: reg.client_id, pw: require('crypto').createHash('sha256').update('h1').digest('base64url').slice(0, 12), exp: Date.now() + 60000 });
+  assert.equal((await tok({ grant_type: 'refresh_token', refresh_token: oldRef })).status, 400);
   // changer son mot de passe coupe le renouvellement de l'accès
   assert.equal((await tok({ grant_type: 'refresh_token', refresh_token: t.refresh_token })).status, 200);
   me.pass_hash = 'h2'; await store.saveUser(me);
