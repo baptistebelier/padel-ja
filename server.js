@@ -139,9 +139,12 @@ function sendFile(res, rel, versioned) {
 // /RAM Club : fichiers de l'appli (dossier club/). Pages, scripts et icônes toujours revérifiés,
 // le service worker de l'appli gère le hors-ligne.
 const CLUB_ROOT = path.join(__dirname, 'club');
-// pages de /RAM Club à adresse propre : connexion (et inscription, mot de passe oublié) et présentation
-const CLUB_PAGES = { '/connexion': '/connexion.html', '/inscription': '/connexion.html', '/mot-de-passe-oublie': '/connexion.html', '/presentation': '/presentation.html' };
-function sendClub(res, rel) {
+// pages de /RAM Club à adresse propre : connexion (et inscription, mot de passe oublié), présentation et démo.
+// L'adresse de base (comme /RAM JA) : l'appli pour un compte connecté, sinon la présentation ;
+// /demo : l'appli de démonstration (club fictif), connecté ou non.
+const CLUB_PAGES = { '/connexion': '/connexion.html', '/inscription': '/connexion.html', '/mot-de-passe-oublie': '/connexion.html', '/presentation': '/presentation.html', '/demo': '/index.html' };
+function sendClub(res, rel, logged) {
+  if ((!rel || rel === '/') && !logged) rel = '/presentation.html';
   if (CLUB_PAGES[rel]) rel = CLUB_PAGES[rel];
   if (!rel || rel.endsWith('/')) rel = (rel || '/') + 'index.html';
   const file = path.normalize(path.join(CLUB_ROOT, rel));
@@ -150,7 +153,8 @@ function sendClub(res, rel) {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Page introuvable'); }
     const ext = path.extname(file);
     const longCache = /\.(png|webp|jpg|woff2)$/.test(ext) && !/icon|favicon/.test(rel);
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' });
+    // l'appli elle-même : le service worker ne garde en cache (hors ligne) que cette page, jamais la présentation ni la connexion
+    res.writeHead(200, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, rel.endsWith('/index.html') ? { 'X-Club-Page': 'appli' } : {}));
     res.end(data);
   });
 }
@@ -645,9 +649,10 @@ const server = http.createServer(async (req, res) => {
        Ailleurs (ja., localhost), elle reste accessible sous /club/ pour les essais. */
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
-    if (/^club\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p);
+    const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
+    if (/^club\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p, p === '/' && await clubLogged());
     if (p === '/club') return redirect(res, '/club/');
-    if (p.startsWith('/club/')) return sendClub(res, p.slice(5));
+    if (p.startsWith('/club/')) return sendClub(res, p.slice(5), p === '/club/' && await clubLogged());
 
     /* ---------- fichiers statiques ---------- */
     if (/^\/(css|js|img|fonts)\//.test(p) || p === '/manifest.webmanifest') return sendFile(res, p, url.searchParams.has('v'));

@@ -15,7 +15,9 @@
   const here = () => location.href.split('#')[0];
   // page de connexion propre à /RAM Club (même compte /RAM que /RAM JA), puis retour à l'endroit quitté
   const loginUrl = () =>
-    (onClubHost ? '' : '/club') + '/connexion?retour=' + encodeURIComponent(location.pathname + location.search);
+    (onClubHost ? '' : '/club') +
+    '/connexion' +
+    (/\/demo\/?$/.test(location.pathname) ? '' : '?retour=' + encodeURIComponent(location.pathname + location.search));
   const e = s =>
     String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const J = o => JSON.stringify(o);
@@ -2058,7 +2060,8 @@
 
   /* ---------- lancement ---------- */
   (async () => {
-    if (!served) {
+    // /demo : toujours le club fictif, même avec un compte connecté
+    if (!served || /\/demo\/?$/.test(location.pathname)) {
       R.user = null;
       readyFn();
       return;

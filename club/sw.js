@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-10-27-discussions2';
+const VERSION = '2026-10-27-adresses1';
 const CACHE = 'appli-club-' + VERSION;
 /* Fichiers de l'appli mis en cache dès l'installation */
 const CORE = [
@@ -80,7 +80,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(req)
         .then(res => {
-          if (res.ok) {
+          if (res.ok && res.headers.get('X-Club-Page') === 'appli') {
             const copy = res.clone();
             caches.open(CACHE).then(c => c.put('index.html', copy));
           }

@@ -109,6 +109,11 @@ test('Club : servi par le serveur /RAM, la page s’ouvre sans erreur', async ()
   const { page, errors } = await openPage(ctx, JA + '/club/');
   await assertZoomAllowed(page);
   assert.deepEqual(errors, []);
+  // sans compte connecté, l'adresse de base est la présentation ; /demo ouvre l'appli de démonstration
+  assert.ok(await page.$('.nav a[href="connexion"]'), 'présentation avec le bouton « Se connecter »');
+  const demo = await openPage(ctx, JA + '/club/demo');
+  assert.ok(await demo.page.$('#tabs'), 'la démo ouvre l’appli');
+  assert.deepEqual(demo.errors, []);
   await ctx.close();
 });
 
