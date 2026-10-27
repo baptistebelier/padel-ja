@@ -158,6 +158,19 @@ function sendClub(res, rel, logged) {
     res.end(data);
   });
 }
+// /RAM Coach : prototype de démonstration (dossier coach/, données d'exemple, sans serveur), sous /coach/ sur tous les domaines
+const COACH_ROOT = path.join(__dirname, 'coach');
+function sendCoach(res, rel) {
+  if (!rel || rel.endsWith('/')) rel = (rel || '/') + 'index.html';
+  const file = path.normalize(path.join(COACH_ROOT, rel));
+  if (!file.startsWith(COACH_ROOT + path.sep)) { res.writeHead(403); return res.end(); }
+  fs.readFile(file, (err, data) => {
+    if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Page introuvable'); }
+    const ext = path.extname(file);
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': /\.(png|webp)$/.test(ext) ? 'public, max-age=604800' : 'no-cache' });
+    res.end(data);
+  });
+}
 function lanAddresses() {
   const out = [];
   Object.values(os.networkInterfaces()).forEach(l => (l || []).forEach(i => { if (i.family === 'IPv4' && !i.internal) out.push(i.address); }));
@@ -659,6 +672,8 @@ const server = http.createServer(async (req, res) => {
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
+    if (p === '/coach') return redirect(res, '/coach/');
+    if (p.startsWith('/coach/')) return sendCoach(res, p.slice(6));
     if (/^club\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p, p === '/' && await clubLogged());
     if (p === '/club') return redirect(res, '/club/');
     if (p.startsWith('/club/')) return sendClub(res, p.slice(5), p === '/club/' && await clubLogged());
