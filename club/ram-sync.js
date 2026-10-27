@@ -1794,7 +1794,7 @@
   A.ramClubs = () => {
     const main = R.clubs.find(c => c.main),
       row = c =>
-        `<div class="item"><button class="grow" data-a="ramSwitch" data-id="${c.id}" style="text-align:left;display:flex;gap:10px;align-items:center">${ic(c.id === R.club ? 'check' : 'club')}<span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${ROLE_L[c.role] || ''}${c.id === R.club ? ' · ouvert' : ''}</span></span>${pastille(c)}</button>${c.main ? '<span class="tag lime">Principal</span>' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}">Principal</button>`}</div>`;
+        `<div class="item"><button class="grow" data-a="ramSwitch" data-id="${c.id}" style="text-align:left;display:flex;gap:10px;align-items:center">${ic(c.id === R.club ? 'check' : 'club')}<span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${S.super ? 'Administrateur' : ROLE_L[c.role] || ''}${c.id === R.club ? ' · ouvert' : ''}</span></span>${pastille(c)}</button>${c.main ? '<span class="tag lime">Principal</span>' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}">Principal</button>`}</div>`;
     sheet(
       'Mes clubs',
       `<div class="body">${main ? `<span class="kicker">Club principal · licence</span>${row(main)}` : ''}${
@@ -1937,7 +1937,7 @@
     return `<div class="card"><span class="kicker">Mes clubs</span>${list
       .map(
         c =>
-          `<div class="item" style="gap:10px"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${ROLE_P[c.role] || ''}${c.main ? ' · club principal (licence)' : ' · club secondaire'}</span></span>${c.id === R.club ? '<span class="tag lime">Ouvert</span>' : `${pastille(c)}<button class="btn sm" data-a="ramSwitch" data-id="${c.id}">Ouvrir</button>`}${c.main ? '' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}" title="Le club de ta licence, repris sur ta fiche /RAM JA">Principal</button>`}</div>`
+          `<div class="item" style="gap:10px"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${S.super ? 'Administrateur' : ROLE_P[c.role] || ''}${c.main ? ' · club principal (licence)' : ' · club secondaire'}</span></span>${c.id === R.club ? '<span class="tag lime">Ouvert</span>' : `${pastille(c)}<button class="btn sm" data-a="ramSwitch" data-id="${c.id}">Ouvrir</button>`}${c.main ? '' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}" title="Le club de ta licence, repris sur ta fiche /RAM JA">Principal</button>`}</div>`
       )
       .join(
         ''

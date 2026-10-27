@@ -34,7 +34,8 @@ const TITLES = {
   },
   ecole: () => ['École', 'Cours et stages'],
   club: () => ['Le club', 'Saison ' + S.season],
-  me: () => ['Mon profil', ROLE[S.role]],
+  // administrateur de l'appli (ADMIN_EMAILS) : « Administrateur », jamais « Bureau du club »
+  me: () => ['Mon profil', S.super ? 'Administrateur' : ROLE[S.role]],
   admin: () => [isAdmin() ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Mon équipe', 'Édition'],
   list: () => ['Adhérents', club().name],
   reports: () => ['Signalements', 'Modération'],

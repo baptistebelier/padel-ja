@@ -16,6 +16,7 @@ Object.assign(TITLES, {
   cgroupe: () => [(grp(view().id) || {}).name || 'Groupe', 'Groupe d’entraînement']
 });
 ROLE.coach = 'Enseignant';
+ROLE.admin = 'Bureau et enseignant';
 /* une séance (créée à la première écriture) */
 function sesGet(id) {
   let s = SEANCES.find(x => x.id === id);
