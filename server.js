@@ -154,20 +154,7 @@ function sendClub(res, rel, logged) {
     const ext = path.extname(file);
     const longCache = /\.(png|webp|jpg|woff2)$/.test(ext) && !/icon|favicon/.test(rel);
     // l'appli elle-même : le service worker ne garde en cache (hors ligne) que cette page, jamais la présentation ni la connexion
-    res.writeHead(200, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, rel.endsWith('/index.html') ? { 'X-Club-Page': 'appli' } : {}));
-    res.end(data);
-  });
-}
-// /RAM Coach : prototype de démonstration (dossier coach/, données d'exemple, sans serveur), sous /coach/ sur tous les domaines
-const COACH_ROOT = path.join(__dirname, 'coach');
-function sendCoach(res, rel) {
-  if (!rel || rel.endsWith('/')) rel = (rel || '/') + 'index.html';
-  const file = path.normalize(path.join(COACH_ROOT, rel));
-  if (!file.startsWith(COACH_ROOT + path.sep)) { res.writeHead(403); return res.end(); }
-  fs.readFile(file, (err, data) => {
-    if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Page introuvable'); }
-    const ext = path.extname(file);
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': /\.(png|webp)$/.test(ext) ? 'public, max-age=604800' : 'no-cache' });
+    res.writeHead(200, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, /\/(index|coach)\.html$/.test(rel) ? { 'X-Club-Page': 'appli' } : {}));
     res.end(data);
   });
 }
@@ -673,7 +660,13 @@ const server = http.createServer(async (req, res) => {
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
     if (p === '/coach') return redirect(res, '/coach/');
-    if (p.startsWith('/coach/')) return sendCoach(res, p.slice(6));
+    // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html.
+    // coach.riseandmove.fr : l'appli des enseignants (connexion /RAM) ; /demo et /coach/ ailleurs : la démonstration
+    if (/^coach\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) {
+      if (p === '/' && !await clubLogged()) return redirect(res, '/connexion?retour=%2F');
+      return sendClub(res, p === '/' || p === '/demo' ? '/coach.html' : p, true);
+    }
+    if (p.startsWith('/coach/')) return sendClub(res, p === '/coach/' ? '/coach.html' : p.slice(6), true);
     if (/^club\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p, p === '/' && await clubLogged());
     if (p === '/club') return redirect(res, '/club/');
     if (p.startsWith('/club/')) return sendClub(res, p.slice(5), p === '/club/' && await clubLogged());

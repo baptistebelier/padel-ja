@@ -1,0 +1,249 @@
+/* /RAM Coach — coach/coach.css : ce qui s'ajoute aux styles du Club (app.css, ram.css) pour les pages de l'enseignant */
+.coses {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+}
+.coses .grow {
+  min-width: 0;
+}
+.coses.cx {
+  opacity: 0.72;
+}
+.coses.cx .dblk {
+  background: var(--hot);
+  color: var(--on-hot);
+}
+.cotheme {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  font-weight: 600;
+}
+.cotheme svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--accent-tx, var(--accent));
+}
+.coweek {
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.ib.flip svg {
+  transform: rotate(180deg);
+}
+.cokv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cokv:last-of-type {
+  border-bottom: 0;
+}
+.cokv b {
+  text-align: right;
+}
+.corow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 52px;
+  border-bottom: 1px solid var(--line);
+  width: 100%;
+}
+.corow:last-of-type {
+  border-bottom: 0;
+}
+.corow .nm {
+  text-align: left;
+}
+.pea {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.pea button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--card2);
+  font-family: var(--f-display);
+  font-size: 17px;
+  color: var(--fg);
+}
+.pea button.on.P {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.pea button.on.E {
+  background: var(--fg);
+  color: var(--bg);
+}
+.pea button.on.A {
+  background: var(--hot);
+  color: var(--on-hot);
+}
+.coscale {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.coscale button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--card2);
+  font-family: var(--f-display);
+  font-size: 20px;
+  color: var(--fg);
+}
+.coscale button.past {
+  background: color-mix(in srgb, var(--accent) 30%, var(--card));
+}
+.coscale button.on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.coul {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cotech {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  width: 100%;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+}
+.cotech:last-child {
+  border-bottom: 0;
+}
+.cotech .pips {
+  margin: 0;
+  flex: none;
+}
+.cotech .pips i.on {
+  background: var(--accent);
+}
+.cotech .small {
+  width: 78px;
+  text-align: right;
+  flex: none;
+}
+.cobars {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px;
+  height: 170px;
+}
+.cobars div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 4px;
+  min-width: 0;
+}
+.cobars i {
+  display: block;
+  width: 100%;
+  max-width: 34px;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: 6px 6px 2px 2px;
+}
+.cobars span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.cobars b {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  order: -1;
+}
+.cosearch input {
+  width: 100%;
+}
+.coadd {
+  max-height: 52vh;
+  overflow: auto;
+  margin-bottom: 12px;
+}
+.coadd .corow input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--accent);
+}
+.cotimer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+.cotimer .tmn {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(72px, 24vw, 120px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cotimer.rest .tmn {
+  color: var(--hot-tx, var(--hot));
+}
+.cotimer .tmset {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+.cotimer .tmset > div {
+  background: var(--card2);
+  border-radius: var(--rb);
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.cotimer .tmset .row {
+  gap: 2px;
+  align-items: center;
+}
+.cotimer .tmset .ib {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}
+.cotimer .ctl {
+  width: 100%;
+}
+/* menu latéral (ordinateur) : logo /RAM Coach */
+@media (min-width: 1024px) {
+  .tabs::before {
+    background-image: url('../img/ram-coach-blanc.png') !important;
+  }
+}

@@ -260,6 +260,12 @@ function openFromUrl(u) {
     A.tab({ t: 'ecole' });
     return true;
   }
+  // conversation privée enseignant-élève (/RAM Coach)
+  if (v === 'dm' && id) {
+    A.tab({ t: S.tab });
+    A.open({ v: 'dm', id });
+    return true;
+  }
   if (v === 'agenda') {
     A.tab({ t: 'agenda' });
     return true;

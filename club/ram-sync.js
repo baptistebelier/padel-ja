@@ -10,7 +10,7 @@
 (function () {
   if (window.RAM) return; // déjà chargé (jamais deux synchronisations dans la même page)
   const JA = 'https://ja.riseandmove.fr';
-  const onClubHost = /^club\./.test(location.hostname);
+  const onClubHost = /^(club|coach)\./.test(location.hostname); // /RAM Coach : même appli, mêmes données
   const served = onClubHost || location.pathname.startsWith('/club'); // sinon : démo sans serveur
   const here = () => location.href.split('#')[0];
   // page de connexion propre à /RAM Club (même compte /RAM que /RAM JA), puis retour à l'endroit quitté
@@ -280,6 +280,13 @@
       at(x, 'redeem');
       add('redeem', x.id, x);
     });
+    // /RAM Coach : fiches élèves, séances, suivi des élèves
+    ELEVES.forEach(x => add('eleve', x.id, x));
+    SEANCES.forEach(x => add('seance', x.id, x));
+    SUIVI.forEach(x => {
+      at(x, 'suivi');
+      add('suivi', x.id, x);
+    });
     Object.keys(M).forEach(k => {
       if (k === 'club') return;
       const s = strip(M[k], ['fol']);
@@ -504,7 +511,10 @@
     claim: () => (typeof CLAIMS !== 'undefined' ? CLAIMS : []),
     bar: () => BAR,
     order: () => ORDERS,
-    redeem: () => REDEEMS
+    redeem: () => REDEEMS,
+    eleve: () => ELEVES,
+    seance: () => SEANCES,
+    suivi: () => SUIVI
   };
   function place(list, obj, desc) {
     const i = list.findIndex(x => x.id === obj.id);
@@ -854,6 +864,11 @@
       case 'order':
       case 'redeem':
         return R.role === 'bureau' || myKeys().includes(d.by);
+      case 'eleve':
+      case 'seance':
+        return staff;
+      case 'suivi':
+        return staff || (d.by === k && myKeys().includes(d.to) && (d.k === 'msg' || d.k === 'video'));
     }
     return false;
   }
@@ -1564,6 +1579,9 @@
     BAR.length = 0;
     ORDERS.length = 0;
     REDEEMS.length = 0;
+    ELEVES.length = 0;
+    SEANCES.length = 0;
+    SUIVI.length = 0;
     ['tel', 'mail'].forEach(k => {
       MYCT[k][2] = '';
     });
@@ -1621,6 +1639,9 @@
       'bar',
       'order',
       'redeem',
+      'eleve',
+      'seance',
+      'suivi',
       'msg',
       'report'
     ];

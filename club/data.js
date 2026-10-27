@@ -1564,3 +1564,96 @@ try {
   S.mode = 'systeme';
 }
 Object.assign(I, { screen: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>' });
+
+/* barre de navigation : [onglet, pictogramme, titre] ; /RAM Coach (coach.html) y met ses propres onglets */
+const TABBAR = [
+  ['home', 'home', 'Accueil'],
+  ['chans', 'chat', 'Groupes'],
+  ['agenda', 'cal', 'Agenda'],
+  ['ecole', 'school', 'École'],
+  ['club', 'club', 'Club'],
+  ['me', 'user', 'Profil']
+];
+/* /RAM Coach : fiches élèves (équipe pédagogique seulement), séances (thème, appel, bilan du groupe)
+   et suivi de chaque élève (messages, bilans personnels, analyses vidéo, contenus), reçu dans École, Mon espace */
+const ELEVES = [],
+  SEANCES = [],
+  SUIVI = [];
+(() => {
+  const at = (d, h) => +new Date(d + 'T' + String(h).padStart(2, '0') + ':00:00');
+  SEANCES.push(
+    {
+      id: 'compet.2026-10-06',
+      g: 'compet',
+      d: '2026-10-06',
+      theme: 'Service : le lancer de balle',
+      pres: { me: 'P', ines: 'P', thomas: 'P', nathan: 'A' },
+      recap:
+        'Travail du lancer : régularité et placement devant soi. Bonne séance, on garde le même lancer la semaine prochaine pour enchaîner sur la première volée.'
+    },
+    { id: 'compet.2026-10-13', g: 'compet', d: '2026-10-13', theme: 'Service-volée : enchaîner le premier pas' },
+    {
+      id: 'u12.2026-10-07',
+      g: 'u12',
+      d: '2026-10-07',
+      theme: 'Coup droit croisé',
+      pres: { leo: 'P' },
+      recap: 'Échanges croisés en fond de court, objectif 10 balles sans faute. Bravo à tous !'
+    }
+  );
+  SUIVI.push(
+    {
+      id: 'sv1',
+      to: 'me',
+      by: 'sarah',
+      k: 'bilan',
+      ses: 'compet.2026-10-06',
+      txt: 'Ton lancer est beaucoup plus régulier. Garde le bras gauche tendu plus longtemps : ta frappe partira plus haut.',
+      at: at('2026-10-06', 21)
+    },
+    {
+      id: 'sv2',
+      to: 'me',
+      by: 'sarah',
+      k: 'msg',
+      txt: 'Salut Camille, pense à apporter ta raquette de rechange mardi, on fera beaucoup de services.',
+      at: at('2026-10-10', 18)
+    },
+    { id: 'sv3', to: 'me', by: 'me', k: 'msg', txt: 'Bien noté, merci Sarah !', at: at('2026-10-10', 19) },
+    {
+      id: 'sv4',
+      to: 'me',
+      by: 'me',
+      k: 'video',
+      url: 'https://youtu.be/exemple',
+      txt: 'Mon service en match samedi : tu peux regarder le placement des pieds ?',
+      at: at('2026-10-11', 20)
+    },
+    {
+      id: 'sv5',
+      to: 'me',
+      by: 'sarah',
+      k: 'video',
+      re: 'sv4',
+      txt: 'Le pied avant pivote trop tôt (0:04) : garde-le pointé vers le poteau jusqu’à la frappe. Le reste est très propre.',
+      at: at('2026-10-12', 9)
+    },
+    {
+      id: 'sv6',
+      to: 'leo',
+      by: 'sarah',
+      k: 'bilan',
+      ses: 'u12.2026-10-07',
+      txt: 'Très bon coup droit croisé, Léo ! Prochaine étape : finir le geste au-dessus de l’épaule.',
+      at: at('2026-10-07', 16)
+    },
+    {
+      id: 'sv7',
+      to: 'leo',
+      by: 'sarah',
+      k: 'contenu',
+      txt: 'Exercice à faire à la maison : 3 séries de 20 jongles avec la raquette, coup droit puis revers.',
+      at: at('2026-10-08', 12)
+    }
+  );
+})();

@@ -1,7 +1,10 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-10-27-bandeaux1';
-const CACHE = 'appli-club-' + VERSION;
+const VERSION = '2026-10-27-coach1';
+/* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
+const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
+const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
+const CACHE = 'appli-' + APP + '-' + VERSION;
 /* Fichiers de l'appli mis en cache dès l'installation */
 const CORE = [
   'index.html',
@@ -26,6 +29,7 @@ const CORE = [
   'ui/10-niveaux.js',
   'ui/11-tournois.js',
   'ui/12-aide.js',
+  'ui/13-suivi.js',
   'sons.js',
   'trophees.js',
   'app/1-affichage.js',
@@ -43,10 +47,29 @@ const CORE = [
   'app/13-favoris.js',
   'app/14-discussions.js',
   'app/15-bandeaux.js',
+  'app/16-suivi.js',
   'manifest.webmanifest',
   'icon-180.png',
   'icon-512.png'
 ];
+if (APP === 'coach')
+  CORE.splice(
+    0,
+    CORE.length,
+    ...CORE.map(f =>
+      f === 'index.html'
+        ? 'coach.html'
+        : f === 'manifest.webmanifest'
+          ? 'coach.webmanifest'
+          : /^icon-/.test(f)
+            ? 'coach-' + f
+            : f.replace('ram-club-', 'ram-coach-')
+    ),
+    'coach/coach.css',
+    'coach/1-donnees.js',
+    'coach/2-ecrans.js',
+    'coach/3-actions.js'
+  );
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -62,7 +85,7 @@ self.addEventListener('activate', e => {
     caches
       .keys()
       .then(keys =>
-        Promise.all(keys.filter(k => k.startsWith('appli-club-') && k !== CACHE).map(k => caches.delete(k)))
+        Promise.all(keys.filter(k => k.startsWith('appli-' + APP + '-') && k !== CACHE).map(k => caches.delete(k)))
       )
       .then(() => self.clients.claim())
   );
@@ -76,18 +99,18 @@ self.addEventListener('fetch', e => {
   /* données du club (API du serveur) : jamais en cache, toujours fraîches */
   if (new URL(req.url).pathname.includes('/api/')) return;
   const url = new URL(req.url),
-    page = req.mode === 'navigate' || url.pathname.endsWith('/index.html') || url.pathname.endsWith('/');
+    page = req.mode === 'navigate' || url.pathname.endsWith('/' + SHELL) || url.pathname.endsWith('/');
   if (page) {
     e.respondWith(
       fetch(req)
         .then(res => {
           if (res.ok && res.headers.get('X-Club-Page') === 'appli') {
             const copy = res.clone();
-            caches.open(CACHE).then(c => c.put('index.html', copy));
+            caches.open(CACHE).then(c => c.put(SHELL, copy));
           }
           return res;
         })
-        .catch(() => caches.match('index.html', { ignoreSearch: true }))
+        .catch(() => caches.match(SHELL, { ignoreSearch: true }))
     );
     return;
   }
@@ -119,10 +142,10 @@ self.addEventListener('push', e => {
     d = { body: e.data ? e.data.text() : '' };
   }
   e.waitUntil(
-    self.registration.showNotification(d.title || '/RAM Club', {
+    self.registration.showNotification(d.title || (APP === 'coach' ? '/RAM Coach' : '/RAM Club'), {
       body: d.body || '',
-      icon: 'icon-180.png',
-      badge: 'icon-180.png',
+      icon: APP === 'coach' ? 'coach-icon-180.png' : 'icon-180.png',
+      badge: APP === 'coach' ? 'coach-icon-180.png' : 'icon-180.png',
       tag: d.tag,
       data: { url: d.url || '' },
       renotify: !!d.tag
@@ -142,7 +165,7 @@ self.addEventListener('notificationclick', e => {
         return win.focus();
       }
       return self.clients.openWindow(
-        new URL('index.html' + (target.startsWith('#') ? target : ''), self.registration.scope).href
+        new URL(SHELL + (target.startsWith('#') ? target : ''), self.registration.scope).href
       );
     })
   );

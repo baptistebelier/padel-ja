@@ -772,3 +772,9 @@ details.aide .aq p{margin:0;line-height:1.5}
 .adband .track:not([data-fit]){visibility:hidden}
 @keyframes adin{from{translate:var(--adw) 0}to{translate:0 0}}
 @keyframes admarq{to{translate:calc(-1 * var(--adg)) 0}}
+/* suivi personnel (/RAM Coach) : bilans, vidéos et contenus de l'enseignant */
+.svc .kicker{display:block;margin-bottom:2px}
+.svc p{margin:6px 0}
+.svc .svd{display:block;margin-top:6px}
+.svc .btn{margin-top:8px}
+.dm .btn.full{margin-top:12px}

@@ -122,16 +122,19 @@ function render(keep) {
     liveRec = v.v === 'rec' && recs.find(r => r.id === v.id).st === 'live',
     fk = key + (liveRec ? 'L' : '');
   /* menu de navigation : caché dans une discussion sur téléphone (la barre de saisie prend sa place), toujours visible avec le menu latéral (ordinateur) */
-  const showTabs = !(v.v === 'chan' || liveRec) || sideNav();
-  if (v.v === 'chan' || liveRec) {
+  // conversation privée avec un enseignant (/RAM Coach) : même barre de saisie que les groupes
+  const dmv = v.v === 'dm' && typeof dmCanWrite === 'function' && dmCanWrite(v.id);
+  const showTabs = !(v.v === 'chan' || liveRec || dmv) || sideNav();
+  if (v.v === 'chan' || liveRec || dmv) {
     foot.hidden = false;
     tabs.hidden = !showTabs;
     if (fk !== lastFoot) {
       const c = v.v === 'chan' ? chans.find(c => c.id === v.id) : null;
       S.img = null;
       S.reply = null;
-      foot.innerHTML =
-        c && c.ro && !isAdmin()
+      foot.innerHTML = dmv
+        ? `<form class="composer" id="composer"><textarea id="msg-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="${esc(dmPlaceholder(v.id))}" aria-label="Message"></textarea><button class="send" aria-label="Envoyer">${ic('send')}</button></form>`
+        : c && c.ro && !isAdmin()
           ? '<div class="muted small" style="text-align:center;padding:8px">Seul le club publie dans ce groupe.</div>'
           : `<div class="att" id="att" hidden></div><form class="composer" id="composer"><label class="attach" aria-label="Joindre une photo">${ic('image')}<input type="file" id="m-img" accept="image/*"></label><textarea id="msg-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="${c ? (c.ro ? 'Publier au nom du club' : 'Écrire dans ' + esc(c.name)) : "Encourager l'équipe"}" aria-label="Message"></textarea><button class="send" aria-label="Envoyer">${ic('send')}</button></form>`;
     }
@@ -145,13 +148,7 @@ function render(keep) {
         const n = cnt(k);
         return `<button data-a="tab" data-t="${k}" ${S.tab === k ? 'aria-current="page"' : ''} aria-label="${l}${n ? ` (${n} nouveauté${n > 1 ? 's' : ''})` : ''}">${ic(i)}${l}${n ? `<span class="cnt">${n > 99 ? '99+' : n}</span>` : ''}</button>`;
       };
-    tabs.innerHTML =
-      tb('home', 'home', 'Accueil') +
-      tb('chans', 'chat', 'Groupes') +
-      tb('agenda', 'cal', 'Agenda') +
-      tb('ecole', 'school', 'École') +
-      tb('club', 'club', 'Club') +
-      tb('me', 'user', 'Profil');
+    tabs.innerHTML = TABBAR.map(x => tb(x[0], x[1], x[2])).join('');
     tabs.insertAdjacentHTML('afterbegin', '<span class="pill" id="tpill" aria-hidden="true"></span>');
     pillTo(tabs.querySelector('[aria-current]'), true);
   }

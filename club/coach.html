@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>/RAM Coach</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="/RAM Coach">
+<meta name="theme-color" content="#0B0B0B">
+<link rel="manifest" href="coach.webmanifest">
+<link rel="apple-touch-icon" href="coach-icon-180.png">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Work+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="ram.css">
+<link rel="stylesheet" href="coach/coach.css">
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="motif" aria-hidden="true"></div>
+  <div class="top" id="top"></div>
+  <div id="main"></div>
+  <div class="foot" id="foot" hidden></div>
+  <nav class="tabs" id="tabs" aria-label="Navigation principale"></nav>
+  <div id="layer"></div>
+  <div class="ram-splash" id="ramSplash" aria-hidden="true"><img src="img/ram-coach-blanc.png" alt=""></div>
+</div>
+<!-- /RAM Coach : le code de /RAM Club, avec les pages de l'enseignant (dossier coach/) -->
+<script>window.RAM_APP = 'coach';</script>
+<script src="logo.js"></script>
+<script src="data.js"></script>
+<script src="coach/1-donnees.js"></script>
+<script src="ui/1-briques.js"></script>
+<script src="ui/2-publications.js"></script>
+<script src="ui/3-rencontres.js"></script>
+<script src="ui/4-agenda.js"></script>
+<script src="ui/5-club.js"></script>
+<script src="ui/6-profil.js"></script>
+<script src="ui/7-ecole.js"></script>
+<script src="ui/8-ecrans.js"></script>
+<script src="ui/9-bar.js"></script>
+<script src="ui/10-niveaux.js"></script>
+<script src="ui/11-tournois.js"></script>
+<script src="ui/12-aide.js"></script>
+<script src="ui/13-suivi.js"></script>
+<script src="coach/2-ecrans.js"></script>
+<script src="sons.js"></script>
+<script src="trophees.js"></script>
+<script src="app/1-affichage.js"></script>
+<script src="app/2-couleurs.js"></script>
+<script src="app/3-direct.js"></script>
+<script src="app/4-formulaires.js"></script>
+<script src="app/5-actions.js"></script>
+<script src="app/6-gestes.js"></script>
+<script src="app/7-enregistrement.js"></script>
+<script src="coach/3-actions.js"></script>
+<script src="app/8-demarrage.js"></script>
+<script src="app/9-bar.js"></script>
+<script src="app/10-niveaux.js"></script>
+<script src="app/11-tournois.js"></script>
+<script src="app/12-finitions.js"></script>
+<script src="app/13-favoris.js"></script>
+<script src="app/14-discussions.js"></script>
+<script src="app/15-bandeaux.js"></script>
+<script src="app/16-suivi.js"></script>
+<script src="ram-sync.js"></script>
+<script>
+/* Service worker : appli hors connexion + notifications push (voir sw.js). Sans support, l'appli marche normalement. */
+/* écran de lancement /RAM Coach : retiré dès que l'appli est prête */
+/* il attend aussi le chargement du club (4 s au plus) pour ne pas montrer la démo avant le vrai club */
+Promise.all([new Promise(r=>setTimeout(r,700)),Promise.race([window.ramReady||Promise.resolve(),new Promise(r=>setTimeout(r,4000))])]).then(()=>{const s=document.getElementById('ramSplash');if(s){s.classList.add('out');setTimeout(()=>s.remove(),400)}});
+/* Mises à jour : l'appli vérifie s'il existe une nouvelle version à chaque retour au premier plan, et se recharge d'elle-même dès qu'elle est installée (une fois, jamais pendant une saisie) */
+if('serviceWorker' in navigator){const had=!!navigator.serviceWorker.controller;let done=false;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had||done)return;done=true;const go=()=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)){setTimeout(go,4000);return}location.reload()};go()});
+ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js?app=coach').then(reg=>{document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{})})}).catch(()=>{}))}
+</script>
+</body>
+</html>

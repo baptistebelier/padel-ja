@@ -253,7 +253,7 @@ Object.assign(I, {
 });
 function msgTicks(m, ref) {
   const live = window.RAM && RAM.live;
-  if (live && !(m._id && RAM.base && RAM.base.has('msg/' + m._id)))
+  if (live && !(m._id && RAM.base && RAM.base.has((ref.startsWith('d:') ? 'suivi/' : 'msg/') + m._id)))
     return `<i class="tk" aria-label="Envoyé">${ic('tick1')}</i>`;
   const rd = live && ref.startsWith('c:') && RAM.reads ? RAM.reads[ref.slice(2)] : undefined,
     read = rd != null && m.at && rd >= m.at;

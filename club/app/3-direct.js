@@ -111,6 +111,7 @@ const liveStart = (r, m) =>
 let nVis = n => !n.to || n.to.includes(ME()) || (M[ME()].kids || []).some(k => n.to.includes(k));
 const msgList = ref => {
   const [k, id] = ref.split(':');
+  if (k === 'd') return typeof dmList === 'function' ? dmList(id) : null;
   if (k === 'p') {
     const p = posts.find(p => p.id === id);
     return p ? p.com : null;

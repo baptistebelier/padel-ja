@@ -102,6 +102,8 @@ function ecoleBody(t) {
           "Tu n'es inscrit à aucun groupe d'entraînement. Les formules sont dans Club, Le club."
         );
   }
+  // messages, bilans, analyses vidéo et contenus de l'enseignant (/RAM Coach), historique des séances
+  if (t === 'perso') b = persoBody();
   if (t === 'stages') {
     const st = posts.filter(p => p.stage && !p.arch);
     b =

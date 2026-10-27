@@ -20,7 +20,7 @@ const A = {
       if (m.scrollTop > 0) m.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
       return;
     }
-    const o = ['home', 'chans', 'agenda', 'ecole', 'club', 'me'];
+    const o = TABBAR.map(x => x[0]);
     S.dir = d.t === S.tab && !S.stack.length ? 0 : S.stack.length || o.indexOf(d.t) < o.indexOf(S.tab) ? -1 : 1;
     S.tab = d.t;
     S.stack = [];
