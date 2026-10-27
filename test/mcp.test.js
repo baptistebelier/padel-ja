@@ -113,6 +113,11 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   // import d'une liste (une seule confirmation) : relie, complète ou crée, sans doublon
   const imp = await w('coach_importer_eleves', { eleves: [{ prenom: 'Léo', nom: 'Martin' }, { prenom: 'Jules', nom: 'Perrin', email: 'jules@test.fr', telephone: '0600000000' }, { prenom: 'Nina', nom: 'Anglade', email: 'nina@test.fr', note: 'Séance unique' }, { prenom: 'Nina', nom: 'Anglade' }] });
   assert.deepEqual([imp.eleves, imp.relie_au_compte, imp.complete, imp.cree], [3, 1, 1, 1]);
+  // historique de séances : séance ponctuelle créée avec les présents, séance notée dans un groupe, pas de doublon
+  const hist = [{ date: '2026-03-18', heure: '17:00', duree: '90 min', nom: 'Cours collectif', eleves: ['Nina Anglade', 'jules@test.fr', 'Inconnu Total'], tarif_prix: 84 }, { date: '2026-11-10', groupe_id: g.groupe_id, eleves: ['kid1'] }];
+  const sh = await w('coach_importer_seances', { seances: hist });
+  assert.deepEqual([sh.creees, sh.notees_dans_un_groupe, sh.eleves_introuvables], [1, 1, ['Inconnu Total']]);
+  assert.equal((await w('coach_importer_seances', { seances: hist.slice(0, 1) })).deja_la, 1);
   await w('coach_envoyer_message', { eleve_id: 'kid1', texte: 'Pense à ta raquette' });
   await w('coach_bilan_brouillon', { groupe_id: g.groupe_id, date: '2026-11-17', bilan_groupe: 'Bandeja', personnels: { kid1: 'Bravo' } });
   await w('coach_niveau', { eleve_id: 'kid1', niveau: 4, sport: 'Padel' });
@@ -125,6 +130,9 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(it('member', 'kid1').pl, 4, 'niveau recopié dans la fiche /RAM Club');
   assert.equal(it('eleve', 'kid1').tech.Revers, 2);
   assert.equal(it('brouillon', g.groupe_id + '.2026-11-17').recap, 'Bandeja');
+  assert.equal(it('seance', g.groupe_id + '.2026-11-10').pres.kid1, 'P');
+  const cours = sync.items.find(x => x.coll === 'group' && x.data.once === '2026-03-18').data;
+  assert.equal(Object.keys(it('seance', sync.items.find(x => x.data === cours).id + '.2026-03-18').pres).length, 2);
   assert.equal(sync.items.filter(x => x.coll === 'suivi' && x.data.to === 'kid1').length, 1);
   assert.equal((await use('coach_echelles')).Tennis.levels.length, 2);
   // un brouillon reste invisible pour les adhérents
