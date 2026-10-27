@@ -599,6 +599,7 @@
         }
         place2(l, m);
         if (!initial && s.by !== R.key) fresh.push(['msg', m, s.ref]);
+        if (window.ramTypingDone) ramTypingDone(s.ref, s.by);
         return;
       }
       case 'chan': {
@@ -1331,6 +1332,10 @@
       R.wallet = d.wallet;
       if (ch && !d.items.length && S.tab === 'club') render(true);
     }
+    if (d.reads && JSON.stringify(d.reads) !== JSON.stringify(R.reads)) {
+      R.reads = d.reads;
+      if (!d.items.length && view().v === 'chan') render(true);
+    }
     if (d.scores) {
       const ch = Object.keys(d.scores).some(k => d.scores[k] !== R.scores[k]);
       R.scores = d.scores;
@@ -1483,6 +1488,10 @@
       try {
         d = JSON.parse(ev.data);
       } catch (x) {}
+      if (d.typing) {
+        if (window.ramTyping) ramTyping(d.typing);
+        return;
+      }
       if (d.rev < 0) {
         stop();
         toast('Tu ne fais plus partie de ce club');
@@ -1571,6 +1580,7 @@
     R.fol = d.fol || {};
     R.roles = d.roles || {};
     R.scores = d.scores || {};
+    R.reads = d.reads || {}; // coches : jusqu'où tous les autres membres de chaque groupe ont lu
     R.counts = d.counts || {};
     R.jaTitles = d.jaTitles || {}; // titres de juge-arbitre /RAM JA des adhérents (badge)
     R.wallet = d.wallet || null; // points bar (gagnés en consommant au bar), calculés par le serveur

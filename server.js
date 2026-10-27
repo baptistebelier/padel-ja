@@ -973,18 +973,24 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
         return ram.join({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, b.code).then(c => json(res, 200, c), fail);
       }
-      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events)$/);
+      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing)$/);
       // connexion en direct : l'appareil est prévenu dès qu'un élément du club change, puis il synchronise
       if (m && m[2] === 'events') {
-        let ka = null, off = null;
-        const end = () => { clearInterval(ka); if (off) off(); };
+        let ka = null, off = null, offT = null;
+        const end = () => { clearInterval(ka); if (off) off(); if (offT) offT(); };
         off = await ram.listen(u.id, m[1], rev => { res.write(`data: ${JSON.stringify({ rev })}\n\n`); if (rev < 0) { end(); res.end(); } });
         if (!off) return json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
         res.write(': ok\n\n');
+        // « … est en train d'écrire » : relayé tel quel, jamais enregistré
+        offT = await ram.listenTyping(u.id, m[1], t => res.write(`data: ${JSON.stringify({ typing: t })}\n\n`));
         ka = setInterval(() => res.write(': ping\n\n'), 20000);
         req.on('close', end);
         return;
+      }
+      if (m && m[2] === 'typing' && req.method === 'POST') {
+        const b = await readBody(req);
+        return json(res, 200, { ok: await ram.typing(u.id, m[1], String(b.ref || '')) });
       }
       if (m && m[2] === 'sync') {
         const out = await ram.sync(u.id, m[1], url.searchParams.get('since'));

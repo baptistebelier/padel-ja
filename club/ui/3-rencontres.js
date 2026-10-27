@@ -55,7 +55,7 @@ function recView(id) {
       h += `<div class="note">${S.scoring ? "Chaque jeu ajouté s'affiche aussitôt chez tous les adhérents. Le bouton −1 corrige une erreur, même après la fin d'un set ou d'un match." : can ? 'Les scores se mettent à jour en direct. Tu peux les saisir depuis le bord du court.' : 'Les scores se mettent à jour en direct, saisis par le capitaine ou le club.'}</div>`;
   }
   if (live && r.chat)
-    h += `<div><h2 class="tilt sm">Le <em>direct</em><i class="dd"></i></h2><p class="muted small" style="margin-top:6px">Discussion ouverte le temps de la rencontre. Elle s'efface au dernier point.</p></div><div class="chat" style="padding:0">${r.chat.length ? r.chat.map((m, i) => msgRow(m, i, sport, 'r:' + r.id, S.sent && i === r.chat.length - 1)).join('') : '<span class="muted small">Sois le premier à encourager l\'équipe.</span>'}</div>`;
+    h += `<div><h2 class="tilt sm">Le <em>direct</em><i class="dd"></i></h2><p class="muted small" style="margin-top:6px">Discussion ouverte le temps de la rencontre. Elle s'efface au dernier point.</p></div><div class="chat" style="padding:0">${r.chat.length ? r.chat.map((m, i) => msgRow(m, i, sport, 'r:' + r.id, S.sent && i === r.chat.length - 1)).join('') : '<span class="muted small">Sois le premier à encourager l\'équipe.</span>'}${typingSlot('r:' + r.id)}</div>`;
   if (r.st === 'soon') {
     const L = r.lineup || (r.lineup = {}),
       C = r.conv || (r.conv = {}),

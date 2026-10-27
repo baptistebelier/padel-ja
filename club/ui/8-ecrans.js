@@ -66,7 +66,7 @@ const V = {
   },
   chan(id) {
     const c = chans.find(c => c.id === id);
-    return `<div class="chat">${lpHelp()}${c.kid && S.role !== 'kid' ? `<div class="note">Tu lis ce canal en tant que parent de Léo.</div>` : ''}${c.msgs.map((m, i) => msgRow(m, i, c.sport, 'c:' + c.id, S.sent && i === c.msgs.length - 1)).join('') || empty('chat', 'Aucun message', 'Lance la discussion.')}</div>`;
+    return `<div class="chat">${lpHelp()}${c.kid && S.role !== 'kid' ? `<div class="note">Tu lis ce canal en tant que parent de Léo.</div>` : ''}${c.msgs.map((m, i) => msgRow(m, i, c.sport, 'c:' + c.id, S.sent && i === c.msgs.length - 1)).join('') || empty('chat', 'Aucun message', 'Lance la discussion.')}${typingSlot('c:' + c.id)}</div>`;
   },
   /* les modes de l'agenda (Événements, Semaine, Jour, Liste) deviennent des onglets, comme sur les autres pages */
   agenda() {

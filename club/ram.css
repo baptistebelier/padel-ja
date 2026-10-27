@@ -657,3 +657,32 @@ html, body { background: var(--bg); }
 .msg.me .reacts:not(.big) { align-self: flex-end; margin: -11px 20px 0 0; }
 .msg .reacts:not(.big) .react { min-height: 26px; padding: 0 5px; background: transparent; border-radius: 0 !important; font-size: 13px; box-shadow: none; line-height: 1; }
 .msg .reacts:not(.big) .react.on { box-shadow: inset 0 -2px 0 var(--accent); font-weight: 700; }
+
+/* discussions, suite (27/10/2026) */
+/* coches de mes messages : grises (envoyé, reçu), de couleur quand tous les autres membres ont lu */
+.bub time .tk { display: inline-block; vertical-align: -3px; margin-left: 4px; font-style: normal; color: var(--muted); }
+.bub time .tk svg { width: 15px; height: 15px; stroke-width: 2.2; }
+.bub time .tk.rd { color: #2F9BFF; }
+/* apparition d'un message : la bulle gonfle depuis sa pointe (en bas à gauche, ou en bas à droite pour les miens) */
+.msg.in { animation: none; }
+.msg.in .bub { animation: bubPop .42s cubic-bezier(.2, 1.35, .4, 1) both; transform-origin: 0 100%; }
+.msg.me.in .bub { transform-origin: 100% 100%; }
+.msg.in > .av { animation: fade .3s both; }
+@keyframes bubPop { 0% { transform: scale(.15); opacity: 0; } 35% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .msg.in .bub { animation: fade .2s; } }
+/* « … est en train d'écrire » : la bulle et ses trois points qui sautillent, le nom à côté */
+.msg.typing { margin-top: 10px; }
+.msg.typing .bubw { align-items: flex-end; gap: 10px; }
+.bub.typ { flex-direction: row; gap: 5px; align-items: center; padding: 11px 12px; min-height: 0; }
+.bub.typ i { width: 7px; height: 7px; border-radius: 50% !important; background: var(--muted); animation: typDot 1.2s infinite ease-in-out; }
+.bub.typ i:nth-child(2) { animation-delay: .15s; }
+.bub.typ i:nth-child(3) { animation-delay: .3s; }
+@keyframes typDot { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-4px); opacity: 1; } }
+.typ-l { font-size: 12px; color: var(--muted); padding-bottom: 4px; white-space: nowrap; }
+/* glisser pour répondre : la bulle suit le doigt, la flèche « répondre » apparaît derrière */
+.bubw { position: relative; transition: transform .25s cubic-bezier(.2, 1.2, .4, 1); }
+.bubw.swiping { transition: none; }
+.bubw::before { content: ''; position: absolute; left: -38px; top: 50%; width: 28px; height: 28px; margin-top: -14px; border-radius: 50% !important;
+  background: var(--card2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 9l-5 4 5 4M5 13h9a5 5 0 015 5'/%3E%3C/svg%3E") center / 16px no-repeat;
+  opacity: var(--rp, 0); transform: scale(calc(.5 + var(--rp, 0) * .5)); pointer-events: none; }
+.msg.me.in { animation: none; }

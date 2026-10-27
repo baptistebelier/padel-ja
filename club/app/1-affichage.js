@@ -282,5 +282,5 @@ const menuSheet = (title, items) =>
 function commentsBody(p) {
   const ref = 'p:' + p.id,
     l = p.com.map((m, i) => msgRow(m, i, postSport(p), ref)).join('');
-  return `<div class="body chat com" id="com-list">${l ? lpHelp() + l : empty('com', 'Aucun commentaire', 'Sois le premier à réagir.')}</div><div class="foot"><form class="composer" id="com-form" data-id="${p.id}"><textarea id="com-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="Ajouter un commentaire" aria-label="Commentaire"></textarea><button class="send" aria-label="Publier">${ic('send')}</button></form></div>`;
+  return `<div class="body chat com" id="com-list">${l ? lpHelp() + l : empty('com', 'Aucun commentaire', 'Sois le premier à réagir.')}${typingSlot(ref)}</div><div class="foot"><form class="composer" id="com-form" data-id="${p.id}"><textarea id="com-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="Ajouter un commentaire" aria-label="Commentaire"></textarea><button class="send" aria-label="Publier">${ic('send')}</button></form></div>`;
 }
