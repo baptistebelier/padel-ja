@@ -124,6 +124,10 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const rg = await w('coach_regrouper_seances', { nom_des_seances: 'Cycle test' });
   assert.deepEqual([rg.seances, rg.du, rg.au, rg.seances_deplacees, rg.semaines_sans_seance, rg.eleves.length], [4, '2026-04-07', '2026-04-28', 1, 1, 2]);
   await assert.rejects(w('coach_regrouper_seances', { nom_des_seances: 'Cycle test' }), /Aucune séance/);
+  // une semaine sur deux, et seulement les séances d'un élève parmi d'autres du même nom
+  await w('coach_importer_seances', { seances: ['2026-09-29', '2026-10-13', '2026-10-27'].map(d => ({ date: d, heure: '12:00', nom: 'Midi test', eleves: ['kid1'] })).concat([{ date: '2026-10-06', heure: '12:00', nom: 'Midi test', eleves: ['nina@test.fr'] }]) });
+  const mi = await w('coach_regrouper_seances', { nom_des_seances: 'Midi test', avec: 'kid1', en_cours: true });
+  assert.deepEqual([mi.seances, mi.une_semaine_sur_deux, mi.semaines_sans_seance, mi.au], [3, true, 0, 'en cours']);
   // formules de l'enseignant (sur son compte) et achats notés dans la fiche des élèves, sans doublon
   const Formules = require('../lib/formules');
   const fo = await Formules.save(store, 'U1', { formules: [{ id: 'f1', nom: 'Cours individuel', joueurs: 1, duree: 60, prix: 35 }], packs: [{ id: 'p1', formule: 'f1', nom: 'Pack Découverte', seances: 3, prix: 99 }, { formule: 'inconnue', seances: 5 }], abos: [{ id: 'a1', nom: 'Academy', periode: '6 mois', prix: 600 }] });
