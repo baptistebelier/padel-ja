@@ -80,7 +80,7 @@ function lockView(v) {
 function ecoleBody(t) {
   const me = ME(),
     staff = isAdmin(),
-    coach = S.role === 'coach';
+    coach = S.role === 'coach' || !!S.super;
   let b = '';
   if (t === 'manage' && !staff) t = 'mine';
   if (t === 'mine') {

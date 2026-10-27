@@ -83,7 +83,7 @@ const V = {
   },
   ecole() {
     const staff = isAdmin(),
-      coach = S.role === 'coach',
+      coach = S.role === 'coach' || !!S.super,
       tabs = [
         ['mine', 'Mes cours', 'cal'],
         ['stages', 'Stages', 'ball']
@@ -154,7 +154,7 @@ const V = {
   }).join(
     ''
   )}${it('newPost', 'plus', 'Créer un championnat', 'Puis ajoute ses équipes, leurs capitaines et leur calendrier', 'data-k="champ"')}</div>
-  <div class="card adm-sec"><span class="kicker">Groupes</span>${grps('train')}${S.role === 'coach' ? it('newPost', 'plus', "Créer un groupe d'entraînement", 'Jour, heure, lieu et critères', 'data-k="train"') : ''}${it('newPost', 'chat', 'Créer un groupe de discussion', 'Covoiturage, petites annonces, bénévoles…', 'data-k="chan"')}</div>
+  <div class="card adm-sec"><span class="kicker">Groupes</span>${grps('train')}${S.role === 'coach' || S.super ? it('newPost', 'plus', "Créer un groupe d'entraînement", 'Jour, heure, lieu et critères', 'data-k="train"') : ''}${it('newPost', 'chat', 'Créer un groupe de discussion', 'Covoiturage, petites annonces, bénévoles…', 'data-k="chan"')}</div>
   <div class="card adm-sec"><span class="kicker">Le club</span>${it('open', 'info', 'Aide · guide du bureau', 'Tout ce que fait l’appli, rubrique par rubrique', 'data-v="aide"') + it('open', 'flag', 'Signalements', REPORTS.length ? `${REPORTS.length} contenu${REPORTS.length > 1 ? 's' : ''} à examiner` : 'Aucun contenu signalé', 'data-v="reports"')}${it('clubInfo', 'info', 'Infos du club', 'Courts, horaires, adresse, tarifs, liens, modules')}${
     CLUBINFO.mods.comm && isBureau()
       ? it(

@@ -169,6 +169,15 @@ const origin = req => `${(req.headers['x-forwarded-proto'] || 'http').split(',')
 /* administrateurs : e-mails listés dans ADMIN_EMAILS (Render), ou offre « admin » */
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'baptiste.belier@gmail.com').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
 const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email || '').toLowerCase()) || u.plan === 'admin'));
+/* /RAM Club : l'administrateur de l'appli (e-mails ADMIN_EMAILS seulement) a tous les droits dans ses clubs,
+   bureau et enseignant compris ; liste des comptes recalculée au démarrage puis toutes les 10 minutes */
+const superIds = new Set();
+async function loadSuper() {
+  const l = (await store.listUsers().catch(() => [])).filter(u => !u.guest && ADMIN_EMAILS.includes(String(u.email || '').toLowerCase()));
+  superIds.clear(); l.forEach(u => superIds.add(u.id));
+}
+ram.setSuper(id => superIds.has(id));
+loadSuper(); setInterval(loadSuper, 600000).unref();
 // offres : essai, actif (abonnement payé), offert (accès gratuit), admin
 const PLANS = { essai: 'Essai', actif: 'Abonné', offert: 'Accès offert', admin: 'Administrateur' };
 const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');

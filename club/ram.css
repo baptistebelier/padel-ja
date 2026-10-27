@@ -686,3 +686,8 @@ html, body { background: var(--bg); }
   background: var(--card2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 9l-5 4 5 4M5 13h9a5 5 0 015 5'/%3E%3C/svg%3E") center / 16px no-repeat;
   opacity: var(--rp, 0); transform: scale(calc(.5 + var(--rp, 0) * .5)); pointer-events: none; }
 .msg.me.in { animation: none; }
+
+/* avatar cliquable (ouvre le profil) : même place et même allure qu'un avatar simple */
+.avlink { display: inline-flex; flex: none; padding: 0; border: 0; background: none; border-radius: 50% !important; cursor: pointer; }
+.msg > .avlink { margin: 2px !important; align-self: flex-end; }
+.msg.in > .avlink { animation: fade .3s both; }

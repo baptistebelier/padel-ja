@@ -1576,6 +1576,7 @@
     R.club = id;
     R.key = d.me.key;
     R.role = d.me.role;
+    S.super = !!d.me.super; // administrateur de l'appli : bureau et enseignant à la fois
     R.valid = d.me.valid;
     R.loadAt = Date.now();
     R.code = d.club.code;

@@ -23,7 +23,7 @@ function typingHTML(ref) {
         : names.length === 2
           ? `${esc(names[0])} et ${esc(names[1])} écrivent…`
           : `${esc(names[0])} et ${names.length - 1} autres écrivent…`;
-  return `<div class="msg typing">${av(w[0], 'sm')}<div class="grow"><div class="bubw"><div class="bub tail typ" aria-hidden="true"><i></i><i></i><i></i></div><span class="typ-l">${txt}</span></div></div></div>`;
+  return `<div class="msg typing">${avLink(w[0], 'sm')}<div class="grow"><div class="bubw"><div class="bub tail typ" aria-hidden="true"><i></i><i></i><i></i></div><span class="typ-l">${txt}</span></div></div></div>`;
 }
 /* met à jour les emplacements de la discussion ouverte, sans redessiner la page ;
    si l'on est en bas de la discussion, on y reste */

@@ -44,6 +44,11 @@ function bd(id, sport) {
   const ja = (window.RAM && RAM.jaTitles && RAM.jaTitles[id]) || [];
   return `<span class="bds">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}${r ? `<span class="bd rk">${r}</span>` : ''}${ja.length ? `<span class="bd ja" title="Juge-arbitre /RAM JA">JA ${ja.join(' · ')}</span>` : ''}</span>`;
 }
+/* avatar d'un adhérent qui ouvre son profil (comme son nom) ; le club et soi-même restent de simples images */
+const avLink = (id, c = '') =>
+  id === 'club' || id === ME() || !M[id]
+    ? av(id, c)
+    : `<button class="avlink" data-a="member" data-id="${id}" aria-label="Profil de ${name(id)}">${av(id, c)}</button>`;
 const who = id =>
   id === 'club' || id === ME()
     ? `<span class="nm">${name(id)}</span>`

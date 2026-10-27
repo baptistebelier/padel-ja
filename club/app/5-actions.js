@@ -566,7 +566,7 @@ const A = {
       return;
     }
     const st = isAdmin(),
-      coach = S.role === 'coach',
+      coach = S.role === 'coach' || !!S.super,
       // rangés par rubriques : ce qu'on joue, ce qu'on annonce, la vie du club
       groups = [
         [
