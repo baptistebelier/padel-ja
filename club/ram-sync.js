@@ -303,12 +303,24 @@
           add('stats', k, { c: s.c, k: [...s.k], got: s.got, lvl: s.lvl });
         }
       });
-    const read = Object.assign({}, (prev('prefs', R.key) || {}).read || {});
+    const pp = prev('prefs', R.key) || {},
+      read = Object.assign({}, pp.read || {}),
+      // infos des messages (glisser son message vers la gauche) : jusqu'où ce téléphone a reçu (dl) et lu (rdl)
+      // les messages de chaque groupe, et à quelle heure ; les 30 derniers repères par groupe
+      dl = JSON.parse(JSON.stringify(pp.dl || {})),
+      rdl = JSON.parse(JSON.stringify(pp.rdl || {})),
+      mark = (map, id, upTo) => {
+        const l = (map[id] = map[id] || []);
+        if (upTo > (l.length ? l[l.length - 1][0] : 0)) {
+          l.push([upTo, Date.now()]);
+          if (l.length > 30) l.splice(0, l.length - 30);
+        }
+      };
     chans.forEach(ch => {
-      if (!ch.un) {
-        const last = Math.max(0, ...(ch.msgs || []).map(m => m.at || 0));
-        if (last) read[ch.id] = Math.max(read[ch.id] || 0, last);
-      }
+      const last = Math.max(0, ...(ch.msgs || []).map(m => m.at || 0));
+      if (last) mark(dl, ch.id, last);
+      if (!ch.un && last) read[ch.id] = Math.max(read[ch.id] || 0, last);
+      if (read[ch.id]) mark(rdl, ch.id, read[ch.id]);
     });
     add('prefs', R.key, {
       nh: notifStore(),
@@ -320,6 +332,8 @@
       ct: MYCT,
       mute: chans.filter(ch => ch.mute).map(ch => ch.id),
       read,
+      dl,
+      rdl,
       setup: S.setup || {},
       invited: S.invited || 0,
       motif: S.motif || 'ram-mixte',

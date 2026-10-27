@@ -691,3 +691,15 @@ html, body { background: var(--bg); }
 .avlink { display: inline-flex; flex: none; padding: 0; border: 0; background: none; border-radius: 50% !important; cursor: pointer; }
 .msg > .avlink { margin: 2px !important; align-self: flex-end; }
 .msg.in > .avlink { animation: fade .3s both; }
+
+/* glisser son message vers la gauche : le « i » des infos apparaît à droite */
+.bubw::after { content: ''; position: absolute; right: -40px; top: 50%; width: 28px; height: 28px; margin-top: -14px; border-radius: 50% !important;
+  background: var(--card2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v6M12 7.5v.5'/%3E%3C/svg%3E") center / 16px no-repeat;
+  opacity: var(--ri, 0); transform: scale(calc(.5 + var(--ri, 0) * .5)); pointer-events: none; }
+/* panneau « Infos du message » */
+.info-msg { padding: 4px 6px 14px !important; }
+.info-msg .msg { margin: 0; justify-content: flex-end; }
+.info-sec { display: grid; gap: 2px; padding: 12px 0; border-top: 1px solid var(--line); }
+.info-sec > .kicker { display: flex; align-items: center; gap: 6px; }
+.info-sec > .kicker svg { width: 16px; height: 16px; }
+.info-sec > .kicker .rd, .info-sec > .kicker:has(.rd) svg { color: #2F9BFF; }

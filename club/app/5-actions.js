@@ -723,6 +723,7 @@ const A = {
       at = `data-ref="${d.ref}" data-i="${d.i}"`,
       items = [
         !d.ref.startsWith('p:') && ['com', 'Répondre', 'reply', at],
+        mine && ['info', 'Infos du message', 'msgInfo', at],
         (mine || isAdmin()) && ['trash', 'Supprimer le message', 'mdel', at, 1],
         !mine && ['flag', 'Signaler ce message', 'mreport', at],
         !mine && m.by !== 'club' && ['block', 'Bloquer ' + first(m.by), 'block', `data-id="${m.by}"`, 1]

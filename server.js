@@ -987,7 +987,7 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
         return ram.join({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, b.code).then(c => json(res, 200, c), fail);
       }
-      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing)$/);
+      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo)$/);
       // connexion en direct : l'appareil est prévenu dès qu'un élément du club change, puis il synchronise
       if (m && m[2] === 'events') {
         let ka = null, off = null, offT = null;
@@ -1001,6 +1001,10 @@ const server = http.createServer(async (req, res) => {
         ka = setInterval(() => res.write(': ping\n\n'), 20000);
         req.on('close', end);
         return;
+      }
+      if (m && m[2] === 'msginfo' && req.method === 'GET') {
+        try { const r = await ram.msgInfo(u.id, m[1], String(url.searchParams.get('id') || '')); return r ? json(res, 200, r) : json(res, 404, { error: 'Introuvable' }); }
+        catch (e) { return json(res, 403, { error: e.message }); }
       }
       if (m && m[2] === 'typing' && req.method === 'POST') {
         const b = await readBody(req);

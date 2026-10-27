@@ -46,4 +46,13 @@ test('discussions : en train d’écrire, lu par tous', async () => {
   const r = (await ram.sync('B', club.id, 0)).reads;
   assert.equal(r.general, 1500, 'le plus en retard des autres');
   assert.equal((await ram.sync('A', club.id, 0)).reads.g1, undefined, 'seul membre du groupe : personne d’autre à attendre');
+
+  // infos d'un message : lu par qui et quand, distribué à qui et quand (seulement pour son auteur)
+  await ram.ops('A', club.id, [{ coll: 'msg', id: 'mA', op: 'put', data: { ref: 'c:general', by: keys.A, x: 'Salut', at: 3000 } }]);
+  await ram.ops('C', club.id, [{ coll: 'prefs', id: keys.C, op: 'put', data: { dl: { general: [[3000, 5000]] }, rdl: { general: [[2500, 4000], [3000, 6000]] } } }]);
+  await ram.ops('B', club.id, [{ coll: 'prefs', id: keys.B, op: 'put', data: { dl: { general: [[3000, 4500]] } } }]);
+  const info = await ram.msgInfo('A', club.id, 'mA');
+  assert.deepEqual(info.read, [{ key: keys.C, at: 6000 }], 'lu par Paul à 6000');
+  assert.deepEqual(info.delivered, [{ key: keys.B, at: 4500 }], 'distribué à Hugo, pas encore lu');
+  await assert.rejects(ram.msgInfo('C', club.id, 'mA'), /auteur/);
 });
