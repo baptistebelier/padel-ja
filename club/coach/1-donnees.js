@@ -103,7 +103,7 @@ const SCALES = {
     ]
   },
   Tennis: {
-    name: 'Galaxie Tennis',
+    name: 'Échelle tennis',
     levels: [
       {
         n: 1,

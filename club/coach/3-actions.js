@@ -108,6 +108,7 @@ Object.assign(A, {
     if (e.lvl === n) return;
     e.lvl = n;
     e.lvlH = (e.lvlH || []).filter(x => x.d !== TODAY).concat({ d: TODAY, lvl: n });
+    coMemberLevel(d.id);
     coSave('Niveau ' + n + ' donné à ' + svFirst(d.id));
     coPop(`[data-a="coLvl"][data-n="${n}"]`, true);
   },
@@ -249,6 +250,21 @@ document.addEventListener('submit', e => {
     return coSave('Thèmes enregistrés : les élèves les voient dans leurs cours');
   }
   if (f.id === 'co-bilan') {
+    const i0 = id.lastIndexOf('.'),
+      g0 = grp(id.slice(0, i0)),
+      same = b => b.id === id && (b._club || '') === ((g0 && g0._club) || ''),
+      old = BROUILLONS.find(same);
+    // « Garder en brouillon » : rien n'est envoyé aux élèves
+    if (e.submitter && e.submitter.value === 'draft') {
+      const perso = {};
+      f.querySelectorAll('.co-perso').forEach(t => t.value.trim() && (perso[t.dataset.k] = t.value.trim()));
+      const b = old || { id, g: id.slice(0, i0), d: id.slice(i0 + 1) };
+      Object.assign(b, { recap: val('co-recap'), perso, at: Date.now(), by: coKeyIn(g0 && g0._club) });
+      if (g0 && g0._club) b._club = g0._club;
+      if (!old) BROUILLONS.push(b);
+      return coSave('Brouillon enregistré : rien n’est encore envoyé aux élèves');
+    }
+    if (old) BROUILLONS.splice(BROUILLONS.indexOf(old), 1); // publié : le brouillon disparaît
     const s = sesGet(id);
     s.recap = val('co-recap');
     let n = 0;
@@ -568,7 +584,7 @@ Object.assign(A, {
       cur = (d && d.c) || (S.coClub !== 'all' && S.coClub) || coMainId();
     sheet(
       'Nouveau groupe',
-      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}${F('co-gn', 'Nom du groupe', 'Adultes compétition')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['Extérieur', 'En salle'], 'Extérieur')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
+      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}${Sel('co-gk', 'Type', ['Groupe chaque semaine', 'Séance ponctuelle (cours individuel…)'], d && d.once ? 'Séance ponctuelle (cours individuel…)' : 'Groupe chaque semaine')}${F('co-gn', 'Nom', 'Adultes compétition, cours de Léa…')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour (chaque semaine)', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Dt('co-go', 'Date (séance ponctuelle)', false, TODAY)}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['Extérieur', 'En salle'], 'Extérieur')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
     );
     $('co-gm').inputMode = 'numeric';
     $('co-gp').inputMode = 'decimal';
@@ -599,6 +615,12 @@ document.addEventListener('submit', e => {
       }
     };
   if (!g.name) return;
+  // séance ponctuelle : une seule date (un cours individuel, une séance réservée sur Calendly…)
+  if (/ponctuelle/.test(v('co-gk')) && /^\d{4}-\d{2}-\d{2}$/.test(v('co-go'))) {
+    g.once = v('co-go');
+    g.day = new Date(g.once + 'T12:00:00').getDay();
+    g.sub = `${fmtD(g.once)} ${g.h} · ${g.dur} · ${first(key)}`;
+  }
   if (parseInt(v('co-gm'), 10)) g.max = parseInt(v('co-gm'), 10);
   // la discussion du groupe dans /RAM Club : créée avec le groupe
   const ch = { id, g: 'train', sport: g.sport, name: g.name, desc: g.sub, kid: 0 };
@@ -616,4 +638,90 @@ document.addEventListener('submit', e => {
   closeSheet();
   S.stack.push({ v: 'cgroupe', id });
   coSave('Groupe créé dans ' + (ext ? CO_EXT[ext].name : club().name));
+});
+
+/* niveau donné dans /RAM Coach : recopié dans la fiche /RAM Club de l'adhérent (niveau padel ou niveau tennis) */
+function coMemberLevel(id) {
+  const m = M[id],
+    e = coEl(id);
+  if (!m || !e || !e.lvl) return;
+  const sp = e.sport || coSport(id),
+    l = (SCALES[sp] || SCALES.Padel).levels[e.lvl - 1];
+  if (sp === 'Padel') m.pl = e.lvl;
+  else m.tn = { n: e.lvl, t: l ? l.t : '' };
+}
+/* ---------- échelles de niveaux : modifiées ici, enregistrées sur le compte /RAM (pour tous mes clubs) ---------- */
+const coRenum = sp => SCALES[sp].levels.forEach((l, i) => (l.n = i + 1));
+function coSaveScales(msg) {
+  Object.keys(SCALES).forEach(coRenum);
+  render(true);
+  if (!(window.RAM && RAM.user)) return toast((msg || 'Échelle modifiée') + ' (démonstration : non enregistrée)');
+  fetch('/api/coach/echelles', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ echelles: SCALES })
+  })
+    .then(r => (r.ok ? toast(msg || 'Échelle enregistrée') : toast('L’échelle n’a pas été enregistrée')))
+    .catch(() => toast('L’échelle n’a pas été enregistrée'));
+}
+Object.assign(A, {
+  coLvlEdit(d) {
+    const l = d.i === 'new' ? { t: '', pre: [], att: [] } : SCALES[d.s].levels[+d.i];
+    sheet(
+      d.i === 'new' ? 'Nouveau niveau ' + d.s.toLowerCase() : 'Niveau ' + (+d.i + 1) + ' · ' + d.s.toLowerCase(),
+      `<form class="body" id="co-lvl" data-s="${d.s}" data-i="${d.i}">${F('co-lt', 'Nom du niveau', 'Débutant, Orange…', l.t)}${T('co-lp', 'Prérequis (un par ligne)', 'Ce qu’il faut savoir faire pour y entrer', l.pre.join('\n'))}${T('co-la', 'Attendus pour le valider (un par ligne)', 'Ce qu’il faut savoir faire pour passer au suivant', l.att.join('\n'))}<button class="btn full">Enregistrer</button></form>`
+    );
+    $('co-lp').required = false;
+    $('co-la').required = false;
+  },
+  coLvlMove(d) {
+    const L = SCALES[d.s].levels,
+      i = +d.i,
+      j = i + +d.n;
+    if (j < 0 || j >= L.length) return;
+    [L[i], L[j]] = [L[j], L[i]];
+    coSaveScales('Ordre des niveaux enregistré');
+  },
+  coLvlDel(d) {
+    const l = SCALES[d.s].levels[+d.i];
+    sheet(
+      'Supprimer le niveau',
+      `<div class="body"><p>Supprimer « ${esc(l.t)} » de l’échelle ${d.s.toLowerCase()} ? Les niveaux suivants avancent d’un rang.</p><div class="cotools"><button class="btn" data-a="coLvlDelOk" data-s="${d.s}" data-i="${d.i}">Supprimer</button><button class="btn ghost" data-a="close">Annuler</button></div></div>`
+    );
+  },
+  coLvlDelOk(d) {
+    if (SCALES[d.s].levels.length <= 1) return toast('Une échelle garde au moins un niveau');
+    SCALES[d.s].levels.splice(+d.i, 1);
+    closeSheet();
+    coSaveScales('Niveau supprimé');
+  },
+  coScName(d) {
+    sheet(
+      'Nom de l’échelle',
+      `<form class="body" id="co-scn" data-s="${d.s}">${F('co-sn', 'Nom', '', SCALES[d.s].name)}<button class="btn full">Enregistrer</button></form>`
+    );
+  }
+});
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (f.id === 'co-lvl') {
+    e.preventDefault();
+    const lines = id =>
+        $(id)
+          .value.split('\n')
+          .map(x => x.trim())
+          .filter(Boolean),
+      l = { t: $('co-lt').value.trim() || 'Niveau', pre: lines('co-lp'), att: lines('co-la') };
+    if (f.dataset.i === 'new') SCALES[f.dataset.s].levels.push(l);
+    else Object.assign(SCALES[f.dataset.s].levels[+f.dataset.i], l);
+    closeSheet();
+    coSaveScales('Niveau enregistré');
+  }
+  if (f.id === 'co-scn') {
+    e.preventDefault();
+    SCALES[f.dataset.s].name = $('co-sn').value.trim() || SCALES[f.dataset.s].name;
+    closeSheet();
+    coSaveScales('Échelle renommée');
+  }
 });

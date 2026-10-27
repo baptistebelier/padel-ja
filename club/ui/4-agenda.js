@@ -7,7 +7,7 @@ function planItems(iso) {
     out = [],
     me = ME(),
     mine = x => x === me || (M[me].kids || []).includes(x);
-  GROUPS.filter(g => g.type === 'train' && g.day === wd).forEach(g => {
+  GROUPS.filter(g => g.type === 'train' && trainOn(g, iso)).forEach(g => {
     const cx = (g.cancel || []).includes(iso);
     out.push({
       cat: 'ens',

@@ -30,7 +30,7 @@
     <span class="tag">/RiseAndMove — Connecteur MCP</span>
     <h1>Claude connecté à <span class="band lime">vos applis /RAM.</span></h1>
     <p class="lede">Demandez à Claude le classement de votre dernier tournoi, le planning de votre semaine d'enseignant, la fiche d'un élève ou l'agenda de votre club : il lit vos données /RAM JA, /RAM Club et /RAM Coach avec votre compte /RAM.</p>
-    <p class="muted small">Lecture seule : Claude ne crée, ne modifie ni ne supprime rien. Il ne voit que ce que votre compte voit déjà dans les applis.</p>
+    <p class="muted small">Il lit /RAM JA, /RAM Club et /RAM Coach, et peut modifier /RAM Coach (groupes, élèves, messages, bilans en brouillon, niveaux) : Claude vous demande de confirmer chaque modification. Il ne voit et ne fait que ce que votre compte peut déjà voir et faire dans les applis.</p>
   </div>
 </section>
 
@@ -65,7 +65,22 @@
     <tr><td><code>coach_eleves</code></td><td>/RAM Coach : vos élèves, leur club et leur niveau.</td></tr>
     <tr><td><code>coach_eleve</code></td><td>/RAM Coach : la fiche, l'historique et le suivi d'un élève.</td></tr>
     <tr><td><code>coach_statistiques</code></td><td>/RAM Coach : heures, chiffre d'affaires et présence.</td></tr>
+    <tr><td><code>coach_echelles</code></td><td>/RAM Coach : vos échelles de niveaux padel et tennis.</td></tr>
   </table></div>
+  <h2>Ce qu'il peut modifier dans /RAM Coach</h2>
+  <div class="tbl"><table>
+    <tr><th>Outil</th><th>Ce qu'il fait</th></tr>
+    <tr><td><code>coach_creer_groupe</code></td><td>Crée un groupe chaque semaine ou une séance ponctuelle (cours individuel).</td></tr>
+    <tr><td><code>coach_ajouter_eleve</code></td><td>Ajoute un élève (relié à son compte /RAM Club s'il en a un) et l'inscrit dans un groupe.</td></tr>
+    <tr><td><code>coach_ajouter_au_groupe</code></td><td>Inscrit un élève dans un groupe.</td></tr>
+    <tr><td><code>coach_envoyer_message</code></td><td>Envoie un message à un élève, reçu dans /RAM Club.</td></tr>
+    <tr><td><code>coach_bilan_brouillon</code></td><td>Prépare un bilan de séance en brouillon : vous le publiez vous-même.</td></tr>
+    <tr><td><code>coach_niveau</code></td><td>Donne un niveau, recopié dans la fiche /RAM Club de l'élève.</td></tr>
+    <tr><td><code>coach_grille_technique</code></td><td>Évalue la technique : coup droit, revers, volée…</td></tr>
+    <tr><td><code>coach_fiche_eleve</code></td><td>Modifie la fiche d'un élève.</td></tr>
+    <tr><td><code>coach_modifier_echelle</code></td><td>Modifie votre échelle de niveaux padel ou tennis.</td></tr>
+  </table></div>
+  <p class="muted small">Sur la page d'autorisation, cochez « Lecture seule » pour n'autoriser que la consultation.</p>
 </section>
 
 <section class="wrap doc">

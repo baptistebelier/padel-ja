@@ -84,7 +84,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const rpc = async (method, params, id = 1) => (await (await call('/mcp', { method: 'POST', headers: { Authorization: 'Bearer ' + t.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id, method, params }) })).json()).result;
   assert.equal((await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test' } })).serverInfo.name, 'ram');
   const tools = (await rpc('tools/list')).tools;
-  assert.ok(tools.length >= 8 && tools.every(x => x.annotations.readOnlyHint));
+  assert.ok(tools.filter(x => x.annotations.readOnlyHint).length >= 10 && tools.some(x => !x.annotations.readOnlyHint));
   const use = async (name, args) => JSON.parse((await rpc('tools/call', { name, arguments: args || {} })).content[0].text);
   const acc = await use('ram_mon_compte');
   assert.equal(acc.clubs[0].nom, 'TC Essai');
@@ -99,6 +99,42 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   // un tournoi d'un autre compte reste invisible
   rooms.set('t2', { row: { id: 't2', owner: 'U2', state: T } });
   assert.equal((await rpc('tools/call', { name: 'ja_tournoi', arguments: { id: 't2' } })).isError, true);
+  // ---------- écriture /RAM Coach (accordée par défaut sur la page d'autorisation) ----------
+  const names = (await rpc('tools/list')).tools.map(x => x.name);
+  assert.ok(names.includes('coach_bilan_brouillon') && names.includes('coach_niveau'));
+  const w = async (name, args) => { const r = await rpc('tools/call', { name, arguments: args }); if (r.isError) throw new Error(r.content[0].text); return JSON.parse(r.content[0].text); };
+  const g = await w('coach_creer_groupe', { nom: 'Padel loisirs', sport: 'Padel', jour: 'mardi', heure: '19 h 30', duree: '90 min', places: 8, tarif_prix: 60 });
+  const once = await w('coach_creer_groupe', { nom: 'Cours de Jules', sport: 'Padel', date: '2026-11-20', heure: '10:00' });
+  assert.equal(once.creneau, '20/11/2026 10 h · 1 h');
+  const nv = await w('coach_ajouter_eleve', { prenom: 'Jules', nom: 'Perrin', email: 'jules@test.fr', sport: 'Padel', groupe_id: g.groupe_id });
+  assert.equal(nv.compte_ram_club, false);
+  const linked = await w('coach_ajouter_eleve', { prenom: 'Léo', nom: 'Martin', groupe_id: g.groupe_id });
+  assert.equal(linked.eleve_id, 'kid1', 'adhérent déjà dans /RAM Club : relié à son compte');
+  await w('coach_envoyer_message', { eleve_id: 'kid1', texte: 'Pense à ta raquette' });
+  await w('coach_bilan_brouillon', { groupe_id: g.groupe_id, date: '2026-11-17', bilan_groupe: 'Bandeja', personnels: { kid1: 'Bravo' } });
+  await w('coach_niveau', { eleve_id: 'kid1', niveau: 4, sport: 'Padel' });
+  await w('coach_grille_technique', { eleve_id: 'kid1', notes: { 'Coup droit': 3, Revers: 2 } });
+  await w('coach_modifier_echelle', { sport: 'Tennis', niveaux: [{ nom: 'Mini' }, { nom: 'Ados' }] });
+  const sync = await ram.sync('U1', club.id, 0), it = (c, i) => (sync.items.find(x => x.coll === c && x.id === i) || {}).data;
+  assert.deepEqual(it('group', g.groupe_id).ext, [nv.eleve_id]);
+  assert.ok(it('group', g.groupe_id).mem.includes('kid1'));
+  assert.equal(it('group', once.groupe_id).once, '2026-11-20');
+  assert.equal(it('member', 'kid1').pl, 4, 'niveau recopié dans la fiche /RAM Club');
+  assert.equal(it('eleve', 'kid1').tech.Revers, 2);
+  assert.equal(it('brouillon', g.groupe_id + '.2026-11-17').recap, 'Bandeja');
+  assert.equal(sync.items.filter(x => x.coll === 'suivi' && x.data.to === 'kid1').length, 1);
+  assert.equal((await use('coach_echelles')).Tennis.levels.length, 2);
+  // un brouillon reste invisible pour les adhérents
+  const adh = await ram.join({ id: 'U3', name: 'Paul Adh' }, club.code);
+  await ram.ops('U1', club.id, [{ coll: 'member', id: adh.key, op: 'patch', patch: [{ p: ['valid'], t: 'set', v: (it('conf', 'main') || {}).season }] }]);
+  assert.equal((await ram.sync('U3', club.id, 0)).items.some(x => x.coll === 'brouillon'), false);
+  // accès accordé en lecture seule : pas d'outil d'écriture
+  const q2 = new URLSearchParams({ response_type: 'code', client_id: reg.client_id, redirect_uri, code_challenge: challenge, code_challenge_method: 'S256' });
+  const tx2 = (await (await call('/oauth/authorize?' + q2, { headers: { 'x-test': '1' } })).text()).match(/name="tx" value="([^"]+)"/)[1];
+  const back2 = new URL((await call('/oauth/authorize', { method: 'POST', headers: { 'x-test': '1', 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ tx: tx2, decision: 'ok', ecriture: 'non' }) })).headers.get('location'));
+  const ro = await (await tok({ grant_type: 'authorization_code', code: back2.searchParams.get('code'), client_id: reg.client_id, redirect_uri, code_verifier: verifier })).json();
+  const roList = await (await call('/mcp', { method: 'POST', headers: { Authorization: 'Bearer ' + ro.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 9, method: 'tools/list' }) })).json();
+  assert.ok(roList.result.tools.every(x => x.annotations.readOnlyHint), 'lecture seule');
   // changer son mot de passe coupe le renouvellement de l'accès
   assert.equal((await tok({ grant_type: 'refresh_token', refresh_token: t.refresh_token })).status, 200);
   me.pass_hash = 'h2'; await store.saveUser(me);

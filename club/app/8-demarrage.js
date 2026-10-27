@@ -489,7 +489,8 @@ A.motif = d => {
   document.addEventListener(
     'touchstart',
     e => {
-      if (e.touches.length !== 1 || !S.stack.length || $('sheet')) return;
+      // /RAM Coach : ce geste ouvre le menu (comme /RAM JA), il ne revient pas en arrière
+      if (window.RAM_APP === 'coach' || e.touches.length !== 1 || !S.stack.length || $('sheet')) return;
       const t = e.touches[0],
         r = ph.getBoundingClientRect();
       if (t.clientX - r.left > 28) return;

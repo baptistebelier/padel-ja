@@ -6,7 +6,7 @@ function sessions(g, days) {
   for (let i = 0; i < days; i++) {
     const iso = isoIn(i),
       [y, m, d] = iso.split('-').map(Number);
-    if (new Date(y, m - 1, d).getDay() === g.day) out.push(iso);
+    if (trainOn(g, iso)) out.push(iso);
   }
   return out;
 }

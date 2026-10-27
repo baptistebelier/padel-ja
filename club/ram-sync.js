@@ -285,6 +285,7 @@
     // /RAM Coach : fiches élèves, séances, suivi des élèves
     ELEVES.forEach(x => !x._club && add('eleve', x.id, x));
     SEANCES.forEach(x => !x._club && add('seance', x.id, x));
+    if (typeof BROUILLONS !== 'undefined') BROUILLONS.forEach(x => !x._club && add('brouillon', x.id, x));
     SUIVI.forEach(x => {
       if (x._club) return;
       at(x, 'suivi');
@@ -518,6 +519,7 @@
     redeem: () => REDEEMS,
     eleve: () => ELEVES,
     seance: () => SEANCES,
+    brouillon: () => (typeof BROUILLONS !== 'undefined' ? BROUILLONS : []),
     suivi: () => SUIVI
   };
   function place(list, obj, desc) {
@@ -870,6 +872,7 @@
         return R.role === 'bureau' || myKeys().includes(d.by);
       case 'eleve':
       case 'seance':
+      case 'brouillon':
         return staff;
       case 'suivi':
         return staff || (d.by === k && myKeys().includes(d.to) && (d.k === 'msg' || d.k === 'video'));
@@ -1585,6 +1588,7 @@
     REDEEMS.length = 0;
     ELEVES.length = 0;
     SEANCES.length = 0;
+    if (typeof BROUILLONS !== 'undefined') BROUILLONS.length = 0;
     SUIVI.length = 0;
     ['tel', 'mail'].forEach(k => {
       MYCT[k][2] = '';
@@ -1645,6 +1649,7 @@
       'redeem',
       'eleve',
       'seance',
+      'brouillon',
       'suivi',
       'msg',
       'report'

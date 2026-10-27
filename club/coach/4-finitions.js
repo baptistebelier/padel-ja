@@ -134,7 +134,13 @@ window.ramPickClub = (clubs, last) => {
   const l = clubs.filter(coTeach).length ? clubs.filter(coTeach) : clubs;
   return l.find(c => c.main) || l.find(c => c.id === last) || l[0];
 };
-const CO_COLL = { group: () => GROUPS, seance: () => SEANCES, suivi: () => SUIVI, eleve: () => ELEVES };
+const CO_COLL = {
+  group: () => GROUPS,
+  seance: () => SEANCES,
+  suivi: () => SUIVI,
+  eleve: () => ELEVES,
+  brouillon: () => BROUILLONS
+};
 const coBare = o => {
   const c = JSON.parse(JSON.stringify(o));
   delete c._club;
@@ -158,8 +164,10 @@ function coApply(cid, it) {
     k = it.coll + '/' + it.id;
   if (it.coll === 'member') {
     if (it.del) delete M[it.id];
-    else if (!M[it.id] || M[it.id]._club === cid)
+    else if (!M[it.id] || M[it.id]._club === cid) {
       M[it.id] = c.members[it.id] = Object.assign({ res: [] }, it.data, { _club: cid });
+      c.base.set('member/' + it.id, JSON.stringify(coBare(M[it.id])));
+    }
     return;
   }
   if (!CO_COLL[it.coll] || (it.coll === 'group' && it.data && (it.data.type !== 'train' || it.data.old))) return;
@@ -237,6 +245,14 @@ async function coPush() {
           }
         })
       );
+      // fiche /RAM Club d'un adhérent de ce club (niveau padel ou tennis donné dans /RAM Coach)
+      Object.keys(c.members || {}).forEach(k => {
+        const m = M[k],
+          b = c.base.get('member/' + k);
+        if (!m || m._club !== cid || !b) return;
+        const patch = window.ramDiff(JSON.parse(b), coBare(m)).filter(op => ['pl', 'tn'].includes(op.p[0]));
+        if (patch.length) ops.push({ coll: 'member', id: k, op: 'patch', patch, _j: JSON.stringify(coBare(m)) });
+      });
       // un commentaire personnel effacé dans un bilan : supprimé aussi dans son club
       c.base.forEach((v, k) => {
         if (k.startsWith('suivi/') && !seen.has(k) && JSON.parse(v).by === c.key)
@@ -403,3 +419,53 @@ render = function () {
   if ($('codrawer') && $('phone').classList.contains('drawer-open')) $('codrawer').innerHTML = coDrawerHTML();
   return r;
 };
+/* téléphone : glisser depuis le bord gauche ouvre le menu (comme /RAM JA) ; le glisser vers la gauche le referme */
+(function () {
+  let x0 = 0,
+    y0 = 0,
+    from = '';
+  document.addEventListener(
+    'touchstart',
+    e => {
+      from = '';
+      if (!coMobile() || e.touches.length !== 1 || $('sheet')) return;
+      const t = e.touches[0],
+        open = $('phone').classList.contains('drawer-open');
+      if (open || t.clientX < 28) {
+        from = open ? 'ouvert' : 'bord';
+        x0 = t.clientX;
+        y0 = t.clientY;
+      }
+    },
+    { passive: true }
+  );
+  document.addEventListener(
+    'touchend',
+    e => {
+      if (!from) return;
+      const t = e.changedTouches[0],
+        dx = t.clientX - x0,
+        dy = Math.abs(t.clientY - y0);
+      if (dy > Math.abs(dx)) return;
+      if (from === 'bord' && dx > 50) coDrawer(true);
+      if (from === 'ouvert' && dx < -50) coDrawer(false);
+      from = '';
+    },
+    { passive: true }
+  );
+})();
+
+/* échelles de niveaux : celles du compte /RAM de l'enseignant (les mêmes dans tous ses clubs) */
+addEventListener('load', () =>
+  (window.ramReady || Promise.resolve()).then(() => {
+    if (!(window.RAM && RAM.user)) return;
+    fetch('/api/coach/echelles', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.echelles) return;
+        Object.keys(d.echelles).forEach(sp => (SCALES[sp] = d.echelles[sp]));
+        render(true);
+      })
+      .catch(() => {});
+  })
+);

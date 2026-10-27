@@ -82,7 +82,7 @@ function profile(id) {
     parent = (M[ME()].kids || []).includes(id);
   let h = `<div class="pad">${self && pending() ? lockCard() : ''}<div class="phero"><div class="row" style="gap:14px">${self ? `<label class="avedit" aria-label="Changer ma photo de profil">${av(id)}<span class="cam">${ic('image')}</span><input type="file" id="me-photo" accept="image/*"></label>` : m.photo ? `<button class="avbtn" data-a="photo" style="background-image:url(${m.photo})" aria-label="Agrandir la photo de profil">${av(id)}</button>` : av(id)}<div class="grow"><h2 class="tilt">${m.n.replace(' ', '<br>')}</h2></div></div>
  <div class="row" style="flex-wrap:wrap;gap:6px">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}<span class="muted small">${m.team}</span></div>
- <div class="rtiles">${m.r && m.r !== 'NC' ? `<span class="rt tennis"><b>${m.r}</b>Tennis</span>` : ''}${m.pl ? `<span class="rt padel"><b>Niv ${m.pl}</b>Padel</span>` : ''}${m.pad ? `<span class="rt"><b>${m.pad}</b>Classement padel</span>` : ''}${(!m.r || m.r === 'NC') && !m.pl && !m.pad ? '<span class="rt"><b>NC</b>Non classé</span>' : ''}</div>
+ <div class="rtiles">${m.r && m.r !== 'NC' ? `<span class="rt tennis"><b>${m.r}</b>Tennis</span>` : ''}${m.pl ? `<span class="rt padel"><b>Niv ${m.pl}</b>Padel</span>` : ''}${m.tn && m.tn.n ? `<span class="rt tennis"><b>Niv ${m.tn.n}</b>Tennis${m.tn.t ? ' · ' + esc(m.tn.t) : ''}</span>` : ''}${m.pad ? `<span class="rt"><b>${m.pad}</b>Classement padel</span>` : ''}${(!m.r || m.r === 'NC') && !m.pl && !m.pad && !(m.tn && m.tn.n) ? '<span class="rt"><b>NC</b>Non classé</span>' : ''}</div>
  ${self || kid ? '' : `<div class="ctl">${blk ? `<button class="btn grow ghost" data-a="unblock" data-id="${id}">Débloquer ${first(id)}</button>` : `<button class="btn grow ${f ? 'on' : ''}" data-a="follow" data-id="${id}" aria-pressed="${f}">${ic(f ? 'check' : 'plus')}${f ? 'Suivi' : 'Suivre ' + first(id)}</button>`}<button class="ib rnd" data-a="umenu" data-id="${id}" aria-label="Options">${ic('more')}</button></div>`}</div>
  <div class="stats"><div><b>${kid ? '—' : m.fol + (f ? 1 : 0)}</b><span>Abonnés</span></div><div><b>${w}</b><span>Victoires</span></div><div><b>${m.res.length - w}</b><span>Défaites</span></div><div><b>${pf}</b><span>Perfs</span></div></div>${self ? '' : trophyCard(id)}`;
   /* mon profil : la carte d'identité en haut, puis trois onglets au lieu d'une longue colonne */
@@ -189,7 +189,7 @@ const nextSessionOf = g => {
   for (let i = 0; i < 7; i++) {
     const iso = isoIn(i),
       [y, m, d] = iso.split('-').map(Number);
-    if (new Date(y, m - 1, d).getDay() === g.day) return iso;
+    if (trainOn(g, iso)) return iso;
   }
   return TODAY;
 };
@@ -200,7 +200,7 @@ function nextSessions(k, n) {
     for (let i = 0; i < 15 && c < n; i++) {
       const iso = isoIn(i),
         [y, m, d] = iso.split('-').map(Number);
-      if (new Date(y, m - 1, d).getDay() === g.day) {
+      if (trainOn(g, iso)) {
         out.push({ g, iso });
         c++;
       }

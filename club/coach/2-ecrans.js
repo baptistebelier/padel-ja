@@ -29,9 +29,12 @@ const coDow = iso => {
 /* dates d'un groupe entre deux jours (inclus) */
 function coDates(g, from, to) {
   const out = [];
+  if (g.once) return g.once >= from && g.once <= to ? [g.once] : []; // séance ponctuelle (cours individuel)
   for (let d = from; d <= to; d = isoIn(1, d)) if (coDow(d) === g.day) out.push(d);
   return out;
 }
+/* créneau d'un groupe : « mardi 18 h » chaque semaine, ou la date d'une séance ponctuelle */
+const coSlot = g => (g.once ? fmtD(g.once) + ' · ' + g.h : DAYS[g.day] + ' ' + g.h);
 const sesKey = (g, d) => g.id + '.' + d;
 /* autres clubs où j'enseigne, lus à part (coach/4-finitions.js) : { id: { name, key, role, groups, seances } }.
    Leurs groupes ont _club ; on les voit dans Aujourd'hui, Planning et Statistiques, on les modifie en ouvrant ce club. */
@@ -155,7 +158,9 @@ function coToday() {
   const today = coSessions(TODAY, TODAY, 'me', 1),
     tom = coSessions(isoIn(1), isoIn(1), 'me', 1),
     wk = coSessions(monday(0), isoIn(6, monday(0)), 'me', 1).filter(x => !isCx(x.g, x.d)),
-    todoB = coSessions(isoIn(-7), TODAY, 'me').filter(x => !isCx(x.g, x.d) && !(x.s && x.s.recap) && x.d <= TODAY),
+    todoB = coSessions(isoIn(-7), TODAY, 'me').filter(
+      x => !isCx(x.g, x.d) && !(x.s && x.s.recap) && x.d <= TODAY && !BROUILLONS.some(b => b.id === sesKey(x.g, x.d))
+    ),
     vids = coVideosTodo(),
     un = coUnread(),
     todo = [];
@@ -164,6 +169,13 @@ function coToday() {
       `<button class="item" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}"><span class="tile">${ic('doc')}</span><span class="grow"><span class="nm">Bilan à écrire</span><br><span class="muted small">${esc(x.g.name)} · ${fmtD(x.d)}</span></span></button>`
     )
   );
+  BROUILLONS.forEach(b => {
+    const g = grp(b.g);
+    if (g)
+      todo.push(
+        `<button class="item" data-a="open" data-v="seance" data-id="${b.id}"><span class="tile">${ic('edit')}</span><span class="grow"><span class="nm">Bilan en brouillon à publier</span><br><span class="muted small">${esc(g.name)} · ${fmtD(b.d)}${b.src === 'claude' ? ' · préparé par Claude' : ''}</span></span></button>`
+      );
+  });
   vids.forEach(v =>
     todo.push(
       `<button class="item" data-a="open" data-v="dm" data-id="${v.to}"><span class="tile">${ic('video')}</span><span class="grow"><span class="nm">Vidéo à analyser</span><br><span class="muted small">${esc(svName(v.to))} · ${esc((v.txt || '').slice(0, 60))}</span></span></button>`
@@ -209,7 +221,12 @@ function coSeance(id) {
     st = coStu(g),
     past = d <= TODAY,
     loc = (g.loc || {})[d] || g.defLoc || 'Extérieur',
-    perso = k => (SUIVI.find(x => x.k === 'bilan' && x.ses === id && x.to === k) || {}).txt || '';
+    // bilan préparé en brouillon (par Claude ou par l'enseignant) : relu ici, publié par l'enseignant
+    dr = BROUILLONS.find(b => b.id === id && (b._club || '') === (g._club || '')),
+    perso = k =>
+      dr && dr.perso && dr.perso[k] != null
+        ? dr.perso[k]
+        : (SUIVI.find(x => x.k === 'bilan' && x.ses === id && x.to === k) || {}).txt || '';
   const roll = st
     .map(k => {
       const at = ((g.att || {})[d] || {})[k],
@@ -226,7 +243,7 @@ ${
   cx
     ? '<div class="card"><p>Les élèves et leurs parents sont prévenus dans /RAM Club.</p></div>'
     : `${hd(`Appel · ${nP} présent${nP > 1 ? 's' : ''} sur ${st.length}`)}<div class="card">${roll || empty('users', 'Aucun élève', '')}<button class="btn sm ghost full" data-a="coAllP" data-id="${id}">Tout le monde présent</button></div>
-${hd('Bilan de la séance')}<form id="co-bilan" data-id="${id}" class="card"><div class="fld"><label for="co-recap">Pour tout le groupe</label><textarea id="co-recap" placeholder="Ce qui a été travaillé, ce qu'on garde pour la prochaine fois">${esc(s.recap || '')}</textarea></div>${st
+${hd('Bilan de la séance')}${dr ? `<div class="card codraft"><span class="kicker">Brouillon à relire</span><p>Ce bilan a été préparé${dr.src === 'claude' ? ' par Claude' : ''} et n'est pas encore envoyé : relis-le, corrige-le si besoin, puis publie-le.</p></div>` : ''}<form id="co-bilan" data-id="${id}" class="card"><div class="fld"><label for="co-recap">Pour tout le groupe</label><textarea id="co-recap" placeholder="Ce qui a été travaillé, ce qu'on garde pour la prochaine fois">${esc(dr && dr.recap != null ? dr.recap : s.recap || '')}</textarea></div>${st
         .filter(k => !s.pres || s.pres[k] !== 'A')
         .map(
           k =>
@@ -234,7 +251,7 @@ ${hd('Bilan de la séance')}<form id="co-bilan" data-id="${id}" class="card"><di
         )
         .join(
           ''
-        )}<button class="btn full">${ic('send')}${past ? 'Envoyer le bilan aux élèves' : 'Enregistrer'}</button><p class="muted small">Le bilan arrive dans /RAM Club, École, Mon espace : celui du groupe pour tous, le commentaire personnel pour l'élève (et ses parents) seulement.</p></form>`
+        )}<button class="btn full" name="go" value="pub">${ic('send')}${past ? 'Publier le bilan aux élèves' : 'Enregistrer'}</button><button class="btn full ghost" name="go" value="draft">${ic('edit')}Garder en brouillon</button><p class="muted small">Le bilan arrive dans /RAM Club, École, Mon espace : celui du groupe pour tous, le commentaire personnel pour l'élève (et ses parents) seulement.</p></form>`
 }</div>`;
 }
 /* filtre par club (quand j'enseigne dans plusieurs clubs) : Planning, Élèves, Tableau de bord */
@@ -515,21 +532,28 @@ function coClubPage(id) {
     mem = Object.keys(M).filter(k => k !== 'club' && (M[k]._club || coMainId()) === id && !M[k].kids),
     el = new Set(gs.flatMap(coStu));
   return `<div class="pad"><div class="card"><span class="coey">${id === coMainId() ? 'Club principal' : 'Club'}</span><span class="h3">${esc(c.name)}</span><div class="cokv"><span class="muted">Mes groupes</span><b>${gs.length}</b></div><div class="cokv"><span class="muted">Mes élèves</span><b>${el.size}</b></div><div class="cokv"><span class="muted">Adhérents du club</span><b>${mem.length}</b></div></div>
-${hd('Mes groupes dans ce club')}${gs.length ? list(gs.map(g => `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${DAYS[g.day]} ${g.h} · ${g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${sportTag(g.sport)}</button>`).join('')) : none('users', 'Aucun groupe', 'Crée ton premier groupe dans ce club.')}
+${hd('Mes groupes dans ce club')}${gs.length ? list(gs.map(g => `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coSlot(g)} · ${g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${sportTag(g.sport)}</button>`).join('')) : none('users', 'Aucun groupe', 'Crée ton premier groupe dans ce club.')}
 <div class="card cotools"><button class="btn" data-a="coNewGrp" data-c="${id}">${ic('plus')}Créer un groupe dans ce club</button><button class="btn ghost" data-a="coSeeEl" data-c="${id}">${ic('users')}Voir mes élèves de ce club</button></div>
 <div class="card"><p class="muted small">Les élèves se proposent d'eux-mêmes : ce sont les adhérents de ce club dans /RAM Club. Un élève qui n'a pas encore de compte s'ajoute à la main, puis se relie à son compte.</p></div></div>`;
 }
+/* échelles de niveaux de l'enseignant (sur son compte /RAM, pour tous ses clubs) : modifiables, autant de niveaux que voulu */
 const coLevels = () =>
-  `<div class="pad">${Object.keys(SCALES)
+  `<div class="pad"><div class="card"><p class="muted small">Tes échelles, pour tous tes clubs. Le niveau donné à un élève se recopie dans sa fiche /RAM Club (niveau padel ou niveau tennis). Changer l'ordre ou supprimer un niveau change le numéro des niveaux suivants.</p></div>${Object.keys(
+    SCALES
+  )
     .map(
       sp =>
-        hd(SCALES[sp].name) +
+        hd(
+          SCALES[sp].name,
+          `<button class="ib" data-a="coScName" data-s="${sp}" aria-label="Renommer l'échelle">${ic('edit')}</button>`
+        ) +
         SCALES[sp].levels
           .map(
-            l =>
-              `<div class="card"><span class="h3" style="font-size:18px">${l.n} · ${l.t}</span><p class="small"><b>Prérequis :</b> ${l.pre.map(esc).join(' · ')}</p><p class="small"><b>Attendus :</b> ${l.att.map(esc).join(' · ')}</p></div>`
+            (l, i, all) =>
+              `<div class="card colvl"><div class="row" style="gap:10px;align-items:flex-start"><span class="dblk"><b>${i + 1}</b>niv.</span><div class="grow"><span class="h3" style="font-size:18px">${esc(l.t)}</span><p class="small"><b>Prérequis :</b> ${l.pre.map(esc).join(' · ') || '–'}</p><p class="small"><b>Attendus :</b> ${l.att.map(esc).join(' · ') || '–'}</p></div></div><div class="cotools"><button class="btn sm ghost" data-a="coLvlEdit" data-s="${sp}" data-i="${i}">${ic('edit')}Modifier</button><button class="btn sm ghost" data-a="coLvlMove" data-s="${sp}" data-i="${i}" data-n="-1" ${i ? '' : 'disabled'} aria-label="Monter">Monter</button><button class="btn sm ghost" data-a="coLvlMove" data-s="${sp}" data-i="${i}" data-n="1" ${i < all.length - 1 ? '' : 'disabled'} aria-label="Descendre">Descendre</button><button class="btn sm ghost" data-a="coLvlDel" data-s="${sp}" data-i="${i}">${ic('trash')}Supprimer</button></div></div>`
           )
-          .join('')
+          .join('') +
+        `<div class="card"><button class="btn full" data-a="coLvlEdit" data-s="${sp}" data-i="new">${ic('plus')}Ajouter un niveau ${sp.toLowerCase()}</button></div>`
     )
     .join('')}</div>`;
 /* ---------- page d'un groupe vue par l'enseignant ---------- */
@@ -540,7 +564,7 @@ function coGroupe(id) {
     st = coStu(g),
     next = coDates(g, TODAY, isoIn(34)).slice(0, 5),
     c = chans.find(x => x.id === g.id);
-  return `<div class="pad"><div class="card"><span class="kicker">${DAYS[g.day]} · ${g.h} · ${g.dur} · ${g.defLoc || 'Extérieur'}</span><span class="h3">${esc(g.name)}</span><div class="cokv"><span class="muted">Enseignant</span><b>${g.coach && M[g.coach] ? esc(name(g.coach)) : 'À choisir'}</b></div><div class="cokv"><span class="muted">Élèves</span><b>${st.length}${g.max ? ' sur ' + g.max + ' places' : ''}</b></div><div class="cokv"><span class="muted">Tarif</span><b>${t.prix ? t.prix + ' € ' + TARIF_MODES[t.mode] : 'Non renseigné'}</b></div><button class="btn sm ghost full" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages du groupe</button></div>
+  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'Extérieur'}</span><span class="h3">${esc(g.name)}</span><div class="cokv"><span class="muted">Enseignant</span><b>${g.coach && M[g.coach] ? esc(name(g.coach)) : 'À choisir'}</b></div><div class="cokv"><span class="muted">Élèves</span><b>${st.length}${g.max ? ' sur ' + g.max + ' places' : ''}</b></div><div class="cokv"><span class="muted">Tarif</span><b>${t.prix ? t.prix + ' € ' + TARIF_MODES[t.mode] : 'Non renseigné'}</b></div><button class="btn sm ghost full" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages du groupe</button></div>
 ${c ? list(`<button class="item" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">Discussion du groupe</span><br><span class="muted small">Dans /RAM Club pour les élèves et les parents</span></span></button>`) : ''}
 ${hd('Prochaines séances · thèmes')}<form id="co-themes" data-id="${g.id}" class="card">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist><button class="btn full">Enregistrer les thèmes</button></form>
 ${hd('Élèves')}<div class="card">${st.map(k => `<div class="corow">${coAv(k)}<button class="nm grow" data-a="open" data-v="eleve" data-id="${k}" style="text-align:left">${esc(svName(k))}</button><button class="ib" data-a="coRm" data-g="${g.id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} du groupe">${ic('x')}</button></div>`).join('') || empty('users', 'Aucun élève', '')}<button class="btn sm full" data-a="coAdd" data-id="${g.id}">${ic('plus')}Ajouter des élèves</button></div></div>`;

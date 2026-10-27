@@ -95,6 +95,13 @@ function isoIn(n, from) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 const rIdx = r => RANKS.indexOf(r);
+/* un groupe d'entraînement a-t-il cours ce jour-là ? chaque semaine (g.day), ou une seule fois (g.once : séance
+   ponctuelle, cours individuel créé dans /RAM Coach) */
+const trainOn = (g, iso) => {
+  if (g.once) return g.once === iso;
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d).getDay() === g.day;
+};
 
 /* Ce que chaque club personnalise : nom, sigle, logo, couleurs */
 const CLUBS = [
@@ -1578,7 +1585,8 @@ const TABBAR = [
    et suivi de chaque élève (messages, bilans personnels, analyses vidéo, contenus), reçu dans École, Mon espace */
 const ELEVES = [],
   SEANCES = [],
-  SUIVI = [];
+  SUIVI = [],
+  BROUILLONS = []; // bilans de séance préparés (par Claude, via le connecteur /RAM), publiés par l'enseignant
 (() => {
   const at = (d, h) => +new Date(d + 'T' + String(h).padStart(2, '0') + ':00:00');
   SEANCES.push(

@@ -12,7 +12,8 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
-const Ani = require('./public/js/animation.js');   // animations : americano, mexicano, par équipes, montée-descente
+const Ani = require('./public/js/animation.js');
+const Echelles = require('./lib/echelles.js');   // /RAM Coach : échelles de niveaux de chaque enseignant   // animations : americano, mexicano, par équipes, montée-descente
 const reducerOf = T => (Ani.isAnimation(T) ? Ani : Engine);
 const { createStore, norm } = require('./lib/store.js');
 const Backup = require('./lib/backup.js');
@@ -1310,6 +1311,13 @@ const server = http.createServer(async (req, res) => {
         }
       }
       return json(res, 200, { profile: await store.getProfile(u.id), guest: !!u.guest });
+    }
+
+    /* ---------- /RAM Coach : échelles de niveaux de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
+    if (p === '/api/coach/echelles') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      if (req.method === 'POST') return json(res, 200, { echelles: await Echelles.save(store, u.id, (await readBody(req)).echelles) });
+      return json(res, 200, { echelles: await Echelles.get(store, u.id) });
     }
 
     /* ---------- API modèles du compte ---------- */
