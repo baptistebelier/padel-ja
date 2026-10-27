@@ -148,3 +148,49 @@ function persoBody() {
     })
     .join('');
 }
+/* ---------- École, Enseignants : la fiche publique de chaque enseignant ----------
+   Remplie par l'enseignant dans /RAM Coach (Profil, Ma fiche enseignant), rangée dans son profil du club
+   (M[clé].pro) : diplôme, année de début, âge (s'il le montre), téléphone, e-mail, site, lien de réservation,
+   tarifs, présentation. Les enseignants des groupes apparaissent aussi, même sans fiche remplie. */
+const proOf = k => (M[k] && M[k].pro) || {};
+function proKeys() {
+  const ks = new Set(Object.keys(M).filter(k => k !== 'club' && M[k].pro && M[k].pro.on));
+  GROUPS.forEach(g => g.type === 'train' && g.coach && M[g.coach] && ks.add(g.coach));
+  if (window.RAM && RAM.live) Object.keys(RAM.roles || {}).forEach(k => RAM.roles[k] === 'coach' && M[k] && ks.add(k));
+  return [...ks].sort((a, b) => !!proOf(b).on - !!proOf(a).on || name(a).localeCompare(name(b)));
+}
+const proLines = t =>
+  String(t || '')
+    .split('\n')
+    .map(x => x.trim())
+    .filter(Boolean);
+function proBody(k) {
+  const p = proOf(k),
+    gs = GROUPS.filter(g => g.type === 'train' && g.coach === k),
+    yrs = p.since ? +TODAY.slice(0, 4) - +p.since : 0,
+    row = (l, v) => (v ? `<div class="prow"><span class="muted">${l}</span><span>${v}</span></div>` : ''),
+    web = svLink(toUrlP(p.web)),
+    book = svLink(toUrlP(p.book)),
+    tel = String(p.tel || '').replace(/[^+\d]/g, '');
+  return `<div class="pbody">${p.bio ? `<p>${esc(p.bio)}</p>` : ''}${row('Diplôme', esc(p.dip || ''))}${row('Enseigne depuis', p.since ? esc(p.since) + (yrs > 0 ? ` (${yrs} an${yrs > 1 ? 's' : ''})` : '') : '')}${row('Âge', p.age && M[k].bd ? age(k) + ' ans' : '')}${row('Sports', esc(p.sports || [...new Set(gs.map(g => g.sport))].join(', ')))}${row('Groupes', gs.map(g => esc(g.name)).join(', '))}${row('Téléphone', p.tel ? `<a href="tel:${tel}">${esc(p.tel)}</a>` : '')}${row('E-mail', p.mail ? `<a href="mailto:${esc(p.mail)}">${esc(p.mail)}</a>` : '')}${row('Site internet', web ? `<a href="${esc(web)}" target="_blank" rel="noopener">${esc(String(p.web).replace(/^https?:\/\//, ''))}</a>` : '')}${
+    proLines(p.tarifs).length
+      ? `<span class="kicker">Tarifs</span><ul class="ptar">${proLines(p.tarifs)
+          .map(x => `<li>${esc(x)}</li>`)
+          .join('')}</ul>`
+      : ''
+  }<div class="ctl" style="flex-wrap:wrap">${book ? `<a class="btn grow" href="${esc(book)}" target="_blank" rel="noopener">${ic('cal')}Réserver une séance</a>` : ''}${tel ? `<a class="btn grow ghost" href="tel:${tel}">${ic('phone')}Appeler</a>` : ''}${p.mail ? `<a class="btn grow ghost" href="mailto:${esc(p.mail)}">${ic('mail')}Écrire</a>` : ''}${k !== ME() ? `<button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button>` : ''}</div></div>`;
+}
+const toUrlP = u => (u ? (/^https?:\/\//i.test(u) ? u : 'https://' + u) : '');
+/* une ligne par enseignant, qui s'ouvre comme un menu déroulant */
+function profCard(k, open) {
+  const p = proOf(k),
+    gs = GROUPS.filter(g => g.type === 'train' && g.coach === k);
+  return `<details class="card prof"${open ? ' open' : ''}><summary>${av(k, 'sm')}<span class="grow"><span class="nm">${esc(name(k))}</span><br><span class="muted small">${esc(p.dip || (gs.length ? gs.length + ' groupe' + (gs.length > 1 ? 's' : '') : 'Enseignant'))}${p.since ? ' · depuis ' + esc(p.since) : ''}</span></span><span class="chev" aria-hidden="true">${ic('back')}</span></summary>${proBody(k)}</details>`;
+}
+function profsBody() {
+  const ks = proKeys();
+  return ks.length
+    ? `<p class="muted small">L'équipe pédagogique du club. Touche un enseignant pour voir ses coordonnées, ses tarifs et réserver une séance.</p>` +
+        ks.map(k => profCard(k)).join('')
+    : empty('school', 'Aucun enseignant', 'Les enseignants du club apparaîtront ici avec leur fiche.');
+}

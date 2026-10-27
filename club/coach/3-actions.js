@@ -421,3 +421,36 @@ setTheme = function (i) {
     v = r.getPropertyValue('--rail-logo');
   if (v.includes('ram-club-')) r.setProperty('--rail-logo', v.replace('ram-club-', 'ram-coach-'));
 };
+/* ma fiche enseignant : rangée dans mon profil du club, visible de tous les adhérents (École, Enseignants) */
+A.coPro = () => {
+  const p = proOf(ME()),
+    ck = (id, l, on) =>
+      `<label class="corow"><input type="checkbox" id="${id}" ${on ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--accent)"><span class="grow">${l}</span></label>`;
+  sheet(
+    'Ma fiche enseignant',
+    `<form class="body" id="co-pro">${O('co-dip', 'Diplôme', 'DE JEPS tennis, moniteur padel…', p.dip)}${O('co-since', 'Année de début d’activité', '2015', p.since)}${O('co-sports', 'Sports enseignés', 'Tennis, padel', p.sports)}${O('co-tel', 'Téléphone', '', p.tel)}${O('co-mail', 'E-mail', '', p.mail)}${O('co-web', 'Site internet', '', p.web)}${O('co-book', 'Lien de réservation (agenda en ligne)', 'Calendly, Google Agenda…', p.book)}${T('co-tarifs', 'Tarifs (un par ligne)', 'Cours individuel : 45 € de l’heure', p.tarifs)}${T('co-bio', 'Présentation', 'Ce que tu enseignes, à qui', p.bio)}${ck('co-age', 'Montrer mon âge', p.age)}${ck('co-on', 'Publier ma fiche dans /RAM Club', p.on !== false)}<button class="btn full">Enregistrer</button></form>`
+  );
+  ['co-tarifs', 'co-bio'].forEach(x => ($(x).required = false));
+  $('co-since').inputMode = 'numeric';
+  $('co-tel').type = 'tel';
+  $('co-mail').type = 'email';
+};
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-pro') return;
+  const v = x => $(x).value.trim();
+  M[ME()].pro = {
+    on: $('co-on').checked,
+    age: $('co-age').checked,
+    dip: v('co-dip'),
+    since: v('co-since').replace(/[^\d]/g, '').slice(0, 4),
+    sports: v('co-sports'),
+    tel: v('co-tel'),
+    mail: v('co-mail'),
+    web: v('co-web'),
+    book: v('co-book'),
+    tarifs: v('co-tarifs'),
+    bio: v('co-bio')
+  };
+  closeSheet();
+  coSave('Fiche enregistrée : visible dans /RAM Club, École, Enseignants');
+});

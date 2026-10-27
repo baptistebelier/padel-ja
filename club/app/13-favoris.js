@@ -9,7 +9,11 @@ const FAV_SUB = { club: 'clubTab', ecole: 'ecTab', chans: 'chanTab' };
 const FAV_TABS = {
   chans: ['Groupes', 'chat', { club: 'Groupes du club', train: 'Entraînements', team: 'Groupes d’équipe' }],
   agenda: ['Agenda', 'cal', { me: 'Mon agenda', club: 'Agenda du club' }],
-  ecole: ['École', 'school', { mine: 'Mes cours', perso: 'Mon espace', stages: 'Stages', manage: 'Gestion des cours' }],
+  ecole: [
+    'École',
+    'school',
+    { mine: 'Mes cours', perso: 'Mon espace', profs: 'Enseignants', stages: 'Stages', manage: 'Gestion des cours' }
+  ],
   club: ['Le club', 'club', { teams: 'Équipes', club: 'Le club', comm: 'Commissions', bar: 'Bar', actus: 'Actus' }],
   me: ['Mon profil', 'user', {}]
 };
@@ -21,6 +25,7 @@ const FAV_TAB_ICONS = {
   stages: 'ball',
   mine: 'cal',
   perso: 'user',
+  profs: 'school',
   train: 'ball',
   team: 'users'
 };

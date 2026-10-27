@@ -1657,3 +1657,27 @@ const ELEVES = [],
     }
   );
 })();
+/* fiches enseignants de démonstration (École, Enseignants ; remplies dans /RAM Coach, Profil) */
+M.sarah.pro = {
+  on: true,
+  dip: 'DE JEPS tennis',
+  since: '2014',
+  age: true,
+  sports: 'Tennis, padel',
+  tel: '06 39 98 12 04',
+  mail: 'sarah.benali@exemple.fr',
+  web: 'sarahbenali-tennis.fr',
+  book: 'calendly.com/sarah-benali',
+  tarifs: 'Cours individuel : 45 € de l’heure\nCours à deux : 30 € par personne\nCarnet de 10 cours : 400 €',
+  bio: 'Responsable pédagogique du club. Compétition jeunes et adultes, préparation aux tournois.'
+};
+M.mehdi.pro = {
+  on: true,
+  dip: 'Moniteur padel FFT',
+  since: '2020',
+  sports: 'Padel',
+  tel: '06 39 98 81 47',
+  book: 'calendly.com/mehdi-padel',
+  tarifs: 'Cours individuel : 40 € de l’heure\nCours collectif (4 joueurs) : 15 € par personne',
+  bio: 'Padel tous niveaux, de la découverte à la compétition.'
+};

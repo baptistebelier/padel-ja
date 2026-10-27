@@ -464,3 +464,14 @@ Object.assign(V, {
   ecole: coEcole,
   cgroupe: coGroupe
 });
+/* ---------- Profil : le profil du Club, avec ma fiche enseignant en haut (vue dans /RAM Club, École, Enseignants) ---------- */
+const coProfile = V.me;
+V.me = () => {
+  const p = proOf(ME()),
+    card = `<span class="kicker">Ma fiche enseignant</span>${
+      p.on
+        ? profCard(ME(), true)
+        : '<div class="note">Ta fiche n’est pas encore publiée : remplis-la pour apparaître dans /RAM Club, École, Enseignants, avec ton diplôme, tes coordonnées, tes tarifs et ton lien de réservation.</div>'
+    }<button class="btn full ${p.on ? 'ghost' : ''}" data-a="coPro">${ic('edit')}${p.on ? 'Modifier ma fiche' : 'Remplir ma fiche'}</button>`;
+  return coProfile().replace('<div class="bar-tabs me-tabs"', () => card + '<div class="bar-tabs me-tabs"');
+};

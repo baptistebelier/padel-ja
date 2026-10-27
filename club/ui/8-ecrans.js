@@ -87,6 +87,7 @@ const V = {
       tabs = [
         ['mine', 'Mes cours', 'cal'],
         ['perso', 'Mon espace', 'user'],
+        ['profs', 'Enseignants', 'school'],
         ['stages', 'Stages', 'ball']
       ].concat(staff ? [['manage', coach ? 'Mes groupes' : 'Gestion', 'edit']] : []);
     if (!tabs.some(t => t[0] === S.ecTab)) S.ecTab = 'mine';

@@ -89,6 +89,10 @@ function json(res, code, obj, headers) {
   res.writeHead(code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, headers || {}));
   res.end(JSON.stringify(obj));
 }
+/* coach.riseandmove.fr branché sur ce serveur (domaine ajouté sur Render) : vérifié au démarrage puis toutes les 10 minutes */
+let coachLive = false;
+const checkCoach = () => fetch('https://coach.riseandmove.fr/coach-icon-192.png', { signal: AbortSignal.timeout(6000) }).then(r => { coachLive = r.ok; }, () => { coachLive = false; });
+if (ONLINE) { checkCoach(); const t = setInterval(checkCoach, 600000); if (t.unref) t.unref(); }
 function redirect(res, to, headers) { res.writeHead(302, Object.assign({ Location: to }, headers || {})); res.end(); }
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -659,14 +663,18 @@ const server = http.createServer(async (req, res) => {
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
-    if (p === '/coach') return redirect(res, '/coach/');
-    // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html.
-    // coach.riseandmove.fr : l'appli des enseignants (connexion /RAM) ; /demo et /coach/ ailleurs : la démonstration
+    // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html, sur coach.riseandmove.fr :
+    // l'appli pour un compte connecté, sinon la présentation ; /presentation, /demo, /connexion, /inscription
     if (/^coach\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) {
-      if (p === '/' && !await clubLogged()) return redirect(res, '/connexion?retour=%2F');
-      return sendClub(res, p === '/' || p === '/demo' ? '/coach.html' : p, true);
+      if (p === '/') return sendClub(res, await clubLogged() ? '/coach.html' : '/coach-presentation.html', true);
+      return sendClub(res, p === '/demo' ? '/coach.html' : p === '/presentation' ? '/coach-presentation.html' : p, true);
     }
-    if (p.startsWith('/coach/')) return sendClub(res, p === '/coach/' ? '/coach.html' : p.slice(6), true);
+    // ailleurs, /coach/ : renvoyé sur coach.riseandmove.fr dès que ce domaine répond ; la démo en attendant
+    if (p === '/coach' || p.startsWith('/coach/')) {
+      if (coachLive) return redirect(res, 'https://coach.riseandmove.fr' + (p.length <= 7 ? '/demo' : p.slice(6)));
+      if (p === '/coach') return redirect(res, '/coach/');
+      return sendClub(res, p === '/coach/' ? '/coach.html' : p.slice(6), true);
+    }
     if (/^club\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p, p === '/' && await clubLogged());
     if (p === '/club') return redirect(res, '/club/');
     if (p.startsWith('/club/')) return sendClub(res, p.slice(5), p === '/club/' && await clubLogged());

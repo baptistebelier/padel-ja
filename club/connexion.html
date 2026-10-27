@@ -45,6 +45,16 @@
 <script>
 (function () {
   const qs = new URLSearchParams(location.search);
+  // sur coach.riseandmove.fr : la même page, aux couleurs de /RAM Coach
+  const coach = /^coach\./.test(location.hostname);
+  if (coach) {
+    document.title = 'Connexion — /RAM Coach';
+    document.querySelector('.nav .logo img').src = 'img/ram-coach-blanc.png';
+    document.querySelector('.nav .logo img').alt = '/RAM Coach';
+    document.querySelector('.nav .btn').textContent = 'Découvrir /RAM Coach';
+    document.querySelector('.hint[data-only="signup"]').textContent = '8 caractères minimum. Ensuite, tu retrouves les clubs où tu enseignes.';
+    document.querySelector('.club-note').textContent = 'Un seul compte /RAM pour /RAM Coach, /RAM Club et /RAM JA.';
+  }
   const base = location.pathname.startsWith('/club/') ? '/club/' : '/';   // ja.riseandmove.fr/club/ ou club.riseandmove.fr/
   const page = location.pathname.slice(base.length);
   let mode = { inscription: 'signup', 'mot-de-passe-oublie': 'forgot' }[page] || 'login';
@@ -56,7 +66,7 @@
     document.querySelectorAll('[data-hide]').forEach(el => { el.hidden = el.dataset.hide === m; el.querySelectorAll('input').forEach(i => { i.required = el.dataset.hide !== m; }); });
     document.querySelector('.tabs').hidden = m === 'forgot';
     document.getElementById('ok').hidden = true;
-    document.getElementById('title').innerHTML = { signup: 'Rejoindre <span class="band lime">mon club</span>', forgot: 'Mot de passe <span class="band lime">oublié</span>' }[m] || 'Mon <span class="band lime">club</span>';
+    document.getElementById('title').innerHTML = { signup: coach ? 'Créer mon <span class="band lime">compte</span>' : 'Rejoindre <span class="band lime">mon club</span>', forgot: 'Mot de passe <span class="band lime">oublié</span>' }[m] || (coach ? 'Mon espace <span class="band lime">coach</span>' : 'Mon <span class="band lime">club</span>');
     document.getElementById('go').textContent = { signup: 'Créer mon compte', forgot: 'Recevoir le lien' }[m] || 'Se connecter';
     f.password.autocomplete = m === 'login' ? 'current-password' : 'new-password';
     if (m === 'login' || m === 'signup') history.replaceState(null, '', base + (m === 'signup' ? 'inscription' : 'connexion') + location.search);
@@ -78,7 +88,7 @@
     }
     // après connexion : la page de l'appli d'où l'on venait, sinon l'accueil du club
     const back = qs.get('retour') || '';
-    location.href = /^\/(?!\/)/.test(back) || /^https:\/\/club\.riseandmove\.fr\//.test(back) ? back : base;
+    location.href = /^\/(?!\/)/.test(back) || /^https:\/\/(club|coach)\.riseandmove\.fr\//.test(back) ? back : base;
   };
 })();
 </script>

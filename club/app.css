@@ -778,3 +778,17 @@ details.aide .aq p{margin:0;line-height:1.5}
 .svc .svd{display:block;margin-top:6px}
 .svc .btn{margin-top:8px}
 .dm .btn.full{margin-top:12px}
+/* École, Enseignants : une fiche par enseignant, qui se déplie */
+.prof summary{display:flex;gap:12px;align-items:center;cursor:pointer;list-style:none;min-height:48px}
+.prof summary::-webkit-details-marker{display:none}
+.prof .chev svg{width:18px;height:18px;transform:rotate(-90deg);transition:transform .2s;color:var(--muted)}
+.prof[open] .chev svg{transform:rotate(90deg)}
+.prof .pbody{display:flex;flex-direction:column;gap:8px;padding-top:6px}
+.prof .pbody p{margin:0}
+.prow{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
+.prow span:last-child{text-align:right;min-width:0;overflow-wrap:anywhere}
+.prow a{color:inherit;text-decoration:underline}
+.ptar{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.prof .ctl a.btn{text-decoration:none}
+.prof .ctl .btn{flex:1 1 30%}
+.prof .ctl .btn:not(.ghost){flex-basis:100%}
