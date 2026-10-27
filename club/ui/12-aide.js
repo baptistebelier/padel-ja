@@ -96,6 +96,14 @@ const AIDE = [
         'Annoncer ma présence à un cours',
         "Dans École, Mes cours : « Je serai présent » ou « Absent » pour chaque séance des trois prochaines semaines. L'enseignant prépare la séance en conséquence, et tu es prévenu si le lieu change (salle ou extérieur) ou si le cours est annulé."
       ],
+      [
+        'Mon espace',
+        "Dans École, Mon espace : les messages de ton enseignant, tes bilans de séance, ses analyses vidéo, les contenus qu'il t'envoie et l'historique de tes séances. Une fois qu'il t'a écrit, tu lui réponds et tu peux lui envoyer une vidéo à analyser."
+      ],
+      [
+        'Les enseignants du club',
+        'Dans École, Enseignants : chaque enseignant avec son diplôme, ses années d’expérience, ses coordonnées, ses tarifs et son lien pour réserver une séance.'
+      ],
       ['Les stages', 'Dans École, Stages : les stages du club, avec inscription en un geste.']
     ]
   },

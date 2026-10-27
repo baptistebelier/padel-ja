@@ -1217,7 +1217,7 @@ const S = {
   imgs: [],
   grpAll: false,
   share: { tel: true, mail: false, soc: true },
-  nset: { club: true, follow: true, chan: true, team: true, live: false, play: true, mine: true },
+  nset: { club: true, follow: true, chan: true, team: true, live: false, play: true, mine: true, suivi: true },
   plan: {
     scope: 'me',
     mode: 'events',

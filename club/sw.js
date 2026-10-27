@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-10-27-coach2';
+const VERSION = '2026-10-27-coach3';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -68,7 +68,8 @@ if (APP === 'coach')
     'coach/coach.css',
     'coach/1-donnees.js',
     'coach/2-ecrans.js',
-    'coach/3-actions.js'
+    'coach/3-actions.js',
+    'coach/4-finitions.js'
   );
 
 self.addEventListener('install', e => {

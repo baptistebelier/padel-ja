@@ -2,11 +2,11 @@
    Chaque changement passe par les listes partagées (GROUPS, ELEVES, SEANCES, SUIVI) : la synchronisation
    du Club (ram-sync.js) l'envoie au serveur, et les élèves le retrouvent dans /RAM Club. */
 Object.assign(TITLES, {
-  today: () => ["Aujourd'hui", club().name],
+  today: () => ["Aujourd'hui", fmtD(TODAY)],
   planning: () => ['Planning', S.plScope === 'ecole' ? "Toute l'école" : 'Mes cours'],
-  eleves: () => ['Élèves', club().name],
+  eleves: () => ['Élèves', 'Fiches et progression'],
   msgs: () => ['Messages', 'Élèves et groupes'],
-  ecole: () => ['École', club().name],
+  ecole: () => ['École', 'Groupes, équipe, statistiques'],
   seance: () => {
     const id = view().id,
       g = grp(id.slice(0, id.lastIndexOf('.')));
@@ -35,6 +35,15 @@ function coAtt(s, k, v) {
   if (v) g.att[s.d][k] = v === 'P';
   else delete g.att[s.d][k];
 }
+/* petit saut du bouton touché (et confettis pour un niveau donné ou un bilan envoyé), sauf mouvement réduit */
+function coPop(sel, burst) {
+  const el = document.querySelector(sel);
+  if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  el.classList.remove('copop');
+  void el.offsetWidth;
+  el.classList.add('copop');
+  if (burst && typeof fxBurst === 'function') fxBurst(fxAt(el));
+}
 const coSave = msg => {
   render(true);
   if (msg) toast(msg);
@@ -56,6 +65,7 @@ Object.assign(A, {
     else s.pres[d.k] = d.s;
     coAtt(s, d.k, s.pres[d.k]);
     render(true);
+    coPop(`[data-a="coPres"][data-k="${d.k}"][data-s="${d.s}"]`);
   },
   coAllP(d) {
     const s = sesGet(d.id),
@@ -86,12 +96,14 @@ Object.assign(A, {
     e.lvl = n;
     e.lvlH = (e.lvlH || []).filter(x => x.d !== TODAY).concat({ d: TODAY, lvl: n });
     coSave('Niveau ' + n + ' donné à ' + svFirst(d.id));
+    coPop(`[data-a="coLvl"][data-n="${n}"]`, true);
   },
   coTech(d) {
     const e = coElGet(d.id);
     e.tech = e.tech || {};
     e.tech[d.t] = ((e.tech[d.t] || 0) % 4) + 1;
     render(true);
+    coPop(`[data-a="coTech"][data-t="${d.t}"] .pips`);
   },
   coNewEl() {
     sheet(
@@ -235,6 +247,7 @@ document.addEventListener('submit', e => {
         n++;
       }
     });
+    setTimeout(() => coPop('#co-bilan .btn.full', true));
     return coSave(
       n ? 'Bilan envoyé, ' + plural(n, 'commentaire personnel', 'commentaires personnels') : 'Bilan enregistré'
     );
@@ -414,12 +427,49 @@ Object.assign(A, {
   }
 });
 /* logo /RAM Coach (au lieu de /RAM Club) dans le menu latéral, quand le club n'a pas de logo à lui */
+/* couleurs de /RAM JA (nuit bordeaux, jour rosé, lime et rose /RAM), jamais celles du club : un logiciel de gestion */
+const CO_THEME = {
+  true: {
+    bg: '#120A0C',
+    card: '#1C1215',
+    card2: '#2A1C20',
+    line: '#3A2A30',
+    fg: '#F7EFF0',
+    muted: '#B5A0A6',
+    accent: '#E0F50A',
+    'on-accent': '#1A0509',
+    accent2: '#FF3D6B',
+    hot: '#FF3D6B',
+    'hot-tx': '#FF6F8F',
+    'on-hot': '#FFFFFF',
+    stage: '#0A0506'
+  },
+  false: {
+    bg: '#F6F1F1',
+    card: '#FFFFFF',
+    card2: '#F1E6E8',
+    line: '#E0D0D4',
+    fg: '#2A0A12',
+    muted: '#86717A',
+    accent: '#A30F35',
+    'on-accent': '#FFFFFF',
+    accent2: '#D0103A',
+    hot: '#D0103A',
+    'hot-tx': '#B3123D',
+    'on-hot': '#FFFFFF',
+    stage: '#E9DDE0'
+  }
+};
 const coSetTheme = setTheme;
 setTheme = function (i) {
   coSetTheme(i);
   const r = document.documentElement.style,
-    v = r.getPropertyValue('--rail-logo');
-  if (v.includes('ram-club-')) r.setProperty('--rail-logo', v.replace('ram-club-', 'ram-coach-'));
+    dk = effDark();
+  Object.entries(CO_THEME[dk]).forEach(([k, v]) => r.setProperty('--' + k, v));
+  r.setProperty('--rail-logo', `url("img/ram-coach-${dk ? 'blanc' : 'noir'}.png")`);
+  r.colorScheme = dk ? 'dark' : 'light';
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.content = dk ? '#120A0C' : '#74102A';
 };
 /* ma fiche enseignant : rangée dans mon profil du club, visible de tous les adhérents (École, Enseignants) */
 A.coPro = () => {

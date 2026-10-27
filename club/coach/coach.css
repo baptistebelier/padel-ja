@@ -241,9 +241,165 @@
 .cotimer .ctl {
   width: 100%;
 }
-/* menu latéral (ordinateur) : logo /RAM Coach */
+/* le bouton touché saute (appel, niveau, grille, bilan) */
+@keyframes copop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18) rotate(-3deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.copop {
+  animation: copop 0.32s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .copop {
+    animation: none;
+  }
+}
+/* le bouton touché saute (appel, niveau, grille, bilan) */
+@keyframes copop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18) rotate(-3deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.copop {
+  animation: copop 0.32s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .copop {
+    animation: none;
+  }
+}
+/* ---------- /RAM Coach : un logiciel de gestion aux couleurs de /RAM JA ----------
+   barre d'onglets et menu latéral bordeaux, curseur citron ; ni logo ni nom de club en haut (c'est /RAM Club) */
+.toplogo,
+.segt > span {
+  display: none !important;
+}
+.tabs,
+:root[style*='color-scheme: light'] .tabs {
+  background: linear-gradient(180deg, #74102a, #4d0818) !important;
+  border-color: #4d0818;
+}
+:root:not([style*='color-scheme: light']) .tabs {
+  background: linear-gradient(180deg, #2e0914, #1a060c) !important;
+  border-color: #3a1520;
+}
+.tabs button {
+  color: #f6dde3;
+}
+.tabs .pill {
+  background: #e0f50a !important;
+  box-shadow: 3px 3px 0 #ff3d6b;
+}
+.tabs button[aria-current='page'],
+.tabs button[aria-current='page'] svg {
+  color: #1a0509;
+}
 @media (min-width: 1024px) {
   .tabs::before {
+    background-image: var(--rail-logo) !important;
+    filter: none;
+  }
+  :root[style*='color-scheme: light'] .tabs::before {
     background-image: url('../img/ram-coach-blanc.png') !important;
+  }
+  .tabs button[aria-current='page'],
+  .tabs button[aria-current='page']:hover {
+    color: #1a0509;
+    background: #e0f50a;
+  }
+  .tabs button[aria-current='page'] svg {
+    color: #1a0509;
+  }
+  .tabs button[aria-current='page']::before {
+    background: #ff3d6b;
+  }
+  .rbot button {
+    color: #f6dde3;
+  }
+}
+/* tout le contenu sur fond opaque : titres de section sur leur barre, listes sur leur carte */
+.cohd {
+  margin: 6px 0 -8px;
+  padding: 8px 12px;
+  background: var(--card);
+  border-left: 4px solid var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--f-sub);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+.cohd span {
+  flex: 1;
+  min-width: 0;
+}
+.colist {
+  gap: 0;
+  padding-block: 4px;
+}
+.cotools {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cotools .btn {
+  flex: 1 1 40%;
+}
+.coid .avedit {
+  flex: none;
+}
+.coclubbar {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+}
+.tag.coclub svg {
+  width: 13px;
+  height: 13px;
+}
+/* pas de cadres d'avatar gagnés au club (trophées) dans /RAM Coach */
+.av[class*=' fr'] {
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+.av[class*=' fr']::before,
+.av[class*=' fr']::after {
+  display: none !important;
+}
+/* texte agrandi : les chiffres et les réglages du minuteur passent à la ligne au lieu de déborder */
+.pad .stats {
+  grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
+}
+.stats b {
+  overflow-wrap: anywhere;
+}
+.cotimer .tmset {
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+}
+/* écran très étroit ou texte très agrandi : la barre ne garde que les pictogrammes (le nom reste lu par le lecteur d'écran) */
+@media (max-width: 330px) {
+  .tabs button {
+    font-size: 0;
+    gap: 0;
   }
 }

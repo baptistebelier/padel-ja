@@ -2128,7 +2128,12 @@
         R.clubs = (await api('/api/ram/clubs')).clubs;
         const fromUrl = (location.hash.match(/[?&]club=([\w-]+)/) || [])[1],
           want = LS.get('ram-club'),
-          c = R.clubs.find(x => x.id === fromUrl) || R.clubs.find(x => x.id === want) || R.clubs[0];
+          // /RAM Coach choisit lui-même (son club principal parmi ceux où il enseigne)
+          c =
+            R.clubs.find(x => x.id === fromUrl) ||
+            (window.ramPickClub && window.ramPickClub(R.clubs, want)) ||
+            R.clubs.find(x => x.id === want) ||
+            R.clubs[0];
         if (c) await start(c.id);
         if (c && location.hash) openFromUrl(location.hash); // ouvert depuis une notification
       }

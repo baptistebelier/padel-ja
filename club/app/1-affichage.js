@@ -65,6 +65,8 @@ const subOf = () =>
               ? S.meTab || ''
               : '';
 function render(keep) {
+  // un onglet qui n'existe pas dans cette appli (le mur dans /RAM Coach) : le premier de la barre
+  if (!TABBAR.some(x => x[0] === S.tab)) S.tab = TABBAR[0][0];
   const v = view(),
     key = v.v + (v.id || ''),
     main = $('main'),
