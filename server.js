@@ -934,7 +934,8 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/me/password' && req.method === 'POST') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour choisir un mot de passe.' });
       const b = await readBody(req);
-      if (!Auth.checkPassword(b.current, u.pass_hash)) return json(res, 400, { error: 'Mot de passe actuel incorrect.' });
+      // compte créé sans mot de passe (boutique, invitation) : il en choisit un directement, déjà connecté
+      if (u.pass_hash && !Auth.checkPassword(b.current, u.pass_hash)) return json(res, 400, { error: 'Mot de passe actuel incorrect.' });
       if (String(b.next || '').length < 8) return json(res, 400, { error: 'Le nouveau mot de passe doit faire au moins 8 caractères.' });
       u.pass_hash = Auth.hashPassword(b.next); await store.saveUser(u);
       return json(res, 200, { ok: true });

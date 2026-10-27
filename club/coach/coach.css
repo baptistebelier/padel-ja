@@ -625,3 +625,50 @@
   flex-direction: row !important;
   align-items: center;
 }
+/* Full street : les sur-titres et sous-titres de /RAM Coach deviennent des étiquettes surlignées et penchées
+   (sur-titres rose, titres de section et petits titres des cartes citron), comme les sous-titres du Club et de /RAM JA */
+:root[data-style='street'] .coey {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  background: var(--accent2);
+  color: #fff;
+  padding: 2px 8px;
+  transform: rotate(-1.5deg);
+  margin-bottom: 6px;
+}
+:root[data-style='street'] .cohero .coey {
+  background: var(--co-lime);
+  color: #1a0509;
+}
+:root[data-style='street'] .cohd span {
+  flex: none;
+  display: inline-block;
+  max-width: 100%;
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 2px 8px;
+  transform: rotate(-1.5deg);
+}
+:root[data-style='street'] #main .card .kicker {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  background: var(--accent2);
+  color: #fff;
+  padding: 2px 8px;
+  transform: rotate(-1.5deg);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+:root[data-style='street'] .coses .cotheme {
+  display: inline-flex;
+  width: fit-content;
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 2px 8px;
+  transform: rotate(-1.5deg);
+}
+:root[data-style='street'] .coses .cotheme svg {
+  color: var(--on-accent) !important;
+}

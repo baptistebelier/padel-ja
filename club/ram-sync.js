@@ -1932,8 +1932,32 @@
     if (!u)
       return `${logo}<div class="grow"><b>Compte /RAM</b><span>Connecte-toi avec ton compte /RAM : le même que pour /RAM JA.</span></div><a class="btn sm" href="${loginUrl()}">Se connecter</a>`;
     const nm = e([u.first, u.last].filter(Boolean).join(' ') || u.name || u.email);
-    return `${logo}<div class="grow"><b>Compte /RAM</b><span>${nm} · ${e(u.email || '')}</span><small>${R.live ? `<button class="nm" data-a="ramClubs" style="color:var(--accent)">${R.clubs.length > 1 ? `Mes clubs (${R.clubs.length}) · changer` : 'Mes clubs · en rejoindre un autre'}</button>` : `<button class="nm" data-a="ramStart" style="color:var(--accent)">Créer ou rejoindre mon club</button>`}</small></div><button class="btn sm ghost" data-a="logout">Se déconnecter</button>`;
+    return `${logo}<div class="grow"><b>Compte /RAM</b><span>${nm} · ${e(u.email || '')}</span><small><button class="nm" data-a="ramPw" style="color:var(--accent)">${u.hasPassword ? 'Changer le mot de passe' : 'Choisir un mot de passe'}</button> · ${R.live ? `<button class="nm" data-a="ramClubs" style="color:var(--accent)">${R.clubs.length > 1 ? `Mes clubs (${R.clubs.length}) · changer` : 'Mes clubs · en rejoindre un autre'}</button>` : `<button class="nm" data-a="ramStart" style="color:var(--accent)">Créer ou rejoindre mon club</button>`}</small></div><button class="btn sm ghost" data-a="logout">Se déconnecter</button>`;
   }
+  /* mot de passe du compte /RAM : changé depuis n'importe quelle appli (/RAM Club, /RAM Coach, /RAM JA),
+     il vaut aussitôt pour les trois (un seul compte) */
+  A.ramPw = () => {
+    const has = !!(R.user && R.user.hasPassword);
+    sheet(
+      has ? 'Changer le mot de passe' : 'Choisir un mot de passe',
+      `<form class="body" id="ram-pw">${has ? '<div class="fld"><label for="pw-cur">Mot de passe actuel</label><input id="pw-cur" type="password" autocomplete="current-password" required></div>' : ''}<div class="fld"><label for="pw-new">Nouveau mot de passe <span class="muted small">(8 caractères minimum)</span></label><input id="pw-new" type="password" autocomplete="new-password" minlength="8" required></div><div class="fld"><label for="pw-new2">Nouveau mot de passe, encore une fois</label><input id="pw-new2" type="password" autocomplete="new-password" minlength="8" required></div><p class="muted small">Un seul compte /RAM pour /RAM Club, /RAM Coach et /RAM JA : le nouveau mot de passe vaut aussitôt dans les trois applis.</p><button class="btn full">Enregistrer</button></form>`
+    );
+  };
+  document.addEventListener('submit', ev => {
+    if (ev.target.id !== 'ram-pw') return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    const v = id => ($(id) ? $(id).value : '');
+    if (v('pw-new') !== v('pw-new2')) return toast('Les deux nouveaux mots de passe ne sont pas identiques');
+    api('/api/me/password', { current: v('pw-cur'), next: v('pw-new') }).then(
+      () => {
+        if (R.user) R.user.hasPassword = true;
+        closeSheet();
+        toast('Mot de passe modifié pour /RAM Club, /RAM Coach et /RAM JA');
+      },
+      x => toast(x.message)
+    );
+  });
   /* profil : mes clubs (principal et secondaires), changer de club, en rejoindre un autre */
   function clubsCard() {
     const ROLE_P = { bureau: 'Bureau', coach: 'Enseignant', mem: 'Adhérent' },

@@ -133,6 +133,9 @@
     const f = $('#fMe'); f.elements.first.value = u.first || ''; f.elements.last.value = u.last || ''; f.elements.club.value = u.club || '';
     const t = u.jaTitles || []; f.elements.jaT.value = t.find(x => /^JAT/.test(x)) || ''; f.elements.jaP.value = t.find(x => /^JAP/.test(x)) || '';
     $('#pwState').textContent = u.hasPassword ? 'Mot de passe défini' : 'Aucun mot de passe';
+    // compte créé sans mot de passe (boutique, invitation) : pas de « mot de passe actuel » à donner
+    const cur = $('#fPw').elements.current; cur.required = !!u.hasPassword; cur.closest('label').hidden = !u.hasPassword;
+    $('#pwOpen').textContent = u.hasPassword ? 'Changer le mot de passe' : 'Choisir un mot de passe';
     if (u.guest) document.querySelectorAll('#fMe input, #fMe select, #fMe button, #pwOpen, #avFile').forEach(e => e.disabled = true);
   }
   fetch('/api/me').then(r => r.json()).then(d => { if (!d.user) return location.href = '/connexion'; showUser(d.user); loadClubs(); });
