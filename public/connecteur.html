@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0B0B">
+<title>Connecteur /RAM pour Claude</title>
+<meta name="description" content="Connectez Claude à /RAM JA, /RAM Club et /RAM Coach : vos tournois, vos clubs, votre planning et vos élèves, en lecture seule, avec votre compte /RAM.">
+<link rel="icon" type="image/png" href="/img/favicon.png">
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/site.css">
+<style>
+  .doc { max-width: 820px; }
+  .doc h2 { margin-top: 40px; }
+  .doc pre { background: #161616; border: 1px solid #2e2e2e; padding: 14px 16px; overflow-x: auto; font-size: 14px; white-space: pre-wrap; word-break: break-all; }
+  .doc ol, .doc ul { line-height: 1.7; padding-left: 22px; }
+  .doc table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .doc td, .doc th { border-bottom: 1px solid #2e2e2e; padding: 10px 8px; text-align: left; vertical-align: top; }
+  .doc code { background: #1c1c1c; padding: 1px 6px; }
+  .tbl { overflow-x: auto; }
+</style>
+</head>
+<!-- Mode d'emploi du connecteur MCP /RAM (lib/mcp.js) : à quoi il sert, comment l'ajouter à Claude, ce qu'il lit -->
+<body class="landing">
+<header class="nav"><a href="/" class="logo"><img src="/img/ja-ram-rouge-blanc.png" alt="/RAM"></a>
+  <nav class="nav-r"><a href="#ajouter">Ajouter à Claude</a><a href="#outils">Ce qu'il lit</a><a href="/connexion" class="btn primary sm">Se connecter</a></nav></header>
+
+<section class="hero wrap doc">
+  <div class="hero-t">
+    <span class="tag">/RiseAndMove — Connecteur MCP</span>
+    <h1>Claude connecté à <span class="band lime">vos applis /RAM.</span></h1>
+    <p class="lede">Demandez à Claude le classement de votre dernier tournoi, le planning de votre semaine d'enseignant, la fiche d'un élève ou l'agenda de votre club : il lit vos données /RAM JA, /RAM Club et /RAM Coach avec votre compte /RAM.</p>
+    <p class="muted small">Lecture seule : Claude ne crée, ne modifie ni ne supprime rien. Il ne voit que ce que votre compte voit déjà dans les applis.</p>
+  </div>
+</section>
+
+<section class="wrap doc" id="ajouter">
+  <span class="eyebrow">Ajouter à Claude</span>
+  <h2>Adresse du connecteur</h2>
+  <pre>https://ja.riseandmove.fr/mcp</pre>
+  <h3>Claude (claude.ai, appli ordinateur ou téléphone)</h3>
+  <ol>
+    <li>Paramètres, puis <b>Connecteurs</b>, puis <b>Ajouter un connecteur personnalisé</b>.</li>
+    <li>Nom : <b>/RAM</b>. Adresse : <code>https://ja.riseandmove.fr/mcp</code>.</li>
+    <li>Touchez <b>Se connecter</b> : la page /RAM s'ouvre, connectez-vous avec votre compte /RAM puis touchez <b>Autoriser</b>.</li>
+    <li>Dans une conversation, activez le connecteur /RAM dans le menu des outils.</li>
+  </ol>
+  <h3>Claude Code</h3>
+  <pre>claude mcp add --transport http ram https://ja.riseandmove.fr/mcp</pre>
+  <p class="muted small">Puis la commande <code>/mcp</code> dans Claude Code pour vous connecter avec votre compte /RAM.</p>
+</section>
+
+<section class="wrap doc" id="outils">
+  <span class="eyebrow">Ce qu'il lit</span>
+  <h2>Les outils du connecteur</h2>
+  <div class="tbl"><table>
+    <tr><th>Outil</th><th>Ce qu'il donne</th></tr>
+    <tr><td><code>ram_mon_compte</code></td><td>Votre compte et vos clubs, avec votre rôle dans chacun.</td></tr>
+    <tr><td><code>ja_tournois</code></td><td>/RAM JA : vos tournois et animations, leur état.</td></tr>
+    <tr><td><code>ja_tournoi</code></td><td>/RAM JA : un tournoi en détail, paires et classement.</td></tr>
+    <tr><td><code>club_mur</code></td><td>/RAM Club : les dernières publications du club.</td></tr>
+    <tr><td><code>club_agenda</code></td><td>/RAM Club : événements, stages et cours à venir.</td></tr>
+    <tr><td><code>club_groupes</code></td><td>/RAM Club : groupes d'entraînement et équipes.</td></tr>
+    <tr><td><code>coach_planning</code></td><td>/RAM Coach : vos séances, tous clubs confondus.</td></tr>
+    <tr><td><code>coach_eleves</code></td><td>/RAM Coach : vos élèves, leur club et leur niveau.</td></tr>
+    <tr><td><code>coach_eleve</code></td><td>/RAM Coach : la fiche, l'historique et le suivi d'un élève.</td></tr>
+    <tr><td><code>coach_statistiques</code></td><td>/RAM Coach : heures, chiffre d'affaires et présence.</td></tr>
+  </table></div>
+</section>
+
+<section class="wrap doc">
+  <span class="eyebrow">Confidentialité</span>
+  <h2>Votre compte garde la main</h2>
+  <ul>
+    <li>Connexion avec votre compte /RAM : votre mot de passe n'est jamais transmis à Claude.</li>
+    <li>Mêmes droits que dans les applis : les fiches élèves restent à l'équipe pédagogique, le suivi d'un élève à lui, ses parents et ses enseignants.</li>
+    <li>Pour couper l'accès : retirez le connecteur dans Claude, ou changez votre mot de passe /RAM.</li>
+  </ul>
+</section>
+
+<footer class="foot wrap">
+  <img src="/img/ja-ram-rouge-blanc.png" alt="/RAM">
+  <div><b>/RAM</b> — des outils <a href="https://riseandmove.fr">/RiseAndMove</a>, dessinés en Corrèze.</div>
+</footer>
+</body>
+</html>

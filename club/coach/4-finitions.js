@@ -347,7 +347,7 @@ function coDrawerHTML() {
     .map(t => it('coNav', `data-t="${t[0]}"`, ic(t[1]), t[2], cur === t[0]))
     .join(
       ''
-    )}</nav><div class="cdr-bottom"><i class="cdr-sep"></i>${it('coNav', 'data-t="me"', M[me] ? av(me, 'sm') : ic('user'), 'Profil', cur === 'me')}${it('coMode', '', ic(dk ? 'sun' : 'moon'), dk ? 'Mode jour' : 'Mode nuit')}${it('coOut', '', ic('logout'), 'Déconnexion')}</div>`;
+    )}</nav><div class="cdr-bottom"><i class="cdr-sep"></i>${it('coMode', '', ic('moon'), 'Mode jour / nuit')}${it('coNav', 'data-t="me"', M[me] ? av(me, 'sm') : ic('user'), M[me] ? esc(M[me].n) : 'Profil', cur === 'me')}${it('coOut', '', ic('logout'), 'Se déconnecter')}</div>`;
 }
 function coDrawer(open) {
   let d = $('codrawer');

@@ -653,6 +653,8 @@ function currentTournament(list) {
   return open.sort((a, b) => score(a) - score(b))[0] || null;
 }
 
+/* connecteur MCP /RAM (lib/mcp.js) : Claude lit les tournois, les clubs et le suivi d'un compte, avec son accord */
+const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect });
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
@@ -660,6 +662,8 @@ const server = http.createServer(async (req, res) => {
     /* ---------- /RAM Club (club.riseandmove.fr) : même serveur, mêmes comptes, même base ----------
        Sur le sous-domaine club., tout ce qui n'est pas l'API est l'appli /RAM Club (dossier club/).
        Ailleurs (ja., localhost), elle reste accessible sous /club/ pour les essais. */
+    // connecteur MCP /RAM pour Claude (OAuth avec le compte /RAM, lecture seule) : /mcp, /oauth/…, /.well-known/oauth-…
+    if (await mcp(req, res, url)) return;
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
@@ -693,12 +697,13 @@ const server = http.createServer(async (req, res) => {
 
     /* ---------- pages ---------- */
     if (p === '/') return sendFile(res, '/landing.html');
+    if (p === '/connecteur') return sendFile(res, '/connecteur.html');   // mode d'emploi du connecteur MCP /RAM pour Claude
     if (p === '/mot-de-passe-oublie' || p === '/reinitialiser') return sendFile(res, '/auth.html');
     if (p === '/connexion' || p === '/inscription') {
       const u = await currentUser(req);
       // déjà connecté : tableau de bord, ou retour direct vers /RAM Club si l'on en vient
       const back = String(url.searchParams.get('retour') || '');
-      if (u && !u.guest) return redirect(res, /^(https:\/\/club\.riseandmove\.fr\/|\/club\/)/.test(back) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
+      if (u && !u.guest) return redirect(res, /^(https:\/\/club\.riseandmove\.fr\/|\/club\/|\/oauth\/authorize\?)/.test(back) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
       return sendFile(res, '/auth.html');
     }
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }

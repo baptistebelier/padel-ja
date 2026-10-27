@@ -818,3 +818,33 @@
     transition: none;
   }
 }
+
+/* volet du téléphone : l'onglet ouvert comme dans /RAM JA (bandeau citron plein, texte et pictogramme foncés,
+   angles droits) ; le survol seulement avec une souris (au doigt, le dernier bouton touché restait éclairé) */
+@media (max-width: 1023px) {
+  .cdr-it {
+    border-radius: 0;
+  }
+  .cdr-it:hover {
+    background: transparent;
+    color: var(--co-rail-tx);
+  }
+  .cdr-it.on,
+  .cdr-it.on:hover {
+    background: var(--co-lime);
+    color: #1a0509;
+  }
+  .cdr-it.on svg {
+    color: #1a0509;
+  }
+  .cdr-it .av {
+    width: 34px;
+    height: 34px;
+  }
+}
+@media (max-width: 1023px) and (hover: hover) {
+  .cdr-it:not(.on):hover {
+    background: #ffffff0f;
+    color: #fff;
+  }
+}
