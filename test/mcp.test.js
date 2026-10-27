@@ -118,6 +118,12 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const sh = await w('coach_importer_seances', { seances: hist });
   assert.deepEqual([sh.creees, sh.notees_dans_un_groupe, sh.eleves_introuvables], [1, 1, ['Inconnu Total']]);
   assert.equal((await w('coach_importer_seances', { seances: hist.slice(0, 1) })).deja_la, 1);
+  // un cycle importé séance par séance (mardis, une séance déplacée au lundi, un mardi sans séance) devient un seul groupe
+  const cyc = ['2026-04-07', '2026-04-14', '2026-04-20', '2026-04-28'].map(d => ({ date: d, heure: '19:30', duree: '90 min', nom: 'Cycle test', eleves: ['kid1', 'jules@test.fr'].concat(d === '2026-04-14' ? ['nina@test.fr'] : []) }));
+  await w('coach_importer_seances', { seances: cyc });
+  const rg = await w('coach_regrouper_seances', { nom_des_seances: 'Cycle test' });
+  assert.deepEqual([rg.seances, rg.du, rg.au, rg.seances_deplacees, rg.semaines_sans_seance, rg.eleves.length], [4, '2026-04-07', '2026-04-28', 1, 1, 2]);
+  await assert.rejects(w('coach_regrouper_seances', { nom_des_seances: 'Cycle test' }), /Aucune séance/);
   await w('coach_envoyer_message', { eleve_id: 'kid1', texte: 'Pense à ta raquette' });
   await w('coach_bilan_brouillon', { groupe_id: g.groupe_id, date: '2026-11-17', bilan_groupe: 'Bandeja', personnels: { kid1: 'Bravo' } });
   await w('coach_niveau', { eleve_id: 'kid1', niveau: 4, sport: 'Padel' });
@@ -131,6 +137,12 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(it('eleve', 'kid1').tech.Revers, 2);
   assert.equal(it('brouillon', g.groupe_id + '.2026-11-17').recap, 'Bandeja');
   assert.equal(it('seance', g.groupe_id + '.2026-11-10').pres.kid1, 'P');
+  const cg = it('group', rg.groupe_id);
+  assert.deepEqual([cg.day, cg.h, cg.extra, cg.skip, cg.to], [2, '19 h 30', ['2026-04-20'], ['2026-04-21'], '2026-04-28']);
+  assert.ok(it('chan', rg.groupe_id), 'le groupe a sa discussion');
+  assert.equal(Object.keys(it('seance', rg.groupe_id + '.2026-04-14').pres).length, 3, 'la venue ponctuelle reste dans l’historique');
+  assert.equal(sync.items.filter(x => x.coll === 'group' && x.data && x.data.name === 'Cycle test' && x.data.once).length, 0);
+  assert.equal(it('chan', once.groupe_id), undefined, 'une séance ponctuelle n’a pas de discussion');
   const cours = sync.items.find(x => x.coll === 'group' && x.data.once === '2026-03-18').data;
   assert.equal(Object.keys(it('seance', sync.items.find(x => x.data === cours).id + '.2026-03-18').pres).length, 2);
   assert.equal(sync.items.filter(x => x.coll === 'suivi' && x.data.to === 'kid1').length, 1);

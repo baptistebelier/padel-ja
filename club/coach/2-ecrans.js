@@ -30,9 +30,14 @@ const coDow = iso => {
 function coDates(g, from, to) {
   const out = [];
   if (g.once) return g.once >= from && g.once <= to ? [g.once] : []; // séance ponctuelle (cours individuel)
-  for (let d = from; d <= to; d = isoIn(1, d)) if (coDow(d) === g.day) out.push(d);
+  if (g.from && g.from > from) from = g.from; // un cycle : de sa première à sa dernière séance
+  if (g.to && g.to < to) to = g.to;
+  for (let d = from; d <= to; d = isoIn(1, d)) if (trainOn(g, d)) out.push(d);
   return out;
 }
+/* un groupe : des élèves qui jouent ensemble chaque semaine (avec sa discussion) ; une séance ponctuelle n'en est pas un */
+const coIsGrp = g => !g.once;
+const coOver = g => !!g.to && g.to < TODAY; // cycle terminé
 /* créneau d'un groupe : « mardi 18 h » chaque semaine, ou la date d'une séance ponctuelle */
 const coSlot = g => (g.once ? fmtD(g.once) + ' · ' + g.h : DAYS[g.day] + ' ' + g.h);
 const sesKey = (g, d) => g.id + '.' + d;
@@ -77,6 +82,20 @@ const coAv = (id, c = 'sm') =>
         .map(w => w[0])
         .join('')
         .slice(0, 2)}</span>`;
+/* avatars d'un petit groupe d'élèves, l'un sur l'autre */
+const coStack = (ks, n = 4) =>
+  ks.length
+    ? `<span class="costack">${ks
+        .slice(0, n)
+        .map(k => coAv(k))
+        .join('')}${ks.length > n ? `<span class="av sm">+${ks.length - n}</span>` : ''}</span>`
+    : '';
+/* élèves d'une séance : les présents si l'appel est fait, sinon les inscrits */
+const coWho = x => {
+  const p = x.s && x.s.pres ? Object.keys(x.s.pres).filter(k => x.s.pres[k] === 'P') : [];
+  return p.length ? p : coStu(x.g);
+};
+const coNames = ks => (ks.length > 2 ? ks.map(k => svFirst(k)).join(', ') : ks.map(k => svName(k)).join(' et '));
 const coSport = id =>
   (coEl(id) || {}).sport || (GROUPS.find(g => g.type === 'train' && coStu(g).includes(id)) || {}).sport || 'Tennis';
 const coLvl = id => {
@@ -84,7 +103,23 @@ const coLvl = id => {
     sc = SCALES[coSport(id)];
   return e && e.lvl ? sc.levels.find(l => l.n === e.lvl) : null;
 };
-const coGroupsOf = id => GROUPS.filter(g => g.type === 'train' && coStu(g).includes(id));
+const coGroupsOf = id => GROUPS.filter(g => g.type === 'train' && coIsGrp(g) && !coOver(g) && coStu(g).includes(id));
+/* séances faites par chaque élève (noté présent) : { clé: { n, h } } */
+function coDone() {
+  const o = {};
+  SEANCES.forEach(s => {
+    if (!s.pres || s.d > TODAY) return;
+    const g = GROUPS.find(x => x.id === s.g && (x._club || '') === (s._club || '')),
+      h = g ? durMin(g.dur) / 60 : 1;
+    Object.keys(s.pres).forEach(k => {
+      if (s.pres[k] !== 'P') return;
+      const x = (o[k] = o[k] || { n: 0, h: 0 });
+      x.n++;
+      x.h += h;
+    });
+  });
+  return o;
+}
 const presLbl = { P: 'Présent', E: 'Excusé', A: 'Absent' };
 const plural = (n, w, ws) => n + ' ' + (n > 1 ? ws || w + 's' : w);
 const coVideosTodo = () =>
@@ -208,7 +243,7 @@ function coPlanning() {
           x.map(s => coSesCard(s, 1)).join('')
       );
   }
-  return `<div class="pad">${coClubChips()}<div class="card coweek"><button class="ib" data-a="coWeek" data-n="-1" aria-label="Semaine précédente">${ic('back')}</button><span class="grow" style="text-align:center"><b>Semaine du ${+from.slice(8)} ${MO[+from.slice(5, 7) - 1]}</b><br><span class="muted small">${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}${S.pl.w ? '' : ' · cette semaine'}</span></span><button class="ib flip" data-a="coWeek" data-n="1" aria-label="Semaine suivante">${ic('back')}</button></div>${days.join('') || none('cal', 'Aucun cours cette semaine', '')}${stages.length ? hd('Stages') + list(stages.map(p => `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(p.title)}</span></span></button>`).join('')) : ''}<div class="card cotools"><button class="btn" data-a="coNewGrp">${ic('plus')}Créer un groupe</button><button class="btn ghost" data-a="open" data-v="clubs">${ic('club')}Mes clubs</button></div></div>`;
+  return `<div class="pad">${coClubChips()}<div class="card coweek"><button class="ib" data-a="coWeek" data-n="-1" aria-label="Semaine précédente">${ic('back')}</button><span class="grow" style="text-align:center"><b>Semaine du ${+from.slice(8)} ${MO[+from.slice(5, 7) - 1]}</b><br><span class="muted small">${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}${S.pl.w ? '' : ' · cette semaine'}</span></span><button class="ib flip" data-a="coWeek" data-n="1" aria-label="Semaine suivante">${ic('back')}</button></div>${days.join('') || none('cal', 'Aucun cours cette semaine', '')}${stages.length ? hd('Stages') + list(stages.map(p => `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(p.title)}</span></span></button>`).join('')) : ''}<div class="card cotools"><button class="btn" data-a="coNewSes">${ic('plus')}Ajouter une séance</button><button class="btn ghost" data-a="coNewGrp">${ic('users')}Créer un groupe</button><button class="btn ghost" data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div></div>`;
 }
 /* ---------- Séance : thème, appel, bilan du groupe et commentaires personnels ---------- */
 function coSeance(id) {
@@ -269,6 +304,7 @@ const coClubBar = () => '';
 function coEleves() {
   const q = fold(S.elQ || ''),
     f = S.elF,
+    dn = coDone(),
     l = coStudents()
       .filter(k => !q || fold(svName(k)).includes(q))
       .filter(k => coInClub(M[k] || coEl(k) || {}))
@@ -283,7 +319,7 @@ function coEleves() {
               const lv = coLvl(k),
                 gs = coGroupsOf(k),
                 un = svOf(k).length ? svUnread(k) : 0;
-              return `<button class="item" data-a="open" data-v="eleve" data-id="${k}">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span>${M[k] ? '' : ' <span class="tag">Sans compte</span>'}<br><span class="muted small">${lv ? 'Niv. ' + lv.n + ' ' + lv.t + ' · ' : ''}${gs.map(g => esc(g.name)).join(', ') || 'Cours individuels'}</span></span>${un ? `<span class="cnt">${un}</span>` : ''}</button>`;
+              return `<button class="item" data-a="open" data-v="eleve" data-id="${k}">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span>${M[k] ? '' : ' <span class="tag">Sans compte</span>'}<br><span class="muted small">${[lv ? 'Niv. ' + lv.n + ' ' + lv.t : '', dn[k] ? plural(dn[k].n, 'séance') + ' · ' + fr(dn[k].h) + ' h de cours' : 'Aucune séance', gs.map(g => esc(g.name)).join(', ')].filter(Boolean).join(' · ')}</span></span>${un ? `<span class="cnt">${un}</span>` : ''}</button>`;
             })
             .join('')
         )
@@ -400,7 +436,7 @@ function coMsgs() {
           )
         : none('chat', 'Aucune conversation', 'Toi seul peux commencer une conversation avec un élève.'));
   } else {
-    const gs = coGroups('', true),
+    const gs = coGroups('', true).filter(coIsGrp),
       rows = gs
         .map(g => {
           const c = chans.find(c => c.id === g.id);
@@ -448,11 +484,12 @@ function coDash() {
     done = coSessions(from, TODAY).filter(x => !isCx(x.g, x.d)),
     F = coFigures(done),
     eleves = new Set(gs.flatMap(coStu)),
-    fillG = gs.filter(g => g.max),
+    act = gs.filter(g => coIsGrp(g) && !coOver(g)),
+    fillG = act.filter(g => g.max),
     fill = fillG.length
       ? Math.round((fillG.reduce((a, g) => a + coStu(g).length / g.max, 0) * 100) / fillG.length)
       : null,
-    terrain = gs.reduce((a, g) => a + durMin(g.dur), 0) / 60;
+    terrain = act.reduce((a, g) => a + durMin(g.dur), 0) / 60;
   // évolution mois par mois (12 derniers mois, ou depuis la rentrée)
   const months = [];
   for (let i = 11; i >= 0; i--) {
@@ -480,7 +517,18 @@ function coDash() {
         })
         .join('')
     : '';
+  // les groupes un par un ; les séances ponctuelles rassemblées par type (cours individuel, duo…)
+  const once = {};
+  done.filter(x => !coIsGrp(x.g)).forEach(x => (once[x.g.name] = once[x.g.name] || []).push(x));
+  const byOnce = Object.keys(once)
+    .sort((a, b) => once[b].length - once[a].length)
+    .map(n => {
+      const f = coFigures(once[n]);
+      return row(esc(n), `${plural(f.n, 'séance')} · ${fr(f.h)} h`, eurs(f.eur));
+    })
+    .join('');
   const byGroup = gs
+    .filter(g => coIsGrp(g) && (!coOver(g) || done.some(x => x.g === g)))
     .map(g => {
       const l = done.filter(x => x.g === g),
         f = coFigures(l);
@@ -508,6 +556,7 @@ function coDash() {
 ${hd('Évolution mois par mois')}<div class="card cobars comonths">${months.map(([l, f]) => `<div><b>${f.eur ? Math.round(f.eur) : ''}</b><i style="height:${Math.round((f.eur / mx) * 100)}%"></i><span>${l}</span><small>${fr(f.h)} h</small></div>`).join('')}</div>
 ${byClub ? hd('Par club') + `<div class="card">${byClub}</div>` : ''}
 ${hd('Par groupe')}<div class="card">${byGroup || empty('users', 'Aucun groupe', '')}</div>
+${byOnce ? hd('Séances ponctuelles') + `<div class="card">${byOnce}</div>` : ''}
 ${bySport ? hd('Par sport') + `<div class="card">${bySport}</div>` : ''}
 <div class="card"><p class="muted small">Chiffre d'affaires calculé avec le tarif de chaque groupe (par séance, à l'heure ou par élève présent), réglable dans la page du groupe. Heures de terrain : un terrain par groupe pendant la durée du cours.</p></div></div>`;
 }
@@ -515,7 +564,7 @@ ${bySport ? hd('Par sport') + `<div class="card">${bySport}</div>` : ''}
 function coClubs() {
   return `<div class="pad">${coClubList()
     .map(c => {
-      const gs = coGroups('', true).filter(g => coClubOf(g) === c.id),
+      const gs = coGroups('', true).filter(g => coClubOf(g) === c.id && coIsGrp(g) && !coOver(g)),
         el = new Set(gs.flatMap(coStu)).size,
         h = gs.reduce((a, g) => a + durMin(g.dur), 0) / 60,
         main = c.id === coMainId();
@@ -525,15 +574,19 @@ function coClubs() {
       ''
     )}<div class="card cotools"><button class="btn ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button><button class="btn ghost" data-a="open" data-v="niveaux">${ic('ladder')}Échelles de niveaux</button></div></div>`;
 }
+const coGrpRow = g =>
+  `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coOver(g) ? 'Du ' + fmtD(g.from) + ' au ' + fmtD(g.to) : coSlot(g) + ' · ' + g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${coStack(coStu(g))}</button>`;
 function coClubPage(id) {
   const c = coClubList().find(x => x.id === id);
   if (!c) return `<div class="pad">${none('club', 'Club introuvable', '')}</div>`;
-  const gs = coGroups('', true).filter(g => coClubOf(g) === id),
+  const all = coGroups('', true).filter(g => coClubOf(g) === id && coIsGrp(g)),
+    gs = all.filter(g => !coOver(g)),
+    over = all.filter(coOver),
     mem = Object.keys(M).filter(k => k !== 'club' && (M[k]._club || coMainId()) === id && !M[k].kids),
     el = new Set(gs.flatMap(coStu));
   return `<div class="pad"><div class="card"><span class="coey">${id === coMainId() ? 'Club principal' : 'Club'}</span><span class="h3">${esc(c.name)}</span><div class="cokv"><span class="muted">Mes groupes</span><b>${gs.length}</b></div><div class="cokv"><span class="muted">Mes élèves</span><b>${el.size}</b></div><div class="cokv"><span class="muted">Adhérents du club</span><b>${mem.length}</b></div></div>
-${hd('Mes groupes dans ce club')}${gs.length ? list(gs.map(g => `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coSlot(g)} · ${g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${sportTag(g.sport)}</button>`).join('')) : none('users', 'Aucun groupe', 'Crée ton premier groupe dans ce club.')}
-<div class="card cotools"><button class="btn" data-a="coNewGrp" data-c="${id}">${ic('plus')}Créer un groupe dans ce club</button><button class="btn ghost" data-a="coSeeEl" data-c="${id}">${ic('users')}Voir mes élèves de ce club</button></div>
+${hd('Mes groupes dans ce club')}${gs.length ? list(gs.map(coGrpRow).join('')) : none('users', 'Aucun groupe', 'Un groupe rassemble des élèves qui jouent ensemble chaque semaine, avec leur discussion dans /RAM Club.')}${over.length ? hd('Cycles terminés') + list(over.map(coGrpRow).join('')) : ''}
+<div class="card cotools"><button class="btn" data-a="coNewGrp" data-c="${id}">${ic('plus')}Créer un groupe dans ce club</button><button class="btn ghost" data-a="coSeeEl" data-c="${id}">${ic('users')}Voir mes élèves de ce club</button><button class="btn ghost" data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div>
 <div class="card"><p class="muted small">Les élèves se proposent d'eux-mêmes : ce sont les adhérents de ce club dans /RAM Club. Un élève qui n'a pas encore de compte s'ajoute à la main, puis se relie à son compte.</p></div></div>`;
 }
 /* échelles de niveaux de l'enseignant (sur son compte /RAM, pour tous ses clubs) : modifiables, autant de niveaux que voulu */
@@ -556,17 +609,72 @@ const coLevels = () =>
         `<div class="card"><button class="btn full" data-a="coLvlEdit" data-s="${sp}" data-i="new">${ic('plus')}Ajouter un niveau ${sp.toLowerCase()}</button></div>`
     )
     .join('')}</div>`;
+/* ---------- Historique des séances : toutes mes séances faites, de la plus récente, mois par mois ----------
+   la date d'abord, puis le type de séance et les élèves (avatars) : un groupe ou un cours ponctuel */
+const MOISL = [
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre'
+];
+const coHisRow = x => {
+  const w = coWho(x),
+    [y, m, d] = x.d.split('-').map(Number);
+  return `<button class="item cohis" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}"><span class="dblk"><b>${d}</b>${DA[new Date(y, m - 1, d).getDay()]}</span><span class="grow"><span class="nm">${esc(coIsGrp(x.g) ? x.g.name : x.g.name + (w.length ? ' avec ' + coNames(w) : ''))}</span><br><span class="muted small">${coIsGrp(x.g) ? esc(coNames(w)) : x.g.h + ' · ' + x.g.dur}${coMulti() ? ' · ' + esc(coClubName(x.g)) : ''}</span></span>${coStack(w)}</button>`;
+};
+function coHisto() {
+  const f = S.hiF || 'all',
+    start = SEANCES.map(s => s.d)
+      .concat(GROUPS.map(g => g.once || g.from))
+      .filter(Boolean)
+      .sort()[0],
+    l = coSessions(start && start < TODAY ? start : coSeasonStart(), TODAY, '', 1)
+      .filter(x => !isCx(x.g, x.d) && (f === 'all' || (f === 'grp' ? coIsGrp(x.g) : !coIsGrp(x.g))))
+      .reverse(),
+    months = [];
+  l.forEach(x => {
+    const k = x.d.slice(0, 7);
+    if (!months.length || months[months.length - 1][0] !== k) months.push([k, []]);
+    months[months.length - 1][1].push(x);
+  });
+  const chip = (v, t) => `<button class="chip" data-a="coHiF" data-v="${v}" aria-pressed="${f === v}">${t}</button>`;
+  return `<div class="pad">${coClubChips()}<div class="card"><div class="chips">${chip('all', 'Toutes')}${chip('once', 'Cours ponctuels')}${chip('grp', 'Groupes')}</div><span class="muted small">${plural(l.length, 'séance')} · ${fr(l.reduce((a, x) => a + durMin(x.g.dur), 0) / 60)} h</span></div>${
+    months
+      .map(
+        ([k, xs]) =>
+          hd(
+            MOISL[+k.slice(5) - 1] + ' ' + k.slice(0, 4),
+            `<span class="muted small">${plural(xs.length, 'séance')}</span>`
+          ) + list(xs.map(coHisRow).join(''))
+      )
+      .join('') ||
+    none('cal', 'Aucune séance', 'Les séances faites apparaissent ici, de la plus récente à la plus ancienne.')
+  }</div>`;
+}
 /* ---------- page d'un groupe vue par l'enseignant ---------- */
 function coGroupe(id) {
   const g = grp(id);
   if (!g) return `<div class="pad">${none('users', 'Groupe introuvable', '')}</div>`;
   const t = tarifOf(g),
     st = coStu(g),
-    next = coDates(g, TODAY, isoIn(34)).slice(0, 5),
+    next = coDates(g, isoIn(1), isoIn(34)).slice(0, 5),
+    past = coDates(g, g.from || isoIn(-365), TODAY)
+      .filter(d => !isCx(g, d))
+      .reverse()
+      .map(d => ({ g, d, s: sesFind(g, d) })),
     c = chans.find(x => x.id === g.id);
   return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'Extérieur'}</span><span class="h3">${esc(g.name)}</span><div class="cokv"><span class="muted">Enseignant</span><b>${g.coach && M[g.coach] ? esc(name(g.coach)) : 'À choisir'}</b></div><div class="cokv"><span class="muted">Élèves</span><b>${st.length}${g.max ? ' sur ' + g.max + ' places' : ''}</b></div><div class="cokv"><span class="muted">Tarif</span><b>${t.prix ? t.prix + ' € ' + TARIF_MODES[t.mode] : 'Non renseigné'}</b></div><button class="btn sm ghost full" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages du groupe</button></div>
 ${c ? list(`<button class="item" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">Discussion du groupe</span><br><span class="muted small">Dans /RAM Club pour les élèves et les parents</span></span></button>`) : ''}
-${hd('Prochaines séances · thèmes')}<form id="co-themes" data-id="${g.id}" class="card">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist><button class="btn full">Enregistrer les thèmes</button></form>
+${past.length ? hd('Historique · ' + plural(past.length, 'séance')) + list(past.map(coHisRow).join('')) : ''}
+${next.length ? hd('Prochaines séances · thèmes') : ''}<form id="co-themes" data-id="${g.id}" class="card">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist>${next.length ? '<button class="btn full">Enregistrer les thèmes</button>' : '<p class="muted small">Cycle terminé : plus de séance à venir.</p>'}</form>
 ${hd('Élèves')}<div class="card">${st.map(k => `<div class="corow">${coAv(k)}<button class="nm grow" data-a="open" data-v="eleve" data-id="${k}" style="text-align:left">${esc(svName(k))}</button><button class="ib" data-a="coRm" data-g="${g.id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} du groupe">${ic('x')}</button></div>`).join('') || empty('users', 'Aucun élève', '')}<button class="btn sm full" data-a="coAdd" data-id="${g.id}">${ic('plus')}Ajouter des élèves</button></div></div>`;
 }
 /* ---------- Profil : la page de l'enseignant, sur le modèle du profil /RAM JA ----------
@@ -592,7 +700,7 @@ function coProfile() {
   const me = ME(),
     m = M[me] || { n: 'Moi' },
     p = proOf(me),
-    mine = coAllGroups('me'),
+    mine = coAllGroups('me').filter(g => coIsGrp(g) && !coOver(g)),
     hrs = mine.reduce((a, g) => a + durMin(g.dur), 0) / 60,
     nEl = new Set(mine.flatMap(coStu)).size,
     clubs = coMyClubs(),
@@ -655,5 +763,6 @@ Object.assign(V, {
   cclub: coClubPage,
   niveaux: coLevels,
   cgroupe: coGroupe,
+  histo: coHisto,
   me: coProfile
 });

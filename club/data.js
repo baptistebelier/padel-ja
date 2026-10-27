@@ -97,8 +97,12 @@ function isoIn(n, from) {
 const rIdx = r => RANKS.indexOf(r);
 /* un groupe d'entraînement a-t-il cours ce jour-là ? chaque semaine (g.day), ou une seule fois (g.once : séance
    ponctuelle, cours individuel créé dans /RAM Coach) */
+// groupe chaque semaine : entre from et to s'ils sont donnés (un cycle), avec ses séances déplacées
+// (extra : en plus, skip : pas ce jour-là) ; séance ponctuelle : sa seule date (once)
 const trainOn = (g, iso) => {
   if (g.once) return g.once === iso;
+  if ((g.extra || []).includes(iso)) return true;
+  if ((g.skip || []).includes(iso) || (g.from && iso < g.from) || (g.to && iso > g.to)) return false;
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(y, m - 1, d).getDay() === g.day;
 };

@@ -20,10 +20,14 @@ Object.assign(TITLES, {
   seance: () => {
     const id = view().id,
       g = grp(id.slice(0, id.lastIndexOf('.')));
-    return ['Séance', g ? g.name : ''];
+    return [g ? g.name : 'Séance', fmtD(id.slice(id.lastIndexOf('.') + 1))];
   },
   eleve: () => [svName(view().id), 'Fiche élève'],
-  cgroupe: () => [(grp(view().id) || {}).name || 'Groupe', 'Groupe d’entraînement']
+  cgroupe: () => {
+    const g = grp(view().id) || {};
+    return [g.name || 'Groupe', coOver(g) ? 'Cycle terminé' : 'Groupe chaque semaine'];
+  },
+  histo: () => ['Historique des séances', 'Cours ponctuels et groupes']
 });
 ROLE.coach = 'Enseignant';
 ROLE.admin = 'Bureau et enseignant';
@@ -578,17 +582,65 @@ Object.assign(A, {
     S.coClub = d.c;
     A.tab({ t: 'eleves' });
   },
+  /* ajouter une séance ponctuelle : un cours individuel, un duo, une séance unique (pas un groupe : pas de discussion) */
+  coNewSes(d) {
+    const cl = coClubList(),
+      cur = (d && d.c) || (S.coClub !== 'all' && S.coClub) || coMainId(),
+      st = coStudents().sort((a, b) => svName(a).localeCompare(svName(b))),
+      pick = i =>
+        `<div class="fld"><label for="co-se${i}">Élève ${i}${i > 1 ? ' (facultatif)' : ''}</label><select id="co-se${i}"><option value="">${i > 1 ? '–' : 'Choisir'}</option>${st.map(k => `<option value="${k}" ${d && d.k === k && i === 1 ? 'selected' : ''}>${esc(svName(k))}</option>`).join('')}</select></div>`;
+    sheet(
+      'Ajouter une séance',
+      `<form class="body" id="co-sesnew">${cl.length > 1 ? `<div class="fld"><label for="co-sc">Club</label><select id="co-sc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}${Dt('co-sd', 'Date', false, TODAY)}${Sel('co-sh', 'Heure', HOURS, '18 h')}${Sel('co-sdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h'], '1 h')}${[1, 2, 3, 4].map(pick).join('')}${Sel('co-ss', 'Sport', ['Padel', 'Tennis'], 'Padel')}${O('co-sp', 'Prix de la séance en euros', '35')}<button class="btn full">Ajouter la séance</button></form>`
+    );
+    $('co-sp').inputMode = 'decimal';
+  },
+  coHiF(d) {
+    S.hiF = d.v;
+    render();
+  },
   /* créer un groupe d'entraînement dans l'un de mes clubs (il apparaît aussitôt dans /RAM Club, École et Groupes) */
   coNewGrp(d) {
     const cl = coClubList(),
       cur = (d && d.c) || (S.coClub !== 'all' && S.coClub) || coMainId();
     sheet(
       'Nouveau groupe',
-      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}${Sel('co-gk', 'Type', ['Groupe chaque semaine', 'Séance ponctuelle (cours individuel…)'], d && d.once ? 'Séance ponctuelle (cours individuel…)' : 'Groupe chaque semaine')}${F('co-gn', 'Nom', 'Adultes compétition, cours de Léa…')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour (chaque semaine)', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Dt('co-go', 'Date (séance ponctuelle)', false, TODAY)}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['Extérieur', 'En salle'], 'Extérieur')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
+      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}<p class="muted small">Un groupe rassemble des élèves qui jouent ensemble chaque semaine. Sa discussion est créée dans /RAM Club. Pour un cours individuel ou une séance unique : Ajouter une séance.</p>${F('co-gn', 'Nom', 'Adultes compétition, duo du mardi…')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour (chaque semaine)', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Dt('co-go', 'Première séance', false, TODAY)}${Dt('co-gz', 'Dernière séance (cycle, facultatif)', false, '')}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['Extérieur', 'En salle'], 'Extérieur')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
     );
     $('co-gm').inputMode = 'numeric';
     $('co-gp').inputMode = 'decimal';
   }
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-sesnew') return;
+  e.preventDefault();
+  const v = x => ($(x) ? $(x).value.trim() : ''),
+    cid = v('co-sc') || coMainId(),
+    ext = CO_EXT[cid] ? cid : null,
+    key = coKeyIn(ext),
+    d = v('co-sd'),
+    ks = [1, 2, 3, 4].map(i => v('co-se' + i)).filter((k, i, a) => k && a.indexOf(k) === i);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !ks.length) return toast('Choisis la date et au moins un élève');
+  const g = {
+    id: 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    type: 'train',
+    name: ks.length === 1 ? 'Cours individuel' : ks.length === 2 ? 'Cours duo' : 'Cours collectif',
+    sport: v('co-ss'),
+    once: d,
+    day: new Date(d + 'T12:00:00').getDay(),
+    h: v('co-sh'),
+    dur: v('co-sdu'),
+    defLoc: 'Extérieur',
+    coach: key,
+    mem: ks.filter(k => M[k]),
+    ext: ks.filter(k => !M[k]),
+    sub: `${fmtD(d)} ${v('co-sh')} · ${v('co-sdu')}`,
+    tarif: { mode: 'seance', prix: parseFloat(v('co-sp').replace(',', '.')) || 0 }
+  };
+  if (ext) g._club = ext;
+  GROUPS.push(g);
+  closeSheet();
+  coSave('Séance ajoutée le ' + fmtD(d));
 });
 document.addEventListener('submit', e => {
   if (e.target.id !== 'co-grpnew') return;
@@ -615,12 +667,9 @@ document.addEventListener('submit', e => {
       }
     };
   if (!g.name) return;
-  // séance ponctuelle : une seule date (un cours individuel, une séance réservée sur Calendly…)
-  if (/ponctuelle/.test(v('co-gk')) && /^\d{4}-\d{2}-\d{2}$/.test(v('co-go'))) {
-    g.once = v('co-go');
-    g.day = new Date(g.once + 'T12:00:00').getDay();
-    g.sub = `${fmtD(g.once)} ${g.h} · ${g.dur} · ${first(key)}`;
-  }
+  // un cycle : de sa première à sa dernière séance
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v('co-go')) && v('co-go') > TODAY) g.from = v('co-go');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v('co-gz'))) g.to = v('co-gz');
   if (parseInt(v('co-gm'), 10)) g.max = parseInt(v('co-gm'), 10);
   // la discussion du groupe dans /RAM Club : créée avec le groupe
   const ch = { id, g: 'train', sport: g.sport, name: g.name, desc: g.sub, kid: 0 };

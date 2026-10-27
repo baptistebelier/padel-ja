@@ -848,3 +848,24 @@
     color: #fff;
   }
 }
+/* avatars d'une séance, l'un sur l'autre ; historique des séances : la date d'abord */
+.costack {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+.costack .av {
+  margin-left: -10px;
+  box-shadow: 0 0 0 2px var(--card, #fff);
+}
+.costack .av:first-child {
+  margin-left: 0;
+}
+.cohis .dblk b {
+  font-size: 22px;
+}
+@media (max-width: 400px) {
+  .costack .av:nth-child(n + 4) {
+    display: none;
+  }
+}
