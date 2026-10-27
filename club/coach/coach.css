@@ -578,24 +578,6 @@
   box-shadow: none !important;
   border: 1px solid var(--line);
 }
-/* téléphone : six onglets en bas, le Profil en haut à droite ; ordinateur : le Profil reste en bas du menu */
-@media (max-width: 1023px) {
-  .tabs [data-t='me'] {
-    display: none !important;
-  }
-}
-@media (min-width: 1024px) {
-  .coptop {
-    display: none !important;
-  }
-  .tabs [data-t='me'] {
-    display: none !important;
-  }
-}
-.coptop .av {
-  width: 34px;
-  height: 34px;
-}
 .codash {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
 }
@@ -671,4 +653,168 @@
 }
 :root[data-style='street'] .coses .cotheme svg {
   color: var(--on-accent) !important;
+}
+
+/* ---------- téléphone : la navigation de /RAM JA ----------
+   bandeau du haut (menu, logo au centre, notifications), volet de menu qui glisse depuis la gauche */
+.cobar,
+.cdr,
+.cdr-veil {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .tabs {
+    display: none !important;
+  }
+  #main {
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .top {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .top.hide {
+    transform: none !important;
+  }
+  .top > .ib[data-a='notifs'] {
+    display: none;
+  }
+  .cobar {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 100%;
+    padding-bottom: 8px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--line);
+  }
+  .cobar-btn {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--fg);
+    padding: 0;
+  }
+  .cobar-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+  .cobar-logo {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+  }
+  .cobar-logo img {
+    height: 40px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .cobar-bell {
+    margin: 0 !important;
+  }
+  .cdr-veil {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 85;
+    background: #0b0306b3;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .drawer-open .cdr-veil {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .cdr {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 90;
+    width: min(84vw, 320px);
+    background: var(--co-rail);
+    padding: calc(env(safe-area-inset-top, 0px) + 18px) 14px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    transform: translateX(-102%);
+    transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+    overflow-y: auto;
+  }
+  .drawer-open .cdr {
+    transform: none;
+    box-shadow: 12px 0 0 var(--co-lime);
+  }
+  .cdr-logo {
+    margin: 0 6px 18px;
+  }
+  .cdr-logo img {
+    height: 64px;
+    width: auto;
+  }
+  .cdr-group,
+  .cdr-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cdr-bottom {
+    margin-top: auto;
+    padding-top: 12px;
+  }
+  .cdr-sep {
+    display: block;
+    height: 1px;
+    background: #ffffff14;
+    margin: 6px 0;
+  }
+  .cdr-it {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 50px;
+    padding: 0 14px;
+    border-radius: 14px;
+    color: var(--co-rail-tx);
+    font: 600 16px var(--f-body);
+    text-align: left;
+    background: transparent;
+    border: 0;
+  }
+  .cdr-it svg {
+    width: 22px;
+    height: 22px;
+    flex: none;
+  }
+  .cdr-it .av {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  .cdr-it:hover {
+    background: #ffffff0f;
+    color: #fff;
+  }
+  .cdr-it.on {
+    background: var(--co-rail-on);
+    color: #fff;
+  }
+  .cdr-it.on svg {
+    color: var(--co-lime);
+  }
+  .cdr-it .cnt {
+    margin-left: auto;
+  }
+}
+@media (max-width: 1023px) and (prefers-reduced-motion: reduce) {
+  .cdr,
+  .cdr-veil {
+    transition: none;
+  }
 }

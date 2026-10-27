@@ -329,15 +329,77 @@ if (
     ELEVES.push({ id: k, _club: 'arena', n: names[i], sport: 'Padel', lvl: 4 + (i % 3), parents: [] })
   );
 }
-/* téléphone : le Profil se trouve en haut à droite (la barre du bas garde six onglets) */
+/* ---------- téléphone : la navigation de /RAM JA ----------
+   un bandeau en haut (menu à gauche, logo /RAM COACH au centre, notifications à droite), toujours visible,
+   et un volet qui glisse depuis la gauche : les pages, puis en bas le profil, le mode jour / nuit et la sortie.
+   La barre d'onglets du bas n'existe plus sur téléphone ; l'ordinateur garde son menu latéral. */
+Object.assign(I, { menu: '<path d="M3 6h18M3 12h18M3 18h12"/>' });
+const coMobile = () => !matchMedia('(min-width: 1024px)').matches;
+function coDrawerHTML() {
+  const cur = S.stack.length ? '' : S.tab,
+    me = ME(),
+    dk = effDark(),
+    it = (a, attrs, icon, label, on) =>
+      `<button class="cdr-it${on ? ' on' : ''}" data-a="${a}" ${attrs} ${on ? 'aria-current="page"' : ''}>${icon}<span>${label}</span>${a === 'coNav' && attrs.includes('"msgs"') && coUnread() ? `<span class="cnt">${coUnread()}</span>` : ''}</button>`;
+  return `<div class="cdr-logo"><img src="img/coach-v2-logo-blanc.png" alt="/RAM Coach"></div><nav class="cdr-group" aria-label="Pages">${TABBAR.filter(
+    t => t[0] !== 'me'
+  )
+    .map(t => it('coNav', `data-t="${t[0]}"`, ic(t[1]), t[2], cur === t[0]))
+    .join(
+      ''
+    )}</nav><div class="cdr-bottom"><i class="cdr-sep"></i>${it('coNav', 'data-t="me"', M[me] ? av(me, 'sm') : ic('user'), 'Profil', cur === 'me')}${it('coMode', '', ic(dk ? 'sun' : 'moon'), dk ? 'Mode jour' : 'Mode nuit')}${it('coOut', '', ic('logout'), 'Déconnexion')}</div>`;
+}
+function coDrawer(open) {
+  let d = $('codrawer');
+  if (!d) {
+    $('phone').insertAdjacentHTML(
+      'beforeend',
+      '<div class="cdr-veil" id="codveil" data-a="coDrawer"></div><aside class="cdr" id="codrawer" aria-label="Menu" aria-hidden="true"></aside>'
+    );
+    d = $('codrawer');
+  }
+  d.innerHTML = coDrawerHTML();
+  $('phone').classList.toggle('drawer-open', !!open);
+  d.setAttribute('aria-hidden', String(!open));
+  if (open) {
+    const f = d.querySelector('[aria-current]') || d.querySelector('button');
+    if (f) f.focus({ preventScroll: true });
+  }
+}
+Object.assign(A, {
+  coDrawer() {
+    coDrawer(!$('phone').classList.contains('drawer-open'));
+  },
+  coNav(d) {
+    coDrawer(false);
+    S.stack = [];
+    A.tab({ t: d.t });
+  },
+  coMode() {
+    A.ramMode();
+    coDrawer(true);
+  },
+  coOut() {
+    coDrawer(false);
+    A.logout();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('phone').classList.contains('drawer-open')) coDrawer(false);
+});
 const coRender1 = render;
 render = function () {
   const r = coRender1.apply(this, arguments),
     top = $('top');
-  if (top && !top.querySelector('.coptop'))
+  if (top && !top.querySelector('.cobar')) {
+    const dk = effDark(),
+      bell = top.querySelector('[data-a="notifs"]');
     top.insertAdjacentHTML(
-      'beforeend',
-      `<button class="ib coptop" data-a="tab" data-t="me" aria-label="Mon profil">${M[ME()] ? av(ME(), 'sm') : ic('user')}</button>`
+      'afterbegin',
+      `<div class="cobar"><button class="cobar-btn" data-a="coDrawer" aria-label="Ouvrir le menu">${ic('menu')}</button><span class="cobar-logo"><img src="img/coach-v2-logo-${dk ? 'blanc' : 'noir'}.png" alt="/RAM Coach"></span>${bell ? bell.outerHTML.replace('class="ib', 'class="ib cobar-bell') : '<span></span>'}</div>`
     );
+    if (coMobile() && typeof topPad === 'function') topPad();
+  }
+  if ($('codrawer') && $('phone').classList.contains('drawer-open')) $('codrawer').innerHTML = coDrawerHTML();
   return r;
 };
