@@ -25,7 +25,7 @@
 <main class="page">
   <header class="phead">
     <div><span class="eyebrow" id="who">Juge-arbitre</span><h1>Mes <span class="band lime">tournois</span></h1></div>
-    <div class="phead-act"><span id="plan" class="tag" hidden></span><a class="btn" href="/calendrier">Calendrier</a><a class="btn primary" href="#nouveau">+ Nouveau tournoi</a></div>
+    <div class="phead-act"><span id="plan" class="tag" hidden></span><a class="btn" href="/calendrier">Calendrier</a><a class="btn" href="#animation">+ Nouvelle animation</a><a class="btn primary" href="#nouveau">+ Nouveau tournoi</a></div>
   </header>
   <section>
     <span class="eyebrow">En cours</span>
@@ -73,6 +73,8 @@
     const tpl = (t, mine) => `<button class="tpl" data-t="${t.id}"><span class="tag ${mine ? 'lime' : ''}">${mine ? 'Mon modèle' : esc(t.fields.category)}</span><b>${esc(t.name)}</b><small>${esc(t.desc || '')}</small></button>`;
     $('#tpls').innerHTML = `<button class="tpl blank" data-t=""><span class="tag ink">Vierge</span><b>Tournoi vierge</b><small>Je configure tout moi-même.</small></button>` +
       d.mine.map(t => tpl(t, true)).join('') + d.presets.map(t => tpl(t, false)).join('');
+    // boutons du haut « + Nouvelle animation » et « + Nouveau tournoi » : on descend jusqu'au bloc
+    document.querySelectorAll('.phead-act a[href^="#"]').forEach(a => a.onclick = e => { const t = document.querySelector(a.getAttribute('href')); if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
     // animations : americano, mexicano, par équipes, montée-descente
     const ANIS = [['americano', 'Americano', 'Nouveau partenaire à chaque manche, classement individuel aux points.'], ['mexicano', 'Mexicano', 'Équipes formées selon le classement : des matchs serrés.'], ['equipes', 'Americano par équipes', 'Paires fixes qui se rencontrent toutes.'], ['montee', 'Montée-descente', 'Les gagnants montent d’un terrain, les perdants descendent.']];
     $('#anis').innerHTML = ANIS.map(a => `<button class="tpl" data-ani="${a[0]}"><span class="tag lime">Animation</span><b>${a[1]}</b><small>${a[2]}</small></button>`).join('');
