@@ -626,3 +626,34 @@ html, body { background: var(--bg); }
 :root[data-style="street"] #main .tcard.cf3 { box-shadow: 0 0 0 2px #F2C230, 0 0 0 4px var(--bg), 0 0 0 6px #F2C230, 7px 7px 0 var(--ram-hard) !important; }
 :root[data-style="street"] #main .tcard.cf4 { box-shadow: 0 0 0 2px #7FE3D8, 0 0 0 4px var(--bg), 0 0 0 6px #3FB8C9, 0 0 14px 6px rgba(127, 227, 216, .2), 7px 7px 0 var(--ram-hard) !important; }
 :root[data-style="street"] #main .tcard.cf5 { box-shadow: 0 0 0 2px #6FB7FF, 0 0 0 4px #A78BFA, 0 0 0 6px var(--bg), 0 0 0 7px #6FB7FF, 0 0 18px 8px rgba(111, 183, 255, .25), 7px 7px 0 var(--ram-hard) !important; }
+
+/* =========================================================================
+   DISCUSSIONS plus digestes, façon WhatsApp, style /RAM gardé (27/10/2026)
+   groupes, commentaires sous une publication, direct des rencontres
+   ========================================================================= */
+/* 1. séries compactes : 2 px entre deux messages d'une même personne ; l'ombre décalée seulement sous le
+      dernier message de la série (celui qui a la pointe) ; l'heure sur la ligne du texte quand elle y tient */
+.msg.cont { margin-top: 0; }
+.bub:not(.tail), .msg.me .bub:not(.tail) { box-shadow: none; }
+.bub { flex-direction: row; flex-wrap: wrap; align-items: flex-end; column-gap: 10px; row-gap: 3px; }
+.bub > .hd, .bub > .quote, .bub > .mph { flex: 0 0 100%; }
+.bub > .tx { flex: 0 0 auto; max-width: 100%; min-width: 0; }
+.bub > time { flex: none; margin-left: auto; white-space: nowrap; }
+/* 2. mes bulles calmées : couleur du club fondue dans la carte, texte normal, heure atténuée ;
+      la couleur vive reste pour l'ombre, le bouton d'envoi et les actions */
+:root { --mebub: color-mix(in srgb, var(--accent) 25%, var(--card)); }
+.msg.me .bub { background: var(--mebub); color: var(--fg); border-color: transparent; }
+.msg.me .bub time { color: var(--muted); }
+.msg.me .bub .quote { background: color-mix(in srgb, var(--fg) 7%, transparent); color: var(--muted); border-left-color: var(--accent); }
+.msg.me .bub.tail::after { background: var(--mebub); }
+/* 3. séparateur de jour discret, collé sous la barre du haut pendant le défilement */
+.daysep { position: sticky; top: var(--segt, 0px); z-index: 3; margin: 12px 0 6px; pointer-events: none; }
+.daysep span { border: 0; box-shadow: none; font-size: 11px; padding: 3px 10px; background: color-mix(in srgb, var(--fg) 10%, var(--bg)); }
+/* 4. réactions compactes : une petite étiquette à cheval sur le bas de la bulle (le menu de l'appui long,
+      .reacts.big, ne change pas) ; la bulle garde de la place en bas pour que l'heure ne soit jamais cachée */
+.msg.hasre .bub { padding-bottom: 14px; }
+.msg .reacts:not(.big) { display: inline-flex; flex-wrap: nowrap; gap: 1px; align-self: flex-start; margin: -11px 0 0 12px; padding: 1px 3px; position: relative; z-index: 1;
+  background: var(--card); border: 1px solid var(--line); box-shadow: 2px 2px 0 var(--ram-hard); }
+.msg.me .reacts:not(.big) { align-self: flex-end; margin: -11px 20px 0 0; }
+.msg .reacts:not(.big) .react { min-height: 26px; padding: 0 5px; background: transparent; border-radius: 0 !important; font-size: 13px; box-shadow: none; line-height: 1; }
+.msg .reacts:not(.big) .react.on { box-shadow: inset 0 -2px 0 var(--accent); font-weight: 700; }
