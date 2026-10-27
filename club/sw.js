@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-10-27-coach6';
+const VERSION = '2026-10-27-coach7';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -62,15 +62,15 @@ if (APP === 'coach')
         : f === 'manifest.webmanifest'
           ? 'coach.webmanifest'
           : /^icon-/.test(f)
-            ? 'coach-' + f
-            : f.replace('ram-club-', 'ram-coach-')
+            ? 'coach-v2-' + f
+            : f.replace('ram-club-', 'coach-v2-logo-')
     ),
     'coach/coach.css',
     'coach/1-donnees.js',
     'coach/2-ecrans.js',
     'coach/3-actions.js',
     'coach/4-finitions.js',
-    'img/coach-favicon.png'
+    'img/coach-v2-favicon.png'
   );
 
 self.addEventListener('install', e => {
@@ -146,8 +146,8 @@ self.addEventListener('push', e => {
   e.waitUntil(
     self.registration.showNotification(d.title || (APP === 'coach' ? '/RAM Coach' : '/RAM Club'), {
       body: d.body || '',
-      icon: APP === 'coach' ? 'coach-icon-180.png' : 'icon-180.png',
-      badge: APP === 'coach' ? 'coach-icon-180.png' : 'icon-180.png',
+      icon: APP === 'coach' ? 'coach-v2-icon-180.png' : 'icon-180.png',
+      badge: APP === 'coach' ? 'coach-v2-icon-180.png' : 'icon-180.png',
       tag: d.tag,
       data: { url: d.url || '' },
       renotify: !!d.tag

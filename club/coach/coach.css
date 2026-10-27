@@ -402,7 +402,7 @@
 }
 @media (min-width: 1024px) {
   .tabs::before {
-    background-image: url('../img/ram-coach-blanc.png') !important;
+    background-image: url('../img/coach-v2-logo-blanc.png') !important;
   }
   .tabs button {
     border-radius: 14px;

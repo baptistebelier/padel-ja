@@ -91,7 +91,7 @@ function json(res, code, obj, headers) {
 }
 /* coach.riseandmove.fr branché sur ce serveur (domaine ajouté sur Render) : vérifié au démarrage puis toutes les 10 minutes */
 let coachLive = false;
-const checkCoach = () => fetch('https://coach.riseandmove.fr/coach-icon-192.png', { signal: AbortSignal.timeout(6000) }).then(r => { coachLive = r.ok; }, () => { coachLive = false; });
+const checkCoach = () => fetch('https://coach.riseandmove.fr/coach-v2-icon-192.png', { signal: AbortSignal.timeout(6000) }).then(r => { coachLive = r.ok; }, () => { coachLive = false; });
 if (ONLINE) { checkCoach(); const t = setInterval(checkCoach, 600000); if (t.unref) t.unref(); }
 function redirect(res, to, headers) { res.writeHead(302, Object.assign({ Location: to }, headers || {})); res.end(); }
 function readBody(req) {

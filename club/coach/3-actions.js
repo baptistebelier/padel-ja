@@ -484,7 +484,7 @@ setTheme = function (i) {
   const r = document.documentElement.style,
     dk = effDark();
   Object.entries(CO_THEME[dk]).forEach(([k, v]) => r.setProperty('--' + k, v));
-  r.setProperty('--rail-logo', `url("img/ram-coach-${dk ? 'blanc' : 'noir'}.png")`);
+  r.setProperty('--rail-logo', `url("img/coach-v2-logo-${dk ? 'blanc' : 'noir'}.png")`);
   r.colorScheme = dk ? 'dark' : 'light';
   const m = document.querySelector('meta[name="theme-color"]');
   if (m) m.content = dk ? '#120A0C' : '#74102A';
