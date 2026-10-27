@@ -626,3 +626,38 @@ html, body { background: var(--bg); }
 :root[data-style="street"] #main .tcard.cf3 { box-shadow: 0 0 0 2px #F2C230, 0 0 0 4px var(--bg), 0 0 0 6px #F2C230, 7px 7px 0 var(--ram-hard) !important; }
 :root[data-style="street"] #main .tcard.cf4 { box-shadow: 0 0 0 2px #7FE3D8, 0 0 0 4px var(--bg), 0 0 0 6px #3FB8C9, 0 0 14px 6px rgba(127, 227, 216, .2), 7px 7px 0 var(--ram-hard) !important; }
 :root[data-style="street"] #main .tcard.cf5 { box-shadow: 0 0 0 2px #6FB7FF, 0 0 0 4px #A78BFA, 0 0 0 6px var(--bg), 0 0 0 7px #6FB7FF, 0 0 18px 8px rgba(111, 183, 255, .25), 7px 7px 0 var(--ram-hard) !important; }
+
+/* =========================================================================
+   Discussions plus digestes (27/10/2026)
+   1. Séries compactes : 2 px entre les messages d'une même personne, l'ombre décalée
+      seulement sur le dernier de la série, l'heure sur la dernière ligne du texte
+      quand elle y tient (« Okay  20:59 » sur une seule ligne, comme WhatsApp).
+   2. Bulles calmées : mes messages en couleur du club fondue dans la carte, texte
+      normal ; la couleur vive reste pour l'ombre, le bouton d'envoi et les actions.
+   3. Séparateur de jour discret, qui reste en haut de l'écran pendant le défilement.
+   ========================================================================= */
+.msg.cont { margin-top: 2px; }
+
+/* bulle en bloc (et non plus en colonne) : le texte coule en ligne, l'heure flotte à droite
+   de la dernière ligne s'il reste de la place, sinon elle passe dessous */
+.bub { display: flow-root; }
+.bub .hd { margin-bottom: 3px; }
+.bub .quote { margin: 0 0 4px; }
+.bub .mph { display: block; margin: 2px 0 4px; }
+.bub .tx { display: inline; }
+.bub time { float: right; margin: 8px 0 -2px 12px; line-height: 1; white-space: nowrap; }
+
+/* une seule ombre par série : celle du dernier message, qui porte aussi la pointe */
+.bub:not(.tail), .msg.me .bub:not(.tail) { box-shadow: none; }
+
+/* mes messages : couleur du club fondue dans la carte (lisible en nuit comme en jour, pour tous les clubs) */
+.msg.me { --me-bub: color-mix(in srgb, var(--accent) 26%, var(--card)); }
+.msg.me .bub { background: var(--me-bub); color: var(--fg); border-color: color-mix(in srgb, var(--accent) 34%, var(--card)); }
+.msg.me .bub time { color: color-mix(in srgb, var(--fg) 62%, transparent); }
+.msg.me .bub .quote { background: color-mix(in srgb, var(--fg) 8%, transparent); color: color-mix(in srgb, var(--fg) 80%, transparent); border-left-color: var(--accent); }
+.msg.me .bub.tail::after { background: var(--me-bub); }
+
+/* séparateur de jour : petite étiquette sans cadre ni ombre, collée sous la barre du haut */
+.daysep { position: sticky; top: calc(var(--segt, 0px) + 8px); z-index: 2; margin: 12px 0 6px; pointer-events: none; }
+.daysep span { font-size: 11px; letter-spacing: .1em; padding: 3px 10px; border: 0; box-shadow: none;
+  background: var(--card2); color: var(--muted); }
