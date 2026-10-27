@@ -110,6 +110,9 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(nv.compte_ram_club, false);
   const linked = await w('coach_ajouter_eleve', { prenom: 'Léo', nom: 'Martin', groupe_id: g.groupe_id });
   assert.equal(linked.eleve_id, 'kid1', 'adhérent déjà dans /RAM Club : relié à son compte');
+  // import d'une liste (une seule confirmation) : relie, complète ou crée, sans doublon
+  const imp = await w('coach_importer_eleves', { eleves: [{ prenom: 'Léo', nom: 'Martin' }, { prenom: 'Jules', nom: 'Perrin', email: 'jules@test.fr', telephone: '0600000000' }, { prenom: 'Nina', nom: 'Anglade', email: 'nina@test.fr', note: 'Séance unique' }, { prenom: 'Nina', nom: 'Anglade' }] });
+  assert.deepEqual([imp.eleves, imp.relie_au_compte, imp.complete, imp.cree], [3, 1, 1, 1]);
   await w('coach_envoyer_message', { eleve_id: 'kid1', texte: 'Pense à ta raquette' });
   await w('coach_bilan_brouillon', { groupe_id: g.groupe_id, date: '2026-11-17', bilan_groupe: 'Bandeja', personnels: { kid1: 'Bravo' } });
   await w('coach_niveau', { eleve_id: 'kid1', niveau: 4, sport: 'Padel' });
