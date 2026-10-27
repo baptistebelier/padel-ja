@@ -986,7 +986,7 @@ const server = http.createServer(async (req, res) => {
       if (p === '/api/ram/push/key' && req.method === 'GET') return json(res, 200, { key: await push.publicKey() });
       if (p === '/api/ram/push/subscribe' && req.method === 'POST') {
         const b = await readBody(req);
-        return push.subscribe(u.id, b.subscription, req.headers['user-agent']).then(() => json(res, 200, { ok: true }), fail);
+        return push.subscribe(u.id, b.subscription, req.headers['user-agent'], b.app === 'coach' ? 'coach' : 'club').then(() => json(res, 200, { ok: true }), fail);
       }
       if (p === '/api/ram/push/unsubscribe' && req.method === 'POST') {
         const b = await readBody(req);

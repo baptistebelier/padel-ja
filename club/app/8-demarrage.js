@@ -339,7 +339,7 @@ async function pushSubscribe(ask) {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription: sub.toJSON() })
+      body: JSON.stringify({ subscription: sub.toJSON(), app: window.RAM_APP === 'coach' ? 'coach' : 'club' })
     });
     return r.ok ? sub : null;
   } catch (e) {

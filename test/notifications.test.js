@@ -98,3 +98,19 @@ test('pastilles : nouveautés de mes autres clubs depuis ma dernière visite', a
   assert.equal(b[c2.id], 2, 'une publication et un message depuis ma visite');
   assert.equal(b[c1.id], undefined, 'adhésion pas encore validée : rien');
 });
+
+test('/RAM Coach : réservation, inscrit de plus et annulation, prévenus dans l’appli Coach', async () => {
+  const club = await ram.create({ id: 'K', name: 'Baptiste Coach' }, { name: 'Padel Résa', short: 'PR' });
+  const key = (await ram.myClubs('K'))[0].key;
+  await settle(); sent.length = 0;
+  // posée par le serveur au nom de l'enseignant (Calendly) : il est prévenu quand même
+  const g = { type: 'train', name: 'Cours individuel', once: '2026-11-05', h: '18 h 30', dur: '1 h', coach: key, mem: [], ext: ['e1'], cal: 'https://api.calendly.com/scheduled_events/E1' };
+  await ram.ops('K', club.id, [{ coll: 'eleve', id: 'e1', op: 'put', data: { n: 'Nina Anglade' } }, { coll: 'group', id: 'gr', op: 'put', data: g }]);
+  await settle();
+  assert.deepEqual(sent.map(x => [x[0], x[1].app]), [['K', 'coach']]);
+  assert.match(sent[0][1].body, /Nouvelle réservation : Cours individuel jeudi 5 novembre à 18 h 30 avec Nina/);
+  sent.length = 0;
+  await ram.ops('K', club.id, [{ coll: 'group', id: 'gr', op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: '2026-11-05' }] }]);
+  await settle();
+  assert.match(sent[0][1].body, /Séance annulée/);
+});

@@ -709,8 +709,8 @@ function coProfile() {
     role = S.super ? 'Administrateur' : S.role === 'admin' ? 'Bureau et enseignant' : 'Enseignant',
     N = [
       ['suivi', 'Messages, réponses et vidéos de mes élèves'],
-      ['chan', 'Messages dans mes groupes'],
-      ['club', 'Annonces et événements de mes clubs']
+      ['resa', 'Réservations et annulations de séances'],
+      ['chan', 'Messages dans mes groupes']
     ],
     seg = (a, val, l) =>
       `<div class="coseg">${l.map(([k, t, i]) => `<button data-a="${a}" data-k="${k}" aria-pressed="${val === k}">${i ? ic(i) : ''}${t}</button>`).join('')}</div>`,

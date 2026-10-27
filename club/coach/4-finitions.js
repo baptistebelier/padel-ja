@@ -469,3 +469,25 @@ addEventListener('load', () =>
       .catch(() => {});
   })
 );
+
+/* ---------- notifications : seulement celles de l'enseignement ----------
+   /RAM Coach est un logiciel de gestion : réservations, messages et vidéos des élèves, discussions de mes groupes.
+   Le reste (publications, parties, trophées, tournois, bar) reste dans /RAM Club. */
+(() => {
+  const KEEP = { suivi: 1, resa: 1, chan: 1 },
+    base = notify,
+    seen = nVis;
+  notify = function (type, by, txt, go, quiet) {
+    if (!KEEP[type]) return;
+    if (
+      type === 'chan' &&
+      !(go && GROUPS.some(g => g.id === go.id && g.type === 'train' && !g.once && coIsMe(g.coach)))
+    )
+      return;
+    const top = NOTIFS[0];
+    base(type, by, txt, go, quiet);
+    if (NOTIFS[0] !== top) NOTIFS[0].coach = 1;
+  };
+  nVis = n => !!n.coach && seen(n);
+  for (let i = NOTIFS.length - 1; i >= 0; i--) if (!NOTIFS[i].coach) NOTIFS.splice(i, 1);
+})();

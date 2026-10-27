@@ -34,3 +34,25 @@ test('signature VAPID vérifiable avec la clé publique', () => {
   const key = crypto.createPublicKey({ key: { kty: 'EC', crv: 'P-256', x: k.x, y: k.y }, format: 'jwk' });
   assert.ok(crypto.verify('sha256', Buffer.from(head + '.' + body), { key, dsaEncoding: 'ieee-p1363' }, Buffer.from(sig, 'base64url')));
 });
+
+test('appareils : l’enseignement va à l’appli /RAM Coach, le reste à /RAM Club', async () => {
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const { createStore } = require('../lib/store');
+  const { createWebPush } = require('../lib/webpush');
+  const saved = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY };
+  delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  const store = createStore(fs.mkdtempSync(path.join(os.tmpdir(), 'ram-push-')));
+  if (saved.url) process.env.SUPABASE_URL = saved.url;
+  if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
+  const push = createWebPush({ store }), hits = [], real = global.fetch;
+  const ua = crypto.createECDH('prime256v1'); ua.generateKeys();
+  const sub = n => ({ endpoint: 'https://push.test/' + n, keys: { p256dh: b64u(ua.getPublicKey()), auth: b64u(crypto.randomBytes(16)) } });
+  await push.subscribe('U', sub('club'), 'Chrome', 'club');
+  await push.subscribe('U', sub('coach'), 'Chrome', 'coach');
+  global.fetch = async url => { hits.push(url); return { ok: true, status: 201 }; };
+  try {
+    await push.send('U', { title: 'x', body: 'Nouvelle réservation', app: 'coach' }).catch(() => 0);
+    await push.send('U', { title: 'x', body: 'Nouvelle publication' }).catch(() => 0);
+  } finally { global.fetch = real; }
+  assert.deepEqual(hits.map(u => u.split('/').pop()), ['coach', 'club']);
+});

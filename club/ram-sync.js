@@ -1026,6 +1026,31 @@
     if (!b) return;
     const me = R.key,
       kids = (M[me] && M[me].kids) || [];
+    // /RAM Coach : une réservation (Calendly…) arrive dans mon planning, s'annule, ou un élève de plus s'inscrit
+    if (coll === 'group' && b.cal && b.coach === me && b.once) {
+      const who = l => [...((l && l.mem) || []), ...((l && l.ext) || [])],
+        nm = k => (M[k] ? name(k) : (ELEVES.find(e => e.id === k) || {}).n || 'un élève'),
+        when = `le ${fmtD(b.once)} à ${b.h}`,
+        go = { v: 'seance', id: id + '.' + b.once },
+        plus = who(b).filter(k => !who(a).includes(k));
+      if (!a)
+        once(`resa/${id}`, () =>
+          notify(
+            'resa',
+            'club',
+            `: nouvelle réservation, ${String(b.name).toLowerCase()} ${when}${who(b).length ? ' avec ' + who(b).map(nm).join(', ') : ''}`,
+            go
+          )
+        );
+      else if ((b.cancel || []).length > ((a && a.cancel) || []).length)
+        once(`resacx/${id}`, () =>
+          notify('resa', 'club', `: séance annulée, ${String(b.name).toLowerCase()} ${when}`, go)
+        );
+      else if (plus.length)
+        once(`resa+/${id}/${plus.join(',')}`, () =>
+          notify('resa', 'club', `: ${plus.map(nm).join(', ')} s'inscrit, ${String(b.name).toLowerCase()} ${when}`, go)
+        );
+    }
     if (coll === 'post' && a) {
       const go = { v: 'post', id },
         mine = b.by === me,

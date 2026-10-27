@@ -92,6 +92,9 @@ function profile(id) {
         `<button role="tab" aria-selected="${T === k}" data-a="meTab" data-k="${k}">${ic(i)}${l}</button>`;
     if ((isAdmin() || S.role === 'cap') && !pending())
       h += `<button class="btn full" data-a="admin">${ic('gear')}${isAdmin() && S.role !== 'coach' ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Gérer mon équipe'}</button>`;
+    // changer de club en un geste : mes clubs, juste sous « Gérer le club »
+    if (window.RAM && RAM.live && (RAM.clubs || []).length)
+      h += `<button class="btn full ghost" data-a="ramClubs">${ic('club')}Mes clubs${RAM.clubs.length > 1 ? ' · ' + RAM.clubs.length : ''}</button>`;
     h += `<div class="bar-tabs me-tabs" role="tablist">${tab('jeu', 'ball', 'Mon jeu')}${tab('infos', 'user', 'Mes infos')}${tab('reglages', 'gear', 'Réglages')}</div>`;
     return (
       h +
