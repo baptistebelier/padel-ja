@@ -21,6 +21,7 @@ const Retention = require('./lib/retention.js');
 const Mail = require('./lib/mail.js');
 const Access = require('./lib/access.js');
 const Shopify = require('./lib/shopify.js');
+const Calendly = require('./lib/calendly.js');
 const Auth = require('./lib/auth.js');
 
 const PORT = +process.env.PORT || 3737;
@@ -770,6 +771,21 @@ const server = http.createServer(async (req, res) => {
       if (!u || !Auth.checkPassword(b.password, u.pass_hash)) return json(res, 401, { error: 'E-mail ou mot de passe incorrect.' });
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
     }
+    /* ---------- Calendly : réservation ou annulation → séance du planning /RAM Coach (lib/calendly.js) ---------- */
+    if (p === '/api/calendly/webhook' && req.method === 'POST') {
+      const raw = (await readRaw(req)).toString('utf8');
+      if (!Calendly.verify(raw, req.headers['calendly-webhook-signature'])) return json(res, 401, { error: 'Signature invalide' });
+      let b; try { b = Calendly.booking(JSON.parse(raw)); } catch (e) { return json(res, 400, { error: 'JSON invalide' }); }
+      if (!b.type) return json(res, 200, { ignored: true });
+      // l'enseignant : le compte /RAM de l'hôte Calendly (même e-mail), sinon celui de CALENDLY_COMPTE
+      const coach = (b.hote && await store.getUserByEmail(b.hote)) || (process.env.CALENDLY_COMPTE && await store.getUserByEmail(String(process.env.CALENDLY_COMPTE).trim().toLowerCase()));
+      if (!coach) { console.error('Calendly : aucun compte /RAM pour ' + b.hote + ' (renseigner CALENDLY_COMPTE dans Render)'); return json(res, 200, { ok: false }); }
+      try {
+        const r = b.type === 'reservation' ? await mcp.calendly.book(coach, b) : await mcp.calendly.cancel(coach, b);
+        console.log(`  Calendly : ${b.type} du ${b.date} à ${b.heure} → ${r.club || 'séance introuvable'}`);
+        return json(res, 200, { ok: true });
+      } catch (e) { console.error('Calendly :', e.message); return json(res, 200, { ok: false }); }
+    }
     /* ---------- boutique Shopify : commande payée → accès activé ou prolongé (création du compte si besoin) ---------- */
     if (p === '/api/shopify/webhook' && req.method === 'POST') {
       const raw = await readRaw(req);
@@ -1422,6 +1438,8 @@ server.listen(PORT, '0.0.0.0', () => {
   ensureAllAccountPlayers(msg => console.log('  ' + msg)).catch(e => console.error('  Fiches joueurs des comptes :', e.message))
     .then(() => ensureClubLinks(msg => console.log('  ' + msg))).catch(e => console.error('  Clubs :', e.message));
   adhesions.watch(msg => console.error('  ' + msg));
+  if (ONLINE && process.env.CALENDLY_TOKEN) Calendly.subscribe(process.env.CALENDLY_TOKEN, (process.env.APP_URL || 'https://ja.riseandmove.fr') + '/api/calendly/webhook')
+    .then(r => console.log('  Calendly : webhook ' + (r.deja ? 'déjà inscrit' : 'inscrit'))).catch(e => console.error('  Calendly :', e.message));
   progression.watch(msg => console.error('  ' + msg));   // et sa progression (trophées, points)
   groupes.watch(msg => console.error('  ' + msg));
   fiches.watch(msg => console.error('  ' + msg));
