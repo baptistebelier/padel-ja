@@ -763,3 +763,12 @@ details.aide .aq p{margin:0;line-height:1.5}
 .evc .tag{margin-top:3px}
 .evc>svg{flex:none;width:18px;height:18px;rotate:180deg;color:var(--muted)}
 .evc.cx{opacity:.55}
+/* bandeaux partenaires : toute la largeur de l'écran (à côté de la navigation), logos qui entrent par la droite */
+#main{container-type:inline-size}
+.adband{margin-inline:calc(50% - 50cqw)!important;border-radius:0!important;max-width:none!important}
+.adband .adh{padding-left:max(16px,calc(50cqw - 356px))}
+.adband:hover .track{animation-play-state:paused!important}
+.adband .track{padding-left:0;animation:none}
+.adband .track:not([data-fit]){visibility:hidden}
+@keyframes adin{from{translate:var(--adw) 0}to{translate:0 0}}
+@keyframes admarq{to{translate:calc(-1 * var(--adg)) 0}}
