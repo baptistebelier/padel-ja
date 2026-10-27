@@ -9,11 +9,12 @@
 TABBAR.splice(
   0,
   TABBAR.length,
-  ['today', 'home', "Aujourd'hui"],
+  ['today', 'home', 'Accueil'],
+  ['dash', 'chart', 'Tableau de bord'],
   ['planning', 'cal', 'Planning'],
   ['eleves', 'users', 'Élèves'],
   ['msgs', 'chat', 'Messages'],
-  ['ecole', 'school', 'École'],
+  ['clubs', 'club', 'Mes clubs'],
   ['me', 'user', 'Profil']
 );
 S.tab = 'today';
@@ -21,6 +22,8 @@ S.role = 'coach'; // démo : Sarah Benali, enseignante du club fictif (le vrai r
 Object.assign(S, {
   pl: { w: 0 },
   plScope: 'me',
+  coClub: 'all',
+  dashP: 'saison',
   elQ: '',
   elF: 'all',
   elTab: 'fiche',

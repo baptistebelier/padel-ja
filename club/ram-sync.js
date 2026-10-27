@@ -225,7 +225,9 @@
       at(ch, 'chan');
       add('chan', ch.id, strip(ch, ['msgs', 'un', 'mute']));
     });
+    // /RAM Coach : les éléments d'un autre club (_club) sont envoyés à leur club par coach/4-finitions.js
     GROUPS.forEach(g => {
+      if (g._club) return;
       at(g, 'group');
       add('group', g.id, g);
     });
@@ -281,14 +283,15 @@
       add('redeem', x.id, x);
     });
     // /RAM Coach : fiches élèves, séances, suivi des élèves
-    ELEVES.forEach(x => add('eleve', x.id, x));
-    SEANCES.forEach(x => add('seance', x.id, x));
+    ELEVES.forEach(x => !x._club && add('eleve', x.id, x));
+    SEANCES.forEach(x => !x._club && add('seance', x.id, x));
     SUIVI.forEach(x => {
+      if (x._club) return;
       at(x, 'suivi');
       add('suivi', x.id, x);
     });
     Object.keys(M).forEach(k => {
-      if (k === 'club') return;
+      if (k === 'club' || M[k]._club) return;
       const s = strip(M[k], ['fol']);
       s.valid = VALID[k] || '';
       // abonnements (« fo ») : publics, dans le profil de celui qui suit → nombre d'abonnés et notification en direct pour tous
@@ -465,6 +468,7 @@
   /* différences entre deux versions → opérations (set, unset, add, rm) */
   /* un champ vide créé à l'affichage (lineup: {}, cancel: []) vaut un champ absent : rien à envoyer */
   const empty = v => (Array.isArray(v) && !v.length) || (isObj(v) && !Object.keys(v).length);
+  window.ramDiff = (a, b) => diff(a, b);
   function diff(a, b, p = [], out = []) {
     Object.keys(b).forEach(k => {
       const x = a[k],

@@ -19,6 +19,9 @@ const svMine = () => [ME()].concat((M[ME()] && M[ME()].kids) || []);
 /* nom d'un élève : son profil du club, sinon sa fiche (élève pas encore inscrit dans l'appli) */
 const svName = id => (M[id] ? M[id].n : (ELEVES.find(e => e.id === id) || {}).n || 'Élève');
 const svFirst = id => svName(id).split(' ')[0];
+/* /RAM Coach (plusieurs clubs) : mes clés dans chaque club comptent comme « moi », et un envoi part dans le club de l'élève */
+let svMe = k => k,
+  svFrom = to => ({ by: ME() });
 const svOf = id => SUIVI.filter(x => x.to === id).sort((a, b) => (a.at || 0) - (b.at || 0));
 const svTime = at => {
   if (!at) return '';
@@ -35,7 +38,7 @@ function dmList(id) {
   const src = svOf(id),
     sig = src.map(x => x.id + (x.at || '')).join();
   if (DMC[id] && DMC[id].sig === sig) return DMC[id].l;
-  const l = src.map(x => ({ by: x.by, x: x.txt || '', at: x.at, t: svTime(x.at), _id: x.id, k: x.k, sv: x }));
+  const l = src.map(x => ({ by: svMe(x.by), x: x.txt || '', at: x.at, t: svTime(x.at), _id: x.id, k: x.k, sv: x }));
   DMC[id] = { sig, l };
   return l;
 }
@@ -58,7 +61,7 @@ let SV_SEEN = {};
 try {
   SV_SEEN = JSON.parse(localStorage.getItem('club-suivi-vu') || '{}') || {};
 } catch (e) {}
-const svUnread = id => svOf(id).filter(x => x.by !== ME() && (x.at || 0) > (SV_SEEN[id] || 0)).length;
+const svUnread = id => svOf(id).filter(x => svMe(x.by) !== ME() && (x.at || 0) > (SV_SEEN[id] || 0)).length;
 function svSeen(id) {
   const l = svOf(id);
   SV_SEEN[id] = Math.max(SV_SEEN[id] || 0, l.length ? l[l.length - 1].at || 0 : 0);

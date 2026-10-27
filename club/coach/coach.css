@@ -281,55 +281,6 @@
     animation: none;
   }
 }
-/* ---------- /RAM Coach : un logiciel de gestion aux couleurs de /RAM JA ----------
-   barre d'onglets et menu latéral bordeaux, curseur citron ; ni logo ni nom de club en haut (c'est /RAM Club) */
-.toplogo,
-.segt > span {
-  display: none !important;
-}
-.tabs,
-:root[style*='color-scheme: light'] .tabs {
-  background: linear-gradient(180deg, #74102a, #4d0818) !important;
-  border-color: #4d0818;
-}
-:root:not([style*='color-scheme: light']) .tabs {
-  background: linear-gradient(180deg, #2e0914, #1a060c) !important;
-  border-color: #3a1520;
-}
-.tabs button {
-  color: #f6dde3;
-}
-.tabs .pill {
-  background: #e0f50a !important;
-  box-shadow: 3px 3px 0 #ff3d6b;
-}
-.tabs button[aria-current='page'],
-.tabs button[aria-current='page'] svg {
-  color: #1a0509;
-}
-@media (min-width: 1024px) {
-  .tabs::before {
-    background-image: var(--rail-logo) !important;
-    filter: none;
-  }
-  :root[style*='color-scheme: light'] .tabs::before {
-    background-image: url('../img/ram-coach-blanc.png') !important;
-  }
-  .tabs button[aria-current='page'],
-  .tabs button[aria-current='page']:hover {
-    color: #1a0509;
-    background: #e0f50a;
-  }
-  .tabs button[aria-current='page'] svg {
-    color: #1a0509;
-  }
-  .tabs button[aria-current='page']::before {
-    background: #ff3d6b;
-  }
-  .rbot button {
-    color: #f6dde3;
-  }
-}
 /* tout le contenu sur fond opaque : titres de section sur leur barre, listes sur leur carte */
 .cohd {
   margin: 6px 0 -8px;
@@ -402,4 +353,275 @@
     font-size: 0;
     gap: 0;
   }
+}
+
+/* ---------- barres de navigation : les codes exacts de /RAM JA ----------
+   barre principale = le rail de /RAM JA (bordeaux presque noir, texte rosé, onglet ouvert sur voile clair,
+   pictogramme et repère citron) ; barre secondaire = le bandeau « Tournoi en cours » (dégradé bordeaux) */
+:root {
+  --co-rail: #0b0306;
+  --co-rail-tx: #c9aeb5;
+  --co-rail-on: #ffffff14;
+  --co-side: linear-gradient(180deg, #2e0914 0%, #1a060c 100%);
+  --co-side-tx: #e9d3d9;
+  --co-side-on: #ffffff1c;
+  --co-lime: #e0f50a;
+}
+:root[style*='color-scheme: light'] {
+  --co-rail: #2a0610;
+  --co-rail-tx: #e8c9d1;
+  --co-rail-on: #ffffff1c;
+  --co-side: linear-gradient(180deg, #74102a 0%, #4d0818 100%);
+  --co-side-tx: #f6dde3;
+  --co-side-on: #ffffff22;
+  --co-lime: #daf35c;
+}
+.toplogo,
+.segt > span {
+  display: none !important;
+}
+.tabs,
+:root[style*='color-scheme: light'] .tabs {
+  background: var(--co-rail) !important;
+  border-color: var(--co-rail) !important;
+}
+.tabs button,
+.tabs button svg {
+  color: var(--co-rail-tx);
+}
+.tabs .pill {
+  background: var(--co-rail-on) !important;
+  box-shadow: inset 0 -3px 0 var(--co-lime) !important;
+  border-radius: 12px !important;
+}
+.tabs button[aria-current='page'] {
+  color: #fff !important;
+}
+.tabs button[aria-current='page'] svg {
+  color: var(--co-lime) !important;
+}
+@media (min-width: 1024px) {
+  .tabs::before {
+    background-image: url('../img/ram-coach-blanc.png') !important;
+  }
+  .tabs button {
+    border-radius: 14px;
+  }
+  .tabs button:hover,
+  .rbot button:hover {
+    background: #ffffff0f !important;
+    color: #fff !important;
+  }
+  .tabs button[aria-current='page'],
+  .tabs button[aria-current='page']:hover {
+    background: var(--co-rail-on) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  .tabs button[aria-current='page']::before {
+    background: var(--co-lime) !important;
+  }
+  .rbot {
+    background: var(--co-rail) !important;
+  }
+  .rbot button {
+    color: var(--co-rail-tx) !important;
+  }
+  #main > .seg {
+    background: var(--co-side) !important;
+    border-right: 0 !important;
+  }
+  #main > .seg .segt {
+    background: #ffffff10 !important;
+    border: 1px solid #ffffff1c;
+    border-radius: 14px;
+  }
+  #main > .seg .segt b {
+    color: #fff !important;
+  }
+  #main > .seg button {
+    color: var(--co-side-tx) !important;
+    border: 1px solid transparent !important;
+    border-radius: 12px;
+    background: transparent !important;
+  }
+  #main > .seg button:hover {
+    color: #fff !important;
+    background: #ffffff0f !important;
+  }
+  #main > .seg button[aria-selected='true'] {
+    color: #fff !important;
+    background: var(--co-side-on) !important;
+    border-color: #ffffff26 !important;
+    box-shadow: inset 3px 0 0 var(--co-lime) !important;
+    transform: none !important;
+  }
+  #main > .seg button[aria-selected='true'] svg {
+    color: var(--co-lime);
+  }
+}
+@media (max-width: 1023px) {
+  #main > .seg {
+    background: var(--co-side) !important;
+    border: 0 !important;
+    padding: 6px !important;
+    gap: 4px;
+  }
+  #main > .seg button {
+    color: var(--co-side-tx) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px;
+  }
+  #main > .seg button[aria-selected='true'] {
+    color: #fff !important;
+    background: var(--co-side-on) !important;
+    border-color: #ffffff26 !important;
+    box-shadow: inset 0 -3px 0 var(--co-lime) !important;
+  }
+  #main > .seg button[aria-selected='true']::before {
+    display: none !important;
+  }
+  #main > .seg button[aria-selected='true'] svg {
+    color: var(--co-lime);
+  }
+}
+/* profil, sur le modèle du profil /RAM JA : carte d'identité bordeaux à ombre citron, cartes titrées */
+.cohero {
+  background: var(--co-side) !important;
+  color: #fff;
+  border: 0 !important;
+  box-shadow: 6px 6px 0 var(--co-lime) !important;
+}
+.cohero .avedit .av {
+  box-shadow: 0 0 0 3px #ffffff33;
+}
+.coey {
+  display: block;
+  font-family: var(--f-sub);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent2);
+}
+.cohero .coey {
+  color: #ffb3c4;
+}
+.coname {
+  font-family: var(--f-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-style: italic;
+  font-size: clamp(28px, 8vw, 40px);
+  line-height: 0.98;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.coname span:last-child {
+  display: inline-block;
+}
+.coh2 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: 24px;
+  line-height: 1;
+  margin: 2px 0 6px;
+}
+.coh3 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: 18px;
+  margin: 10px 0 0;
+}
+.tag.copink {
+  background: var(--accent2) !important;
+  color: #fff !important;
+}
+.tag.coghost {
+  background: #ffffff1f !important;
+  color: #fff !important;
+}
+.coseg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.coseg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: var(--fg);
+  font-family: var(--f-sub);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 13px;
+}
+.coseg button svg {
+  width: 16px;
+  height: 16px;
+}
+.coseg button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.copc .prof {
+  box-shadow: none !important;
+  border: 1px solid var(--line);
+}
+/* téléphone : six onglets en bas, le Profil en haut à droite ; ordinateur : le Profil reste en bas du menu */
+@media (max-width: 1023px) {
+  .tabs [data-t='me'] {
+    display: none !important;
+  }
+}
+@media (min-width: 1024px) {
+  .coptop {
+    display: none !important;
+  }
+  .tabs [data-t='me'] {
+    display: none !important;
+  }
+}
+.coptop .av {
+  width: 34px;
+  height: 34px;
+}
+.codash {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+}
+.codash b {
+  font-size: 22px;
+}
+.comonths {
+  height: 200px;
+}
+.comonths small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.coclubc {
+  text-align: left;
+  width: 100%;
+  color: inherit;
+}
+.coclubc > .row > svg {
+  transform: rotate(180deg);
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--muted);
+}
+.coweek {
+  flex-direction: row !important;
+  align-items: center;
 }

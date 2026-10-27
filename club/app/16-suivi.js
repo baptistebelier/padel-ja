@@ -15,6 +15,7 @@ TITLES.dm = () => {
 const svNew = (to, k, extra) => {
   const x = Object.assign(
     { id: 'sv' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), to, by: ME(), k, at: Date.now() },
+    svFrom(to),
     extra
   );
   SUIVI.push(x);

@@ -6,7 +6,17 @@ Object.assign(TITLES, {
   planning: () => ['Planning', S.plScope === 'ecole' ? "Toute l'école" : 'Mes cours'],
   eleves: () => ['Élèves', 'Fiches et progression'],
   msgs: () => ['Messages', 'Élèves et groupes'],
-  ecole: () => ['École', 'Groupes, équipe, statistiques'],
+  dash: () => [
+    'Tableau de bord',
+    S.coClub && S.coClub !== 'all'
+      ? (coClubList().find(c => c.id === S.coClub) || {}).name || ''
+      : coMulti()
+        ? 'Tous mes clubs'
+        : 'Mes statistiques'
+  ],
+  clubs: () => ['Mes clubs', 'Groupes et élèves de chaque club'],
+  cclub: () => [(coClubList().find(c => c.id === view().id) || {}).name || 'Club', 'Mes groupes dans ce club'],
+  niveaux: () => ['Échelles de niveaux', 'Prérequis et attendus'],
   seance: () => {
     const id = view().id,
       g = grp(id.slice(0, id.lastIndexOf('.')));
@@ -23,6 +33,8 @@ function sesGet(id) {
   if (!s) {
     const i = id.lastIndexOf('.');
     s = { id, g: id.slice(0, i), d: id.slice(i + 1) };
+    const g = grp(s.g);
+    if (g && g._club) s._club = g._club; // séance d'un groupe d'un autre club : enregistrée dans ce club
     SEANCES.push(s);
   }
   return s;
@@ -109,7 +121,7 @@ Object.assign(A, {
   coNewEl() {
     sheet(
       'Nouvel élève',
-      `<form class="body" id="co-new">${F('co-n', 'Prénom et nom', '')}${O('co-mail', 'E-mail (pour le relier à son compte)', '')}${Sel('co-sp', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-g', 'Groupe', ['Aucun'].concat(coGroups(coAll() ? 'ecole' : 'me').map(g => g.name)), 'Aucun')}<button class="btn full">Ajouter l'élève</button></form>`
+      `<form class="body" id="co-new">${F('co-n', 'Prénom et nom', '')}${O('co-mail', 'E-mail (pour le relier à son compte)', '')}${Sel('co-sp', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-g', 'Groupe', ['Aucun'].concat(coGroups('', true).map(g => g.name + (coMulti() ? ' · ' + coClubName(g) : ''))), 'Aucun')}<button class="btn full">Ajouter l'élève</button></form>`
     );
   },
   coEditEl(d) {
@@ -124,7 +136,8 @@ Object.assign(A, {
   },
   /* élève sans compte : rattaché à l'adhérent qui vient de créer le sien ; il retrouve tout */
   coLink(d) {
-    const cands = Object.keys(M).filter(k => k !== 'club' && !coEl(k));
+    const cid = coClubOf(coEl(d.id)),
+      cands = Object.keys(M).filter(k => k !== 'club' && !coEl(k) && coClubOf(M[k]) === cid);
     if (!cands.length) return toast('Aucun adhérent du club à relier');
     sheet(
       'Relier ' + svFirst(d.id),
@@ -171,9 +184,10 @@ Object.assign(A, {
   coAdd(d) {
     const g = grp(d.id),
       st = coStu(g),
+      cid = coClubOf(g),
       cand = Object.keys(M)
-        .filter(k => k !== 'club' && !st.includes(k))
-        .concat(ELEVES.filter(e => !M[e.id] && !st.includes(e.id)).map(e => e.id))
+        .filter(k => k !== 'club' && !st.includes(k) && coClubOf(M[k]) === cid)
+        .concat(ELEVES.filter(e => !M[e.id] && !st.includes(e.id) && coClubOf(e) === cid).map(e => e.id))
         .sort((a, b) => svName(a).localeCompare(svName(b)));
     sheet(
       'Ajouter à ' + g.name,
@@ -192,6 +206,8 @@ function coElGet(id) {
   let e = coEl(id);
   if (!e) {
     e = { id, n: svName(id), sport: coSport(id), parents: [] };
+    const c = coStuClub(id);
+    if (c !== coMainId()) e._club = c;
     ELEVES.push(e);
   }
   return e;
@@ -256,9 +272,10 @@ document.addEventListener('submit', e => {
   if (f.id === 'co-new') {
     const n = val('co-n');
     if (!n) return;
-    const e2 = { id: 'e' + Date.now().toString(36), n, sport: val('co-sp'), mail: val('co-mail'), parents: [] };
+    const g = coGroups('', true).find(x => val('co-g').startsWith(x.name)),
+      e2 = { id: 'e' + Date.now().toString(36), n, sport: val('co-sp'), mail: val('co-mail'), parents: [] };
+    if (g && g._club) e2._club = g._club; // élève sans compte : rangé dans le club de son groupe
     ELEVES.push(e2);
-    const g = GROUPS.find(x => x.name === val('co-g'));
     if (g) g.ext = (g.ext || []).concat(e2.id);
     closeSheet();
     S.elTab = 'fiche';
@@ -504,4 +521,99 @@ document.addEventListener('submit', e => {
   };
   closeSheet();
   coSave('Fiche enregistrée : visible dans /RAM Club, École, Enseignants');
+});
+/* enseigner dans un autre club : on le rejoint avec son code, le bureau donne ensuite le rôle d'enseignant
+   (formulaire « ram-join2 » de ram-sync.js : on rejoint sans quitter ses autres clubs) */
+A.coOtherClub = () =>
+  sheet(
+    'J’enseigne dans un autre club',
+    `<form class="body" id="ram-join2"><div class="fld"><label for="rj2-code">Code du club</label><input id="rj2-code" required autocomplete="off" autocapitalize="characters" placeholder="TPC-4821"></div><p class="muted small">Le bureau du club te donne son code. Il valide ensuite ta demande et te donne le rôle d’enseignant : tes groupes de ce club s’ajoutent alors à ton planning, à côté des autres.</p><button class="btn full">Envoyer ma demande</button></form>`
+  );
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'ram-join2' || (window.RAM && RAM.user)) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  closeSheet();
+  toast('Démonstration : la demande partirait au bureau de ce club');
+});
+/* ---------- plusieurs clubs : le club d'un élève, et les envois signés de ma clé dans ce club ---------- */
+function coStuClub(id) {
+  if (M[id]) return coClubOf(M[id]);
+  if (coEl(id)) return coClubOf(coEl(id));
+  const g = GROUPS.find(x => x.type === 'train' && coStu(x).includes(id));
+  return coClubOf(g);
+}
+svMe = k => (coIsMe(k) ? ME() : k);
+svFrom = to => {
+  const c = coStuClub(to);
+  return c !== coMainId() && CO_EXT[c] ? { by: coKeyIn(c), _club: c } : { by: ME() };
+};
+Object.assign(A, {
+  coClub(d) {
+    S.coClub = d.c;
+    render(true);
+  },
+  coDashP(d) {
+    S.dashP = d.v;
+    render(true);
+  },
+  /* Mes clubs, un club : mes élèves de ce club */
+  coSeeEl(d) {
+    S.coClub = d.c;
+    A.tab({ t: 'eleves' });
+  },
+  /* créer un groupe d'entraînement dans l'un de mes clubs (il apparaît aussitôt dans /RAM Club, École et Groupes) */
+  coNewGrp(d) {
+    const cl = coClubList(),
+      cur = (d && d.c) || (S.coClub !== 'all' && S.coClub) || coMainId();
+    sheet(
+      'Nouveau groupe',
+      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}${F('co-gn', 'Nom du groupe', 'Adultes compétition')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['Extérieur', 'En salle'], 'Extérieur')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
+    );
+    $('co-gm').inputMode = 'numeric';
+    $('co-gp').inputMode = 'decimal';
+  }
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-grpnew') return;
+  const v = x => ($(x) ? $(x).value.trim() : ''),
+    cid = v('co-gc') || coMainId(),
+    ext = CO_EXT[cid] ? cid : null,
+    id = 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    key = coKeyIn(ext),
+    g = {
+      id,
+      type: 'train',
+      name: v('co-gn'),
+      sport: v('co-gs'),
+      day: DAYS.indexOf(v('co-gd')),
+      h: v('co-gh'),
+      dur: v('co-gdu'),
+      defLoc: v('co-gl'),
+      coach: key,
+      mem: [],
+      sub: `${v('co-gd')} ${v('co-gh')} · ${v('co-gdu')} · ${first(key)}`,
+      tarif: {
+        mode: Object.keys(TARIF_MODES).find(k => TARIF_MODES[k] === v('co-gt')) || 'seance',
+        prix: parseFloat(v('co-gp').replace(',', '.')) || 0
+      }
+    };
+  if (!g.name) return;
+  if (parseInt(v('co-gm'), 10)) g.max = parseInt(v('co-gm'), 10);
+  // la discussion du groupe dans /RAM Club : créée avec le groupe
+  const ch = { id, g: 'train', sport: g.sport, name: g.name, desc: g.sub, kid: 0 };
+  if (ext) {
+    g._club = ext;
+    if (CO_EXT[ext].base)
+      fetch('/api/ram/c/' + ext + '/ops', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ops: [{ coll: 'chan', id, op: 'put', data: Object.assign({ at: Date.now() }, ch) }] })
+      }).catch(() => {});
+  } else chans.push(Object.assign({ msgs: [], un: 0 }, ch));
+  GROUPS.push(g);
+  closeSheet();
+  S.stack.push({ v: 'cgroupe', id });
+  coSave('Groupe créé dans ' + (ext ? CO_EXT[ext].name : club().name));
 });

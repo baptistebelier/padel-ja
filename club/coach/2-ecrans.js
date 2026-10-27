@@ -10,8 +10,16 @@ const fold = s =>
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 const coAll = () => isBureau() || !!S.super; // bureau du club ou administrateur : toute l'école
-const coGroups = scope =>
-  GROUPS.filter(g => g.type === 'train' && ((scope || S.plScope) === 'ecole' ? true : g.coach === ME()));
+/* mes groupes, de tous mes clubs (ma clé n'est pas la même dans chaque club), filtrés par club si demandé */
+const coKeyIn = cid => (cid && CO_EXT[cid] && CO_EXT[cid].key) || ME();
+const coIsMe = k => k === ME() || Object.values(CO_EXT).some(c => c.key === k);
+const coMainId = () => (window.RAM && RAM.live ? RAM.club : 'main');
+const coClubOf = o => (o && o._club) || coMainId();
+const coClubList = () =>
+  [{ id: coMainId(), name: club().name }].concat(Object.keys(CO_EXT).map(id => ({ id, name: CO_EXT[id].name })));
+const coInClub = o => !S.coClub || S.coClub === 'all' || coClubOf(o) === S.coClub;
+const coGroups = (scope, any) =>
+  GROUPS.filter(g => g.type === 'train' && !g.old && g.coach === coKeyIn(g._club) && (any || coInClub(g)));
 const coStu = g => g.mem.concat(g.ext || []);
 const coEl = id => ELEVES.find(e => e.id === id);
 const coDow = iso => {
@@ -38,17 +46,13 @@ function coExtCheck() {
   }
 }
 const coClubName = g => (g._club ? CO_EXT[g._club].name : club().name);
-const sesFind = (g, d) => (g._club ? CO_EXT[g._club].seances : SEANCES).find(s => s.id === sesKey(g, d));
+const sesFind = (g, d) => SEANCES.find(s => s.id === sesKey(g, d) && (s._club || '') === (g._club || ''));
 const isCx = (g, d) => (g.cancel || []).includes(d);
 const monday = off => {
   const dow = (coDow(TODAY) + 6) % 7;
   return isoIn(-dow + 7 * (off || 0));
 };
-/* mes groupes de tous mes clubs (ou toute l'école de chacun) */
-const coAllGroups = scope =>
-  coGroups(scope).concat(
-    ...Object.values(CO_EXT).map(x => x.groups.filter(g => (scope || S.plScope) === 'ecole' || g.coach === x.key))
-  );
+const coAllGroups = scope => coGroups(scope);
 /* toutes les séances d'une période, triées : { g, d, s } ; all : de tous mes clubs */
 function coSessions(from, to, scope, all) {
   return (all ? coAllGroups(scope) : coGroups(scope))
@@ -58,7 +62,7 @@ function coSessions(from, to, scope, all) {
 /* élèves suivis : ceux de mes groupes (ou de toute l'école) et les fiches créées à la main */
 function coStudents() {
   const ids = new Set();
-  coGroups(coAll() ? 'ecole' : 'me').forEach(g => coStu(g).forEach(k => ids.add(k)));
+  coGroups('', true).forEach(g => coStu(g).forEach(k => ids.add(k)));
   ELEVES.forEach(e => ids.add(e.id));
   return [...ids].filter(k => M[k] || coEl(k));
 }
@@ -104,10 +108,8 @@ function coSesCard(x, big) {
     nP = s && s.pres ? Object.values(s.pres).filter(v => v === 'P').length : null,
     [y, m, dd] = d.split('-').map(Number),
     loc = (g.loc || {})[d] || g.defLoc || 'Extérieur';
-  const go = g._club
-    ? `data-a="coExt" data-c="${g._club}" data-id="${sesKey(g, d)}"`
-    : `data-a="open" data-v="seance" data-id="${sesKey(g, d)}"`;
-  return `<button class="card coses${cx ? ' cx' : ''}" ${go}><span class="dblk"><b>${dd}</b>${MO[m - 1]}</span><span class="grow"><span class="h3" style="font-size:18px">${esc(g.name)}</span><br><span class="muted small">${DA[new Date(y, m - 1, dd).getDay()]} · ${g.h} · ${g.dur}${g.coach && g.coach !== ME() && M[g.coach] ? ' · ' + first(g.coach) : ''}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag loc">${ic(loc === 'En salle' ? 'home' : 'sun')}${loc}</span>`}${sportTag(g.sport)}${coMulti() ? `<span class="tag coclub">${ic('club')}${esc(coClubName(g))}</span>` : ''}<span class="tag">${nP != null && d <= TODAY ? nP + '/' + st.length + ' présents' : plural(st.length, 'élève')}</span></span>${s && s.theme ? `<span class="small cotheme">${ic('ladder')}${esc(s.theme)}</span>` : big && !cx ? '<span class="muted small">Thème à définir</span>' : ''}</span></button>`;
+  const go = `data-a="open" data-v="seance" data-id="${sesKey(g, d)}"`;
+  return `<button class="card coses${cx ? ' cx' : ''}" ${go}><span class="dblk"><b>${dd}</b>${MO[m - 1]}</span><span class="grow"><span class="h3" style="font-size:18px">${esc(g.name)}</span><br><span class="muted small">${DA[new Date(y, m - 1, dd).getDay()]} · ${g.h} · ${g.dur}${g.coach && !coIsMe(g.coach) && M[g.coach] ? ' · ' + first(g.coach) : ''}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag loc">${ic(loc === 'En salle' ? 'home' : 'sun')}${loc}</span>`}${sportTag(g.sport)}${coMulti() ? `<span class="tag coclub">${ic('club')}${esc(coClubName(g))}</span>` : ''}<span class="tag">${nP != null && d <= TODAY ? nP + '/' + st.length + ' présents' : plural(st.length, 'élève')}</span></span>${s && s.theme ? `<span class="small cotheme">${ic('ladder')}${esc(s.theme)}</span>` : big && !cx ? '<span class="muted small">Thème à définir</span>' : ''}</span></button>`;
 }
 /* ---------- Aujourd'hui : premiers pas, chiffres, cours du jour et du lendemain, ce qui reste à faire ---------- */
 function coSetup() {
@@ -115,7 +117,7 @@ function coSetup() {
     ses = SEANCES.filter(s => mine.some(g => g.id === s.g)),
     steps = [
       ['Ma fiche enseignant', 'Diplôme, coordonnées, tarifs, réservation', !!proOf(ME()).on, 'data-a="coPro"'],
-      ['Mes groupes', 'Créés ici, visibles dans /RAM Club', mine.length > 0, 'data-a="newPost" data-k="train"'],
+      ['Mes groupes', 'Créés ici, visibles dans /RAM Club', mine.length > 0, 'data-a="coNewGrp"'],
       [
         'Thèmes des séances',
         'Préparer les prochaines séances',
@@ -131,7 +133,7 @@ function coSetup() {
       [
         'Premier bilan ou message',
         'Reçu par l’élève dans /RAM Club',
-        SUIVI.some(x => x.by === ME()),
+        SUIVI.some(x => coIsMe(x.by)),
         'data-a="tab" data-t="msgs"'
       ]
     ],
@@ -176,7 +178,7 @@ function coToday() {
 ${hd("Aujourd'hui · " + fmtD(TODAY))}${today.length ? today.map(x => coSesCard(x, 1)).join('') : none('cal', 'Pas de cours aujourd’hui', '')}
 ${tom.length ? hd('Demain') + tom.map(x => coSesCard(x)).join('') : ''}
 ${hd('À traiter')}${todo.length ? list(todo.join('')) : none('check', 'Tout est à jour', 'Bilans écrits, vidéos analysées, messages lus.')}
-${hd('Outils')}<div class="card cotools"><button class="btn ghost" data-a="coTimer">${ic('timer')}Minuteur</button><button class="btn ghost" data-a="coNewMsg">${ic('chat')}Écrire à un élève</button><button class="btn ghost" data-a="coGo" data-t="ecole" data-k="stats">${ic('chart')}Statistiques</button><button class="btn ghost" data-a="open" data-v="aide">${ic('info')}Aide</button></div></div>`;
+${hd('Outils')}<div class="card cotools"><button class="btn ghost" data-a="coTimer">${ic('timer')}Minuteur</button><button class="btn ghost" data-a="coNewMsg">${ic('chat')}Écrire à un élève</button><button class="btn ghost" data-a="tab" data-t="dash">${ic('chart')}Tableau de bord</button><button class="btn ghost" data-a="open" data-v="aide">${ic('info')}Aide</button></div></div>`;
 }
 /* ---------- Planning : semaine par semaine, mes cours ou toute l'école ---------- */
 function coPlanning() {
@@ -194,13 +196,7 @@ function coPlanning() {
           x.map(s => coSesCard(s, 1)).join('')
       );
   }
-  return (
-    segs('plScope', [
-      ['me', 'Mes cours', 'user'],
-      ['ecole', "Toute l'école", 'school']
-    ]) +
-    `<div class="pad"><div class="card coweek"><button class="ib" data-a="coWeek" data-n="-1" aria-label="Semaine précédente">${ic('back')}</button><span class="grow" style="text-align:center"><b>Semaine du ${+from.slice(8)} ${MO[+from.slice(5, 7) - 1]}</b><br><span class="muted small">${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}${S.pl.w ? '' : ' · cette semaine'}</span></span><button class="ib flip" data-a="coWeek" data-n="1" aria-label="Semaine suivante">${ic('back')}</button></div>${days.join('') || none('cal', 'Aucun cours cette semaine', '')}${stages.length ? hd('Stages') + list(stages.map(p => `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(p.title)}</span></span></button>`).join('')) : ''}<div class="card cotools"><button class="btn" data-a="newPost" data-k="train">${ic('plus')}Créer un groupe</button><button class="btn ghost" data-a="newPost" data-k="stage">Créer un stage</button></div></div>`
-  );
+  return `<div class="pad">${coClubChips()}<div class="card coweek"><button class="ib" data-a="coWeek" data-n="-1" aria-label="Semaine précédente">${ic('back')}</button><span class="grow" style="text-align:center"><b>Semaine du ${+from.slice(8)} ${MO[+from.slice(5, 7) - 1]}</b><br><span class="muted small">${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}${S.pl.w ? '' : ' · cette semaine'}</span></span><button class="ib flip" data-a="coWeek" data-n="1" aria-label="Semaine suivante">${ic('back')}</button></div>${days.join('') || none('cal', 'Aucun cours cette semaine', '')}${stages.length ? hd('Stages') + list(stages.map(p => `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(p.title)}</span></span></button>`).join('')) : ''}<div class="card cotools"><button class="btn" data-a="coNewGrp">${ic('plus')}Créer un groupe</button><button class="btn ghost" data-a="open" data-v="clubs">${ic('club')}Mes clubs</button></div></div>`;
 }
 /* ---------- Séance : thème, appel, bilan du groupe et commentaires personnels ---------- */
 function coSeance(id) {
@@ -241,21 +237,28 @@ ${hd('Bilan de la séance')}<form id="co-bilan" data-id="${id}" class="card"><di
         )}<button class="btn full">${ic('send')}${past ? 'Envoyer le bilan aux élèves' : 'Enregistrer'}</button><p class="muted small">Le bilan arrive dans /RAM Club, École, Mon espace : celui du groupe pour tous, le commentaire personnel pour l'élève (et ses parents) seulement.</p></form>`
 }</div>`;
 }
-/* club ouvert pour les pages qui modifient (élèves, messages, groupes) quand j'enseigne dans plusieurs clubs */
-const coClubBar = () =>
+/* filtre par club (quand j'enseigne dans plusieurs clubs) : Planning, Élèves, Tableau de bord */
+const coClubChips = () =>
   coMulti()
-    ? `<button class="card coclubbar" data-a="coClubs"><span class="tile">${ic('club')}</span><span class="grow"><span class="muted small">Club ouvert</span><br><span class="nm">${esc(club().name)}</span></span><span class="tag">Changer</span></button>`
+    ? `<div class="card"><div class="chips"><button class="chip" data-a="coClub" data-c="all" aria-pressed="${!S.coClub || S.coClub === 'all'}">Tous mes clubs</button>${coClubList()
+        .map(
+          c =>
+            `<button class="chip" data-a="coClub" data-c="${c.id}" aria-pressed="${S.coClub === c.id}">${esc(c.name)}</button>`
+        )
+        .join('')}</div></div>`
     : '';
+const coClubBar = () => '';
 /* ---------- Élèves ---------- */
 function coEleves() {
   const q = fold(S.elQ || ''),
     f = S.elF,
     l = coStudents()
       .filter(k => !q || fold(svName(k)).includes(q))
+      .filter(k => coInClub(M[k] || coEl(k) || {}))
       .filter(k => f === 'all' || (f === 'nc' ? !M[k] : f === 'jeunes' ? M[k] && isMinor(k) : coSport(k) === f))
       .sort((a, b) => svName(a).localeCompare(svName(b)));
   const chip = (v, t) => `<button class="chip" data-a="coElF" data-v="${v}" aria-pressed="${f === v}">${t}</button>`;
-  return `<div class="pad">${coClubBar()}<div class="card"><div class="fld cosearch"><input id="co-q" type="search" placeholder="Rechercher un élève" value="${esc(S.elQ || '')}" aria-label="Rechercher un élève"></div><div class="chips">${chip('all', 'Tous')}${chip('Padel', 'Padel')}${chip('Tennis', 'Tennis')}${chip('jeunes', 'Jeunes')}${chip('nc', 'Sans compte')}</div></div>${hd(plural(l.length, 'élève'))}${
+  return `<div class="pad">${coClubChips()}<div class="card"><div class="fld cosearch"><input id="co-q" type="search" placeholder="Rechercher un élève" value="${esc(S.elQ || '')}" aria-label="Rechercher un élève"></div><div class="chips">${chip('all', 'Tous')}${chip('Padel', 'Padel')}${chip('Tennis', 'Tennis')}${chip('jeunes', 'Jeunes')}${chip('nc', 'Sans compte')}</div></div>${hd(plural(l.length, 'élève'))}${
     l.length
       ? list(
           l
@@ -339,7 +342,7 @@ ${(e.parents || []).length ? hd('Parents') + `<div class="card">${e.parents.map(
         .filter(x => x.k !== 'msg')
         .reverse()
         .slice(0, 8)
-        .map(x => svCard(x, x.by === ME()))
+        .map(x => svCard(x, coIsMe(x.by)))
         .join('');
     b =
       list(
@@ -374,13 +377,13 @@ function coMsgs() {
               .map(k => {
                 const x = svOf(k).slice(-1)[0],
                   un = svUnread(k);
-                return `<button class="item" data-a="open" data-v="dm" data-id="${k}">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span><br><span class="muted small">${esc(((x.by === ME() ? 'Moi : ' : '') + (x.txt || SV_KIND[x.k][1])).slice(0, 70))}</span></span><span class="muted small">${fmtD(svDay(x.at), 1)}</span>${un ? `<span class="cnt">${un}</span>` : ''}</button>`;
+                return `<button class="item" data-a="open" data-v="dm" data-id="${k}">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span><br><span class="muted small">${esc(((coIsMe(x.by) ? 'Moi : ' : '') + (x.txt || SV_KIND[x.k][1])).slice(0, 70))}</span></span><span class="muted small">${fmtD(svDay(x.at), 1)}</span>${un ? `<span class="cnt">${un}</span>` : ''}</button>`;
               })
               .join('')
           )
         : none('chat', 'Aucune conversation', 'Toi seul peux commencer une conversation avec un élève.'));
   } else {
-    const gs = coGroups(coAll() ? 'ecole' : 'me'),
+    const gs = coGroups('', true),
       rows = gs
         .map(g => {
           const c = chans.find(c => c.id === g.id);
@@ -400,135 +403,135 @@ function coMsgs() {
     ]) + `<div class="pad">${coClubBar()}${b}</div>`
   );
 }
-/* ---------- École : groupes, équipe pédagogique, statistiques, niveaux ---------- */
-function coStats() {
-  const now = TODAY,
-    from =
-      S.stP === 'sem'
-        ? monday(0)
-        : S.stP === 'mois'
-          ? now.slice(0, 8) + '01'
-          : (+now.slice(5, 7) >= 9 ? now.slice(0, 4) : +now.slice(0, 4) - 1) + '-09-01',
-    scope = S.stWho === 'ecole' && coAll() ? 'ecole' : 'me',
-    l = coSessions(from, now, scope, 1).filter(x => !isCx(x.g, x.d)),
-    mins = l.reduce((a, x) => a + durMin(x.g.dur), 0),
-    nPres = x => (x.s && x.s.pres ? Object.values(x.s.pres).filter(v => v === 'P').length : 0),
-    money = x => {
-      const t = tarifOf(x.g);
-      return t.mode === 'heure'
-        ? (t.prix * durMin(x.g.dur)) / 60
-        : t.mode === 'eleve'
-          ? t.prix * nPres(x)
-          : +t.prix || 0;
-    },
-    eur = l.reduce((a, x) => a + money(x), 0),
-    called = l.filter(x => x.s && x.s.pres),
+/* ---------- Tableau de bord : toutes mes statistiques, sur un club ou tous, au mois, sur la saison ou sur un an ---------- */
+const MOIS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+const coSeasonStart = () => (+TODAY.slice(5, 7) >= 9 ? TODAY.slice(0, 4) : +TODAY.slice(0, 4) - 1) + '-09-01';
+const coPres = x => (x.s && x.s.pres ? Object.values(x.s.pres).filter(v => v === 'P').length : 0);
+const coMoney = x => {
+  const t = tarifOf(x.g);
+  return t.mode === 'heure' ? (t.prix * durMin(x.g.dur)) / 60 : t.mode === 'eleve' ? t.prix * coPres(x) : +t.prix || 0;
+};
+/* chiffres d'une liste de séances faites */
+function coFigures(l) {
+  const called = l.filter(x => x.s && x.s.pres),
     att = called.reduce((a, x) => a + Object.keys(x.s.pres).length, 0),
-    attP = called.reduce((a, x) => a + nPres(x), 0),
-    gs = coAllGroups(scope),
+    p = called.reduce((a, x) => a + coPres(x), 0);
+  return {
+    n: l.length,
+    h: l.reduce((a, x) => a + durMin(x.g.dur), 0) / 60,
+    eur: l.reduce((a, x) => a + coMoney(x), 0),
+    att: att ? Math.round((p * 100) / att) : null
+  };
+}
+const eurs = n => Math.round(n).toLocaleString('fr-FR') + ' €';
+function coDash() {
+  const per = S.dashP || 'saison',
+    from = per === 'mois' ? TODAY.slice(0, 8) + '01' : per === 'an' ? isoIn(-364) : coSeasonStart(),
+    gs = coGroups(),
+    done = coSessions(from, TODAY).filter(x => !isCx(x.g, x.d)),
+    F = coFigures(done),
+    eleves = new Set(gs.flatMap(coStu)),
     fillG = gs.filter(g => g.max),
     fill = fillG.length
       ? Math.round((fillG.reduce((a, g) => a + coStu(g).length / g.max, 0) * 100) / fillG.length)
-      : null;
-  // heures par semaine (8 dernières semaines)
-  const wks = [];
-  for (let w = -7; w <= 0; w++) {
-    const a = monday(w),
-      z = isoIn(6, a),
-      h =
-        coSessions(a, z < now ? z : now, scope, 1)
-          .filter(x => !isCx(x.g, x.d))
-          .reduce((s, x) => s + durMin(x.g.dur), 0) / 60;
-    wks.push([a, h]);
+      : null,
+    terrain = gs.reduce((a, g) => a + durMin(g.dur), 0) / 60;
+  // évolution mois par mois (12 derniers mois, ou depuis la rentrée)
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const [y, m] = TODAY.split('-').map(Number),
+      d = new Date(y, m - 1 - i, 1),
+      a = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01',
+      z = isoIn(-1, new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString().slice(0, 10)),
+      l = coSessions(a, z < TODAY ? z : TODAY).filter(x => !isCx(x.g, x.d));
+    if (per !== 'an' && a < coSeasonStart()) continue;
+    months.push([MOIS[d.getMonth()], coFigures(l)]);
   }
-  const mx = Math.max(1, ...wks.map(w => w[1]));
-  const byG = gs
+  const mx = Math.max(1, ...months.map(m => m[1].eur));
+  const row = (t, sub, v) =>
+    `<div class="cokv"><span class="grow">${t}<br><span class="muted small">${sub}</span></span><b>${v}</b></div>`;
+  const byClub = coMulti()
+    ? coClubList()
+        .map(c => {
+          const l = done.filter(x => coClubOf(x.g) === c.id),
+            f = coFigures(l);
+          return row(
+            esc(c.name),
+            `${fr(f.h)} h · ${plural(l.length, 'séance')}${f.att != null ? ' · ' + f.att + ' % de présence' : ''}`,
+            eurs(f.eur)
+          );
+        })
+        .join('')
+    : '';
+  const byGroup = gs
     .map(g => {
-      const x = l.filter(s => s.g === g),
-        c = x.filter(s => s.s && s.s.pres),
-        n = c.reduce((a, s) => a + Object.keys(s.s.pres).length, 0),
-        p = c.reduce((a, s) => a + nPres(s), 0);
-      return `<div class="cokv"><span class="grow">${esc(g.name)}${coMulti() ? ' · ' + esc(coClubName(g)) : ''}<br><span class="muted small">${plural(x.length, 'séance')} · ${n ? Math.round((p * 100) / n) + ' % de présence' : 'pas d’appel'}</span></span><b>${Math.round(x.reduce((a, s) => a + money(s), 0))} €</b></div>`;
+      const l = done.filter(x => x.g === g),
+        f = coFigures(l);
+      return row(
+        esc(g.name) + (coMulti() ? ' · ' + esc(coClubName(g)) : ''),
+        `${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''} · ${fr(f.h)} h${f.att != null ? ' · ' + f.att + ' % de présence' : ''}`,
+        eurs(f.eur)
+      );
     })
     .join('');
-  return (
-    `<div class="card"><div class="chips">${[
-      ['sem', 'Semaine'],
-      ['mois', 'Mois'],
-      ['saison', 'Saison']
-    ]
-      .map(
-        p => `<button class="chip" data-a="coStP" data-v="${p[0]}" aria-pressed="${S.stP === p[0]}">${p[1]}</button>`
-      )
-      .join(
-        ''
-      )}${coAll() ? `<button class="chip" data-a="coStWho" aria-pressed="${S.stWho === 'ecole'}">Toute l'école</button>` : ''}</div></div>` +
-    `<div class="stats"><div><b>${fr(mins / 60)}</b><span>Heures</span></div><div><b>${Math.round(eur)}</b><span>Euros</span></div><div><b>${fill == null ? '–' : fill + ' %'}</b><span>Remplissage</span></div><div><b>${att ? Math.round((attP * 100) / att) + ' %' : '–'}</b><span>Présence</span></div></div>` +
-    hd('Heures données · 8 semaines') +
-    `<div class="card cobars">${wks.map(w => `<div><i style="height:${Math.round((w[1] / mx) * 100)}%"></i><span>${+w[0].slice(8)}/${+w[0].slice(5, 7)}</span><b>${fr(w[1])}</b></div>`).join('')}</div>` +
-    hd('Par groupe') +
-    `<div class="card">${byG || empty('users', 'Aucun groupe', '')}<p class="muted small">Revenus calculés avec le tarif de chaque groupe (par séance, à l'heure ou par élève présent), réglable dans la page du groupe.</p></div>`
-  );
+  const bySport = ['Tennis', 'Padel']
+    .map(sp => {
+      const f = coFigures(done.filter(x => x.g.sport === sp));
+      return f.n ? row(sp, `${fr(f.h)} h · ${plural(f.n, 'séance')}`, eurs(f.eur)) : '';
+    })
+    .join('');
+  return `<div class="pad">${coClubChips()}<div class="card"><div class="chips">${[
+    ['mois', 'Ce mois'],
+    ['saison', 'Saison'],
+    ['an', '12 mois']
+  ]
+    .map(p => `<button class="chip" data-a="coDashP" data-v="${p[0]}" aria-pressed="${per === p[0]}">${p[1]}</button>`)
+    .join('')}</div></div>
+<div class="stats codash"><div><b>${eurs(F.eur)}</b><span>Chiffre d'affaires</span></div><div><b>${fr(F.h)}</b><span>Heures données</span></div><div><b>${eleves.size}</b><span>Élèves</span></div><div><b>${F.n}</b><span>Séances</span></div><div><b>${fill == null ? '–' : fill + ' %'}</b><span>Remplissage</span></div><div><b>${F.att == null ? '–' : F.att + ' %'}</b><span>Présence</span></div><div><b>${fr(terrain)}</b><span>H de terrain / sem.</span></div><div><b>${F.h ? eurs(F.eur / F.h) : '–'}</b><span>Par heure</span></div></div>
+${hd('Évolution mois par mois')}<div class="card cobars comonths">${months.map(([l, f]) => `<div><b>${f.eur ? Math.round(f.eur) : ''}</b><i style="height:${Math.round((f.eur / mx) * 100)}%"></i><span>${l}</span><small>${fr(f.h)} h</small></div>`).join('')}</div>
+${byClub ? hd('Par club') + `<div class="card">${byClub}</div>` : ''}
+${hd('Par groupe')}<div class="card">${byGroup || empty('users', 'Aucun groupe', '')}</div>
+${bySport ? hd('Par sport') + `<div class="card">${bySport}</div>` : ''}
+<div class="card"><p class="muted small">Chiffre d'affaires calculé avec le tarif de chaque groupe (par séance, à l'heure ou par élève présent), réglable dans la page du groupe. Heures de terrain : un terrain par groupe pendant la durée du cours.</p></div></div>`;
 }
-function coEcole() {
-  const t = S.coTab;
-  let b = '';
-  if (t === 'groupes') {
-    const gs = coGroups(coAll() ? 'ecole' : 'me');
-    b =
-      (gs.length
-        ? list(
-            gs
-              .map(
-                g =>
-                  `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${DAYS[g.day]} ${g.h} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}${g.coach && M[g.coach] ? ' · ' + first(g.coach) : ''}</span></span>${sportTag(g.sport)}</button>`
-              )
-              .join('')
+/* ---------- Mes clubs : les clubs où j'enseigne ; dans chacun, mes groupes et ses élèves ---------- */
+function coClubs() {
+  return `<div class="pad">${coClubList()
+    .map(c => {
+      const gs = coGroups('', true).filter(g => coClubOf(g) === c.id),
+        el = new Set(gs.flatMap(coStu)).size,
+        h = gs.reduce((a, g) => a + durMin(g.dur), 0) / 60,
+        main = c.id === coMainId();
+      return `<button class="card coclubc" data-a="open" data-v="cclub" data-id="${c.id}"><span class="row" style="gap:12px;align-items:center"><span class="tile">${ic('club')}</span><span class="grow"><span class="h3" style="font-size:20px">${esc(c.name)}</span>${main ? ' <span class="tag copink">Club principal</span>' : ''}<br><span class="muted small">${plural(gs.length, 'groupe')} · ${plural(el, 'élève')} · ${fr(h)} h par semaine</span></span>${ic('back')}</span></button>`;
+    })
+    .join(
+      ''
+    )}<div class="card cotools"><button class="btn ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button><button class="btn ghost" data-a="open" data-v="niveaux">${ic('ladder')}Échelles de niveaux</button></div></div>`;
+}
+function coClubPage(id) {
+  const c = coClubList().find(x => x.id === id);
+  if (!c) return `<div class="pad">${none('club', 'Club introuvable', '')}</div>`;
+  const gs = coGroups('', true).filter(g => coClubOf(g) === id),
+    mem = Object.keys(M).filter(k => k !== 'club' && (M[k]._club || coMainId()) === id && !M[k].kids),
+    el = new Set(gs.flatMap(coStu));
+  return `<div class="pad"><div class="card"><span class="coey">${id === coMainId() ? 'Club principal' : 'Club'}</span><span class="h3">${esc(c.name)}</span><div class="cokv"><span class="muted">Mes groupes</span><b>${gs.length}</b></div><div class="cokv"><span class="muted">Mes élèves</span><b>${el.size}</b></div><div class="cokv"><span class="muted">Adhérents du club</span><b>${mem.length}</b></div></div>
+${hd('Mes groupes dans ce club')}${gs.length ? list(gs.map(g => `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${DAYS[g.day]} ${g.h} · ${g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${sportTag(g.sport)}</button>`).join('')) : none('users', 'Aucun groupe', 'Crée ton premier groupe dans ce club.')}
+<div class="card cotools"><button class="btn" data-a="coNewGrp" data-c="${id}">${ic('plus')}Créer un groupe dans ce club</button><button class="btn ghost" data-a="coSeeEl" data-c="${id}">${ic('users')}Voir mes élèves de ce club</button></div>
+<div class="card"><p class="muted small">Les élèves se proposent d'eux-mêmes : ce sont les adhérents de ce club dans /RAM Club. Un élève qui n'a pas encore de compte s'ajoute à la main, puis se relie à son compte.</p></div></div>`;
+}
+const coLevels = () =>
+  `<div class="pad">${Object.keys(SCALES)
+    .map(
+      sp =>
+        hd(SCALES[sp].name) +
+        SCALES[sp].levels
+          .map(
+            l =>
+              `<div class="card"><span class="h3" style="font-size:18px">${l.n} · ${l.t}</span><p class="small"><b>Prérequis :</b> ${l.pre.map(esc).join(' · ')}</p><p class="small"><b>Attendus :</b> ${l.att.map(esc).join(' · ')}</p></div>`
           )
-        : none('users', 'Aucun groupe', 'Crée ton premier groupe d’entraînement.')) +
-      `<div class="card"><button class="btn full" data-a="newPost" data-k="train">${ic('plus')}Créer un groupe</button></div>`;
-  }
-  if (t === 'equipe') {
-    const coaches = [
-      ...new Set(
-        GROUPS.filter(g => g.type === 'train' && g.coach)
-          .map(g => g.coach)
-          .concat(window.RAM && RAM.live ? Object.keys(RAM.roles || {}).filter(k => RAM.roles[k] === 'coach') : [])
-      )
-    ].filter(k => M[k]);
-    b =
-      `<div class="card"><p class="muted small">Qui encadre quel groupe. ${coAll() ? 'Ouvre un groupe pour changer son enseignant.' : 'Le bureau du club répartit les groupes.'}</p></div>` +
-      coaches
-        .map(k => {
-          const gs = GROUPS.filter(g => g.type === 'train' && g.coach === k),
-            h = gs.reduce((a, g) => a + durMin(g.dur), 0) / 60;
-          return `<div class="card"><div class="row" style="gap:10px">${av(k, 'sm')}<span class="grow"><span class="nm">${esc(name(k))}</span><br><span class="muted small">${plural(gs.length, 'groupe')} · ${fr(h)} h par semaine</span></span></div>${gs.map(g => `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${DAYS[g.day]} ${g.h} · ${plural(coStu(g).length, 'élève')}</span></span></button>`).join('')}</div>`;
-        })
-        .join('');
-  }
-  if (t === 'stats') b = coStats();
-  if (t === 'niveaux')
-    b = Object.keys(SCALES)
-      .map(
-        sp =>
-          hd(SCALES[sp].name) +
-          SCALES[sp].levels
-            .map(
-              l =>
-                `<div class="card"><span class="h3" style="font-size:18px">${l.n} · ${l.t}</span><p class="small"><b>Prérequis :</b> ${l.pre.map(esc).join(' · ')}</p><p class="small"><b>Attendus :</b> ${l.att.map(esc).join(' · ')}</p></div>`
-            )
-            .join('')
-      )
-      .join('');
-  return (
-    segs('coTab', [
-      ['groupes', 'Groupes', 'users'],
-      ['equipe', 'Équipe', 'school'],
-      ['stats', 'Statistiques', 'chart'],
-      ['niveaux', 'Niveaux', 'ladder']
-    ]) + `<div class="pad">${t === 'stats' || t === 'niveaux' ? '' : coClubBar()}${b}</div>`
-  );
-}
+          .join('')
+    )
+    .join('')}</div>`;
 /* ---------- page d'un groupe vue par l'enseignant ---------- */
 function coGroupe(id) {
   const g = grp(id);
@@ -542,37 +545,91 @@ ${c ? list(`<button class="item" data-a="open" data-v="chan" data-id="${c.id}"><
 ${hd('Prochaines séances · thèmes')}<form id="co-themes" data-id="${g.id}" class="card">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist><button class="btn full">Enregistrer les thèmes</button></form>
 ${hd('Élèves')}<div class="card">${st.map(k => `<div class="corow">${coAv(k)}<button class="nm grow" data-a="open" data-v="eleve" data-id="${k}" style="text-align:left">${esc(svName(k))}</button><button class="ib" data-a="coRm" data-g="${g.id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} du groupe">${ic('x')}</button></div>`).join('') || empty('users', 'Aucun élève', '')}<button class="btn sm full" data-a="coAdd" data-id="${g.id}">${ic('plus')}Ajouter des élèves</button></div></div>`;
 }
-/* ---------- Profil : la page de l'enseignant (pas celle du Club : ni palmarès, ni trophées, ni abonnés) ---------- */
+/* ---------- Profil : la page de l'enseignant, sur le modèle du profil /RAM JA ----------
+   carte d'identité bordeaux, puis des cartes titrées : fiche enseignant, clubs (pour information : on n'y
+   change pas de club), apparence, notifications, compte /RAM. Rien du réseau social du Club. */
+const coPCard = (ey, h, body) =>
+  `<section class="card copc"><span class="coey">${ey}</span><h2 class="coh2">${h}</h2>${body}</section>`;
+function coMyClubs() {
+  if (window.RAM && RAM.live)
+    return RAM.clubs
+      .filter(c => c.role === 'coach' || c.role === 'bureau' || S.super)
+      .sort((a, b) => Number(b.main) - Number(a.main) || String(a.name).localeCompare(b.name))
+      .map(c => ({
+        name: c.name,
+        main: c.main,
+        role: S.super ? 'Administrateur' : c.role === 'bureau' ? 'Bureau et enseignant' : 'Enseignant'
+      }));
+  return [{ name: club().name, main: true, role: 'Enseignante' }].concat(
+    Object.keys(CO_EXT).map(id => ({ name: CO_EXT[id].name, main: false, role: 'Enseignante' }))
+  );
+}
 function coProfile() {
   const me = ME(),
     m = M[me] || { n: 'Moi' },
     p = proOf(me),
-    mine = coGroups('me'),
+    mine = coAllGroups('me'),
     hrs = mine.reduce((a, g) => a + durMin(g.dur), 0) / 60,
     nEl = new Set(mine.flatMap(coStu)).size,
+    clubs = coMyClubs(),
+    [fn, ...ln] = String(m.n).split(' '),
+    role = S.super ? 'Administrateur' : S.role === 'admin' ? 'Bureau et enseignant' : 'Enseignant',
     N = [
       ['suivi', 'Messages, réponses et vidéos de mes élèves'],
       ['chan', 'Messages dans mes groupes'],
-      ['club', 'Annonces et événements du club']
+      ['club', 'Annonces et événements de mes clubs']
     ],
-    mode = (k, l, i) =>
-      `<button class="chip" data-a="mode" data-k="${k}" aria-pressed="${(S.mode || 'systeme') === k}">${ic(i)}${l}</button>`;
-  return `<div class="pad"><div class="card coid"><div class="row" style="gap:14px">${M[me] ? `<label class="avedit" aria-label="Changer ma photo">${av(me, 'lg')}<span class="cam">${ic('image')}</span><input type="file" id="me-photo" accept="image/*"></label>` : ''}<div class="grow"><span class="h3">${esc(m.n)}</span><br><span class="muted small">${S.super ? 'Administrateur' : S.role === 'admin' ? 'Bureau et enseignant' : 'Enseignant'}${coMulti() ? ' · ' + plural(Object.keys(CO_EXT).length + 1, 'club') : ''}</span>${window.RAM && RAM.user ? `<br><span class="muted small">${esc(RAM.user.email || '')}</span>` : ''}</div></div></div>
-<div class="stats"><div><b>${mine.length}</b><span>Groupes</span></div><div><b>${nEl}</b><span>Élèves</span></div><div><b>${fr(hrs)}</b><span>Heures / sem.</span></div><div><b>${p.since ? +TODAY.slice(0, 4) - +p.since : '–'}</b><span>Ans d'expérience</span></div></div>
-${hd('Ma fiche enseignant')}${p.on ? profCard(me, true) : '<div class="card"><p>Ta fiche n’est pas encore publiée. Remplis-la pour apparaître dans /RAM Club, École, Enseignants, avec ton diplôme, tes coordonnées, tes tarifs et ton lien de réservation.</p></div>'}<div class="card"><button class="btn full ${p.on ? 'ghost' : ''}" data-a="coPro">${ic('edit')}${p.on ? 'Modifier ma fiche' : 'Remplir ma fiche'}</button></div>
-${hd('Affichage')}<div class="card"><div class="chips">${mode('jour', 'Jour', 'sun')}${mode('nuit', 'Nuit', 'moon')}${mode('systeme', 'Système', 'screen')}</div></div>
-${hd('Notifications')}<div class="card">${N.map(x => `<div class="ct"><span class="grow">${x[1]}</span><button class="tg" role="switch" aria-checked="${!!S.nset[x[0]]}" aria-label="${x[1]}" data-a="nset" data-k="${x[0]}"></button></div>`).join('')}<div class="ct"><span class="grow">Notifications sur ce téléphone<br><span class="muted small">Même quand l'appli est fermée</span></span><button class="btn sm ghost" data-a="pushOn">Activer</button></div></div>
-<div id="ramClubsBox" hidden></div><div id="ramAccount" class="ram-acc" hidden></div>
-${hd('Aide et compte')}${list(`<button class="item" data-a="open" data-v="aide"><span class="tile">${ic('info')}</span><span class="grow nm">Aide : tout savoir sur /RAM Coach</span></button><button class="item" data-a="open" data-v="legal"><span class="tile">${ic('shield')}</span><span class="grow nm">Conditions et confidentialité</span></button>${window.RAM && RAM.user ? `<button class="item" data-a="logout"><span class="tile">${ic('logout')}</span><span class="grow nm">Se déconnecter de /RAM Coach</span></button>` : ''}`)}</div>`;
+    seg = (a, val, l) =>
+      `<div class="coseg">${l.map(([k, t, i]) => `<button data-a="${a}" data-k="${k}" aria-pressed="${val === k}">${i ? ic(i) : ''}${t}</button>`).join('')}</div>`,
+    user = window.RAM && RAM.user;
+  const hero = `<section class="card cohero"><span class="coey">Mon compte enseignant</span><div class="row" style="gap:16px;align-items:center">${M[me] ? `<label class="avedit" aria-label="Changer ma photo">${av(me, 'xl')}<span class="cam">${ic('image')}</span><input type="file" id="me-photo" accept="image/*"></label>` : ''}<div class="grow" style="min-width:0"><h1 class="coname"><span>${esc(fn)}</span> <span>${esc(ln.join(' '))}</span></h1><div class="tags" style="display:flex;margin-top:8px"><span class="tag copink">${role}</span><span class="tag coghost">${plural(clubs.length, 'club')}</span></div></div></div></section>`;
+  const fiche = coPCard(
+    'Profil public',
+    'Ma fiche enseignant',
+    `${p.on ? profCard(me, true) : '<p>Ta fiche n’est pas encore publiée. Remplis-la pour apparaître dans /RAM Club, École, Enseignants, avec ton diplôme, tes coordonnées, tes tarifs et ton lien de réservation.</p>'}<button class="btn full ${p.on ? 'ghost' : ''}" data-a="coPro">${ic('edit')}${p.on ? 'Modifier ma fiche' : 'Remplir ma fiche'}</button>`
+  );
+  const mesClubs = coPCard(
+    'Clubs',
+    'Mes clubs',
+    `<div class="colist">${clubs.map(c => `<div class="item"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">${c.role}</span></span>${c.main ? '<span class="tag copink">Club principal</span>' : ''}</div>`).join('')}</div><p class="muted small">Tous tes groupes et tous tes élèves, de tous tes clubs, sont dans /RAM Coach. Le club principal est celui de ta licence, choisi dans /RAM Club.</p><button class="btn full ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button>`
+  );
+  const look = coPCard(
+    'Affichage',
+    'Apparence',
+    `${seg('mode', S.mode || 'systeme', [
+      ['jour', 'Jour', 'sun'],
+      ['nuit', 'Nuit', 'moon'],
+      ['systeme', 'Système', 'screen']
+    ])}<h3 class="coh3">Style de l'interface</h3>${seg('ustyle', S.ustyle || '', [
+      ['epure', 'Épuré'],
+      ['', 'Street dosé'],
+      ['street', 'Full street']
+    ])}<h3 class="coh3">Fond de l'interface</h3><div class="motifs">${MOTIFS.map(([k, l]) => `<button data-a="motif" data-k="${k}" aria-pressed="${S.motif === k}"><i class="${k}"></i>${l}</button>`).join('')}</div><p class="muted small">Choix mémorisé sur cet appareil.</p>`
+  );
+  const notifs = coPCard(
+    'Notifications',
+    'Mes notifications',
+    `${N.map(x => `<div class="ct"><span class="grow">${x[1]}</span><button class="tg" role="switch" aria-checked="${!!S.nset[x[0]]}" aria-label="${x[1]}" data-a="nset" data-k="${x[0]}"></button></div>`).join('')}<div class="ct"><span class="grow">Notifications sur ce téléphone<br><span class="muted small">Même quand l'appli est fermée</span></span><button class="btn sm ghost" data-a="pushOn">Activer</button></div>`
+  );
+  const compte = coPCard(
+    'Compte /RAM',
+    'Mon compte',
+    `<div class="colist"><div class="cokv"><span class="muted">E-mail</span><b>${user ? esc(user.email || '') : 'Démonstration'}</b></div><div class="cokv"><span class="muted">Applis</span><b>/RAM Coach · /RAM Club · /RAM JA</b></div></div><p class="muted small">Un seul compte /RAM pour les trois applis. Le mot de passe se change dans ton profil /RAM JA.</p><div class="cotools">${user ? '<a class="btn ghost" href="https://ja.riseandmove.fr/profil" target="_blank" rel="noopener">Mot de passe</a>' : ''}<button class="btn ghost" data-a="open" data-v="aide">${ic('info')}Aide</button><button class="btn ghost" data-a="open" data-v="legal">${ic('shield')}Conditions</button>${user ? `<button class="btn ghost" data-a="logout">${ic('logout')}Se déconnecter</button>` : ''}</div>`
+  );
+  const stats = `<div class="stats"><div><b>${mine.length}</b><span>Groupes</span></div><div><b>${nEl}</b><span>Élèves</span></div><div><b>${fr(hrs)}</b><span>Heures / sem.</span></div><div><b>${p.since ? +TODAY.slice(0, 4) - +p.since : '–'}</b><span>Ans d'expérience</span></div></div>`;
+  return `<div class="pad coprof">${hero}${stats}${fiche}${mesClubs}${look}${notifs}${compte}</div>`;
 }
 Object.assign(V, {
   today: coToday,
+  dash: coDash,
   planning: coPlanning,
   seance: coSeance,
   eleves: coEleves,
   eleve: coEleve,
   msgs: coMsgs,
-  ecole: coEcole,
+  clubs: coClubs,
+  cclub: coClubPage,
+  niveaux: coLevels,
   cgroupe: coGroupe,
   me: coProfile
 });
