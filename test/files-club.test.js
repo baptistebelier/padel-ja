@@ -63,3 +63,26 @@ test('adhésions indexées : rejoindre, retrouver ses clubs, quitter', async () 
   assert.deepEqual(await ram.myClubs('E'), []);
   assert.equal((await ram.memberInfo(c.id, 'F')).key, j1.key);
 });
+
+test('synchro : scores et compteurs envoyés seulement quand ils changent', async () => {
+  const ram = createRamClub(null, { backend: memoryBackend(() => null) });
+  const c = await ram.create({ id: 'A', name: 'Alice' }, { name: 'Club Scores' });
+  const full = await ram.sync('A', c.id, 0);
+  assert.ok(full.counts && full.scores, 'première synchronisation : tout');
+  const again = await ram.sync('A', c.id, full.rev);
+  assert.equal(again.counts, undefined, 'rien de changé : pas de compteurs');
+  assert.equal(again.scores, undefined);
+  assert.ok(again.wallet, 'le solde de points reste envoyé');
+  // une publication simple ne change aucun compteur : toujours rien ; un « j'aime » en change un : ils reviennent
+  await ram.ops('A', c.id, [{ coll: 'post', id: 'p1', op: 'put', data: { by: c.key, txt: 'Bonjour', at: Date.now() } }]);
+  const s1 = await ram.sync('A', c.id, full.rev);
+  assert.equal(s1.items.length, 1);
+  assert.equal(s1.counts, undefined);
+  await ram.ops('A', c.id, [{ coll: 'post', id: 'p1', op: 'patch', patch: [{ p: ['likers'], t: 'add', v: c.key }] }]);
+  const after = await ram.sync('A', c.id, s1.rev);
+  assert.equal(after.counts[c.key].like, 1, 'compteurs mis à jour');
+  // un changement de rôle donne une nouvelle version du club
+  const j = await ram.join({ id: 'E', name: 'Eva' }, c.code), r0 = (await ram.sync('A', c.id, 0)).rev;
+  await ram.setRole('A', c.id, j.key, 'coach');
+  assert.ok((await ram.sync('A', c.id, r0)).rev > r0);
+});
