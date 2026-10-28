@@ -101,29 +101,16 @@ TITLES.formules = () => ['Formules et tarifs', 'Séances, packs et abonnements']
 /* séances faites par l'élève (cours ponctuels et séances de ses groupes : cycles, duos, collectifs), de la plus
    ancienne : elles se décomptent des packs, du plus ancien au plus récent. Une séance compte pour un pack si elle a
    la durée de sa formule et le même format (individuel, duo, collectif) ; un pack payé un peu après sa première
-   séance (« payé au mois ») la compte aussi : jusqu'à 14 jours avant la date d'achat. */
-const coFmt = n => (n >= 3 ? 3 : n); // 1 individuel, 2 duo, 3 collectif
+   séance (« payé au mois ») la compte aussi : jusqu'à 14 jours avant la date d'achat. La règle est dans regles.js
+   (REGLES.couverture), la même que celle du serveur et du chiffre d'affaires. */
+/* séances faites où l'élève était présent : { d, min, n (inscrits : le format), sport } */
+const coVenues = id =>
+  SEANCES.filter(s => s.d <= TODAY && s.pres && s.pres[id] === 'P')
+    .map(s => ({ s, g: GROUPS.find(g => g.id === s.g && (g._club || '') === (s._club || '')) }))
+    .filter(x => x.g && !isCx(x.g, x.s.d))
+    .map(x => ({ d: x.s.d, min: durMin(x.g.dur), n: coStu(x.g).length, sport: x.g.sport }));
 function coPacks(id) {
-  const e = coEl(id) || {},
-    l = (e.achats || []).slice().sort((a, b) => a.d.localeCompare(b.d)),
-    done = SEANCES.filter(s => s.d <= TODAY && s.pres && s.pres[id] === 'P')
-      .map(s => ({ s, g: GROUPS.find(g => g.id === s.g && (g._club || '') === (s._club || '')) }))
-      .filter(x => x.g && !isCx(x.g, x.s.d))
-      .sort((a, b) => a.s.d.localeCompare(b.s.d)),
-    used = new Set();
-  return l.map(a => {
-    const o = Object.assign({}, a, { used: 0 });
-    if (a.t !== 'pack') return o;
-    const p = OFFRES.packs.find(x => x.id === a.ref),
-      f = p && foOf(p.formule);
-    done.forEach(x => {
-      if (o.used >= (a.n || 0) || used.has(x.s) || x.s.d < isoIn(-14, a.d)) return;
-      if (f && (durMin(x.g.dur) !== f.duree || coFmt(coStu(x.g).length) !== coFmt(f.joueurs))) return;
-      used.add(x.s);
-      o.used++;
-    });
-    return o;
-  });
+  return REGLES.couverture((coEl(id) || {}).achats || [], coVenues(id), OFFRES).achats;
 }
 function coAchatsCard(id) {
   const l = coPacks(id).reverse();

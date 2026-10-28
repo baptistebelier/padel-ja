@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-10-28-medias1';
+const VERSION = '2026-10-28-regles1';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -16,6 +16,7 @@ const CORE = [
   'img/favicon.png',
   'icon-192.png',
   'logo.js',
+  'regles.js',
   'data.js',
   'ui/1-briques.js',
   'ui/2-publications.js',

@@ -44,12 +44,14 @@ test('Calendly : réservation lue à l’heure de Paris, avec objectif et partic
 test('Calendly : la séance arrive dans le planning /RAM Coach, puis l’annulation', async () => {
   const coach = { id: 'C1', email: 'coach@test.fr', pass_hash: 'h' };
   await store.saveUser(coach);
+  // ses formules : le tarif d'une réservation vient de la formule correspondante (plus d'une grille fixe)
+  await require('../lib/formules').save(store, 'C1', { formules: [{ id: 'f1', nom: 'Cours individuel', joueurs: 1, duree: 90, prix: 50 }, { id: 'f2', nom: 'Cours duo', joueurs: 2, duree: 60, prix: 30, par: 'personne' }] });
   const club = await ram.create({ id: 'C1', name: 'Baptiste Coach' }, { name: 'Chiquita Essai', short: 'chq' });
   await ram.ops('C1', club.id, [{ coll: 'eleve', id: 'e1', op: 'put', data: { n: 'Johanna Perrouin', mail: 'jo@test.fr', sport: 'Padel' } }]);
   const groups = async () => (await ram.sync('C1', club.id, 0)).items.filter(x => x.coll === 'group' && x.data.cal).map(x => x.data);
   const eleves = async () => (await ram.sync('C1', club.id, 0)).items.filter(x => x.coll === 'eleve').map(x => x.data);
 
-  // nouvelle élève : fiche créée, séance ponctuelle avec l'objectif, au tarif de 1 h 30
+  // nouvelle élève : fiche créée, séance ponctuelle avec l'objectif, au prix de la formule individuelle 1 h 30
   const r = await mcp.calendly.book(coach, Calendly.booking(hook('invitee.created')));
   assert.equal(r.nouveau_groupe, true);
   let g = (await groups())[0];

@@ -202,10 +202,7 @@ const THEMES = {
 /* ce que rapporte chaque séance (réglé par groupe) : par séance, à l'heure, ou par élève présent */
 const TARIF_MODES = { seance: 'par séance', heure: 'de l’heure', eleve: 'par élève présent' };
 const tarifOf = g => g.tarif || { mode: 'seance', prix: 0 };
-const durMin = d => {
-  const m = String(d || '').match(/(\d+) h(?: (\d+))?|(\d+) min/);
-  return m ? (m[3] ? +m[3] : +m[1] * 60 + (+m[2] || 0)) : 60;
-};
+const durMin = REGLES.durMin; // regles.js, comme le serveur
 
 /* ---------- démo : l'enseignante du club fictif, ses groupes, ses élèves et ses séances passées ---------- */
 (() => {

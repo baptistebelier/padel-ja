@@ -522,10 +522,24 @@ function coMsgs() {
 const MOIS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
 const coSeasonStart = () => (+TODAY.slice(5, 7) >= 9 ? TODAY.slice(0, 4) : +TODAY.slice(0, 4) - 1) + '-09-01';
 const coPres = x => (x.s && x.s.pres ? Object.values(x.s.pres).filter(v => v === 'P').length : 0);
-const coMoney = x => {
-  const t = tarifOf(x.g);
-  return t.mode === 'heure' ? (t.prix * durMin(x.g.dur)) / 60 : t.mode === 'eleve' ? t.prix * coPres(x) : +t.prix || 0;
-};
+// valeur d'une séance selon le tarif réglé sur son groupe (regles.js) : sert au détail par groupe
+const coMoney = x => REGLES.valeurGroupe(x.g, coPres(x));
+/* chiffre d'affaires réel (regles.js, le même calcul que le serveur) : les achats des élèves de la période,
+   et les séances faites sans achat qui les couvre (à encaisser). L'historique remonte au plus ancien achat :
+   un pack acheté avant la période se décompte avec ses premières séances. */
+function coChiffre(from, to) {
+  const el = ELEVES.filter(e => coInClub(e)),
+    first = el.reduce((m, e) => (e.achats || []).reduce((m2, a) => (a.d && a.d < m2 ? a.d : m2), m), from),
+    seances = coSessions(isoIn(-14, first), to)
+      .filter(x => !isCx(x.g, x.d) && x.s && x.s.pres)
+      .map(x => ({
+        g: x.g,
+        d: x.d,
+        n: coStu(x.g).length,
+        presents: Object.keys(x.s.pres).filter(k => x.s.pres[k] === 'P')
+      }));
+  return REGLES.chiffre({ eleves: Object.fromEntries(el.map(e => [e.id, e])), seances, offres: OFFRES, from, to });
+}
 /* chiffres d'une liste de séances faites */
 function coFigures(l) {
   const called = l.filter(x => x.s && x.s.pres),
@@ -545,6 +559,7 @@ function coDash() {
     gs = coGroups(),
     done = coSessions(from, TODAY).filter(x => !isCx(x.g, x.d)),
     F = coFigures(done),
+    C = coChiffre(from, TODAY),
     eleves = new Set(gs.flatMap(coStu)),
     act = gs.filter(g => coIsGrp(g) && !coOver(g)),
     fillG = act.filter(g => g.max),
@@ -553,7 +568,8 @@ function coDash() {
       : null,
     terrain = act.reduce((a, g) => a + durMin(g.dur), 0) / 60;
   // évolution mois par mois (12 derniers mois, ou depuis la rentrée)
-  const months = [];
+  const months = [],
+    C12 = coChiffre(isoIn(-400), TODAY);
   for (let i = 11; i >= 0; i--) {
     const [y, m] = TODAY.split('-').map(Number),
       d = new Date(y, m - 1 - i, 1),
@@ -561,9 +577,9 @@ function coDash() {
       z = isoIn(-1, new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString().slice(0, 10)),
       l = coSessions(a, z < TODAY ? z : TODAY).filter(x => !isCx(x.g, x.d));
     if (per !== 'an' && a < coSeasonStart()) continue;
-    months.push([MOIS[d.getMonth()], coFigures(l)]);
+    months.push([MOIS[d.getMonth()], coFigures(l), C12.parMois[a.slice(0, 7)] || 0]);
   }
-  const mx = Math.max(1, ...months.map(m => m[1].eur));
+  const mx = Math.max(1, ...months.map(m => m[2]));
   const row = (t, sub, v) =>
     `<div class="cokv"><span class="grow">${t}<br><span class="muted small">${sub}</span></span><b>${v}</b></div>`;
   const byClub = coMulti()
@@ -614,13 +630,13 @@ function coDash() {
   ]
     .map(p => `<button class="chip" data-a="coDashP" data-v="${p[0]}" aria-pressed="${per === p[0]}">${p[1]}</button>`)
     .join('')}</div></div>
-<div class="stats codash"><div><b>${eurs(F.eur)}</b><span>Chiffre d'affaires</span></div><div><b>${fr(F.h)}</b><span>Heures données</span></div><div><b>${eleves.size}</b><span>Élèves</span></div><div><b>${F.n}</b><span>Séances</span></div><div><b>${fill == null ? '–' : fill + ' %'}</b><span>Remplissage</span></div><div><b>${F.att == null ? '–' : F.att + ' %'}</b><span>Présence</span></div><div><b>${fr(terrain)}</b><span>H de terrain / sem.</span></div><div><b>${F.h ? eurs(F.eur / F.h) : '–'}</b><span>Par heure</span></div></div>
-${hd('Évolution mois par mois')}<div class="card cobars comonths">${months.map(([l, f]) => `<div><b>${f.eur ? Math.round(f.eur) : ''}</b><i style="height:${Math.round((f.eur / mx) * 100)}%"></i><span>${l}</span><small>${fr(f.h)} h</small></div>`).join('')}</div>
+<div class="stats codash"><div><b>${eurs(C.encaisse)}</b><span>Encaissé</span></div><div><b>${eurs(C.aEncaisser)}</b><span>À encaisser</span></div><div><b>${fr(F.h)}</b><span>Heures données</span></div><div><b>${eleves.size}</b><span>Élèves</span></div><div><b>${F.n}</b><span>Séances</span></div><div><b>${fill == null ? '–' : fill + ' %'}</b><span>Remplissage</span></div><div><b>${F.att == null ? '–' : F.att + ' %'}</b><span>Présence</span></div><div><b>${fr(terrain)}</b><span>H de terrain / sem.</span></div></div>
+${hd('Encaissé mois par mois')}<div class="card cobars comonths">${months.map(([l, f, e]) => `<div><b>${e ? Math.round(e) : ''}</b><i style="height:${Math.round((e / mx) * 100)}%"></i><span>${l}</span><small>${fr(f.h)} h</small></div>`).join('')}</div>
 ${byClub ? hd('Par club') + `<div class="card">${byClub}</div>` : ''}
 ${hd('Par groupe')}<div class="card">${byGroup || empty('users', 'Aucun groupe', '')}</div>
 ${byOnce ? hd('Séances ponctuelles') + `<div class="card">${byOnce}</div>` : ''}
 ${bySport ? hd('Par sport') + `<div class="card">${bySport}</div>` : ''}
-<div class="card"><p class="muted small">Chiffre d'affaires calculé avec le tarif de chaque groupe (par séance, à l'heure ou par élève présent), réglable dans la page du groupe. Heures de terrain : un terrain par groupe pendant la durée du cours.</p></div></div>`;
+<div class="card"><p class="muted small">Encaissé : les achats notés dans les fiches des élèves (séances, packs, abonnements), au prix payé. À encaisser : ${plural(C.nonCouvertes, 'présence')} sans achat qui la couvre, au prix de ta formule correspondante (les groupes sans formule correspondante, payés par le club, ne comptent pas).${C.prepaye ? ' Packs pas encore utilisés : ' + eurs(C.prepaye) + ' de séances dues.' : ''} Par club, groupe et sport : la valeur des séances selon le tarif de chaque groupe. Heures de terrain : un terrain par groupe pendant la durée du cours.</p></div></div>`;
 }
 /* ---------- Mes clubs : les clubs où j'enseigne ; dans chacun, mes groupes et ses élèves ---------- */
 function coClubs() {
