@@ -465,11 +465,15 @@ document.addEventListener('change', e => {
       showAtt();
     });
   if (el.id === 'me-photo' && el.files[0])
-    shrink(el.files[0], u => {
-      M[ME()].photo = u;
-      render(true);
-      toast('Photo de profil mise à jour');
-    });
+    shrink(
+      el.files[0],
+      u => {
+        M[ME()].photo = u;
+        render(true);
+        toast('Photo de profil mise à jour');
+      },
+      480
+    );
   if (el.id === 'd-ph') {
     [...el.files].slice(0, 10 - S.imgs.length).forEach(f =>
       shrink(f, u => {

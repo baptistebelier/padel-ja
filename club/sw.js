@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-10-28-coach31';
+const VERSION = '2026-10-28-medias1';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -102,6 +102,9 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   /* données du club (API du serveur) : jamais en cache, toujours fraîches */
   if (new URL(req.url).pathname.includes('/api/')) return;
+  /* images des clubs (/medias/…) : gardées un an par le navigateur lui-même, pas dans le cache de l'appli
+     (vidé à chaque mise à jour) */
+  if (new URL(req.url).pathname.startsWith('/medias/')) return;
   const url = new URL(req.url),
     page = req.mode === 'navigate' || url.pathname.endsWith('/' + SHELL) || url.pathname.endsWith('/');
   if (page) {

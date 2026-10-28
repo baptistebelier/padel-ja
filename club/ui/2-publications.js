@@ -185,7 +185,7 @@ function postBody(p) {
 /* Bandeau partenaires : pas une publication, une frise colorée qui défile */
 const plogo = (x, c) =>
   x.logo
-    ? `<img class="${c || ''}${/^data:image\/png/.test(x.logo) ? ' png' : ''}" src="${x.logo}" alt="" style="${x.dark ? 'background:#0B0B0B;padding:4px' : ''}">`
+    ? `<img class="${c || ''}${/^data:image\/(png|webp)|\.(png|webp)$/.test(x.logo) ? ' png' : ''}" src="${x.logo}" alt="" style="${x.dark ? 'background:#0B0B0B;padding:4px' : ''}">`
     : `<span class="adl ${c || ''}">${x.name
         .split(' ')
         .filter(w => w.length > 2)

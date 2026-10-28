@@ -30,7 +30,8 @@ const Mesures = require('./lib/mesures.js');   // temps de réponse et taille pa
 const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
 const store = createStore(process.env.DATA_DIR || path.join(__dirname, 'data'));   // DATA_DIR : dossier de test
-const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || path.join(__dirname, 'data'));   // /RAM Club : clubs, publications, groupes…
+const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || path.join(__dirname, 'data'));
+const medias = require('./lib/medias.js').createMedias(process.env.DATA_DIR || path.join(__dirname, 'data'));   // images des clubs, rangées en fichiers   // /RAM Club : clubs, publications, groupes…
 const { createClubs, withClubLinks } = require('./lib/clubs.js');
 const clubs = createClubs(store);   // référentiel des clubs commun aux deux applis
 withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le club_id de leur texte « club »
@@ -682,6 +683,13 @@ const server = http.createServer(async (req, res) => {
        Ailleurs (ja., localhost), elle reste accessible sous /club/ pour les essais. */
     // connecteur MCP /RAM pour Claude (OAuth avec le compte /RAM, lecture seule) : /mcp, /oauth/…, /.well-known/oauth-…
     if (await mcp(req, res, url)) return;
+    // images des clubs (photos, logos) : sur tous les domaines, gardées un an par l'appareil (l'adresse change avec l'image)
+    if (p.startsWith('/medias/')) {
+      const f = await medias.read(p.slice(8)).catch(e => { console.error('Images :', e.message); return null; });
+      if (!f) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Image introuvable'); }
+      res.writeHead(200, { 'Content-Type': f.type, 'Cache-Control': 'public, max-age=31536000, immutable', 'Content-Length': f.buf.length });
+      return res.end(f.buf);
+    }
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
@@ -1049,7 +1057,7 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
         return ram.join({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, b.code).then(c => json(res, 200, c), fail);
       }
-      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo)$/);
+      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo|media)$/);
       // connexion en direct : l'appareil est prévenu dès qu'un élément du club change, puis il synchronise
       if (m && m[2] === 'events') {
         let ka = null, off = null, offT = null;
@@ -1080,7 +1088,14 @@ const server = http.createServer(async (req, res) => {
       }
       if (m && req.method === 'POST') {
         const b = await readBody(req);
-        if (m[2] === 'ops') return ram.ops(u.id, m[1], b.ops).then(r => json(res, 200, r), fail);
+        // image envoyée par l'appli (photo, logo) : rangée en fichier, l'appli garde seulement son adresse
+        if (m[2] === 'media') {
+          if (!(await ram.memberInfo(m[1], u.id))) return json(res, 403, { error: "Vous ne faites pas partie de ce club." });
+          const link = await medias.save(m[1], b.data).catch(e => { console.error('Images :', e.message); return undefined; });
+          return link ? json(res, 200, { url: link }) : json(res, link === undefined ? 503 : 400, { error: link === undefined ? 'Image non enregistrée : réessayez.' : 'Image illisible (PNG, JPEG ou WebP de 4 Mo au plus).' });
+        }
+        // anciennes versions de l'appli : leurs images intégrées sont rangées en fichiers avant l'enregistrement
+        if (m[2] === 'ops') return medias.extractOps(m[1], b.ops).then(ops => ram.ops(u.id, m[1], ops)).then(r => json(res, 200, r), fail);
         if (m[2] === 'role') return ram.setRole(u.id, m[1], b.key, b.role).then(r => json(res, 200, r), fail);
         if (m[2] === 'remove') return ram.remove(u.id, m[1], b.key).then(r => json(res, 200, r), fail);
       }
@@ -1479,6 +1494,14 @@ server.listen(PORT, '0.0.0.0', () => {
   groupes.watch(msg => console.error('  ' + msg));
   fiches.watch(msg => console.error('  ' + msg));
   watchClubIdentity();   // logo, adresse, terrains du club        // et ses groupes   // chaque changement d'un espace /RAM Club met à jour ses adhésions
+  // images encore intégrées aux données des clubs : rangées en fichiers, une seule fois (version notée dans les réglages du serveur)
+  setTimeout(async () => {
+    try {
+      if (((await store.getSetting('medias')) || {}).v >= 1) return;
+      await medias.migrate(ram, require('./lib/ramclub.js').COLLS, msg => console.log('  ' + msg));
+      await store.saveSetting('medias', { v: 1, at: Date.now() });
+    } catch (e) { console.error('  Images :', e.message); }
+  }, 15000).unref();
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);

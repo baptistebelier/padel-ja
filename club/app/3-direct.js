@@ -243,24 +243,48 @@ function shrinkLogo(file, cb) {
       c.width = Math.round(im.width * k) || 600;
       c.height = Math.round(im.height * k) || 240;
       c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-      cb(c.toDataURL('image/png'));
+      upload(webp(c) || c.toDataURL('image/png'), cb);
     };
     im.src = fr.result;
   };
   fr.readAsDataURL(file);
 }
-function shrink(file, cb) {
+/* WebP (transparence comprise, bien plus léger) quand le navigateur sait l'écrire */
+function webp(c) {
+  const u = c.toDataURL('image/webp', 0.82);
+  return u.startsWith('data:image/webp') ? u : null;
+}
+/* image d'un vrai club : envoyée au serveur, rangée en fichier ; l'appli ne garde que son adresse.
+   Démo, ou envoi impossible (hors ligne) : l'image reste intégrée, le serveur la rangera à l'enregistrement. */
+function upload(u, cb) {
+  if (!(window.RAM && RAM.live && RAM.club)) return cb(u);
+  fetch('/api/ram/c/' + RAM.club + '/media', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: u })
+  })
+    .then(r => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+    .then(
+      d => cb(d.url || u),
+      () => cb(u)
+    );
+}
+/* max : largeur maximale (900 px pour une photo de publication, moins pour une photo de profil) */
+function shrink(file, cb, max) {
   const fr = new FileReader();
   fr.onload = () => {
     const im = new Image();
     im.onload = () => {
-      const k = Math.min(1, 900 / im.width),
+      const k = Math.min(1, (max || 900) / im.width),
         c = document.createElement('canvas');
       c.width = im.width * k;
       c.height = im.height * k;
       const x = c.getContext('2d');
       x.drawImage(im, 0, 0, c.width, c.height);
-      // image avec transparence (logo PNG détouré) : gardée en PNG, sinon JPEG (plus léger)
+      const w = webp(c);
+      if (w) return upload(w, cb);
+      // sans WebP : image avec transparence (logo PNG détouré) gardée en PNG, sinon JPEG (plus léger)
       let alpha = false;
       try {
         const px = x.getImageData(0, 0, c.width, c.height).data;
@@ -270,7 +294,7 @@ function shrink(file, cb) {
             break;
           }
       } catch (e) {}
-      cb(alpha ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.8));
+      upload(alpha ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.8), cb);
     };
     im.src = fr.result;
   };
