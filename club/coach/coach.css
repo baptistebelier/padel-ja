@@ -1084,3 +1084,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* page d'une séance : participants cliquables (fiche de l'élève) et accès à la fiche du groupe */
+button.copp {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 0;
+  min-height: 36px;
+  cursor: pointer;
+  text-align: left;
+}
+button.copp:hover span:last-child {
+  text-decoration: underline;
+}
+.cogo {
+  margin-top: 10px;
+}
