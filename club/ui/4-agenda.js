@@ -13,12 +13,20 @@ function planItems(iso) {
       cat: 'ens',
       sport: g.sport,
       t: g.h,
-      dur: g.dur === '1 h' ? 60 : 90,
+      dur: typeof durMin === 'function' ? durMin(g.dur) : g.dur === '1 h' ? 60 : 90,
       sub:
         (cx ? 'Cours annulé · ' : 'Cours · ') +
         g.dur +
         (g.coach ? ' · ' + first(g.coach) : '') +
-        (cx ? '' : ' · ' + locOf(g, iso)),
+        (cx ? '' : ' · ' + locOf(g, iso)) +
+        // les élèves sans compte /RAM Club (ajoutés dans /RAM Coach) comptent aussi
+        (cx || !(g.mem.length + (g.ext || []).length)
+          ? ''
+          : ' · ' +
+            (g.mem.length + (g.ext || []).length) +
+            (g.max ? '/' + g.max : '') +
+            ' élève' +
+            (g.mem.length + (g.ext || []).length > 1 ? 's' : '')),
       title: g.name,
       cx,
       v: chans.some(c => c.id === g.id) ? 'chan' : 'grp',

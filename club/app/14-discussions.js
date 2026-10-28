@@ -217,3 +217,42 @@ const swpEnd = () => {
 };
 document.addEventListener('touchend', swpEnd, { passive: true });
 document.addEventListener('touchcancel', swpEnd, { passive: true });
+
+/* ---------- supprimer un groupe de discussion ----------
+   Le bureau (ou l'administrateur) supprime n'importe quel groupe, sauf Annonces et Général ; un enseignant, la
+   discussion de son groupe d'entraînement. Le groupe d'entraînement lui-même et ses séances restent : sa discussion
+   peut être recréée depuis sa page dans /RAM Coach. */
+const chanCanDel = c => {
+  if (!c || ['annonces', 'general'].includes(c.id)) return false;
+  const g = typeof grp === 'function' ? grp(c.id) : null;
+  return (
+    isAdmin() ||
+    !!S.super ||
+    !!(g && g.coach && (g.coach === ME() || (typeof coIsMe === 'function' && coIsMe(g.coach))))
+  );
+};
+const chanDelBtn = c =>
+  chanCanDel(c)
+    ? `<button class="ib" data-a="chanDel" data-id="${c.id}" aria-label="Supprimer le groupe de discussion ${esc(c.name)}">${ic('trash')}</button>`
+    : '';
+A.chanDel = d => {
+  const c = chans.find(x => x.id === d.id);
+  if (!chanCanDel(c)) return;
+  sheet(
+    'Supprimer la discussion',
+    `<div class="body"><p>Le groupe de discussion <b>${esc(c.name)}</b> et tous ses messages seront supprimés pour tout le monde.${grp(c.id) ? " Le groupe d'entraînement, ses élèves et ses séances restent." : ''}</p><button class="btn full hot" data-a="chanDelOk" data-id="${c.id}">${ic('trash')}Supprimer la discussion</button><button class="btn full ghost" data-a="closeSheet">Annuler</button></div>`
+  );
+};
+A.chanDelOk = d => {
+  const i = chans.findIndex(x => x.id === d.id);
+  if (i < 0) return closeSheet();
+  const name0 = chans[i].name;
+  chans.splice(i, 1);
+  closeSheet();
+  // si l'on était dans la discussion, on revient à la page d'avant
+  if (S.stack.length && S.stack[S.stack.length - 1].v === 'chan' && S.stack[S.stack.length - 1].id === d.id)
+    S.stack.pop();
+  render();
+  toast('Discussion « ' + name0 + ' » supprimée');
+};
+if (!A.closeSheet) A.closeSheet = () => closeSheet();

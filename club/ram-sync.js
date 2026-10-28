@@ -2106,12 +2106,17 @@
       .join('');
   }
   /* tournois /RAM JA d'un adhérent relié à sa fiche (« _ja », écrit par le serveur seulement) */
-  function jaCards(id) {
+  /* ma fiche /RAM JA (ou « Est-ce toi ? ») : tout en bas de mon profil, juste au-dessus de « Se déconnecter » */
+  function jaFiche(id) {
     let h = id === ME() ? jaAsk() : '';
     if (id === ME() && R.ja && R.ja.linked) {
       const p = R.ja.linked;
       h += `<div class="card"><span class="kicker">Fiche /RAM JA</span><p><b>${e(p.last)} ${e(p.first)}</b>${p.licence ? ' · licence ' + e(p.licence) : ''}${p.club ? ' · ' + e(p.club) : ''} · ${(p.history || []).length} tournoi${(p.history || []).length > 1 ? 's' : ''}</p><p class="muted small">Elle suit ton profil : nom, licence et classement padel sont mis à jour pour les juges-arbitres.</p></div>`;
     }
+    return h;
+  }
+  function jaCards(id) {
+    let h = '';
     const pid = (M[id] || {})._ja;
     if (pid) {
       const hs = jaHist(pid);
@@ -2125,16 +2130,16 @@
     let h = _profile(id);
     if (!R.live) return h;
     const ja = jaCards(id),
-      anchor = '<div class="stack"><span class="kicker">Palmarès de la saison</span>';
-    // à l'intérieur de la page (sinon la carte touche les bords de l'écran) ; dans mon profil :
-    // palmarès /RAM JA dans « Mon jeu », fiche /RAM JA dans « Mes infos »
-    const inside = (html, before) =>
-      html.includes(before) ? html.replace(before, () => ja + before) : html.replace(/<\/div>$/, () => ja + '</div>');
-    if (ja) {
-      if (id !== ME()) h = inside(h, anchor);
-      else if ((S.meTab || 'jeu') === 'jeu') h = inside(h, anchor);
-      else if (S.meTab === 'infos') h = inside(h, '<div id="ramClubsBox"');
-    }
+      fiche = jaFiche(id),
+      anchor = '<div class="stack"><span class="kicker">Palmarès de la saison</span>',
+      tab = S.meTab || 'jeu';
+    // à l'intérieur de la page (sinon la carte touche les bords de l'écran) ; dans mon profil : tournois /RAM JA
+    // avec le palmarès de « Mon jeu », fiche /RAM JA tout en bas de « Mon jeu » et de « Mes infos »,
+    // juste au-dessus de « Se déconnecter »
+    const inside = (html, before, x) =>
+      html.includes(before) ? html.replace(before, () => x + before) : html.replace(/<\/div>$/, () => x + '</div>');
+    if (ja && (id !== ME() || tab === 'jeu')) h = inside(h, anchor, ja);
+    if (fiche && (tab === 'jeu' || tab === 'infos')) h = inside(h, '<button class="btn ghost full logout"', fiche);
     if (id === ME() && isBureau() && R.code)
       h = h.replace(
         '<div class="phero">',

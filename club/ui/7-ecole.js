@@ -10,6 +10,11 @@ function sessions(g, days) {
   }
   return out;
 }
+/* élèves d'un groupe : adhérents de l'appli et élèves sans compte /RAM Club (ajoutés dans /RAM Coach) */
+const grpN = g => g.mem.length + (g.ext || []).length;
+const grpFull = g => !!g.max && grpN(g) >= g.max;
+/* un vrai groupe, en cours : ni une séance ponctuelle (cours individuel), ni un cycle terminé */
+const grpLive = g => g.type === 'train' && !g.once && !(g.to && g.to < TODAY);
 const locOf = (g, iso) => (g.loc || {})[iso] || g.defLoc || 'Extérieur';
 const respOf = (g, iso, id) => ((g.resp || {})[iso] || {})[id] || (((g.abs || {})[iso] || []).includes(id) ? 'no' : '');
 function sessCard(g, iso, who, manage) {
@@ -20,12 +25,12 @@ function sessCard(g, iso, who, manage) {
     nOk = g.mem.filter(p => respOf(g, iso, p) === 'ok').length,
     nNo = g.mem.filter(p => respOf(g, iso, p) === 'no').length;
   return (
-    `<div class="card"><div class="row" style="align-items:flex-start;gap:12px"><span class="dblk"><b>${d}</b>${MO[m - 1]}</span><div class="grow"><span class="h3" style="font-size:19px">${g.name}</span><br><span class="muted small">${DA[new Date(y, m - 1, d).getDay()]} · ${g.h} · ${g.dur}${g.coach ? ' · ' + first(g.coach) : ''}</span><div class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag loc">${ic(loc === 'En salle' ? 'home' : 'sun')}${loc}</span>`}${sportTag(g.sport)}${who && who !== ME() ? `<span class="tag">${first(who)}</span>` : ''}</div></div></div>` +
+    `<div class="card"><div class="row" style="align-items:flex-start;gap:12px"><span class="dblk"><b>${d}</b>${MO[m - 1]}</span><div class="grow"><span class="h3" style="font-size:19px">${g.name}</span><br><span class="muted small">${DA[new Date(y, m - 1, d).getDay()]} · ${g.h} · ${g.dur}${g.coach ? ' · ' + first(g.coach) : ''}</span><div class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag loc">${ic(loc === 'En salle' ? 'home' : 'sun')}${loc}</span>`}${sportTag(g.sport)}${who && who !== ME() ? `<span class="tag">${first(who)}</span>` : ''}${manage || !who ? `<span class="tag">${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' / ' + g.max : ''}</span>${grpFull(g) ? '<span class="tag" style="background:var(--accent);color:var(--on-accent)">Complet</span>' : ''}` : ''}</div></div></div>` +
     (cx || !who
       ? ''
       : `<div class="ctl"><button class="btn sm grow ${r === 'ok' ? '' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${who}" data-s="ok">${who === ME() ? 'Je serai présent' : first(who) + ' sera présent'}</button><button class="btn sm grow ${r === 'no' ? 'hot' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${who}" data-s="no">Absent</button></div>`) +
     (manage
-      ? `<span class="muted small">${nOk} présent${nOk > 1 ? 's' : ''} annoncé${nOk > 1 ? 's' : ''} · ${nNo} absent${nNo > 1 ? 's' : ''} · ${g.mem.length} élève${g.mem.length > 1 ? 's' : ''}</span><div class="ctl" style="flex-wrap:wrap">${cx ? '' : `<button class="btn sm grow ghost" data-a="loc" data-g="${g.id}" data-d="${iso}">${loc === 'En salle' ? 'Passer en extérieur' : 'Passer en salle'}</button>`}<button class="btn sm grow ${cx ? '' : 'ghost'}" data-a="cancelCourse" data-id="${g.id}" data-d="${iso}">${cx ? 'Rétablir le cours' : 'Annuler'}</button><button class="btn sm grow" data-a="open" data-v="grp" data-id="${g.id}">Appel</button></div>`
+      ? `<span class="muted small">${nOk} présent${nOk > 1 ? 's' : ''} annoncé${nOk > 1 ? 's' : ''} · ${nNo} absent${nNo > 1 ? 's' : ''} · ${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.ext && g.ext.length ? ' dont ' + g.ext.length + ' sans compte' : ''}</span><div class="ctl" style="flex-wrap:wrap">${cx ? '' : `<button class="btn sm grow ghost" data-a="loc" data-g="${g.id}" data-d="${iso}">${loc === 'En salle' ? 'Passer en extérieur' : 'Passer en salle'}</button>`}<button class="btn sm grow ${cx ? '' : 'ghost'}" data-a="cancelCourse" data-id="${g.id}" data-d="${iso}">${cx ? 'Rétablir le cours' : 'Annuler'}</button><button class="btn sm grow" data-a="open" data-v="grp" data-id="${g.id}">Appel</button></div>`
       : '') +
     `</div>`
   );
@@ -120,10 +125,11 @@ function ecoleBody(t) {
       (staff ? `<button class="btn full ghost" data-a="newPost" data-k="stage">Créer un stage</button>` : '');
   }
   if (t === 'manage') {
-    const gs = GROUPS.filter(g => g.type === 'train' && (coach ? g.coach === me : true));
+    const all = GROUPS.filter(g => g.type === 'train' && (coach ? g.coach === me : true)),
+      gs = all.filter(grpLive);
     b =
       `${coach ? `<div class="ctl"><button class="btn grow" data-a="newPost" data-k="train">Créer un groupe</button><button class="btn grow ghost" data-a="newPost" data-k="stage">Créer un stage</button></div>` : '<div class="note">Les groupes d\'entraînement sont créés par les enseignants.</div>'}<span class="kicker">Planning des cours · 2 semaines</span>` +
-      (gs
+      (all
         .flatMap(g => sessions(g, 14).map(iso => ({ g, iso })))
         .sort((a, b) => a.iso.localeCompare(b.iso) || hMin(a.g.h) - hMin(b.g.h))
         .map(x => sessCard(x.g, x.iso, null, 1))
@@ -132,9 +138,16 @@ function ecoleBody(t) {
       gs
         .map(
           g =>
-            `<button class="item" data-a="open" data-v="grp" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${g.name}</span><br><span class="muted small">${g.mem.length} élève${g.mem.length > 1 ? 's' : ''} · ${g.sub} · ${g.defLoc || 'Extérieur'}</span></span></button>`
+            `<button class="item" data-a="open" data-v="grp" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${g.name}</span><br><span class="muted small">${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'Extérieur'}</span></span>${grpFull(g) ? '<span class="tag">Complet</span>' : ''}</button>`
         )
-        .join('');
+        .join('') +
+      (gs.length
+        ? ''
+        : empty(
+            'users',
+            'Aucun groupe en cours',
+            'Les cours individuels et les cycles terminés sont dans l’historique de /RAM Coach.'
+          ));
   }
   return b;
 }

@@ -339,13 +339,13 @@ html, body { background: var(--bg); }
    prend la couleur du club, un trait de la même couleur le relie à la carte.
    ========================================================================= */
 @media (min-width: 1024px) {
-  #main > .seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 18px 0 0; margin-bottom: 0; overflow: visible; background: var(--bg); border-bottom: 2px solid var(--accent); }
-  #main > .seg button { min-height: 42px; padding: 0 16px; border: 2px solid var(--line); border-bottom: 0; background: var(--card2); color: var(--muted);
+  :is(#main, #subnav) > .seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 18px 0 0; margin-bottom: 0; overflow: visible; background: var(--bg); border-bottom: 2px solid var(--accent); }
+  :is(#main, #subnav) > .seg button { min-height: 42px; padding: 0 16px; border: 2px solid var(--line); border-bottom: 0; background: var(--card2); color: var(--muted);
     font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; box-shadow: none !important; transform: none !important; }
-  #main > .seg button:hover { color: var(--fg); background: var(--card); }
-  #main > .seg button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-  #main > .seg + * { background: var(--card); border: 1px solid var(--line); border-top: 0; box-shadow: 6px 6px 0 var(--ram-hard); margin-bottom: 40px; }
-  #main > .seg + * .card { box-shadow: 3px 3px 0 var(--ram-hard); }
+  :is(#main, #subnav) > .seg button:hover { color: var(--fg); background: var(--card); }
+  :is(#main, #subnav) > .seg button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) { background: var(--card); border: 1px solid var(--line); border-top: 0; box-shadow: 6px 6px 0 var(--ram-hard); margin-bottom: 40px; }
+  :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) .card { box-shadow: 3px 3px 0 var(--ram-hard); }
 }
 
 /* accueil : la frise de raccourcis respire sous la barre du haut (titre, notifications) */
@@ -408,23 +408,23 @@ html, body { background: var(--bg); }
   /* sous-menu des pages à onglets */
   .phone.hassub { padding-left: calc(var(--side) + var(--sub) + env(safe-area-inset-left, 0px)); }
   .phone.hassub .top { left: calc(var(--side) + var(--sub) + env(safe-area-inset-left, 0px)); }
-  #main > .seg {
+  :is(#main, #subnav) > .seg {
     position: fixed !important; top: 0 !important; bottom: 0; left: calc(var(--side) + env(safe-area-inset-left, 0px)); width: var(--sub); z-index: 6;
     display: flex; flex-direction: column; flex-wrap: nowrap; gap: 4px; margin: 0; max-width: none;
     padding: calc(96px + env(safe-area-inset-top, 0px)) 14px 24px; border: 0 !important; overflow-y: auto;
     background: color-mix(in srgb, var(--fg) 6%, var(--bg));
   }
-  #main > .seg button {
+  :is(#main, #subnav) > .seg button {
     width: 100%; justify-content: flex-start; gap: 13px; min-height: 48px; padding: 0 16px; border: 0 !important;
     font-family: var(--f-sub); font-weight: 700; font-size: 17px; letter-spacing: .06em; text-transform: uppercase;
     color: color-mix(in srgb, var(--fg) 72%, transparent); background: transparent; position: relative; z-index: 0;
   }
-  #main > .seg button svg { width: 21px; height: 21px; flex: none; }
-  #main > .seg button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 9%, transparent); }
+  :is(#main, #subnav) > .seg button svg { width: 21px; height: 21px; flex: none; }
+  :is(#main, #subnav) > .seg button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 9%, transparent); }
   /* onglet actif : bandeau de la couleur du club légèrement penché, comme dans /RAM JA */
-  #main > .seg button[aria-selected="true"] { color: var(--on-accent); background: transparent; }
-  #main > .seg button[aria-selected="true"]::before { content: ''; position: absolute; inset: 3px 4px; background: var(--accent); transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); z-index: -1; }
-  #main > .seg + * { border-top: 1px solid var(--line); margin-top: 18px; }
+  :is(#main, #subnav) > .seg button[aria-selected="true"] { color: var(--on-accent); background: transparent; }
+  :is(#main, #subnav) > .seg button[aria-selected="true"]::before { content: ''; position: absolute; inset: 3px 4px; background: var(--accent); transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); z-index: -1; }
+  :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) { border-top: 1px solid var(--line); margin-top: 18px; }
   /* notifications : panneau latéral pleine hauteur, depuis la droite */
   .back.side { left: 0 !important; justify-content: flex-end; align-items: stretch; padding: 0 !important; }
   .back.side .sheet { width: min(440px, 92vw); height: 100%; max-height: none !important; border: 0 !important; border-left: 3px solid var(--accent) !important;
@@ -442,10 +442,10 @@ html, body { background: var(--bg); }
 @keyframes ramFadeOut { to { opacity: 0; } }
 /* ordinateur : le sous-menu glisse en entrant (page qui en a un) et en sortant (page qui n'en a pas) */
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-  #main > .seg.seg-in { animation: ramSegIn .26s cubic-bezier(.2, .8, .2, 1); }
-  #main > .seg.seg-out { animation: ramSegOut .24s cubic-bezier(.4, 0, .9, .6) forwards; pointer-events: none; }
+  :is(#main, #subnav) > .seg.seg-in { animation: ramSegIn .26s cubic-bezier(.2, .8, .2, 1); }
+  :is(#main, #subnav) > .seg.seg-out { animation: ramSegOut .24s cubic-bezier(.4, 0, .9, .6) forwards; pointer-events: none; }
 }
-@media (min-width: 1024px) { #main > .seg.seg-out { pointer-events: none; } }
+@media (min-width: 1024px) { :is(#main, #subnav) > .seg.seg-out { pointer-events: none; } }
 @keyframes ramSegIn { from { transform: translateX(-100%); } }
 @keyframes ramSegOut { to { transform: translateX(-100%); } }
 /* téléphone et tablette : le logo du club n'est affiché que sur les écrans principaux */
@@ -489,37 +489,37 @@ html, body { background: var(--bg); }
   .rbot button[aria-current="page"] .av { box-shadow: 0 0 0 2px var(--on-accent); }
   .addfab { bottom: calc(232px + env(safe-area-inset-bottom, 0px)) !important; left: calc(8px + env(safe-area-inset-left, 0px)) !important; width: 68px !important; box-shadow: 3px 3px 0 var(--accent2, var(--hot)); }
   /* sous-menu */
-  #main > .seg {
+  :is(#main, #subnav) > .seg {
     width: var(--sub); padding: calc(22px + env(safe-area-inset-top, 0px)) 12px 16px; gap: 4px;
     background: color-mix(in srgb, var(--fg) 5%, var(--bg)) !important; -webkit-mask-image: none !important; mask-image: none !important;
   }
-  #main > .seg .segt { display: grid; gap: 3px; margin: 0 0 18px; padding: 14px 14px 12px; background: color-mix(in srgb, var(--fg) 6%, transparent); min-width: 0; }
-  #main > .seg .segt span { font-family: var(--f-sub); font-weight: 700; text-transform: uppercase; letter-spacing: .2em; font-size: 10.5px; color: var(--accent2, var(--hot)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #main > .seg .segt b { font-family: var(--f-display); font-weight: 400; font-style: italic; text-transform: uppercase; font-size: 22px; line-height: 1.02; color: var(--fg); overflow-wrap: anywhere; }
-  #main > .seg button {
+  :is(#main, #subnav) > .seg .segt { display: grid; gap: 3px; margin: 0 0 18px; padding: 14px 14px 12px; background: color-mix(in srgb, var(--fg) 6%, transparent); min-width: 0; }
+  :is(#main, #subnav) > .seg .segt span { font-family: var(--f-sub); font-weight: 700; text-transform: uppercase; letter-spacing: .2em; font-size: 10.5px; color: var(--accent2, var(--hot)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :is(#main, #subnav) > .seg .segt b { font-family: var(--f-display); font-weight: 400; font-style: italic; text-transform: uppercase; font-size: 22px; line-height: 1.02; color: var(--fg); overflow-wrap: anywhere; }
+  :is(#main, #subnav) > .seg button {
     min-height: 0; padding: 11px 14px; gap: 13px; border: 1px solid transparent !important;
     font: 600 14.5px/1.4 var(--f-body); letter-spacing: 0; text-transform: none; color: color-mix(in srgb, var(--fg) 85%, transparent);
   }
-  #main > .seg button svg { width: 21px; height: 21px; opacity: .9; }
-  #main > .seg button:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); color: var(--fg); }
-  #main > .seg button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent) !important; transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); }
-  #main > .seg button[aria-selected="true"]::before { display: none; }
-  #main > .seg button[aria-selected="true"] svg { opacity: 1; }
+  :is(#main, #subnav) > .seg button svg { width: 21px; height: 21px; opacity: .9; }
+  :is(#main, #subnav) > .seg button:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); color: var(--fg); }
+  :is(#main, #subnav) > .seg button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent) !important; transform: rotate(-1.5deg); box-shadow: 3px 3px 0 var(--accent2, var(--hot)); }
+  :is(#main, #subnav) > .seg button[aria-selected="true"]::before { display: none; }
+  :is(#main, #subnav) > .seg button[aria-selected="true"] svg { opacity: 1; }
 }
 
 /* ---------- téléphone et iPad : la barre d'onglets prend toute la largeur de l'écran ---------- */
 @media (max-width: 1023px) {
-  #main > .seg { max-width: none !important; margin-left: 0 !important; margin-right: 0 !important;
+  :is(#main, #subnav) > .seg { max-width: none !important; margin-left: 0 !important; margin-right: 0 !important;
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
     -webkit-mask-image: none; mask-image: none; }
-  #main > .seg button { flex: 1 0 auto; justify-content: center; }
+  :is(#main, #subnav) > .seg button { flex: 1 0 auto; justify-content: center; }
 }
 /* téléphone : chaque onglet garde son petit pictogramme ; s'ils ne tiennent pas tous, la barre défile au doigt */
 @media (max-width: 480px) {
-  #main > .seg { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 6px;
+  :is(#main, #subnav) > .seg { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 6px;
     padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
-  #main > .seg button { flex: 1 0 auto; padding: 0 12px; gap: 6px; scroll-snap-align: start; }
-  #main > .seg button svg { display: inline-block; width: 16px; height: 16px; flex: none; }
+  :is(#main, #subnav) > .seg button { flex: 1 0 auto; padding: 0 12px; gap: 6px; scroll-snap-align: start; }
+  :is(#main, #subnav) > .seg button svg { display: inline-block; width: 16px; height: 16px; flex: none; }
 }
 
 /* =========================================================================
@@ -529,27 +529,27 @@ html, body { background: var(--bg); }
 :root[data-style="epure"] { --ram-hard: transparent; }
 :root[data-style="epure"] :is(.top h1, .crest, .ring, .story:nth-child(even) .ring, .tilt, .poster .big, .datepill, .stamp) { transform: none !important; }
 :root[data-style="epure"] :is(.tilt, .poster .big, .stamp, .bd.done, .segt b) { font-style: normal; }
-:root[data-style="epure"] #main > .seg button[aria-selected="true"], :root[data-style="epure"] #main > .seg button[aria-selected="true"]::before { transform: none !important; box-shadow: none !important; }
+:root[data-style="epure"] :is(#main, #subnav) > .seg button[aria-selected="true"], :root[data-style="epure"] :is(#main, #subnav) > .seg button[aria-selected="true"]::before { transform: none !important; box-shadow: none !important; }
 :root[data-style="epure"] :is(.crest, .tabs button[aria-current="page"], .rbot button[aria-current="page"], .motifs button[aria-pressed="true"], .btn, .addfab) { box-shadow: none !important; }
 :root[data-style="street"] { --ram-hard: rgba(0, 0, 0, .8); }
 :root[data-style="street"][style*="color-scheme: light"] { --ram-hard: rgba(0, 0, 0, .28); }
 :root[data-style="street"] .top h1 { transform: rotate(-2.5deg); }
 :root[data-style="street"] .kicker { display: inline-block; transform: rotate(-1.5deg); }
-:root[data-style="street"] :is(.card, .lis, .palm .res, #main > .seg + *) { box-shadow: 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] :is(.card, .lis, .palm .res, :is(#main > .seg + *, .hassub #main > :first-child:not(.seg))) { box-shadow: 7px 7px 0 var(--ram-hard) !important; }
 :root[data-style="street"] .btn:not(.ghost) { box-shadow: 4px 4px 0 var(--accent2, var(--hot)); }
 /* full street : les sous-titres (nom du club au-dessus de « Groupes », « Cours, équipes et événements »…)
    deviennent des étiquettes surlignées, comme les sur-titres de /RAM JA */
-:root[data-style="street"] :is(.top h1 .sub, #main > .seg .segt span) { display: inline-block; justify-self: start; width: fit-content; max-width: 100%; background: var(--hot); color: var(--on-hot); padding: 2px 8px; transform: rotate(-1.5deg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root[data-style="street"] :is(.top h1 .sub, :is(#main, #subnav) > .seg .segt span) { display: inline-block; justify-self: start; width: fit-content; max-width: 100%; background: var(--hot); color: var(--on-hot); padding: 2px 8px; transform: rotate(-1.5deg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* le sous-titre surligné passe sous le gros titre, avec un peu d'air (il chevauchait la fin du titre) ;
    seulement le sous-titre du titre : le logo du club (img.toplogo.sub) n'est jamais surligné ni penché */
 :root[data-style="street"] .top h1 .sub { display: block !important; margin-top: 7px; }
-:root[data-style="street"] #main > .seg .segt { gap: 8px; }
+:root[data-style="street"] :is(#main, #subnav) > .seg .segt { gap: 8px; }
 
 /* téléphone et tablette : le contenu des pages à onglets (Agenda, École, Club…) dans un cadre uni ton sur ton,
    comme sur ordinateur et comme la liste des groupes ; le motif ne passe plus derrière le texte */
 @media (max-width: 1023px) {
-  #main > .seg + .pad { background: var(--card); border: 1px solid var(--line); box-shadow: 4px 4px 0 var(--ram-hard); margin: 12px 10px 24px; }
-  #main > .seg + .pad .card { box-shadow: 3px 3px 0 var(--ram-hard); }
+  :is(#main, #subnav) > .seg + .pad { background: var(--card); border: 1px solid var(--line); box-shadow: 4px 4px 0 var(--ram-hard); margin: 12px 10px 24px; }
+  :is(#main, #subnav) > .seg + .pad .card { box-shadow: 3px 3px 0 var(--ram-hard); }
 }
 
 /* ordinateur : « Ajouter du contenu » devient un bouton carré « + », en bas, juste à droite du menu latéral

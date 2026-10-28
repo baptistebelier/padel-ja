@@ -29,8 +29,9 @@ const foPrice = f =>
     ? `${eur(f.prix)} par personne (${eur(f.prix * f.joueurs)} la séance)`
     : `${eur(f.prix)} la séance${f.joueurs > 1 ? ' (' + eur(f.prix / f.joueurs) + ' par personne)' : ''}`;
 const pkPrice = p => `${p.seances} séances · ${eur(p.prix)} (${eur(p.prix / p.seances)} la séance)`;
+/* abPer et abEng : ui/13-suivi.js, les mêmes mots que sur la fiche enseignant de /RAM Club */
 const abPrice = a =>
-  `${eur(a.prix)} par ${a.periode}${a.duree > 1 ? ' · engagement ' + a.duree + ' ' + (a.periode === 'mois' ? 'mois' : a.periode) : ''}${a.parSemaine ? ' · ' + a.parSemaine + ' séance' + (a.parSemaine > 1 ? 's' : '') + ' par semaine' : ''}`;
+  `${eur(a.prix)} ${abPer(a)}${abEng(a) ? ' · ' + abEng(a) : ''}${a.parSemaine ? ' · ' + a.parSemaine + ' séance' + (a.parSemaine > 1 ? 's' : '') + ' par semaine' : ''}`;
 /* le libellé d'un produit, pour un achat ou une liste */
 function ofLabel(t, id) {
   if (t === 'pack') {

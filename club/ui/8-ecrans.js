@@ -56,7 +56,7 @@ const V = {
         ? list
             .map(c => {
               const l = c.msgs.filter(m => !S.blocked.has(m.by)).slice(-1)[0];
-              return `<div class="li ${c.mute ? 'dim' : ''}"><button class="go" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic(c.g === 'team' ? 'users' : c.g === 'train' ? 'ball' : 'chat')}</span><span class="grow"><span class="nm">${c.name}</span> <span class="muted small">· ${c.desc}</span><span class="last">${l ? (l.by === 'club' ? club().short : first(l.by)) + ' : ' + (l.img && !l.x ? 'Photo' : esc(l.x)) : 'Aucun message'}</span></span>${c.un ? `<span class="un">${c.un}</span>` : ''}</button>${muteBtn(c)}</div>`;
+              return `<div class="li ${c.mute ? 'dim' : ''}"><button class="go" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic(c.g === 'team' ? 'users' : c.g === 'train' ? 'ball' : 'chat')}</span><span class="grow"><span class="nm">${c.name}</span> <span class="muted small">· ${c.desc}</span><span class="last">${l ? (l.by === 'club' ? club().short : first(l.by)) + ' : ' + (l.img && !l.x ? 'Photo' : esc(l.x)) : 'Aucun message'}</span></span>${c.un ? `<span class="un">${c.un}</span>` : ''}</button>${muteBtn(c)}${typeof chanDelBtn === 'function' ? chanDelBtn(c) : ''}</div>`;
             })
             .join('')
         : empty('chat', 'Aucun groupe ici', "Tes groupes s'ouvrent selon ton entraînement et ton équipe.")) +
@@ -66,6 +66,9 @@ const V = {
   },
   chan(id) {
     const c = chans.find(c => c.id === id);
+    // discussion supprimée pendant qu'on la lisait
+    if (!c)
+      return `<div class="pad">${empty('chat', 'Discussion supprimée', 'Ce groupe de discussion n’existe plus.')}</div>`;
     return `<div class="chat">${lpHelp()}${c.kid && S.role !== 'kid' ? `<div class="note">Tu lis ce canal en tant que parent de Léo.</div>` : ''}${c.msgs.map((m, i) => msgRow(m, i, c.sport, 'c:' + c.id, S.sent && i === c.msgs.length - 1)).join('') || empty('chat', 'Aucun message', 'Lance la discussion.')}${typingSlot('c:' + c.id)}</div>`;
   },
   /* les modes de l'agenda (Événements, Semaine, Jour, Liste) deviennent des onglets, comme sur les autres pages */

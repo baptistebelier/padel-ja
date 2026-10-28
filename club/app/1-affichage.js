@@ -65,6 +65,18 @@ const subOf = () =>
             : S.tab === 'me'
               ? S.meTab || ''
               : '';
+/* place du sous-menu sur grand écran, à côté de la zone qui défile (créée au premier dessin) */
+function subNav() {
+  let n = $('subnav');
+  if (!n) {
+    n = document.createElement('div');
+    n.id = 'subnav';
+    $('phone').appendChild(n);
+  }
+  return n;
+}
+/* en passant du téléphone à la tablette (rotation de l'iPad), le sous-menu change de place */
+matchMedia('(min-width: 1024px)').addEventListener('change', () => typeof S !== 'undefined' && S.tab && render(true));
 function render(keep) {
   // un onglet qui n'existe pas dans cette appli (le mur dans /RAM Coach) : le premier de la barre
   if (!TABBAR.some(x => x[0] === S.tab)) S.tab = TABBAR[0][0];
@@ -76,7 +88,7 @@ function render(keep) {
   let t, sub;
   if (TITLES[v.v]) [t, sub] = TITLES[v.v]();
   else if (v.v === 'chan') {
-    const c = chans.find(c => c.id === v.id);
+    const c = chans.find(c => c.id === v.id) || { name: 'Discussion', desc: 'Supprimée' };
     t = '# ' + c.name;
     sub = c.desc;
   } else if (v.v === 'rec') {
@@ -112,10 +124,10 @@ function render(keep) {
     (clubLogo()
       ? `<img class="toplogo${S.stack.length ? ' sub' : ''}" src="${clubLogo()}" alt="${esc(club().name)}">`
       : '') +
-    `<h1>${t}<span class="sub">${sub}</span></h1>${v.v === 'chan' ? muteBtn(chans.find(c => c.id === v.id)) : ''}${typeof favHere === 'function' && favHere() ? `<button class="ib favb" data-a="fav" aria-pressed="${isFav(favHere())}" aria-label="${isFav(favHere()) ? 'Retirer de mes favoris' : 'Ajouter à mes favoris'}">${ic('star')}</button>` : ''}<button class="ib${typeof fxBellCls === 'function' ? fxBellCls() : ''}" style="${typeof fxBellStyle === 'function' ? fxBellStyle() : ''}" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending() && NOTIFS.some(n => n.n && nVis(n)) ? '<span class="dot"></span>' : ''}</button>`;
+    `<h1>${t}<span class="sub">${sub}</span></h1>${v.v === 'chan' && chans.some(c => c.id === v.id) ? muteBtn(chans.find(c => c.id === v.id)) + (typeof chanDelBtn === 'function' ? chanDelBtn(chans.find(c => c.id === v.id)) : '') : ''}${typeof favHere === 'function' && favHere() ? `<button class="ib favb" data-a="fav" aria-pressed="${isFav(favHere())}" aria-label="${isFav(favHere()) ? 'Retirer de mes favoris' : 'Ajouter à mes favoris'}">${ic('star')}</button>` : ''}<button class="ib${typeof fxBellCls === 'function' ? fxBellCls() : ''}" style="${typeof fxBellStyle === 'function' ? fxBellStyle() : ''}" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending() && NOTIFS.some(n => n.n && nVis(n)) ? '<span class="dot"></span>' : ''}</button>`;
   const strips = '.seg,.chips,.stories',
     sx = key === lastKey ? [...main.querySelectorAll(strips)].map(e => e.scrollLeft) : [];
-  const oldSeg = main.querySelector(':scope > .seg');
+  const oldSeg = main.querySelector(':scope > .seg') || subNav().querySelector(':scope > .seg:not(.seg-out)');
   main.innerHTML = pending() && !lockOk(v) ? lockView(v) : V[v.v](v.id);
   main.querySelectorAll(strips).forEach((e, i) => {
     if (sx[i]) e.scrollLeft = sx[i];
@@ -162,13 +174,18 @@ function render(keep) {
   $('phone').classList.toggle('withfoot', !foot.hidden);
   /* ordinateur : les pages ne glissent pas ; seul le sous-menu glisse, quand il apparaît ou disparaît (pas entre deux pages qui en ont un) */
   const wide = matchMedia('(min-width: 1024px)').matches,
-    newSeg = main.querySelector(':scope > .seg');
+    newSeg = main.querySelector(':scope > .seg'),
+    nav = subNav();
+  /* sur grand écran, le sous-menu (colonne fixe) vit hors de la zone qui défile : sur iPad, Safari effaçait un
+     élément fixe resté dans #main dès que la page défilait (vues Jour et Liste de l'Agenda, École, Club) */
+  nav.querySelectorAll(':scope > .seg:not(.seg-out)').forEach(e => e.remove());
+  if (wide && newSeg) nav.appendChild(newSeg);
   if (wide && lastKey && key !== lastKey) {
     if (newSeg && !oldSeg) newSeg.classList.add('seg-in');
     else if (oldSeg && !newSeg) {
       oldSeg.classList.remove('seg-in');
       oldSeg.classList.add('seg-out');
-      main.appendChild(oldSeg);
+      nav.appendChild(oldSeg);
       setTimeout(() => oldSeg.remove(), 260);
     }
   }

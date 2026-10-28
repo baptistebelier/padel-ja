@@ -788,7 +788,13 @@ details.aide .aq p{margin:0;line-height:1.5}
 .prow{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
 .prow span:last-child{text-align:right;min-width:0;overflow-wrap:anywhere}
 .prow a{color:inherit;text-decoration:underline}
-.ptar{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.ptar{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+.ptar li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--line)}
+.ptar li:last-child{border-bottom:0}
+.ptl{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.ptl b{min-width:0;overflow-wrap:anywhere}
+.ptp{flex:none;font-weight:700;text-align:right}
+.ptt{font-weight:700;font-size:13px;margin-top:6px;color:var(--muted)}
 .prof .ctl a.btn{text-decoration:none}
 .prof .ctl .btn{flex:1 1 30%}
 .prof .ctl .btn:not(.ghost){flex-basis:100%}
