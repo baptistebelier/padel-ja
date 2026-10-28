@@ -24,6 +24,7 @@ const Access = require('./lib/access.js');
 const Shopify = require('./lib/shopify.js');
 const Calendly = require('./lib/calendly.js');
 const Auth = require('./lib/auth.js');
+const Compress = require('./lib/compress.js');   // réponses compressées (brotli, gzip)
 
 const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
@@ -89,8 +90,16 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.woff2': 'font/woff2', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 
 function json(res, code, obj, headers) {
-  res.writeHead(code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, headers || {}));
-  res.end(JSON.stringify(obj));
+  // compressée si l'appareil l'accepte (res._req : la requête, posée à l'entrée du serveur)
+  return Compress.send(res._req, res, code, Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, headers || {}), JSON.stringify(obj));
+}
+/* fichier de l'appli : empreinte (ETag) pour que l'appareil ne retélécharge pas un fichier inchangé (réponse 304),
+   et compression gardée en mémoire tant que le fichier ne change pas */
+function sendStatic(res, file, data, headers) {
+  const tag = '"' + crypto.createHash('md5').update(data).digest('base64url').slice(0, 16) + '"';
+  const h = Object.assign({ ETag: tag }, headers);
+  if (String((res._req && res._req.headers['if-none-match']) || '') === tag) { res.writeHead(304, h); return res.end(); }
+  return Compress.send(res._req, res, 200, h, data, file + tag);
 }
 /* coach.riseandmove.fr branché sur ce serveur (domaine ajouté sur Render) : vérifié au démarrage puis toutes les 10 minutes */
 let coachLive = false;
@@ -139,8 +148,7 @@ function sendFile(res, rel, versioned) {
     // icônes (favicon, icône d'application) : toujours revérifiées pour que les changements de logo apparaissent
     const longCache = /\.(woff2|png|webp|jpg)$/.test(ext) && !/favicon|app-icon/.test(rel);
     const cache = versioned && /\.(css|js)$/.test(ext) ? 'public, max-age=31536000, immutable' : longCache ? 'public, max-age=604800' : 'no-cache';
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': cache });
-    res.end(data);
+    sendStatic(res, file, data, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': cache });
   });
 }
 // /RAM Club : fichiers de l'appli (dossier club/). Pages, scripts et icônes toujours revérifiés,
@@ -161,8 +169,7 @@ function sendClub(res, rel, logged) {
     const ext = path.extname(file);
     const longCache = /\.(png|webp|jpg|woff2)$/.test(ext) && !/icon|favicon/.test(rel);
     // l'appli elle-même : le service worker ne garde en cache (hors ligne) que cette page, jamais la présentation ni la connexion
-    res.writeHead(200, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, /\/(index|coach)\.html$/.test(rel) ? { 'X-Club-Page': 'appli' } : {}));
-    res.end(data);
+    sendStatic(res, file, data, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, /\/(index|coach)\.html$/.test(rel) ? { 'X-Club-Page': 'appli' } : {}));
   });
 }
 function lanAddresses() {
@@ -180,7 +187,8 @@ const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email |
    bureau et enseignant compris ; liste des comptes recalculée au démarrage puis toutes les 10 minutes */
 const superIds = new Set();
 async function loadSuper() {
-  const l = (await store.listUsers().catch(() => [])).filter(u => !u.guest && ADMIN_EMAILS.includes(String(u.email || '').toLowerCase()));
+  // un compte par e-mail d'administrateur (jamais la liste de tous les comptes)
+  const l = (await Promise.all(ADMIN_EMAILS.map(e => store.getUserByEmail(e).catch(() => null)))).filter(u => u && !u.guest);
   superIds.clear(); l.forEach(u => superIds.add(u.id));
 }
 ram.setSuper(id => superIds.has(id));
@@ -215,13 +223,17 @@ const userCache = new Map();
 let clubDir = null;   // annuaire des clubs (/RAM Club + tournois /RAM JA), recalculé toutes les 5 minutes
 ['saveUser', 'deleteUser'].forEach(fn => { const orig = store[fn].bind(store); store[fn] = async (x, ...rest) => { userCache.delete(typeof x === 'object' ? x.id : x); try { return await orig(x, ...rest); } finally { userCache.delete(typeof x === 'object' ? x.id : x); } }; });
 async function currentUser(req) {
-  const id = Auth.sessionUserId(req);
-  if (!id) return null;
-  const c = userCache.get(id);
-  if (c && Date.now() - c.at < 20000) return c.u;
-  const u = await store.getUser(id);
-  if (u) userCache.set(id, { u, at: Date.now() }); else userCache.delete(id);
-  return u;
+  const s = Auth.sessionOf(req);
+  if (!s) return null;
+  const c = userCache.get(s.id);
+  let u;
+  if (c && Date.now() - c.at < 20000) u = c.u;
+  else {
+    u = await store.getUser(s.id);
+    if (u) userCache.set(s.id, { u, at: Date.now() }); else userCache.delete(s.id);
+  }
+  // mot de passe changé depuis l'ouverture de cette session : elle n'est plus valable
+  return u && Auth.sessionMatches(s, u) ? u : null;
 }
 
 /* ---------------------------------------------------------------------
@@ -291,7 +303,7 @@ const accessFails = new Map();
 const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
 setInterval(() => { const now = Date.now(); for (const [k, f] of accessFails) if (now > f.until) accessFails.delete(k); }, 15 * 60000);
 async function access(req, url, room) {
-  const uid = Auth.sessionUserId(req);
+  const uid = ((await currentUser(req)) || {}).id;
   if (uid && uid === room.row.owner) return 'owner';
   const pin = req.headers['x-pin'] || url.searchParams.get('pin');
   const k = req.headers['x-key'] || url.searchParams.get('k');
@@ -659,6 +671,7 @@ function currentTournament(list) {
 /* connecteur MCP /RAM (lib/mcp.js) : Claude lit les tournois, les clubs et le suivi d'un compte, avec son accord */
 const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin });
 const server = http.createServer(async (req, res) => {
+  res._req = req;   // pour la compression des réponses (json, fichiers)
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   try {
@@ -706,7 +719,7 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req);
       // déjà connecté : tableau de bord, ou retour direct vers /RAM Club si l'on en vient
       const back = String(url.searchParams.get('retour') || '');
-      if (u && !u.guest) return redirect(res, /^(https:\/\/club\.riseandmove\.fr\/|\/club\/|\/oauth\/authorize\?)/.test(back) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
+      if (u && !u.guest) return redirect(res, /^(https:\/\/club\.riseandmove\.fr\/|\/club\/|\/oauth\/authorize\?)/.test(back) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
       return sendFile(res, '/auth.html');
     }
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
@@ -731,7 +744,7 @@ const server = http.createServer(async (req, res) => {
     let m = p.match(/^\/t\/([\w-]+)\/?(tv|overlay|print|remote)?$/);
     if (m) {
       if (!m[2]) { // éditeur : réservé au propriétaire
-        const uid = Auth.sessionUserId(req);
+        const uid = ((await currentUser(req)) || {}).id;
         const row = await store.getTournament(m[1]);
         if (!row) return redirect(res, '/app');
         if (!uid || uid !== row.owner) return redirect(res, '/connexion?retour=' + encodeURIComponent(p));
@@ -754,7 +767,7 @@ const server = http.createServer(async (req, res) => {
       if (await store.getUserByEmail(email)) return json(res, 409, { error: 'Un compte existe déjà avec cette adresse.' });
       const first = String(b.first || '').trim().slice(0, 40), last = String(b.last || '').trim().slice(0, 40);
       const u = { id: 'u' + Auth.randomId(12), email, name: [first, last].filter(Boolean).join(' ') || String(b.name || '').slice(0, 80), club: String(b.club || '').slice(0, 120),
-        pass_hash: Auth.hashPassword(b.password), plan: 'essai', guest: false, created_at: Date.now() };
+        pass_hash: await Auth.hashPasswordAsync(b.password), plan: 'essai', guest: false, created_at: Date.now() };
       await store.saveUser(u);
       if (first || last) await store.saveIdentity(u.id, { first, last });
       await ensureAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // sa fiche joueur /RAM JA
@@ -762,15 +775,15 @@ const server = http.createServer(async (req, res) => {
       await newTournament(u.id, { demo: true, example: true, name:'Tournoi d\'exemple' });
       // e-mail de bienvenue (sans bloquer l'inscription si l'envoi échoue)
       Mail.send(Object.assign({ to: email }, Mail.welcomeMail({ first, appUrl: appUrl(req) }))).catch(e => console.error('E-mail de bienvenue :', e.message));
-      return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
+      return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
     }
     if (p === '/api/auth/login' && req.method === 'POST') {
       const b = await readBody(req);
       const email = String(b.email || '').trim().toLowerCase();
-      if (Auth.tooManyAttempts(email + '|' + req.socket.remoteAddress)) return json(res, 429, { error: 'Trop de tentatives : réessayez dans 15 minutes.' });
+      if (Auth.tooManyAttempts(email + '|' + clientIp(req))) return json(res, 429, { error: 'Trop de tentatives : réessayez dans 15 minutes.' });
       const u = await store.getUserByEmail(email);
-      if (!u || !Auth.checkPassword(b.password, u.pass_hash)) return json(res, 401, { error: 'E-mail ou mot de passe incorrect.' });
-      return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
+      if (!u || !(await Auth.checkPasswordAsync(b.password, u.pass_hash))) return json(res, 401, { error: 'E-mail ou mot de passe incorrect.' });
+      return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
     }
     /* ---------- Calendly : réservation ou annulation → séance du planning /RAM Coach (lib/calendly.js) ---------- */
     if (p === '/api/calendly/webhook' && req.method === 'POST') {
@@ -842,8 +855,8 @@ const server = http.createServer(async (req, res) => {
       const u = t ? await store.getUser(t.userId) : null;
       if (!u || !Auth.resetMatches(u, t)) return json(res, 400, { error: 'Lien expiré ou déjà utilisé : refaites une demande.' });
       if (String(b.password || '').length < 8) return json(res, 400, { error: 'Le mot de passe doit faire au moins 8 caractères.' });
-      u.pass_hash = Auth.hashPassword(b.password); await store.saveUser(u);
-      return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) });
+      u.pass_hash = await Auth.hashPasswordAsync(b.password); await store.saveUser(u);
+      return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
     }
     /* ---------- API administration ---------- */
     if (p.startsWith('/api/admin/')) {
@@ -958,17 +971,18 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 403, { error: 'Créez un compte pour choisir un mot de passe.' });
       const b = await readBody(req);
       // compte créé sans mot de passe (boutique, invitation) : il en choisit un directement, déjà connecté
-      if (u.pass_hash && !Auth.checkPassword(b.current, u.pass_hash)) return json(res, 400, { error: 'Mot de passe actuel incorrect.' });
+      if (u.pass_hash && !(await Auth.checkPasswordAsync(b.current, u.pass_hash))) return json(res, 400, { error: 'Mot de passe actuel incorrect.' });
       if (String(b.next || '').length < 8) return json(res, 400, { error: 'Le nouveau mot de passe doit faire au moins 8 caractères.' });
-      u.pass_hash = Auth.hashPassword(b.next); await store.saveUser(u);
-      return json(res, 200, { ok: true });
+      u.pass_hash = await Auth.hashPasswordAsync(b.next); await store.saveUser(u);
+      // les autres appareils sont déconnectés (leur session porte l'ancienne empreinte) ; celui-ci reste connecté
+      return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
     }
     if (p === '/api/me') {
       const u = await currentUser(req);
       // identité et accès lus en même temps
       const [id, access] = await Promise.all([u && !u.guest ? store.getIdentity(u.id).catch(() => null) : null, u ? accessFor(u) : null]);
       // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (/RAM JA + /RAM Club)
-      const renew = u && !u.guest ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id)) } : undefined;
+      const renew = u && !u.guest ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) } : undefined;
       return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access, storage: store.kind }, renew);
     }
 
