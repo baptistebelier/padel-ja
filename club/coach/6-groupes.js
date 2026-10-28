@@ -23,7 +23,7 @@ function coFavs() {
 const coIsFav = k => coFavs().includes(k);
 /* une ligne de conversation avec son étoile : la ligne ouvre la conversation, l'étoile l'épingle en haut */
 const coFavRow = (k, open, inner, label) =>
-  `<div class="item cofr${coIsFav(k) ? ' fav' : ''}"><button class="cofo" ${open}>${inner}</button><button class="ib costar" data-a="coFav" data-k="${k}" aria-pressed="${coIsFav(k)}" aria-label="${coIsFav(k) ? 'Retirer ' + esc(label) + ' des favoris' : 'Mettre ' + esc(label) + ' en favori'}">${ic('star')}</button></div>`;
+  `<div class="item cofr${coIsFav(k) ? ' fav' : ''}"><button class="cofav" ${open}>${inner}</button><button class="ib costar" data-a="coFav" data-k="${k}" aria-pressed="${coIsFav(k)}" aria-label="${coIsFav(k) ? 'Retirer ' + esc(label) + ' des favoris' : 'Mettre ' + esc(label) + ' en favori'}">${ic('star')}</button></div>`;
 
 /* ---------- accueil : sélection des bilans à écrire ---------- */
 function coSelBar() {
