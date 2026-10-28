@@ -25,6 +25,7 @@ const Shopify = require('./lib/shopify.js');
 const Calendly = require('./lib/calendly.js');
 const Auth = require('./lib/auth.js');
 const Compress = require('./lib/compress.js');   // réponses compressées (brotli, gzip)
+const Mesures = require('./lib/mesures.js');   // temps de réponse et taille par route
 
 const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
@@ -672,6 +673,7 @@ function currentTournament(list) {
 const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin });
 const server = http.createServer(async (req, res) => {
   res._req = req;   // pour la compression des réponses (json, fichiers)
+  Mesures.track(req, res, m => console.warn('Mesures : ' + m));   // temps et taille de chaque route (/api/admin/mesures)
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   try {
@@ -862,6 +864,12 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/api/admin/')) {
       const u = await currentUser(req);
       if (!isAdmin(u)) return json(res, 403, { error: 'Réservé aux administrateurs' });
+      // mesures du serveur (?zero pour repartir de zéro)
+      if (p === '/api/admin/mesures') {
+        const r = Mesures.report({ clubs_en_memoire: ram.loaded(), tournois_en_memoire: rooms.size });
+        if (url.searchParams.has('zero')) Mesures.reset();
+        return json(res, 200, r);
+      }
       if (p === '/api/admin/users') {
         const users = (await store.listUsers()).filter(x => !x.guest);
         const tours = await store.listAllTournaments();
@@ -1446,7 +1454,8 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Page introuvable');
   } catch (e) {
     console.error(e);
-    if (!res.headersSent) json(res, 500, { error: 'Erreur serveur : ' + e.message });
+    // le détail reste dans le journal du serveur : jamais renvoyé à l'appareil (messages de la base…)
+    if (!res.headersSent) json(res, 500, { error: 'Erreur serveur : réessayez dans un instant.' });
   }
 });
 
