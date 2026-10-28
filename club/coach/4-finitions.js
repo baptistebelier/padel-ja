@@ -136,6 +136,7 @@ window.ramPickClub = (clubs, last) => {
 };
 const CO_COLL = {
   group: () => GROUPS,
+  cours: () => GROUPS,
   seance: () => SEANCES,
   suivi: () => SUIVI,
   eleve: () => ELEVES,
@@ -230,6 +231,8 @@ async function coPush() {
       Object.keys(CO_COLL).forEach(coll =>
         CO_COLL[coll]().forEach(o => {
           if (o._club !== cid) return;
+          // GROUPS mêle groupes et cours particuliers : chacun part dans sa collection
+          if (coll === 'group' ? !!o.once : coll === 'cours' ? !o.once : false) return;
           const k = coll + '/' + o.id,
             cur = coBare(o),
             j = JSON.stringify(cur),

@@ -48,7 +48,7 @@ test('Calendly : la séance arrive dans le planning /RAM Coach, puis l’annulat
   await require('../lib/formules').save(store, 'C1', { formules: [{ id: 'f1', nom: 'Cours individuel', joueurs: 1, duree: 90, prix: 50 }, { id: 'f2', nom: 'Cours duo', joueurs: 2, duree: 60, prix: 30, par: 'personne' }] });
   const club = await ram.create({ id: 'C1', name: 'Baptiste Coach' }, { name: 'Chiquita Essai', short: 'chq' });
   await ram.ops('C1', club.id, [{ coll: 'eleve', id: 'e1', op: 'put', data: { n: 'Johanna Perrouin', mail: 'jo@test.fr', sport: 'Padel' } }]);
-  const groups = async () => (await ram.sync('C1', club.id, 0)).items.filter(x => x.coll === 'group' && x.data.cal).map(x => x.data);
+  const groups = async () => (await ram.sync('C1', club.id, 0)).items.filter(x => (x.coll === 'cours' || x.coll === 'group') && x.data.cal).map(x => x.data);
   const eleves = async () => (await ram.sync('C1', club.id, 0)).items.filter(x => x.coll === 'eleve').map(x => x.data);
 
   // nouvelle élève : fiche créée, séance ponctuelle avec l'objectif, au prix de la formule individuelle 1 h 30

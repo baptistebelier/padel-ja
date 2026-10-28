@@ -152,7 +152,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const sync = await ram.sync('U1', club.id, 0), it = (c, i) => (sync.items.find(x => x.coll === c && x.id === i) || {}).data;
   assert.deepEqual(it('group', g.groupe_id).ext, [nv.eleve_id]);
   assert.ok(it('group', g.groupe_id).mem.includes('kid1'));
-  assert.equal(it('group', once.groupe_id).once, '2026-11-20');
+  assert.equal(it('cours', once.groupe_id).once, '2026-11-20');
   assert.equal(it('member', 'kid1').pl, 4, 'niveau recopié dans la fiche /RAM Club');
   assert.equal(it('eleve', 'kid1').tech.Revers, 2);
   assert.equal(it('brouillon', g.groupe_id + '.2026-11-17').recap, 'Bandeja');
@@ -163,9 +163,9 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.deepEqual([cg.day, cg.h, cg.extra, cg.skip, cg.to], [2, '19 h 30', ['2026-04-20'], ['2026-04-21'], '2026-04-28']);
   assert.ok(it('chan', rg.groupe_id), 'le groupe a sa discussion');
   assert.equal(Object.keys(it('seance', rg.groupe_id + '.2026-04-14').pres).length, 3, 'la venue ponctuelle reste dans l’historique');
-  assert.equal(sync.items.filter(x => x.coll === 'group' && x.data && x.data.name === 'Cycle test' && x.data.once).length, 0);
+  assert.equal(sync.items.filter(x => x.coll === 'cours' && x.data && x.data.name === 'Cycle test' && x.data.once).length, 0);
   assert.equal(it('chan', once.groupe_id), undefined, 'une séance ponctuelle n’a pas de discussion');
-  const cours = sync.items.find(x => x.coll === 'group' && x.data.once === '2026-03-18').data;
+  const cours = sync.items.find(x => x.coll === 'cours' && x.data.once === '2026-03-18').data;
   assert.equal(Object.keys(it('seance', sync.items.find(x => x.data === cours).id + '.2026-03-18').pres).length, 2);
   assert.equal(sync.items.filter(x => x.coll === 'suivi' && x.data.to === 'kid1').length, 1);
   assert.equal((await use('coach_echelles')).Tennis.levels.length, 2);

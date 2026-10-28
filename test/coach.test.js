@@ -98,3 +98,34 @@ test('confidentialité : cours particuliers, appels et tarifs ne vont qu’aux p
   await ram.ops(eleve.id, club.id, [{ coll: 'group', id: 'gg', op: 'patch', patch: [{ p: ['mem'], t: 'rm', v: kE }] }]);
   assert.equal(item(await ram.sync(coach.id, club.id, 0), 'group', 'gg').tarif.prix, 70);
 });
+
+test('cours particuliers rangés à part des groupes : migration, droits, séance liée', async () => {
+  const { coursHorsDesGroupes, run } = require('../lib/migrations');
+  const coach = { id: 'C3', name: 'Sarah Benali' }, eleve = { id: 'E3', name: 'Thomas Leroy' }, autre = { id: 'O3', name: 'Paul Martin' };
+  const club = await ram.create(coach, { name: 'TC Cours', short: 'tcx' });
+  const kC = club.key, kE = (await ram.join(eleve, club.code)).key, kO = (await ram.join(autre, club.code)).key;
+  const season = item(await ram.sync(coach.id, club.id, 0), 'conf', 'main').season;
+  await ram.ops(coach.id, club.id, [kE, kO].map(k => ({ coll: 'member', id: k, op: 'patch', patch: [{ p: ['valid'], t: 'set', v: season }] })));
+  // avant : un cours particulier rangé comme un groupe
+  await ram.ops(coach.id, club.id, [
+    { coll: 'group', id: 'gc', op: 'put', data: { type: 'train', name: 'Cours individuel', coach: kC, once: '2026-11-03', mem: [kE], ext: [], tarif: { mode: 'seance', prix: 35 } } },
+    { coll: 'group', id: 'gw', op: 'put', data: { type: 'train', name: 'Groupe du mardi', coach: kC, day: 2, h: '18 h', mem: [kE], ext: [] } },
+    { coll: 'seance', id: 'gc.2026-11-03', op: 'put', data: { g: 'gc', d: '2026-11-03', pres: { [kE]: 'P' } } }
+  ]);
+  const settings = {}, store = { getSetting: async k => settings[k], saveSetting: async (k, v) => { settings[k] = v; } };
+  await run(store, [['cours', () => coursHorsDesGroupes(ram)]]);
+  await run(store, [['cours', () => { throw new Error('ne doit pas repasser'); }]]);
+  const sC = await ram.sync(coach.id, club.id, 0);
+  assert.equal(item(sC, 'group', 'gc'), undefined, 'plus dans les groupes');
+  assert.equal(item(sC, 'cours', 'gc').once, '2026-11-03');
+  assert.equal(item(sC, 'cours', 'gc').tarif.prix, 35);
+  assert.equal(item(sC, 'group', 'gw').name, 'Groupe du mardi', 'le vrai groupe ne bouge pas');
+  // l'élève voit son cours (sans tarif) et l'appel de sa séance ; un autre adhérent, ni l'un ni l'autre
+  const sE = await ram.sync(eleve.id, club.id, 0), sO = await ram.sync(autre.id, club.id, 0);
+  assert.equal(item(sE, 'cours', 'gc').tarif, undefined);
+  assert.ok(item(sE, 'seance', 'gc.2026-11-03'));
+  assert.equal(has(sO, 'cours'), false);
+  // seul l'encadrement crée ou modifie un cours
+  const r = await ram.ops(eleve.id, club.id, [{ coll: 'cours', id: 'gx', op: 'put', data: { type: 'train', name: 'Cours', coach: kE, once: '2026-11-04', mem: [kE] } }]);
+  assert.equal(r.rejected.length, 1);
+});

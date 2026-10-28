@@ -26,6 +26,7 @@ const Calendly = require('./lib/calendly.js');
 const Auth = require('./lib/auth.js');
 const Compress = require('./lib/compress.js');   // réponses compressées (brotli, gzip)
 const Mesures = require('./lib/mesures.js');   // temps de réponse et taille par route
+const Migrations = require('./lib/migrations.js');   // migrations des données, une seule fois chacune
 
 const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
@@ -1502,6 +1503,10 @@ server.listen(PORT, '0.0.0.0', () => {
       await store.saveSetting('medias', { v: 1, at: Date.now() });
     } catch (e) { console.error('  Images :', e.message); }
   }, 15000).unref();
+  // autres migrations des données (lib/migrations.js), une seule fois chacune
+  setTimeout(() => Migrations.run(store, [
+    ['cours-hors-des-groupes', () => Migrations.coursHorsDesGroupes(ram, msg => console.log('  ' + msg))]
+  ], msg => console.error('  ' + msg)).catch(e => console.error('  Migrations :', e.message)), 20000).unref();
 });
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);

@@ -226,10 +226,12 @@
       add('chan', ch.id, strip(ch, ['msgs', 'un', 'mute']));
     });
     // /RAM Coach : les éléments d'un autre club (_club) sont envoyés à leur club par coach/4-finitions.js
+    // un cours particulier (séance ponctuelle : once) est rangé dans la collection « cours », les groupes dans « group »
     GROUPS.forEach(g => {
       if (g._club) return;
-      at(g, 'group');
-      add('group', g.id, g);
+      const coll = g.once ? 'cours' : 'group';
+      at(g, coll);
+      add(coll, g.id, g);
     });
     OLDG.forEach(g => {
       at(g, 'group');
@@ -649,8 +651,9 @@
         return;
       }
       case 'group':
+      case 'cours':
       case 'champ': {
-        const [cur, old] = it.coll === 'group' ? [GROUPS, OLDG] : [CHAMPS, OLDC];
+        const [cur, old] = it.coll === 'champ' ? [CHAMPS, OLDC] : [GROUPS, OLDG];
         drop(cur, id);
         drop(old, id);
         if (it.del) return;
@@ -853,6 +856,8 @@
         return staff;
       case 'group':
         return staff || d.cap === k || d.coach === k;
+      case 'cours':
+        return staff;
       case 'rec':
         return staff || capOf(d.tid);
       case 'comm':
@@ -1027,7 +1032,7 @@
     const me = R.key,
       kids = (M[me] && M[me].kids) || [];
     // /RAM Coach : une réservation (Calendly…) arrive dans mon planning, s'annule, ou un élève de plus s'inscrit
-    if (coll === 'group' && b.cal && b.coach === me && b.once) {
+    if ((coll === 'group' || coll === 'cours') && b.cal && b.coach === me && b.once) {
       const who = l => [...((l && l.mem) || []), ...((l && l.ext) || [])],
         nm = k => (M[k] ? name(k) : (ELEVES.find(e => e.id === k) || {}).n || 'un élève'),
         when = `le ${fmtD(b.once)} à ${b.h}`,
@@ -1250,7 +1255,7 @@
           notify('team', 'club', `${team} – ${b.opp} : fin de la rencontre, ${s[0]} à ${s[1]}`, go);
         });
     }
-    if (coll === 'group' && a && added(a.mem, b.mem).some(k => k === me || kids.includes(k)))
+    if ((coll === 'group' || coll === 'cours') && a && added(a.mem, b.mem).some(k => k === me || kids.includes(k)))
       once(`grp/${id}/${(b.mem || []).length}`, () =>
         notify(
           'team',
@@ -1662,6 +1667,7 @@
       'stats',
       'chan',
       'group',
+      'cours',
       'champ',
       'rec',
       'post',
