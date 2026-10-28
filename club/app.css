@@ -281,6 +281,9 @@ button.nm{padding-block:4px}
 .prose{display:flex;flex-direction:column;gap:12px;font-size:16px;line-height:1.6}
 .dblk{flex:none;width:64px;height:64px;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;align-content:center;gap:2px;font-family:var(--f-sub);font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:13px;line-height:1}
 .dblk b{font-family:var(--f-display);font-weight:400;font-size:30px;line-height:1;letter-spacing:0}
+/* heure de la séance sous le mois, dans le même encart */
+.dblk i{font-style:normal;font-family:var(--f-sub);font-weight:700;font-size:12px;letter-spacing:.02em;text-transform:none;margin-top:3px;white-space:nowrap}
+.dblk:has(i){height:auto;min-height:64px;padding:8px 0}
 .card{background:var(--card);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
 
 /* profil */

@@ -152,8 +152,18 @@ function coSesCard(x, big) {
     [y, m, dd] = d.split('-').map(Number),
     loc = (g.loc || {})[d] || g.defLoc || 'En salle';
   const go = `data-a="open" data-v="seance" data-id="${sesKey(g, d)}"`;
-  return `<button class="card coses${cx ? ' cx' : ''}" ${go}><span class="dblk"><b>${dd}</b>${MO[m - 1]}</span><span class="grow"><span class="h3" style="font-size:18px">${esc(g.name)}</span><br><span class="muted small">${DA[new Date(y, m - 1, dd).getDay()]} · ${g.h} · ${g.dur}${g.coach && !coIsMe(g.coach) && M[g.coach] ? ' · ' + first(g.coach) : ''}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag loc">${ic(loc === 'En salle' ? 'home' : 'sun')}${loc}</span>`}${sportTag(g.sport)}${coMulti() ? `<span class="tag coclub">${ic('club')}${esc(coClubName(g))}</span>` : ''}<span class="tag">${nP != null && d <= TODAY ? nP + '/' + st.length + ' présents' : plural(st.length, 'élève')}</span></span>${big && st.length ? `<span class="coppl">${st.map(k => `<span class="copp${s && s.pres && s.pres[k] === 'A' ? ' abs' : ''}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span></span>`).join('')}</span>` : ''}${s && s.theme ? `<span class="small cotheme">${ic('ladder')}${esc(s.theme)}</span>` : big && !cx ? '<span class="muted small">Thème à définir</span>' : ''}</span></button>`;
+  // de haut en bas : titre, élèves, durée, thème, étiquettes ; l'heure dans l'encart de la date
+  return `<button class="card coses${cx ? ' cx' : ''}" ${go}>${coDblk(d, g.h)}<span class="grow"><span class="h3" style="font-size:18px">${esc(g.name)}</span>${
+    st.length
+      ? `<span class="coline costu">${ic('user')}<span class="coppl">${st.map(k => `<span class="copp${s && s.pres && s.pres[k] === 'A' ? ' abs' : ''}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span></span>`).join('')}</span></span>`
+      : `<span class="coline muted">${ic('user')}Aucun élève</span>`
+  }<span class="coline muted">${ic('clock')}${g.dur}${g.coach && !coIsMe(g.coach) && M[g.coach] ? ' · ' + first(g.coach) : ''}</span>${s && s.theme ? `<span class="coline cotheme">${ic('ladder')}${esc(s.theme)}</span>` : big && !cx ? `<span class="coline muted">${ic('ladder')}Thème à définir</span>` : ''}<span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag loc">${ic(loc === 'En salle' ? 'home' : 'sun')}${loc}</span>`}${sportTag(g.sport)}${coMulti() ? `<span class="tag coclub">${ic('club')}${esc(coClubName(g))}</span>` : ''}<span class="tag">${nP != null && d <= TODAY ? nP + '/' + st.length + ' présents' : plural(st.length, 'élève')}</span></span></span></button>`;
 }
+/* encart de la date d'une séance : jour, mois, et l'heure dessous */
+const coDblk = (d, h) => {
+  const [, m, dd] = d.split('-').map(Number);
+  return `<span class="dblk codblk"><b>${dd}</b>${MO[m - 1]}${h ? `<i>${h}</i>` : ''}</span>`;
+};
 /* ---------- Aujourd'hui : premiers pas, chiffres, cours du jour et du lendemain, ce qui reste à faire ---------- */
 function coSetup() {
   const mine = coGroups('me'),
@@ -681,9 +691,8 @@ const MOISL = [
   'Décembre'
 ];
 const coHisRow = x => {
-  const w = coWho(x),
-    [y, m, d] = x.d.split('-').map(Number);
-  return `<button class="item cohis" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}"><span class="dblk"><b>${d}</b>${DA[new Date(y, m - 1, d).getDay()]}</span><span class="grow"><span class="nm">${esc(coIsGrp(x.g) ? x.g.name : x.g.name + (w.length ? ' avec ' + coNames(w) : ''))}</span><br><span class="muted small">${coIsGrp(x.g) ? esc(coNames(w)) : x.g.h + ' · ' + x.g.dur}${coMulti() ? ' · ' + esc(coClubName(x.g)) : ''}</span></span>${coStack(w)}</button>`;
+  const w = coWho(x);
+  return `<button class="item cohis" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}">${coDblk(x.d, x.g.h)}<span class="grow"><span class="nm">${esc(coIsGrp(x.g) ? x.g.name : x.g.name + (w.length ? ' avec ' + coNames(w) : ''))}</span><br><span class="muted small">${coIsGrp(x.g) ? esc(coNames(w)) : x.g.dur}${coMulti() ? ' · ' + esc(coClubName(x.g)) : ''}</span></span>${coStack(w)}</button>`;
 };
 function coHisto() {
   const f = S.hiF || 'all',
@@ -742,8 +751,8 @@ function coSesRow(g, d) {
     ? [nP != null ? nP + '/' + coStu(g).length + ' présents' : 'Appel à faire', s && s.theme ? esc(s.theme) : '']
         .filter(Boolean)
         .join(' · ')
-    : [g.h + ' · ' + g.dur, s && s.theme ? esc(s.theme) : ''].filter(Boolean).join(' · ');
-  return `<button class="item cohis" data-a="open" data-v="seance" data-id="${id}"><span class="dblk"><b>${dd}</b>${MO[m - 1]}</span><span class="grow"><span class="nm">${DAYS[coDow(d)]} ${fmtD(d, 1)}${d === TODAY ? " · aujourd'hui" : ''}</span><br><span class="muted small">${sub}</span></span>${tag ? `<span class="tag cost ${tag[1]}">${tag[0]}</span>` : ''}</button>`;
+    : [g.dur, s && s.theme ? esc(s.theme) : ''].filter(Boolean).join(' · ');
+  return `<button class="item cohis" data-a="open" data-v="seance" data-id="${id}">${coDblk(d, g.h)}<span class="grow"><span class="nm">${DAYS[coDow(d)]} ${fmtD(d, 1)}${d === TODAY ? " · aujourd'hui" : ''}</span><br><span class="muted small">${sub}</span></span>${tag ? `<span class="tag cost ${tag[1]}">${tag[0]}</span>` : ''}</button>`;
 }
 function coGroupe(id) {
   const g = grp(id);
