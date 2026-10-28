@@ -216,7 +216,7 @@ function forms(k, cid) {
     train: [
       'Créer un groupe',
       F('a-title', 'Nom', 'Adultes loisir') +
-        `<div class="two">${Sel('t-sport', 'Sport', ['Tennis', 'Padel'])}${Sel('t-day', 'Jour', ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'], 'Jeudi')}</div><div class="two">${Sel('a-h1', 'Heure de début', HOURS, '19 h')}${Sel('t-dur', 'Durée du cours', ['1 h', '1 h 30'], '1 h 30')}</div><div class="two">${Who('t-coach', 'Enseignant', coaches)}${Sel('a-gen', 'Public', ['Mixte', 'Hommes', 'Femmes'])}</div>${Sel('t-loc', 'Lieu habituel', ['Extérieur', 'En salle'])}<div class="two">${Sel('v-lo', 'Classement de', RANKS, 'NC')}${Sel('v-hi', 'à', RANKS, '15')}</div><p class="muted small">Le groupe est créé vide. Sa page te propose ensuite les adhérents qui correspondent à ces critères.</p>`,
+        `<div class="two">${Sel('t-sport', 'Sport', ['Tennis', 'Padel'])}${Sel('t-day', 'Jour', ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'], 'Jeudi')}</div><div class="two">${Sel('a-h1', 'Heure de début', HOURS, '19 h')}${Sel('t-dur', 'Durée du cours', ['1 h', '1 h 30'], '1 h 30')}</div><div class="two">${Who('t-coach', 'Enseignant', coaches)}${Sel('a-gen', 'Public', ['Mixte', 'Hommes', 'Femmes'])}</div>${Sel('t-loc', 'Lieu habituel', ['En salle', 'Extérieur'])}<div class="two">${Sel('v-lo', 'Classement de', RANKS, 'NC')}${Sel('v-hi', 'à', RANKS, '15')}</div><p class="muted small">Le groupe est créé vide. Sa page te propose ensuite les adhérents qui correspondent à ces critères.</p>`,
       'Créer le groupe'
     ],
     fixture: [

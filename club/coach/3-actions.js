@@ -605,7 +605,7 @@ Object.assign(A, {
       cur = (d && d.c) || (S.coClub !== 'all' && S.coClub) || coMainId();
     sheet(
       'Nouveau groupe',
-      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}<p class="muted small">Un groupe rassemble des élèves qui jouent ensemble chaque semaine. Sa discussion est créée dans /RAM Club. Pour un cours individuel ou une séance unique : Ajouter une séance.</p>${F('co-gn', 'Nom', 'Adultes compétition, duo du mardi…')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour (chaque semaine)', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Dt('co-go', 'Première séance', false, TODAY)}${Dt('co-gz', 'Dernière séance (cycle, facultatif)', false, '')}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['Extérieur', 'En salle'], 'Extérieur')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
+      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}<p class="muted small">Un groupe rassemble des élèves qui jouent ensemble chaque semaine. Sa discussion est créée dans /RAM Club. Pour un cours individuel ou une séance unique : Ajouter une séance.</p>${F('co-gn', 'Nom', 'Adultes compétition, duo du mardi…')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour (chaque semaine)', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Dt('co-go', 'Première séance', false, TODAY)}${Dt('co-gz', 'Dernière séance (cycle, facultatif)', false, '')}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['En salle', 'Extérieur'], 'En salle')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
     );
     $('co-gm').inputMode = 'numeric';
     $('co-gp').inputMode = 'decimal';
@@ -630,7 +630,7 @@ document.addEventListener('submit', e => {
     day: new Date(d + 'T12:00:00').getDay(),
     h: v('co-sh'),
     dur: v('co-sdu'),
-    defLoc: 'Extérieur',
+    defLoc: 'En salle',
     coach: key,
     mem: ks.filter(k => M[k]),
     ext: ks.filter(k => !M[k]),
@@ -658,6 +658,7 @@ document.addEventListener('submit', e => {
       h: v('co-gh'),
       dur: v('co-gdu'),
       defLoc: v('co-gl'),
+      locPref: 1,
       coach: key,
       mem: [],
       sub: `${v('co-gd')} ${v('co-gh')} · ${v('co-gdu')} · ${first(key)}`,

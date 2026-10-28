@@ -15,7 +15,8 @@ const grpN = g => g.mem.length + (g.ext || []).length;
 const grpFull = g => !!g.max && grpN(g) >= g.max;
 /* un vrai groupe, en cours : ni une séance ponctuelle (cours individuel), ni un cycle terminé */
 const grpLive = g => g.type === 'train' && !g.once && !(g.to && (g.to < TODAY || g.fini));
-const locOf = (g, iso) => (g.loc || {})[iso] || g.defLoc || 'Extérieur';
+// lieu d'une séance : en salle par défaut ; « Extérieur » pour la saison (interrupteur du groupe) ou ce jour-là
+const locOf = (g, iso) => (g.loc || {})[iso] || g.defLoc || 'En salle';
 const respOf = (g, iso, id) => ((g.resp || {})[iso] || {})[id] || (((g.abs || {})[iso] || []).includes(id) ? 'no' : '');
 function sessCard(g, iso, who, manage) {
   const cx = (g.cancel || []).includes(iso),
@@ -138,7 +139,7 @@ function ecoleBody(t) {
       gs
         .map(
           g =>
-            `<button class="item" data-a="open" data-v="grp" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${g.name}</span><br><span class="muted small">${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'Extérieur'}</span></span>${grpFull(g) ? '<span class="tag">Complet</span>' : ''}</button>`
+            `<button class="item" data-a="open" data-v="grp" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${g.name}</span><br><span class="muted small">${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'En salle'}</span></span>${grpFull(g) ? '<span class="tag">Complet</span>' : ''}</button>`
         )
         .join('') +
       (gs.length

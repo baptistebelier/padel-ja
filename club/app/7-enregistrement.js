@@ -820,6 +820,7 @@ document.addEventListener('submit', e => {
               dur: val('t-dur'),
               coach: val('t-coach'),
               defLoc: val('t-loc'),
+              locPref: 1,
               gen: val('a-gen'),
               lo: val('v-lo'),
               hi: val('v-hi'),

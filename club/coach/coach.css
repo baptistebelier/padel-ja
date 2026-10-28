@@ -1102,3 +1102,65 @@ button.copp:hover span:last-child {
 .cogo {
   margin-top: 10px;
 }
+/* page d'une séance : actions en grille, grandes tuiles avec pictogramme */
+.coacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.coact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 92px;
+  padding: 12px;
+  text-align: left;
+  background: var(--card2);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: var(--rb);
+  font: inherit;
+  cursor: pointer;
+}
+.coact svg {
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+.coact b {
+  font-family: var(--f-sub);
+  font-size: 16px;
+  line-height: 1.15;
+}
+.coact span {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.coact.on {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.coact.on svg,
+.coact.on span {
+  color: var(--on-accent);
+}
+.coact.danger svg {
+  color: var(--hot);
+}
+@media (min-width: 700px) {
+  .coacts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 699px) {
+  /* nombre impair de tuiles : la dernière prend toute la largeur */
+  .coact:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    min-height: 0;
+  }
+}

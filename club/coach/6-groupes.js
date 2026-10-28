@@ -64,6 +64,22 @@ function coOffHtml(g) {
   }`;
 }
 
+/* ---------- lieu : en salle par défaut, un interrupteur pour la saison en extérieur ----------
+   g.defLoc : lieu des prochaines séances ; g.loc[date] : un jour précis (« Passer en salle » s'il pleut).
+   g.locPref : le lieu a été choisi par l'enseignant. Les groupes créés avant la règle « en salle par défaut »
+   (où « Extérieur » n'était qu'une valeur par défaut) passent une fois en salle (coLocInit). */
+const coLocTg = g => {
+  const out = g.defLoc === 'Extérieur';
+  return `<div class="cokv"><span class="muted">${out ? 'Saison en extérieur · « Passer en salle » s’il pleut' : 'En salle · saison en extérieur au printemps'}</span><span class="cocyc"><span class="muted small">Extérieur</span><button class="tg" role="switch" aria-checked="${out}" data-a="coLocSeason" data-id="${g.id}" aria-label="${esc(g.name)} : ${out ? 'repasser en salle' : 'passer la saison en extérieur'}"></button></span></div>`;
+};
+function coLocInit() {
+  coGroups('', true).forEach(g => {
+    if (g.locPref || g.old) return;
+    if (g.defLoc !== 'En salle') g.defLoc = 'En salle';
+    g.locPref = 1;
+  });
+}
+
 /* ---------- reporter une séance, ou changer la date d'une seule ----------
    Reporter : la séance glisse à l'occurrence suivante du groupe (une semaine, deux pour un groupe une semaine sur
    deux, en sautant les périodes sans cours) et toutes les suivantes glissent avec elle, thèmes compris : la suite
@@ -141,6 +157,25 @@ const coPlanRead = () =>
   [...document.querySelectorAll('#co-plan .co-pd')].map(i => i.value).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
 
 Object.assign(A, {
+  /* saison en extérieur : les prochaines séances changent de lieu (un jour déjà réglé à la main l'est encore) ;
+     élèves et parents prévenus */
+  coLocSeason(d) {
+    const g = grp(d.id);
+    if (!g) return;
+    const nl = g.defLoc === 'Extérieur' ? 'En salle' : 'Extérieur';
+    g.defLoc = nl;
+    g.locPref = 1;
+    if (g.loc) Object.keys(g.loc).forEach(k => k > TODAY && g.loc[k] === nl && delete g.loc[k]);
+    NOTIFS.unshift({
+      by: g.coach,
+      txt: `${g.name} : les prochains cours auront lieu ${nl === 'En salle' ? 'en salle' : 'en extérieur'}`,
+      t: "À l'instant",
+      n: 1,
+      go: { v: 'agenda', ag: 'cours' },
+      to: g.mem.slice()
+    });
+    coSave(`${g.name} : prochaines séances ${nl === 'En salle' ? 'en salle' : 'en extérieur'} · élèves prévenus`);
+  },
   coShift(d) {
     const g = grp(d.id);
     if (!g) return;

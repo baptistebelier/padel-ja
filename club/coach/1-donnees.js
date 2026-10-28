@@ -33,6 +33,12 @@ Object.assign(S, {
   stWho: 'me'
 });
 Object.assign(I, {
+  // actions d'une séance : annuler, rétablir, reporter, changer la date
+  ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+  undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  forward: '<path d="M4 6l7 6-7 6"/><path d="M12 6l7 6-7 6"/>',
+  calmove:
+    '<rect x="3" y="5" width="13" height="14" rx="2"/><path d="M3 10h13M7 3v4M12 3v4"/><path d="M18 12h4M20 10l2 2-2 2"/>',
   timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',
   ladder: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>',
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',

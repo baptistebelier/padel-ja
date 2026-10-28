@@ -150,7 +150,7 @@ function coSesCard(x, big) {
     st = coStu(g),
     nP = s && s.pres ? Object.values(s.pres).filter(v => v === 'P').length : null,
     [y, m, dd] = d.split('-').map(Number),
-    loc = (g.loc || {})[d] || g.defLoc || 'Extérieur';
+    loc = (g.loc || {})[d] || g.defLoc || 'En salle';
   const go = `data-a="open" data-v="seance" data-id="${sesKey(g, d)}"`;
   return `<button class="card coses${cx ? ' cx' : ''}" ${go}><span class="dblk"><b>${dd}</b>${MO[m - 1]}</span><span class="grow"><span class="h3" style="font-size:18px">${esc(g.name)}</span><br><span class="muted small">${DA[new Date(y, m - 1, dd).getDay()]} · ${g.h} · ${g.dur}${g.coach && !coIsMe(g.coach) && M[g.coach] ? ' · ' + first(g.coach) : ''}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag loc">${ic(loc === 'En salle' ? 'home' : 'sun')}${loc}</span>`}${sportTag(g.sport)}${coMulti() ? `<span class="tag coclub">${ic('club')}${esc(coClubName(g))}</span>` : ''}<span class="tag">${nP != null && d <= TODAY ? nP + '/' + st.length + ' présents' : plural(st.length, 'élève')}</span></span>${big && st.length ? `<span class="coppl">${st.map(k => `<span class="copp${s && s.pres && s.pres[k] === 'A' ? ' abs' : ''}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span></span>`).join('')}</span>` : ''}${s && s.theme ? `<span class="small cotheme">${ic('ladder')}${esc(s.theme)}</span>` : big && !cx ? '<span class="muted small">Thème à définir</span>' : ''}</span></button>`;
 }
@@ -195,6 +195,7 @@ function coNoClub() {
 }
 function coToday() {
   coExtCheck();
+  if (typeof coLocInit === 'function') coLocInit();
   const today = coSessions(TODAY, TODAY, 'me', 1),
     tom = coSessions(isoIn(1), isoIn(1), 'me', 1),
     wk = coSessions(monday(0), isoIn(6, monday(0)), 'me', 1).filter(x => !isCx(x.g, x.d)),
@@ -268,6 +269,19 @@ function coPlanning() {
   }
   return `<div class="pad">${coClubChips()}<div class="card coweek"><button class="ib" data-a="coWeek" data-n="-1" aria-label="Semaine précédente">${ic('back')}</button><span class="grow" style="text-align:center"><b>Semaine du ${+from.slice(8)} ${MO[+from.slice(5, 7) - 1]}</b><br><span class="muted small">${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}${S.pl.w ? '' : ' · cette semaine'}</span></span><button class="ib flip" data-a="coWeek" data-n="1" aria-label="Semaine suivante">${ic('back')}</button></div>${days.join('') || none('cal', 'Aucun cours cette semaine', '')}${stages.length ? hd('Stages') + list(stages.map(p => `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(p.title)}</span></span></button>`).join('')) : ''}<div class="card cotools"><button class="btn" data-a="coNewSes">${ic('plus')}Ajouter une séance</button><button class="btn ghost" data-a="coNewGrp">${ic('users')}Créer un groupe</button><button class="btn ghost" data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div></div>`;
 }
+/* actions d'une séance : une grille de tuiles avec pictogramme (lieu, annuler, reporter, changer la date, supprimer) */
+function coActs(g, d, loc, cx) {
+  const t = (a, icn, l, sub, extra, cls) =>
+      `<button class="coact${cls ? ' ' + cls : ''}" data-a="${a}" ${extra}>${ic(icn)}<b>${l}</b><span>${sub}</span></button>`,
+    at = `data-id="${g.id}" data-d="${d}"`;
+  return `<div class="coacts">${
+    cx
+      ? ''
+      : loc === 'En salle'
+        ? t('loc', 'sun', 'Passer en extérieur', 'Ce jour-là · élèves prévenus', `data-g="${g.id}" data-d="${d}"`)
+        : t('loc', 'home', 'Passer en salle', 'S’il pleut · élèves prévenus', `data-g="${g.id}" data-d="${d}"`)
+  }${cx ? t('cancelCourse', 'undo', 'Rétablir le cours', 'Élèves prévenus', at, 'on') : t('cancelCourse', 'ban', 'Annuler le cours', 'Reste affiché · élèves prévenus', at)}${coIsGrp(g) && d >= TODAY ? t('coShift', 'forward', 'Reporter', 'Les suivantes glissent', at) : ''}${t('coMove', 'calmove', 'Changer la date', 'Cette séance seulement', at)}${t('delCourse', 'trash', 'Supprimer', 'Personne n’est prévenu', at, 'danger')}</div>`;
+}
 /* ---------- Séance : thème, appel, bilan du groupe et commentaires personnels ---------- */
 function coSeance(id) {
   const i = id.lastIndexOf('.'),
@@ -278,7 +292,7 @@ function coSeance(id) {
     cx = isCx(g, d),
     st = coStu(g),
     past = d <= TODAY,
-    loc = (g.loc || {})[d] || g.defLoc || 'Extérieur',
+    loc = (g.loc || {})[d] || g.defLoc || 'En salle',
     // bilan préparé en brouillon (par Claude ou par l'enseignant) : relu ici, publié par l'enseignant
     dr = BROUILLONS.find(b => b.id === id && (b._club || '') === (g._club || '')),
     perso = k =>
@@ -297,7 +311,7 @@ function coSeance(id) {
   return `<div class="pad"><div class="card"><span class="kicker">${DAYS[coDow(d)]} ${fmtD(d, 1)} · ${g.h} · ${g.dur}</span><span class="h3">${esc(g.name)}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag">${loc}</span>`}${sportTag(g.sport)}${g.coach && M[g.coach] ? `<span class="tag">${first(g.coach)}</span>` : ''}</span>
 ${coIsGrp(g) ? `<button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button>` : ''}${st.length ? `<div class="coppl">${st.map(k => `<button class="copp" data-a="open" data-v="eleve" data-id="${k}" aria-label="Fiche de ${esc(svName(k))}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span></button>`).join('')}</div>` : ''}
 <form id="co-theme" data-id="${id}" class="row" style="gap:8px;margin-top:10px"><input id="co-th" class="grow" placeholder="Thème de la séance" value="${esc(s.theme || '')}" aria-label="Thème de la séance" list="co-thl"><datalist id="co-thl">${THEMES[g.sport].map(t => `<option value="${esc(t)}">`).join('')}</datalist><button class="btn sm">OK</button></form>
-<div class="ctl" style="flex-wrap:wrap">${cx ? '' : `<button class="btn sm grow ghost" data-a="loc" data-g="${g.id}" data-d="${d}">${loc === 'En salle' ? 'Passer en extérieur' : 'Passer en salle'}</button>`}<button class="btn sm grow ${cx ? '' : 'ghost'}" data-a="cancelCourse" data-id="${g.id}" data-d="${d}">${cx ? 'Rétablir le cours' : 'Annuler le cours'}</button>${coIsGrp(g) && d >= TODAY ? `<button class="btn sm grow ghost" data-a="coShift" data-id="${g.id}" data-d="${d}">${ic('cal')}Reporter</button>` : ''}<button class="btn sm grow ghost" data-a="coMove" data-id="${g.id}" data-d="${d}">${ic('edit')}Changer la date</button><button class="btn sm grow ghost" data-a="delCourse" data-id="${g.id}" data-d="${d}">${ic('trash')}Supprimer</button><button class="btn sm grow ghost" data-a="coTimer">${ic('timer')}Minuteur</button></div></div>
+${coActs(g, d, loc, cx)}</div>
 ${
   cx
     ? '<div class="card"><p>Les élèves et leurs parents sont prévenus dans /RAM Club.</p></div>'
@@ -745,7 +759,7 @@ function coGroupe(id) {
       return !isCx(g, d) && !(s && (s.recap || s.noRecap)) && !BROUILLONS.some(b => b.id === sesKey(g, d));
     }).length,
     recaps = past.map(d => ({ d, s: sesFind(g, d) })).filter(x => x.s && x.s.recap);
-  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'Extérieur'}</span><span class="h3">${esc(g.name)}</span><div class="cokv"><span class="muted">Enseignant</span><b>${g.coach && M[g.coach] ? esc(name(g.coach)) : 'À choisir'}</b></div><div class="cokv"><span class="muted">Élèves</span><b>${st.length}${g.max ? ' sur ' + g.max + ' places' : ''}</b></div><div class="cokv"><span class="muted">Tarif</span><b>${t.prix ? t.prix + ' € ' + TARIF_MODES[t.mode] : 'Non renseigné'}</b></div>${coGrpOffer(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages</button></div></div>
+  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span><div class="cokv"><span class="muted">Enseignant</span><b>${g.coach && M[g.coach] ? esc(name(g.coach)) : 'À choisir'}</b></div><div class="cokv"><span class="muted">Élèves</span><b>${st.length}${g.max ? ' sur ' + g.max + ' places' : ''}</b></div><div class="cokv"><span class="muted">Tarif</span><b>${t.prix ? t.prix + ' € ' + TARIF_MODES[t.mode] : 'Non renseigné'}</b></div>${coGrpOffer(g)}${coLocTg(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages</button></div></div>
 ${hd('Discussion du groupe')}${
     c
       ? list(
