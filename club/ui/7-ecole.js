@@ -14,7 +14,7 @@ function sessions(g, days) {
 const grpN = g => g.mem.length + (g.ext || []).length;
 const grpFull = g => !!g.max && grpN(g) >= g.max;
 /* un vrai groupe, en cours : ni une séance ponctuelle (cours individuel), ni un cycle terminé */
-const grpLive = g => g.type === 'train' && !g.once && !(g.to && g.to < TODAY);
+const grpLive = g => g.type === 'train' && !g.once && !(g.to && (g.to < TODAY || g.fini));
 const locOf = (g, iso) => (g.loc || {})[iso] || g.defLoc || 'Extérieur';
 const respOf = (g, iso, id) => ((g.resp || {})[iso] || {})[id] || (((g.abs || {})[iso] || []).includes(id) ? 'no' : '');
 function sessCard(g, iso, who, manage) {

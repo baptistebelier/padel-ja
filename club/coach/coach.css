@@ -1026,3 +1026,17 @@
   min-height: 36px;
   font-size: 14px;
 }
+/* interrupteur « En cours » d'un groupe (liste des groupes, page du groupe) */
+.cocyc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+@media (max-width: 600px) {
+  /* téléphone : l'interrupteur seul, sans libellé ni pastilles d'élèves, pour laisser la place au nom du groupe */
+  .cofr .cocyc .muted,
+  .cofr:has(.cocyc) .costack {
+    display: none;
+  }
+}

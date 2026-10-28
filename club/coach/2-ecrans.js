@@ -41,7 +41,8 @@ function coDates(g, from, to) {
 }
 /* un groupe : des élèves qui jouent ensemble chaque semaine (avec sa discussion) ; une séance ponctuelle n'en est pas un */
 const coIsGrp = g => !g.once;
-const coOver = g => !!g.to && g.to < TODAY; // cycle terminé
+// cycle terminé : sa dernière séance est passée, ou l'enseignant l'a terminé lui-même (fini)
+const coOver = g => !!g.to && (g.to < TODAY || !!g.fini);
 /* créneau d'un groupe : « mardi 18 h » chaque semaine, ou la date d'une séance ponctuelle */
 const coSlot = g => (g.once ? fmtD(g.once) + ' · ' + g.h : DAYS[g.day] + ' ' + g.h);
 const sesKey = (g, d) => g.id + '.' + d;
@@ -610,8 +611,11 @@ function coClubs() {
       ''
     )}<div class="card cotools"><button class="btn ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button><button class="btn ghost" data-a="open" data-v="niveaux">${ic('ladder')}Échelles de niveaux</button><button class="btn ghost" data-a="open" data-v="formules">${ic('ball')}Formules et tarifs</button></div></div>`;
 }
+/* un groupe dans la liste : la ligne ouvre le groupe ; l'interrupteur le remet en cours ou termine son cycle */
 const coGrpRow = g =>
-  `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coOver(g) ? 'Du ' + fmtD(g.from) + ' au ' + fmtD(g.to) : coSlot(g) + ' · ' + g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${coStack(coStu(g))}</button>`;
+  `<div class="item cofr"><button class="cofo" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coOver(g) ? (g.from ? 'Du ' + fmtD(g.from) + ' au ' : 'Jusqu’au ') + fmtD(g.to) : coSlot(g) + ' · ' + g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${coStack(coStu(g))}</button>${coCycleTg(g)}</div>`;
+const coCycleTg = g =>
+  `<span class="cocyc"><span class="muted small">${coOver(g) ? 'Terminé' : 'En cours'}</span><button class="tg" role="switch" aria-checked="${!coOver(g)}" data-a="coCycle" data-id="${g.id}" aria-label="${esc(g.name)} : ${coOver(g) ? 'remettre le groupe en cours' : 'terminer le cycle'}"></button></span>`;
 function coClubPage(id) {
   const c = coClubList().find(x => x.id === id);
   if (!c) return `<div class="pad">${none('club', 'Club introuvable', '')}</div>`;
@@ -740,7 +744,7 @@ function coGroupe(id) {
       return !isCx(g, d) && !(s && (s.recap || s.noRecap)) && !BROUILLONS.some(b => b.id === sesKey(g, d));
     }).length,
     recaps = past.map(d => ({ d, s: sesFind(g, d) })).filter(x => x.s && x.s.recap);
-  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'Extérieur'}</span><span class="h3">${esc(g.name)}</span><div class="cokv"><span class="muted">Enseignant</span><b>${g.coach && M[g.coach] ? esc(name(g.coach)) : 'À choisir'}</b></div><div class="cokv"><span class="muted">Élèves</span><b>${st.length}${g.max ? ' sur ' + g.max + ' places' : ''}</b></div><div class="cokv"><span class="muted">Tarif</span><b>${t.prix ? t.prix + ' € ' + TARIF_MODES[t.mode] : 'Non renseigné'}</b></div>${coGrpOffer(g)}<div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages</button></div></div>
+  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'Extérieur'}</span><span class="h3">${esc(g.name)}</span><div class="cokv"><span class="muted">Enseignant</span><b>${g.coach && M[g.coach] ? esc(name(g.coach)) : 'À choisir'}</b></div><div class="cokv"><span class="muted">Élèves</span><b>${st.length}${g.max ? ' sur ' + g.max + ' places' : ''}</b></div><div class="cokv"><span class="muted">Tarif</span><b>${t.prix ? t.prix + ' € ' + TARIF_MODES[t.mode] : 'Non renseigné'}</b></div>${coGrpOffer(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages</button></div></div>
 ${hd('Discussion du groupe')}${
     c
       ? list(

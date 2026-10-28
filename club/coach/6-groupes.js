@@ -86,6 +86,22 @@ const coPlanRead = () =>
   [...document.querySelectorAll('#co-plan .co-pd')].map(i => i.value).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
 
 Object.assign(A, {
+  /* cycle terminé ↔ en cours : un groupe en cours reprend son créneau (chaque semaine, ou une sur deux) ;
+     un groupe qu'on termine s'arrête à sa dernière séance passée */
+  coCycle(d) {
+    const g = grp(d.id);
+    if (!g) return;
+    if (coOver(g)) {
+      delete g.to;
+      delete g.fini;
+      const n = coDates(g, isoIn(1), isoIn(42))[0];
+      coSave(`${g.name} est de nouveau en cours${n ? ' · prochaine séance le ' + fmtD(n) : ''}`);
+    } else {
+      g.to = coDates(g, g.from || isoIn(-365), TODAY).pop() || TODAY;
+      g.fini = 1;
+      coSave(g.name + ' : cycle terminé le ' + fmtD(g.to));
+    }
+  },
   coFav(d) {
     const l = coFavs(),
       i = l.indexOf(d.k);
@@ -208,6 +224,7 @@ function coPlanApply(g, list, cycle) {
     fut = d => d > TODAY;
   g.extra = (g.extra || []).filter(d => !fut(d) || keep.has(d));
   g.skip = (g.skip || []).filter(d => !fut(d) || !keep.has(d));
+  delete g.fini;
   if (cycle) g.to = list.length ? list[list.length - 1] : TODAY;
   else if (g.to && g.to >= TODAY) delete g.to;
   // un groupe sans séance faite (ni appel ni bilan) commence à sa première date programmée
