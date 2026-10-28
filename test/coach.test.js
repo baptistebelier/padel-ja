@@ -64,3 +64,37 @@ test('suivi /RAM Coach : enseignant, élève, parent et autres adhérents', asyn
   assert.equal(item(sC, 'eleve', kE).note, 'épaule fragile');
   assert.equal(sC.items.filter(i => i.coll === 'suivi').length, 5);
 });
+
+test('confidentialité : cours particuliers, appels et tarifs ne vont qu’aux personnes concernées', async () => {
+  const coach = { id: 'C2', name: 'Sarah Benali' }, eleve = { id: 'E2', name: 'Thomas Leroy' }, autre = { id: 'O2', name: 'Paul Martin' };
+  const club = await ram.create(coach, { name: 'TC Privé', short: 'tcp' });
+  const kC = club.key, kE = (await ram.join(eleve, club.code)).key, kO = (await ram.join(autre, club.code)).key;
+  const season = item(await ram.sync(coach.id, club.id, 0), 'conf', 'main').season;
+  await ram.ops(coach.id, club.id, [kE, kO].map(k => ({ coll: 'member', id: k, op: 'patch', patch: [{ p: ['valid'], t: 'set', v: season }] })));
+  await ram.ops(coach.id, club.id, [{ coll: 'member', id: 'kid2', op: 'put', data: { n: 'Léo Leroy', parent: kE } }]);
+  const r = await ram.ops(coach.id, club.id, [
+    { coll: 'group', id: 'gp', op: 'put', data: { type: 'train', name: 'Cours individuel', coach: kC, once: '2026-11-03', mem: ['kid2'], ext: [], goal: 'Bandeja', tarif: { mode: 'seance', prix: 35 }, cal: 'https://api.calendly.com/x' } },
+    { coll: 'group', id: 'gg', op: 'put', data: { type: 'train', name: 'Groupe du mardi', coach: kC, day: 2, h: '18:00', mem: [kE], ext: [], tarif: { mode: 'seance', prix: 70 } } },
+    { coll: 'seance', id: 'gg.2026-11-03', op: 'put', data: { g: 'gg', d: '2026-11-03', pres: { [kE]: 'P' } } },
+    { coll: 'seance', id: 'gp.2026-11-03', op: 'put', data: { g: 'gp', d: '2026-11-03', pres: { kid2: 'P' } } }
+  ]);
+  assert.deepEqual(r.rejected, []);
+  // un autre adhérent : voit le groupe du mardi (agenda, discussion), sans son tarif ; rien du cours particulier ni des appels
+  const sO = await ram.sync(autre.id, club.id, 0);
+  assert.equal(item(sO, 'group', 'gp'), undefined, 'cours particulier invisible');
+  assert.equal(item(sO, 'group', 'gg').name, 'Groupe du mardi');
+  assert.equal(item(sO, 'group', 'gg').tarif, undefined, 'tarif réservé à l’équipe');
+  assert.equal(has(sO, 'seance'), false, 'appels invisibles');
+  // l'élève (parent de kid2) : le cours de son enfant, l'appel de son groupe et celui de son enfant, sans tarif ni lien Calendly
+  const sE = await ram.sync(eleve.id, club.id, 0);
+  assert.equal(item(sE, 'group', 'gp').goal, 'Bandeja');
+  assert.equal(item(sE, 'group', 'gp').tarif, undefined);
+  assert.equal(item(sE, 'group', 'gp').cal, undefined);
+  assert.deepEqual(sE.items.filter(i => i.coll === 'seance').map(i => i.id).sort(), ['gg.2026-11-03', 'gp.2026-11-03']);
+  // l'enseignant : tout, tarifs compris
+  const sC = await ram.sync(coach.id, club.id, 0);
+  assert.equal(item(sC, 'group', 'gp').tarif.prix, 35);
+  // l'élève modifie sa présence dans son groupe : le tarif, qu'il ne voit pas, reste intact
+  await ram.ops(eleve.id, club.id, [{ coll: 'group', id: 'gg', op: 'patch', patch: [{ p: ['mem'], t: 'rm', v: kE }] }]);
+  assert.equal(item(await ram.sync(coach.id, club.id, 0), 'group', 'gg').tarif.prix, 70);
+});
