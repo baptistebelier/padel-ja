@@ -2,7 +2,7 @@
    Les formules sont rangées sur le compte /RAM de l'enseignant (lib/formules.js, /api/coach/formules), les mêmes dans
    tous ses clubs ; elles s'affichent sur sa fiche enseignant de /RAM Club et serviront à la prise de rendez-vous.
    Un achat (formule à la séance, pack ou abonnement) est noté dans la fiche de l'élève (e.achats) : les séances
-   d'un pack se décomptent toutes seules avec les séances ponctuelles où l'élève est venu, de la même durée. */
+   d'un pack se décomptent toutes seules avec les séances où l'élève est venu, de la même durée et du même format. */
 /* formules de démonstration ; remplacées par celles du compte au démarrage */
 const OFFRES = {
   formules: [
@@ -98,13 +98,17 @@ V.formules = coFormules;
 TITLES.formules = () => ['Formules et tarifs', 'Séances, packs et abonnements'];
 
 /* ---------- ce que l'élève a acheté (fiche élève) ---------- */
-/* séances ponctuelles faites par l'élève, de la plus ancienne : elles se décomptent des packs, du plus ancien au plus récent */
+/* séances faites par l'élève (cours ponctuels et séances de ses groupes : cycles, duos, collectifs), de la plus
+   ancienne : elles se décomptent des packs, du plus ancien au plus récent. Une séance compte pour un pack si elle a
+   la durée de sa formule et le même format (individuel, duo, collectif) ; un pack payé un peu après sa première
+   séance (« payé au mois ») la compte aussi : jusqu'à 14 jours avant la date d'achat. */
+const coFmt = n => (n >= 3 ? 3 : n); // 1 individuel, 2 duo, 3 collectif
 function coPacks(id) {
   const e = coEl(id) || {},
     l = (e.achats || []).slice().sort((a, b) => a.d.localeCompare(b.d)),
     done = SEANCES.filter(s => s.d <= TODAY && s.pres && s.pres[id] === 'P')
       .map(s => ({ s, g: GROUPS.find(g => g.id === s.g && (g._club || '') === (s._club || '')) }))
-      .filter(x => x.g && x.g.once)
+      .filter(x => x.g && !isCx(x.g, x.s.d))
       .sort((a, b) => a.s.d.localeCompare(b.s.d)),
     used = new Set();
   return l.map(a => {
@@ -113,8 +117,8 @@ function coPacks(id) {
     const p = OFFRES.packs.find(x => x.id === a.ref),
       f = p && foOf(p.formule);
     done.forEach(x => {
-      if (o.used >= (a.n || 0) || used.has(x.s) || x.s.d < a.d) return;
-      if (f && durMin(x.g.dur) !== f.duree) return;
+      if (o.used >= (a.n || 0) || used.has(x.s) || x.s.d < isoIn(-14, a.d)) return;
+      if (f && (durMin(x.g.dur) !== f.duree || coFmt(coStu(x.g).length) !== coFmt(f.joueurs))) return;
       used.add(x.s);
       o.used++;
     });

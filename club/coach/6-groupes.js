@@ -281,7 +281,7 @@ function coPlanApply(g, list, cycle) {
   const keep = new Set(list),
     fut = d => d > TODAY;
   g.extra = (g.extra || []).filter(d => !fut(d) || keep.has(d));
-  g.skip = (g.skip || []).filter(d => !fut(d) || !keep.has(d));
+  g.skip = (g.skip || []).filter(d => !keep.has(d));
   delete g.fini;
   if (cycle) g.to = list.length ? list[list.length - 1] : TODAY;
   else if (g.to && g.to >= TODAY) delete g.to;
@@ -290,10 +290,14 @@ function coPlanApply(g, list, cycle) {
   if (list.length && (g.from ? g.from > list[0] : !used)) g.from = list[0];
   // jusqu'à la dernière date choisie : après elle, un groupe sans fin reprend son créneau chaque semaine
   const end = list.length ? list[list.length - 1] : TODAY;
-  for (let d = isoIn(1); d <= end; d = isoIn(1, d)) {
+  // des dates passées choisies (cycle commencé avant d'être programmé) sont reprises ; une séance passée déjà
+  // faite (appel ou bilan) n'est jamais retirée
+  const done = d =>
+    SEANCES.some(x => x.id === g.id + '.' + d && (x._club || '') === (g._club || '') && (x.pres || x.recap));
+  for (let d = list.length && list[0] < isoIn(1) ? list[0] : isoIn(1); d <= end; d = isoIn(1, d)) {
     if (keep.has(d)) {
       if (!trainOn(g, d)) g.extra.push(d);
-    } else if (trainOn(g, d)) g.skip.push(d);
+    } else if (trainOn(g, d) && (fut(d) || !done(d))) g.skip.push(d);
   }
   g.extra.sort();
   g.skip.sort();
@@ -303,7 +307,7 @@ document.addEventListener('submit', e => {
   e.preventDefault();
   const g = grp(e.target.dataset.id);
   if (!g) return;
-  const list = [...new Set(coPlanRead())].filter(d => d > TODAY).sort(),
+  const list = [...new Set(coPlanRead())].sort(),
     o = $('co-pl-o').value,
     p = coPlanOf(o);
   if (o) g.offre = o;
