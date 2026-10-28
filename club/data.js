@@ -106,6 +106,8 @@ const dayOfAt = t => {
 const trainOn = (g, iso) => {
   if (g.once) return g.once === iso;
   if ((g.extra || []).includes(iso)) return true;
+  // périodes sans cours (vacances scolaires…) : du … au …, bornes comprises
+  if ((g.off || []).some(o => iso >= o.du && iso <= o.au)) return false;
   if ((g.skip || []).includes(iso) || (g.from && iso < g.from) || (g.to && iso > g.to)) return false;
   // un groupe sans date de début commence le jour de sa création (at) : pas de séances imaginaires avant
   if (!g.from && g.at && iso < dayOfAt(g.at)) return false;

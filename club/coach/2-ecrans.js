@@ -765,6 +765,7 @@ ${hd('Séances à venir · ' + up.length, `<button class="chip" data-a="coPlan" 
         )
       : none('cal', 'Aucune séance à venir', 'Programme des séances : un pack, un cycle ou des dates une par une.')
   }
+${coOffHtml(g)}
 ${next.length ? `<details class="card cothm"><summary><b>Thèmes des prochaines séances</b><span class="muted small"> · les élèves les voient dans leurs cours</span></summary><form id="co-themes" data-id="${g.id}">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist><button class="btn full">Enregistrer les thèmes</button></form></details>` : ''}
 ${hd('Séances effectuées · ' + past.length, todo ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '')}${past.length ? list(past.map(d => coSesRow(g, d)).join('')) : none('check', 'Aucune séance faite', 'Après chaque séance : l’appel et le bilan, ici.')}
 ${

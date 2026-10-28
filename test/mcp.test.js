@@ -111,6 +111,8 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const md = await w('coach_modifier_groupe', { groupe_id: ec.groupe_id, fin: '2030-01-23', retirer_dates: ['2030-01-09'], ajouter_dates: ['2030-01-11'] });
   assert.deepEqual([md.debut, md.fin, md.prochaines_seances], ['2030-01-02', '2030-01-23', ['2030-01-02', '2030-01-11', '2030-01-16', '2030-01-23']]);
   await assert.rejects(w('coach_modifier_groupe', { groupe_id: ec.groupe_id }), /Rien à modifier/);
+  const va = await w('coach_modifier_groupe', { groupe_id: ec.groupe_id, periodes_sans_cours: [{ nom: 'Vacances', du: '2030-01-14', au: '2030-01-20' }] });
+  assert.deepEqual(va.prochaines_seances, ['2030-01-02', '2030-01-11', '2030-01-23'], 'pas de séance pendant les vacances');
   const nv = await w('coach_ajouter_eleve', { prenom: 'Jules', nom: 'Perrin', email: 'jules@test.fr', sport: 'Padel', groupe_id: g.groupe_id });
   assert.equal(nv.compte_ram_club, false);
   const linked = await w('coach_ajouter_eleve', { prenom: 'Léo', nom: 'Martin', groupe_id: g.groupe_id });

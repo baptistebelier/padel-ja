@@ -43,11 +43,34 @@ function coGrpOffer(g) {
   return `<div class="cokv"><span class="muted">Formule</span><b>${esc(ofLabel(t, ref))}</b></div>${pk ? `<div class="cokv"><span class="muted">Avancement</span><b>${Math.min(done, pk.seances)} sur ${pk.seances} séances${left ? ' · ' + left + ' à venir' : ''}</b></div>` : ''}`;
 }
 
+/* ---------- périodes sans cours (vacances scolaires, fermeture du club…) ----------
+   g.off = [{ nom, du, au }] : le créneau du groupe ne donne pas de séance ces jours-là (data.js trainOn) ;
+   une séance ajoutée à la main pendant une période (g.extra) a lieu quand même */
+function coOffHtml(g) {
+  if (g.once) return '';
+  const l = (g.off || []).slice().sort((a, b) => a.du.localeCompare(b.du)),
+    past = o => o.au < TODAY;
+  return `${hd('Périodes sans cours', `<button class="chip" data-a="coOffAdd" data-id="${g.id}">${ic('plus')}Ajouter</button>`)}${
+    l.length
+      ? list(
+          l
+            .map(
+              o =>
+                `<div class="item"><span class="tile">${ic('cal')}</span><span class="grow${past(o) ? ' muted' : ''}"><span class="nm">${esc(o.nom || 'Pas de cours')}</span><br><span class="muted small">Du ${fmtD(o.du)} au ${fmtD(o.au)}</span></span><button class="ib" data-a="coOffDel" data-id="${g.id}" data-du="${o.du}" data-au="${o.au}" aria-label="Retirer la période ${esc(o.nom || '')}">${ic('x')}</button></div>`
+            )
+            .join('')
+        )
+      : `<div class="card"><p class="muted small">Vacances scolaires, fermeture du club : pendant ces périodes, le créneau du groupe ne donne pas de séance.</p></div>`
+  }`;
+}
+
 /* ---------- Programmer des séances ---------- */
 /* les dates proposées : à partir d'une date, chaque semaine ou une semaine sur deux */
-function coPlanDates(start, n, step) {
-  const out = [];
-  for (let i = 0; i < Math.min(n, 60); i++) out.push(isoIn(i * step, start));
+function coPlanDates(start, n, step, off) {
+  const out = [],
+    shut = d => (off || []).some(o => d >= o.du && d <= o.au);
+  for (let d = start, k = 0; out.length < Math.min(n, 60) && k < 200; d = isoIn(step, d), k++)
+    if (!shut(d)) out.push(d);
   return out;
 }
 /* première date utile : la prochaine séance du créneau du groupe */
@@ -86,6 +109,22 @@ const coPlanRead = () =>
   [...document.querySelectorAll('#co-plan .co-pd')].map(i => i.value).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
 
 Object.assign(A, {
+  coOffAdd(d) {
+    const g = grp(d.id);
+    if (!g) return;
+    const n = coGroups('', true).filter(x => coIsGrp(x) && x.id !== g.id && coClubOf(x) === coClubOf(g)).length;
+    sheet(
+      'Période sans cours',
+      `<form class="body" id="co-off" data-id="${g.id}">${O('co-of-n', 'Nom', 'Vacances de Noël, fermeture du club…')}<div class="row" style="gap:8px"><div class="fld grow"><label for="co-of-d">Du</label><input id="co-of-d" type="date" required value="${isoIn(1)}"></div><div class="fld grow"><label for="co-of-a">Au (inclus)</label><input id="co-of-a" type="date" required value="${isoIn(14)}"></div></div>${n ? `<div class="fld"><label class="chk" for="co-of-all"><input type="checkbox" id="co-of-all">Aussi pour mes ${plural(n, 'autre groupe', 'autres groupes')} de ce club</label></div>` : ''}<button class="btn full">Enregistrer la période</button><p class="muted small">Les séances de cette période disparaissent du planning, de l'Agenda et de l'École de /RAM Club. Un cycle ou un pack se décale tout seul si tu reprogrammes ses dates.</p></form>`
+    );
+  },
+  coOffDel(d) {
+    const g = grp(d.id);
+    if (!g) return;
+    g.off = (g.off || []).filter(o => !(o.du === d.du && o.au === d.au));
+    if (!g.off.length) delete g.off;
+    coSave('Période retirée : les cours reprennent ces jours-là');
+  },
   /* cycle terminé ↔ en cours : un groupe en cours reprend son créneau (chaque semaine, ou une sur deux) ;
      un groupe qu'on termine s'arrête à sa dernière séance passée */
   coCycle(d) {
@@ -192,7 +231,7 @@ Object.assign(A, {
     const o = coPlanOf($('co-pl-o').value),
       n = parseInt($('co-pl-n').value, 10) || o.n || 10,
       s = $('co-pl-s').value || TODAY;
-    coPlanPaint(coPlanDates(s, n, +$('co-pl-r').value || 7));
+    coPlanPaint(coPlanDates(s, n, +$('co-pl-r').value || 7, (grp($('co-plan').dataset.id) || {}).off));
   },
   coPlanAdd() {
     const l = coPlanRead(),
@@ -217,6 +256,25 @@ document.addEventListener('change', e => {
     $('co-pl-c').checked = true;
     A.coPlanGen();
   }
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-off') return;
+  e.preventDefault();
+  const g = grp(e.target.dataset.id),
+    nom = ($('co-of-n').value || '').trim().slice(0, 60),
+    du = $('co-of-d').value,
+    au = $('co-of-a').value;
+  if (!g || !du || !au || au < du) return toast('Choisis une date de début et une date de fin après elle');
+  const gs = [g].concat(
+    $('co-of-all') && $('co-of-all').checked
+      ? coGroups('', true).filter(x => coIsGrp(x) && x.id !== g.id && coClubOf(x) === coClubOf(g))
+      : []
+  );
+  gs.forEach(x => {
+    x.off = (x.off || []).filter(o => !(o.du === du && o.au === au)).concat({ nom, du, au });
+  });
+  closeSheet();
+  coSave(`Pas de cours du ${fmtD(du)} au ${fmtD(au)}${gs.length > 1 ? ' · ' + plural(gs.length, 'groupe') : ''}`);
 });
 /* applique la liste des dates à venir au groupe : séances ajoutées (extra) et retirées (skip) */
 function coPlanApply(g, list, cycle) {
