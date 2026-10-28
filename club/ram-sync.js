@@ -1654,6 +1654,7 @@
     R.roles = d.roles || {};
     R.scores = d.scores || {};
     R.reads = d.reads || {}; // coches : jusqu'où tous les autres membres de chaque groupe ont lu
+    R.more = d.more || {}; // discussions qui ont des messages plus anciens que ceux reçus à l'ouverture
     R.counts = d.counts || {};
     R.jaTitles = d.jaTitles || {}; // titres de juge-arbitre /RAM JA des adhérents (badge)
     R.wallet = d.wallet || null; // points bar (gagnés en consommant au bar), calculés par le serveur
@@ -1743,6 +1744,25 @@
       m.via = "une reprise d'adhésion";
       render(true);
     }
+  };
+  /* messages plus anciens d'une discussion : l'ouverture n'apporte que les derniers de chacune */
+  A.ramOlder = d => {
+    const ref = d.ref;
+    let first = Infinity;
+    R.base.forEach((v, k) => {
+      if (k.startsWith('msg/') && v.data && v.data.ref === ref && +v.data.at < first) first = +v.data.at;
+    });
+    api('/api/ram/c/' + R.club + '/older?ref=' + encodeURIComponent(ref) + (first < Infinity ? '&before=' + first : ''))
+      .then(r => {
+        r.items.forEach(it => {
+          if (R.base.has('msg/' + it.id)) return;
+          R.base.set('msg/' + it.id, { data: it.data });
+          applyItem(it, true);
+        });
+        R.more[ref] = r.more ? 1 : 0;
+        ramRender(true);
+      })
+      .catch(() => toast('Messages plus anciens indisponibles pour le moment'));
   };
   A.ramRole = d =>
     api('/api/ram/c/' + R.club + '/role', { key: d.id, role: d.r }).then(

@@ -1058,7 +1058,7 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
         return ram.join({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, b.code).then(c => json(res, 200, c), fail);
       }
-      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo|media)$/);
+      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo|media|older)$/);
       // connexion en direct : l'appareil est prévenu dès qu'un élément du club change, puis il synchronise
       if (m && m[2] === 'events') {
         let ka = null, off = null, offT = null;
@@ -1076,6 +1076,11 @@ const server = http.createServer(async (req, res) => {
       if (m && m[2] === 'msginfo' && req.method === 'GET') {
         try { const r = await ram.msgInfo(u.id, m[1], String(url.searchParams.get('id') || '')); return r ? json(res, 200, r) : json(res, 404, { error: 'Introuvable' }); }
         catch (e) { return json(res, 403, { error: e.message }); }
+      }
+      // messages plus anciens d'une discussion (l'appli n'en reçoit que les derniers à l'ouverture)
+      if (m && m[2] === 'older' && req.method === 'GET') {
+        const r = await ram.older(u.id, m[1], String(url.searchParams.get('ref') || ''), url.searchParams.get('before'), url.searchParams.get('n'));
+        return r ? json(res, 200, r) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
       }
       if (m && m[2] === 'typing' && req.method === 'POST') {
         const b = await readBody(req);
