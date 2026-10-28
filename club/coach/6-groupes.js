@@ -210,8 +210,9 @@ function coPlanApply(g, list, cycle) {
   g.skip = (g.skip || []).filter(d => !fut(d) || !keep.has(d));
   if (cycle) g.to = list.length ? list[list.length - 1] : TODAY;
   else if (g.to && g.to >= TODAY) delete g.to;
-  // un groupe sans date de début garde tout son historique ; un cycle qui commençait plus tard commence plus tôt
-  if (list.length && g.from && g.from > list[0]) g.from = list[0];
+  // un groupe sans séance faite (ni appel ni bilan) commence à sa première date programmée
+  const used = SEANCES.some(x => x.g === g.id && (x._club || '') === (g._club || '') && (x.pres || x.recap));
+  if (list.length && (g.from ? g.from > list[0] : !used)) g.from = list[0];
   // jusqu'à la dernière date choisie : après elle, un groupe sans fin reprend son créneau chaque semaine
   const end = list.length ? list[list.length - 1] : TODAY;
   for (let d = isoIn(1); d <= end; d = isoIn(1, d)) {

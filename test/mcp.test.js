@@ -106,6 +106,11 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const g = await w('coach_creer_groupe', { nom: 'Padel loisirs', sport: 'Padel', jour: 'mardi', heure: '19 h 30', duree: '90 min', places: 8, tarif_prix: 60 });
   const once = await w('coach_creer_groupe', { nom: 'Cours de Jules', sport: 'Padel', date: '2026-11-20', heure: '10:00' });
   assert.equal(once.creneau, '20/11/2026 10 h · 1 h');
+  // un groupe commence à sa première séance (jamais d'historique imaginaire) ; ses dates se règlent ensuite
+  const ec = await w('coach_creer_groupe', { nom: 'École débutants', sport: 'Padel', jour: 'mercredi', heure: '14 h', debut: '2030-01-02' });
+  const md = await w('coach_modifier_groupe', { groupe_id: ec.groupe_id, fin: '2030-01-23', retirer_dates: ['2030-01-09'], ajouter_dates: ['2030-01-11'] });
+  assert.deepEqual([md.debut, md.fin, md.prochaines_seances], ['2030-01-02', '2030-01-23', ['2030-01-02', '2030-01-11', '2030-01-16', '2030-01-23']]);
+  await assert.rejects(w('coach_modifier_groupe', { groupe_id: ec.groupe_id }), /Rien à modifier/);
   const nv = await w('coach_ajouter_eleve', { prenom: 'Jules', nom: 'Perrin', email: 'jules@test.fr', sport: 'Padel', groupe_id: g.groupe_id });
   assert.equal(nv.compte_ram_club, false);
   const linked = await w('coach_ajouter_eleve', { prenom: 'Léo', nom: 'Martin', groupe_id: g.groupe_id });
