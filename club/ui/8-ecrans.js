@@ -41,7 +41,7 @@ const V = {
       );
     })()}</div>
   ${isAdmin() && CLUBINFO.joined < CLUBINFO.members ? `<div class="pad" style="padding-bottom:4px"><button class="note" data-a="open" data-v="join" style="width:100%;text-align:left">${CLUBINFO.joined} adhérents sur ${CLUBINFO.members} ont rejoint l'appli. <b style="color:var(--accent)">Inviter les autres</b></button></div>` : ''}
-  <div class="feed">${feed.length ? feed.map(postHTML).join('') : empty('home', 'Le mur est vide', 'Les annonces et les résultats du club apparaîtront ici.')}</div>`;
+  <div class="feed">${feed.length ? feed.map(postHTML).join('') : empty('home', 'Le mur est vide', 'Les annonces et les résultats du club apparaîtront ici.')}</div>${window.RAM && RAM.postsBefore ? '<div class="pad"><button class="btn ghost full" data-a="ramOlderPosts">Publications plus anciennes</button></div>' : ''}`;
   },
   chans() {
     const list = chans.filter(c => c.g === S.chanTab && chanOk(c));

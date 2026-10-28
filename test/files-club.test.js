@@ -111,3 +111,27 @@ test('ouverture : les 50 derniers messages de chaque discussion, les plus ancien
   assert.ok(Array.isArray(inc.items));
   assert.equal(inc.more, undefined);
 });
+
+test('ouverture : publications récentes, épinglées et à venir ; les plus anciennes à la demande', async () => {
+  const ram = createRamClub(null, { backend: memoryBackend(() => null) });
+  const c = await ram.create({ id: 'A', name: 'Alice' }, { name: 'Club Mur' });
+  const old = Date.now() - 400 * 864e5, ops = [];
+  for (let i = 0; i < 70; i++) ops.push({ coll: 'post', id: 'p' + i, op: 'put', data: { by: c.key, kind: 'txt', body: 'n° ' + i, at: old + i * 1000 } });
+  ops.push({ coll: 'post', id: 'pin', op: 'put', data: { by: c.key, kind: 'txt', pin: 1, at: old - 5000 } });
+  ops.push({ coll: 'post', id: 'evt', op: 'put', data: { by: c.key, kind: 'event', d: '2099-06-01', at: old - 9000 } });
+  ops.push({ coll: 'msg', id: 'com0', op: 'put', data: { by: c.key, ref: 'p:p0', x: 'commentaire', at: old } });
+  await ram.ops('A', c.id, ops);
+  const full = await ram.sync('A', c.id, 0), ids = full.items.filter(i => i.coll === 'post').map(i => i.id);
+  assert.equal(ids.length, 32, '30 récentes + épinglée + à venir');
+  assert.ok(ids.includes('p69') && ids.includes('pin') && ids.includes('evt') && !ids.includes('p39'));
+  assert.equal(full.items.some(i => i.id === 'com0'), false, 'pas les commentaires d’une publication non envoyée');
+  assert.ok(full.postsBefore > 0);
+  let before = full.postsBefore, seen = new Set(ids);
+  for (let n = 0; before && n < 5; n++) {
+    const r = await ram.olderPosts('A', c.id, before);
+    r.items.forEach(i => seen.add(i.coll === 'post' ? i.id : 'msg:' + i.id));
+    before = r.before;
+  }
+  assert.equal([...seen].filter(x => /^p\d+$/.test(x)).length, 70, 'toutes les publications, page par page');
+  assert.ok(seen.has('msg:com0'), 'avec leurs commentaires');
+});

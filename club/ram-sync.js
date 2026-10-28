@@ -1655,6 +1655,7 @@
     R.scores = d.scores || {};
     R.reads = d.reads || {}; // coches : jusqu'où tous les autres membres de chaque groupe ont lu
     R.more = d.more || {}; // discussions qui ont des messages plus anciens que ceux reçus à l'ouverture
+    R.postsBefore = d.postsBefore || 0; // publications plus anciennes que celles reçues à l'ouverture (à partir de ce moment)
     R.counts = d.counts || {};
     R.jaTitles = d.jaTitles || {}; // titres de juge-arbitre /RAM JA des adhérents (badge)
     R.wallet = d.wallet || null; // points bar (gagnés en consommant au bar), calculés par le serveur
@@ -1763,6 +1764,25 @@
         ramRender(true);
       })
       .catch(() => toast('Messages plus anciens indisponibles pour le moment'));
+  };
+  /* publications plus anciennes du mur, 20 par 20, avec leurs derniers commentaires */
+  A.ramOlderPosts = () => {
+    if (!R.postsBefore) return;
+    api('/api/ram/c/' + R.club + '/posts?before=' + R.postsBefore)
+      .then(r => {
+        r.items
+          .sort((a, b) => (a.coll === 'post' ? -1 : 0) - (b.coll === 'post' ? -1 : 0))
+          .forEach(it => {
+            const k = it.coll + '/' + it.id;
+            if (R.base.has(k)) return;
+            R.base.set(k, { data: it.data });
+            applyItem(it, true);
+          });
+        R.postsBefore = r.before || 0;
+        derive();
+        ramRender(true);
+      })
+      .catch(() => toast('Publications plus anciennes indisponibles pour le moment'));
   };
   A.ramRole = d =>
     api('/api/ram/c/' + R.club + '/role', { key: d.id, role: d.r }).then(
