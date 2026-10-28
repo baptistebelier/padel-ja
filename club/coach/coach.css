@@ -1040,3 +1040,47 @@
     display: none;
   }
 }
+/* planning : les participants de chaque séance, photo et nom */
+.coppl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 8px;
+}
+.copp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.2;
+  min-width: 0;
+}
+.copp .av.xs {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+.copp.abs {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.coppl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+/* pas de cadre de trophée sur ces petites photos : tous les noms restent alignés */
+.copp .av {
+  margin: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  border: 0 !important;
+}
+.copp .av::before,
+.copp .av::after {
+  display: none !important;
+}
+.copp > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
