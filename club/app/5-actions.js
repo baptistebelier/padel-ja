@@ -528,6 +528,7 @@ const A = {
     render(true);
   },
   cancelCourse(d) {
+    if (d.close) closeSheet();
     const g = grp(d.id);
     g.cancel = g.cancel || [];
     const i = g.cancel.indexOf(d.d),
@@ -548,6 +549,40 @@ const A = {
         ? `Cours du ${fmtD(d.d)} annulé · ${g.mem.length} élève${g.mem.length > 1 ? 's' : ''} et leurs parents notifiés`
         : 'Cours rétabli · élèves et parents notifiés'
     );
+  },
+  /* supprimer une séance : elle disparaît, sans prévenir personne (annuler, au contraire, la garde affichée
+     « Cours annulé » et prévient les élèves et leurs parents) */
+  delCourse(d) {
+    const g = grp(d.id);
+    if (!g) return;
+    sheet(
+      'Supprimer la séance',
+      `<div class="body"><p>La séance <b>${esc(g.name)}</b> du <b>${fmtD(d.d)}</b> sera supprimée : elle disparaît du planning, de l'Agenda et de l'École. <b>Personne n'est prévenu.</b></p><p class="muted small">Pour prévenir les élèves et garder la séance affichée « Cours annulé », choisis plutôt Annuler le cours.</p><button class="btn full hot" data-a="delCourseOk" data-id="${g.id}" data-d="${d.d}">${ic('trash')}Supprimer la séance</button><button class="btn full ghost" data-a="cancelCourse" data-id="${g.id}" data-d="${d.d}" data-close="1">Annuler le cours (élèves prévenus)</button></div>`
+    );
+  },
+  delCourseOk(d) {
+    const g = grp(d.id);
+    closeSheet();
+    if (!g) return;
+    const sid = g.id + '.' + d.d,
+      same = s => s.id === sid && (s._club || '') === (g._club || '');
+    if (g.once) {
+      // séance ponctuelle (cours individuel) : elle n'existe qu'une fois, on l'enlève entièrement
+      GROUPS.splice(GROUPS.indexOf(g), 1);
+      for (let i = SEANCES.length - 1; i >= 0; i--)
+        if (SEANCES[i].g === g.id && (SEANCES[i]._club || '') === (g._club || '')) SEANCES.splice(i, 1);
+    } else {
+      g.extra = (g.extra || []).filter(x => x !== d.d);
+      g.cancel = (g.cancel || []).filter(x => x !== d.d);
+      if (typeof trainOn === 'function' && trainOn(g, d.d)) g.skip = (g.skip || []).concat(d.d);
+      const i = SEANCES.findIndex(same);
+      if (i >= 0) SEANCES.splice(i, 1);
+    }
+    // on était sur la page de cette séance : retour à la page d'avant
+    const top = S.stack[S.stack.length - 1];
+    if (top && ['seance', 'grp'].includes(top.v) && (top.id === sid || (g.once && top.id === g.id))) S.stack.pop();
+    render(true);
+    toast(`Séance du ${fmtD(d.d)} supprimée · personne n'a été prévenu`);
   },
   grpBulk(d) {
     const g = grp(d.g),
