@@ -2,12 +2,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs'), os = require('os'), path = require('path');
-const saved = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY };
-delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
 const { createStore } = require('../lib/store');
-const store = () => createStore(fs.mkdtempSync(path.join(os.tmpdir(), 'ram-taches-')));
-if (saved.url) process.env.SUPABASE_URL = saved.url;
-if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
+// toujours en fichiers, même si les variables de la vraie base sont présentes (Render)
+const store = () => {
+  const saved = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY };
+  delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  const st = createStore(fs.mkdtempSync(path.join(os.tmpdir(), 'ram-taches-')));
+  if (saved.url) process.env.SUPABASE_URL = saved.url;
+  if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
+  return st;
+};
 const { createTaches, backoff, MAX_ATTEMPTS } = require('../lib/taches');
 const write = async t => t.settle();
 
