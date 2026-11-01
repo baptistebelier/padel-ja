@@ -266,6 +266,12 @@ function openFromUrl(u) {
     A.open({ v: 'dm', id });
     return true;
   }
+  // une place libérée : le planning de l'enseignant
+  if (v === 'resa' && id) {
+    A.tab({ t: S.tab });
+    A.open({ v: 'resa', id });
+    return true;
+  }
   if (v === 'agenda') {
     A.tab({ t: 'agenda' });
     return true;

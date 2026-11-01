@@ -70,6 +70,24 @@ Object.assign(A, {
     S.coTab = d.k;
     A.tab({ t: d.t });
   },
+  coVue(d) {
+    S.pl.v = d.k;
+    if (d.k === 'jour' && !S.pl.j) S.pl.j = isoIn(coPlDay(), monday(S.pl.w));
+    render();
+  },
+  coJour(d) {
+    S.pl.j = isoIn(+d.n, S.pl.j || TODAY);
+    render();
+  },
+  coJourOpen(d) {
+    S.pl.v = 'jour';
+    S.pl.j = d.d;
+    render();
+  },
+  coMois(d) {
+    S.pl.m = (S.pl.m || 0) + +d.n;
+    render();
+  },
   coWeek(d) {
     S.pl.w += +d.n;
     S.pl.d = 0;

@@ -1630,3 +1630,143 @@ button.copp:hover span:last-child {
     max-width: none !important;
   }
 }
+/* collectif en attente : ne bloque rien, se distingue d'un cours */
+.cofree.coatt {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--accent);
+  cursor: pointer;
+}
+.covue {
+  margin: 8px 0;
+}
+/* vue jour : quadrillage d'heures */
+.cogrid {
+  position: relative;
+  padding: 0;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.cogh {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--line);
+}
+.cogh span {
+  display: block;
+  width: 40px;
+  padding: 2px 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cogfree {
+  position: absolute;
+  left: 44px;
+  right: 4px;
+  border-radius: 8px;
+  background: var(--card2);
+  font-size: 12px;
+  color: var(--muted);
+  padding: 2px 8px;
+}
+.cogb {
+  position: absolute;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  padding: 2px 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+.cogb.cx {
+  background: var(--card2);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+/* vue mois : une case par jour ; sur téléphone, le nombre de cours seulement */
+.cogm {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 8px;
+}
+.comj {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.comc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--card);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.comc.hors {
+  opacity: 0.45;
+}
+.comc.today b {
+  color: var(--accent);
+}
+.comev,
+.comore {
+  display: none;
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.comn {
+  align-self: flex-start;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+}
+.comatt {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+@media (min-width: 1024px) {
+  #main > .pad.covuej,
+  #main > .pad.covuem {
+    max-width: none !important;
+  }
+  .comc {
+    min-height: 104px;
+  }
+  .comev,
+  .comore {
+    display: block;
+  }
+  .comn {
+    display: none;
+  }
+}

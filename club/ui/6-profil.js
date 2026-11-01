@@ -136,7 +136,8 @@ function meTabBody(T, id, m, kid) {
     ['live', 'Détail des matchs en direct (chaque match, pas seulement le début et la fin de la rencontre)'],
     ['play', 'Recherches de partie à mon niveau et joueurs qui rejoignent les miennes'],
     ['mine', 'Nouveaux abonnés, likes, commentaires et réactions à mes publications'],
-    ['suivi', 'Suivi personnel : messages, bilans et vidéos (enseignant et élèves)']
+    ['suivi', 'Suivi personnel : messages, bilans et vidéos (enseignant et élèves)'],
+    ['resa', 'Mes cours : rappels et places libérées']
   ];
   h += `<div class="card"><span class="kicker">Affichage</span><div class="chips">${[
     ['jour', 'Jour', 'sun'],

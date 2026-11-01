@@ -68,3 +68,8 @@ test('compte /RAM : session partagée sur riseandmove.fr, cookie simple en local
   assert.ok(Auth.sessionCookie(req('ja.riseandmove.fr'), null).every(c => /Max-Age=0/.test(c)), 'déconnexion : les deux effacés');
   assert.equal(typeof Auth.sessionCookie(req('evil-riseandmove.fr'), 'x'), 'string', 'un autre domaine ne reçoit pas le cookie commun');
 });
+
+test('service worker : ne lit que le cache de son appli, jamais celui d’une autre', () => {
+  const sw = require('fs').readFileSync(require('path').join(__dirname, '..', 'club', 'sw.js'), 'utf8');
+  assert.ok(!sw.includes('caches.match('), 'caches.match parcourt tous les caches du site : une vieille copie passerait devant');
+});

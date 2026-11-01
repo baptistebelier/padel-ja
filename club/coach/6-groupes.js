@@ -128,7 +128,7 @@ function coVacCard() {
   );
 }
 /* ---------- disponibilités : les périodes où je travaille, par jour et par lieu ----------
-   première étape de la réservation : le planning montre ce qui reste libre. Personne ne réserve encore sur ces plages. */
+   le planning montre ce qui reste libre ; les élèves réservent sur ces plages depuis /RAM Club. */
 const COJOURS = [1, 2, 3, 4, 5, 6, 0];
 const hMinTxt = n => Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).padStart(2, '0') : '');
 const coOccupe = d =>
@@ -164,7 +164,7 @@ function coDispoCard() {
         )
         .join('') ||
       '<p class="muted small">Indique quand tu travailles : ce qui reste libre s’affiche dans ton planning.</p>'
-    }<button class="btn sm ghost full" data-a="coDispoAdd">${ic('plus')}Ajouter une période</button><p class="muted small">Les élèves ne peuvent pas encore réserver sur ces plages.</p>`
+    }<button class="btn sm ghost full" data-a="coDispoAdd">${ic('plus')}Ajouter une période</button><p class="muted small">Les élèves réservent sur ces plages depuis ta fiche dans /RAM Club : il faut aussi une formule individuelle dans tes tarifs.</p>`
   );
 }
 Object.assign(A, {

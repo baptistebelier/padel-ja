@@ -5,7 +5,7 @@
    L'ordre d'inscription (horodaté) suffit à tout recalculer : chaque appareil arrive au même résultat.
    Données (post.kind 'niveaux', post.nv) :
      { mode: 'partie' | 'cours', sport, theme, body, time, dur, place, fmt, dates: [iso…],
-       tiers: [{ id, lo, hi, places }], ins: { 'iso|tid': [clés] }, at: { clé: { iso: horodatage } } } */
+       tiers: [{ id, nom?, lo, hi, places (minimum), max? }], ins: { 'iso|tid': [clés] }, at: { clé: { iso: horodatage } } } */
 const NV_MODE = { partie: 'Partie dirigée', cours: 'Séance collective' };
 /* niveau d'un adhérent : classement tennis (rang dans RANKS) ou niveau padel (1 à 10) */
 const nvLevel = (k, sport) =>
@@ -19,7 +19,11 @@ const nvFits = (t, k, sport) => {
     l <= Math.max(nvBound(t.lo, sport), nvBound(t.hi, sport))
   );
 };
-const nvRange = (t, sport) => (sport === 'Padel' ? `Niveau ${t.lo} à ${t.hi}` : `${t.lo} à ${t.hi}`);
+const nvRange = (t, sport) =>
+  (t.nom ? t.nom + ' · ' : '') + (sport === 'Padel' ? `Niveau ${t.lo} à ${t.hi}` : `${t.lo} à ${t.hi}`);
+/* le minimum valide le créneau ; on s'inscrit ensuite jusqu'au maximum */
+const nvCap = t => Math.max(+t.places || 0, +t.max || 0);
+const nvCapTxt = t => (nvCap(t) > t.places ? ` · minimum ${t.places}` : '');
 const nvMyTier = (nv, k) => nv.tiers.find(t => nvFits(t, k, nv.sport)) || null;
 /* état d'une date : fourchette validée (la première complète), et pour chaque fourchette la liste dans l'ordre
    d'inscription avec le statut de chacun : 'ok' (validé), 'in' (inscrit, en attente de validation), 'wait' */
@@ -40,7 +44,7 @@ function nvState(nv, iso) {
   const status = {};
   nv.tiers.forEach(t =>
     lists[t.id].forEach((k, i) => {
-      status[t.id + '|' + k] = i >= t.places ? 'wait' : win ? (t.id === win ? 'ok' : 'wait') : 'in';
+      status[t.id + '|' + k] = i >= nvCap(t) ? 'wait' : win ? (t.id === win ? 'ok' : 'wait') : 'in';
     })
   );
   return { win, lists, status };
@@ -98,7 +102,7 @@ function nvBody(p) {
               : st.win
                 ? '<span class="tag ghost">En attente</span>'
                 : '';
-        return `<div class="nv-tier${st.win === t.id ? ' win' : ''}"><div class="row" style="gap:8px;flex-wrap:wrap"><b class="grow">${nvRange(t, nv.sport)}</b>${tag}</div><div class="row">${dots(Math.min(ok, t.places), t.places)}<span class="muted small">${Math.min(l.length, t.places)} / ${t.places}${l.length > t.places || (st.win && st.win !== t.id && l.length) ? ' · ' + l.filter(k => st.status[t.id + '|' + k] === 'wait').length + ' en attente' : ''}</span></div>${l.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${l.map(k => `<span class="row nv-who ${st.status[t.id + '|' + k]}" style="gap:6px">${av(k, 'sm')}${name(k)}</span>`).join('')}</div>` : ''}</div>`;
+        return `<div class="nv-tier${st.win === t.id ? ' win' : ''}"><div class="row" style="gap:8px;flex-wrap:wrap"><b class="grow">${nvRange(t, nv.sport)}</b>${tag}</div><div class="row">${dots(Math.min(ok, nvCap(t)), nvCap(t))}<span class="muted small">${Math.min(l.length, nvCap(t))} / ${nvCap(t)}${nvCapTxt(t)}${l.length > nvCap(t) || (st.win && st.win !== t.id && l.length) ? ' · ' + l.filter(k => st.status[t.id + '|' + k] === 'wait').length + ' en attente' : ''}</span></div>${l.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${l.map(k => `<span class="row nv-who ${st.status[t.id + '|' + k]}" style="gap:6px">${av(k, 'sm')}${name(k)}</span>`).join('')}</div>` : ''}</div>`;
       })
       .join('');
     body += `<span class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première fourchette complète valide ${nv.mode === 'cours' ? 'la séance' : 'la partie'} ; les autres passent en liste d'attente.</span>`;
@@ -113,12 +117,12 @@ function nvBody(p) {
         : s === 'wait'
           ? `<div class="note">${st.win && st.win !== t.id ? 'Une autre fourchette de niveau est complète : tu es en liste d’attente. L’enseignant te préviendra si une place se libère.' : 'Ta fourchette est complète : tu es en liste d’attente.'}</div>`
           : s === 'in'
-            ? `<div class="note">Tu es inscrit. Dès que ta fourchette est complète, ${nv.mode === 'cours' ? 'la séance' : 'la partie'} est validée.</div>`
+            ? `<div class="note">Tu es inscrit. Dès que le minimum est atteint, ${nv.mode === 'cours' ? 'la séance' : 'la partie'} est validée.</div>`
             : st.win && st.win !== t.id
               ? `<div class="note">Une autre fourchette est déjà complète : tu peux t’inscrire sur la liste d’attente.</div>`
               : '';
     body = t
-      ? `<div class="row"><b class="grow">${nvRange(t, nv.sport)}</b>${dots(Math.min(n, t.places), t.places)}<span class="muted small">${Math.min(n, t.places)} / ${t.places}</span></div>${msg}${past ? '' : `<div class="ctl">${s ? `<button class="btn on grow" data-a="nvJoin" data-id="${p.id}" data-t="${t.id}" data-d="${iso}">${s === 'wait' ? 'Quitter la liste d’attente' : 'Je ne peux plus'}</button>` : `<button class="btn grow" data-a="nvJoin" data-id="${p.id}" data-t="${t.id}" data-d="${iso}">${(st.win && st.win !== t.id) || n >= t.places ? 'Liste d’attente' : nv.mode === 'cours' ? 'Je m’inscris' : 'Compte sur moi'}</button>`}</div>`}`
+      ? `<div class="row"><b class="grow">${nvRange(t, nv.sport)}</b>${dots(Math.min(n, nvCap(t)), nvCap(t))}<span class="muted small">${Math.min(n, nvCap(t))} / ${nvCap(t)}${nvCapTxt(t)}</span></div>${msg}${past ? '' : `<div class="ctl">${s ? `<button class="btn on grow" data-a="nvJoin" data-id="${p.id}" data-t="${t.id}" data-d="${iso}">${s === 'wait' ? 'Quitter la liste d’attente' : 'Je ne peux plus'}</button>` : `<button class="btn grow" data-a="nvJoin" data-id="${p.id}" data-t="${t.id}" data-d="${iso}">${(st.win && st.win !== t.id) || n >= nvCap(t) ? 'Liste d’attente' : nv.mode === 'cours' ? 'Je m’inscris' : 'Compte sur moi'}</button>`}</div>`}`
       : '';
   }
   return head + `<div class="ev">${meta}${pick}${body}</div>`;

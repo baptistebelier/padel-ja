@@ -40,7 +40,6 @@ const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, on
 const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
 const coachTables = require('./lib/coach-tables.js').createCoachTables({ ram, store });
-const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules });   // planning de l'enseignant lu dans les vraies tables
 const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
 const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m) });   // notifications sur le téléphone
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
@@ -48,6 +47,7 @@ const taches = require('./lib/taches.js').createTaches({ store, log: m => consol
 require('./lib/pushnotif.js').createNotifier({ ram, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
 taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
+const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
 async function jaTitlesOf(spaceId) {
@@ -1508,7 +1508,10 @@ const server = http.createServer(async (req, res) => {
       try {
         if (p === '/api/reservation/creneaux' && req.method === 'GET') return json(res, 200, await reservation.creneaux(u.id, q('c'), q('k'), q('de')));
         if (p === '/api/reservation/enseignants' && req.method === 'GET') return json(res, 200, { enseignants: await reservation.enseignants(u.id, q('c')) });
+        if (p === '/api/reservation/mes' && req.method === 'GET') return json(res, 200, { cours: await reservation.mes(u.id, q('c')) });
         if (p === '/api/reservation/reserver' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.reserver(u.id, String(b.c || ''), String(b.k || ''), b)); }
+        if (p === '/api/reservation/annuler' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.annuler(u.id, String(b.c || ''), String(b.id || ''))); }
+        if (p === '/api/reservation/attendre' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.attendre(u.id, String(b.c || ''), String(b.k || ''), b)); }
       } catch (e) { return refus(e); }
       return json(res, 404, { error: 'Introuvable' });
     }

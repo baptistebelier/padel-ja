@@ -1225,6 +1225,7 @@ const S = {
   grpAll: false,
   share: { tel: true, mail: false, soc: true },
   nset: {
+    resa: true,
     club: true,
     follow: true,
     chan: true,

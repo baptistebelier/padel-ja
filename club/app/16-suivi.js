@@ -83,6 +83,25 @@ document.addEventListener('submit', e => {
 /* ---------- réserver un cours : la semaine de l'enseignant ----------
    ce qui est libre et ce qui est pris viennent du serveur (lib/reservation.js) : les cours pris, sans aucun nom */
 const RESA = {};
+/* une plage prise : se mettre sur la liste d'attente, ou en sortir */
+const resaPrisHtml = (k, d, x, c) => {
+  const on = (c.attente || []).some(a => a.d === d && a.du === x.du);
+  return `<span class="rsp">${resaHeure(x.du)} – ${resaHeure(x.au)} · pris${d < TODAY ? '' : `<button class="chip rsa" data-a="resaWait" data-k="${k}" data-d="${d}" data-du="${x.du}" data-au="${x.au}" aria-pressed="${on}">${ic('bell')}${on ? 'Prévenu' : 'Me prévenir'}</button>`}</span>`;
+};
+/* un cours réservé : l'annuler jusqu'à 24 h avant ; un collectif se quitte depuis sa publication */
+const resaCoursHtml = (x, avec) =>
+  `<div class="item"><span class="tile">${ic('cal')}</span><span class="grow"><span class="nm">${esc(x.nom)}</span><br><span class="muted small">${fmtD(x.d)} à ${esc(x.h)}${avec && M[x.coach] ? ' · ' + esc(name(x.coach)) : ''}${x.pour && x.pour !== ME() && M[x.pour] ? ' · pour ' + esc(first(x.pour)) : ''}${x.annulable || x.post ? '' : ' · moins de 24 h avant : contacte ton enseignant'}</span></span>${x.annulable ? `<button class="chip" data-a="resaCancel" data-id="${esc(x.id)}">Annuler</button>` : x.post ? `<button class="chip" data-a="open" data-v="post" data-id="${esc(x.post)}">Voir</button>` : ''}</div>`;
+/* les collectifs de cet enseignant cette semaine, à mon niveau : ils s'ouvrent dans leur publication */
+const resaCollectifs = (k, de, fin) =>
+  posts
+    .filter(p => p.kind === 'niveaux' && p.nv && p.by === k && !p.arch && canSee(p))
+    .flatMap(p => (p.nv.dates || []).filter(d => d >= de && d <= fin && d >= TODAY).map(d => ({ p, d })))
+    .map(({ p, d }) => {
+      const t = nvMyTier(p.nv, ME()),
+        n = t ? nvState(p.nv, d).lists[t.id].length : 0;
+      return `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(p.nv.theme || NV_MODE[p.nv.mode])}</span><br><span class="muted small">${fmtD(d)} à ${esc(p.nv.time)}${t ? ` · ${n} inscrit${n > 1 ? 's' : ''}${nvCapTxt(t) || ' sur ' + nvCap(t)}` : ''}</span></span></button>`;
+    })
+    .join('');
 const resaHeure = n => Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).padStart(2, '0') : '');
 const resaLundi = w => isoIn(7 * w - ((REGLES.dowOf(TODAY) + 6) % 7), TODAY);
 function resaLoad(k, de) {
@@ -123,16 +142,16 @@ V.resa = k => {
             t: x.t,
             h: `<button class="chip rsl" data-a="resaPick" data-k="${k}" data-d="${j.d}" data-t="${x.t}" data-l="${esc(x.lieu)}">${resaHeure(x.t)}</button>`
           }))
-          .concat(
-            j.pris.map(x => ({ t: x.du, h: `<span class="rsp">${resaHeure(x.du)} – ${resaHeure(x.au)} · pris</span>` }))
-          )
+          .concat(j.pris.map(x => ({ t: x.du, h: resaPrisHtml(k, j.d, x, c) })))
           .sort((a, b) => a.t - b.t)
           .map(x => x.h)
           .join('');
         return `<section class="rsd${j.d === TODAY ? ' today' : ''}"><h3 class="kicker">${fmtD(j.d)}${j.d === TODAY ? " · aujourd'hui" : ''}</h3><div class="rss">${cases || '<span class="muted small">Rien de libre</span>'}</div></section>`;
       })
-      .join('');
-  return `<div class="pad rsw"><div class="card"><div class="fld"><label for="rs-f">Formule</label><select id="rs-f">${c.formules.map(x => `<option value="${esc(x.id)}" ${x.id === f.id ? 'selected' : ''}>${esc(x.nom)} · ${x.duree % 60 ? Math.floor(x.duree / 60) + ' h ' + (x.duree % 60) : x.duree / 60 + ' h'} · ${x.prix} €</option>`).join('')}</select></div><p class="small"><b>Durée : ${f.duree < 60 ? f.duree + ' min' : resaHeure(f.duree)}</b></p>${c.packs ? '<p class="muted small">Un pack déjà acheté chez cet enseignant se décompte tout seul.</p>' : ''}</div><div class="row" style="justify-content:space-between"><button class="ib rnd" data-a="resaWeek" data-n="-1" aria-label="Semaine précédente" ${w ? '' : 'disabled'}>${ic('back')}</button><span class="h3">Du ${fmtD(de, 1)} au ${fmtD(fin, 1)}</span><button class="ib rnd" style="rotate:180deg" data-a="resaWeek" data-n="1" aria-label="Semaine suivante" ${w < 8 ? '' : 'disabled'}>${ic('back')}</button></div><div class="rsj">${jours}</div></div>`;
+      .join(''),
+    coll = resaCollectifs(k, de, fin),
+    mes = (c.mes || []).map(x => resaCoursHtml(x)).join('');
+  return `<div class="pad rsw">${mes ? `<div class="card"><span class="kicker">Mes cours avec ${esc(first(k))}</span><div class="list">${mes}</div></div>` : ''}<div class="card"><div class="fld"><label for="rs-f">Formule</label><select id="rs-f">${c.formules.map(x => `<option value="${esc(x.id)}" ${x.id === f.id ? 'selected' : ''}>${esc(x.nom)} · ${x.duree % 60 ? Math.floor(x.duree / 60) + ' h ' + (x.duree % 60) : x.duree / 60 + ' h'} · ${x.prix} €</option>`).join('')}</select></div><p class="small"><b>Durée : ${f.duree < 60 ? f.duree + ' min' : resaHeure(f.duree)}</b></p>${c.packs ? '<p class="muted small">Un pack déjà acheté chez cet enseignant se décompte tout seul.</p>' : ''}</div><div class="row" style="justify-content:space-between"><button class="ib rnd" data-a="resaWeek" data-n="-1" aria-label="Semaine précédente" ${w ? '' : 'disabled'}>${ic('back')}</button><span class="h3">Du ${fmtD(de, 1)} au ${fmtD(fin, 1)}</span><button class="ib rnd" style="rotate:180deg" data-a="resaWeek" data-n="1" aria-label="Semaine suivante" ${w < 8 ? '' : 'disabled'}>${ic('back')}</button></div><div class="rsj">${jours}</div>${coll ? `<div class="card"><span class="kicker">Collectifs de la semaine</span><div class="list">${coll}</div></div>` : ''}</div>`;
 };
 TITLES.resa = () => ['Réserver un cours', M[view().id] ? 'Avec ' + name(view().id) : ''];
 Object.assign(A, {
@@ -142,10 +161,11 @@ Object.assign(A, {
   },
   resaPick(d) {
     const c = RESA[view().id + '|' + resaLundi(Math.max(0, S.resaW || 0))],
-      f = c.formules.find(x => x.id === S.resaF) || c.formules[0];
+      f = c.formules.find(x => x.id === S.resaF) || c.formules[0],
+      kids = ((M[ME()] && M[ME()].kids) || []).filter(k => M[k]);
     sheet(
       'Confirmer le cours',
-      `<form class="body" id="rs-go" data-k="${d.k}" data-d="${d.d}" data-t="${d.t}" data-f="${esc(f.id)}"><p><b>${fmtD(d.d)} à ${resaHeure(+d.t)}</b><br>${esc(f.nom)} avec ${esc(name(d.k))} · ${f.prix} €${d.l ? ' · ' + esc(d.l) : ''}</p>${T('rs-o', 'Objectif de la séance', 'Ce que tu veux travailler', '')}<button class="btn full">Réserver</button><p class="muted small">Confirmé tout de suite : l’enseignant reçoit une notification et le cours arrive dans ton agenda.</p></form>`
+      `<form class="body" id="rs-go" data-k="${d.k}" data-d="${d.d}" data-t="${d.t}" data-f="${esc(f.id)}"><p><b>${fmtD(d.d)} à ${resaHeure(+d.t)}</b><br>${esc(f.nom)} avec ${esc(name(d.k))} · ${f.prix} €${d.l ? ' · ' + esc(d.l) : ''}</p>${kids.length ? Who('rs-p', 'Pour', [ME(), ...kids]) : ''}${T('rs-o', 'Objectif de la séance', 'Ce que tu veux travailler', '')}<button class="btn full">Réserver</button><p class="muted small">Confirmé tout de suite : l’enseignant reçoit une notification et le cours arrive dans ton agenda. Tu peux annuler jusqu’à 24 h avant.</p></form>`
     );
   }
 });
@@ -172,12 +192,13 @@ document.addEventListener('submit', e => {
       d: f.dataset.d,
       t: +f.dataset.t,
       formule: f.dataset.f,
-      objectif
+      objectif,
+      pour: $('rs-p') ? $('rs-p').value : undefined
     })
   })
     .then(r => r.json().then(x => ({ ok: r.ok, x })))
     .then(({ ok, x }) => {
-      Object.keys(RESA).forEach(k => delete RESA[k]);
+      resaOublie();
       closeSheet();
       render(true);
       toast(ok ? 'Cours réservé le ' + fmtD(f.dataset.d) + ' à ' + x.h : x.error || 'Réservation impossible');
@@ -187,9 +208,49 @@ document.addEventListener('submit', e => {
       toast('Réservation impossible, réessaie');
     });
 });
-/* Mon espace : le planning de mes enseignants (groupe, cours ou formule chez eux) */
+/* après un changement : tout se relit au serveur */
+const resaOublie = () => Object.keys(RESA).forEach(k => delete RESA[k]);
+const resaPost = (route, corps) =>
+  fetch('/api/reservation/' + route, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ c: RAM.club }, corps))
+  }).then(r => r.json().then(x => (r.ok ? x : Promise.reject(new Error(x.error || 'Action impossible')))));
+Object.assign(A, {
+  resaWait(d) {
+    resaPost('attendre', { k: d.k, d: d.d, du: +d.du, au: +d.au })
+      .then(x => {
+        resaOublie();
+        render(true);
+        toast(x.attente ? 'Tu seras prévenu si cette plage se libère' : 'Tu n’es plus sur la liste d’attente');
+      })
+      .catch(e => toast(e.message));
+  },
+  resaCancel(d) {
+    if (!confirm('Annuler ce cours ? Ton enseignant est prévenu et le créneau redevient libre.')) return;
+    resaPost('annuler', { id: d.id })
+      .then(() => {
+        resaOublie();
+        render(true);
+        toast('Cours annulé');
+      })
+      .catch(e => toast(e.message));
+  }
+});
+/* Mon espace : mes cours réservés, le planning de mes enseignants (groupe, cours ou formule chez eux) */
 function resaMine() {
   if (!(window.RAM && RAM.live)) return '';
+  if (!RESA.cours) {
+    RESA.cours = [];
+    fetch('/api/reservation/mes?c=' + encodeURIComponent(RAM.club), { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        RESA.cours = d.cours || [];
+        if (RESA.cours.length) render(true);
+      })
+      .catch(() => {});
+  }
   if (!RESA.mes) {
     RESA.mes = [];
     fetch('/api/reservation/enseignants?c=' + encodeURIComponent(RAM.club), { credentials: 'include' })
@@ -200,11 +261,14 @@ function resaMine() {
       })
       .catch(() => {});
   }
-  return RESA.mes
-    .filter(k => M[k])
-    .map(
-      k =>
-        `<button class="item" data-a="open" data-v="resa" data-id="${k}"><span class="tile">${ic('cal')}</span><span class="grow"><span class="nm">Planning de ${esc(name(k))}</span><br><span class="muted small">Ses créneaux libres, réserver un cours</span></span></button>`
-    )
-    .join('');
+  return (
+    RESA.cours.map(x => resaCoursHtml(x, true)).join('') +
+    RESA.mes
+      .filter(k => M[k])
+      .map(
+        k =>
+          `<button class="item" data-a="open" data-v="resa" data-id="${k}"><span class="tile">${ic('cal')}</span><span class="grow"><span class="nm">Planning de ${esc(name(k))}</span><br><span class="muted small">Ses créneaux libres, réserver un cours</span></span></button>`
+      )
+      .join('')
+  );
 }

@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-01-carnet11';
+const VERSION = '2026-11-01-carnet13';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -124,23 +124,26 @@ self.addEventListener('fetch', e => {
           }
           return res;
         })
-        .catch(() => caches.match(SHELL, { ignoreSearch: true }))
+        .catch(() => caches.open(CACHE).then(c => c.match(SHELL, { ignoreSearch: true })))
     );
     return;
   }
   const asset = url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
   if (!asset) return;
+  // dans le cache de cette appli seulement : une autre appli du même site (/RAM JA) peut garder une vieille copie du fichier
   e.respondWith(
-    caches.match(req, { ignoreSearch: url.origin === location.origin }).then(
-      hit =>
-        hit ||
-        fetch(req).then(res => {
-          if (res.ok || res.type === 'opaque') {
-            const copy = res.clone();
-            caches.open(CACHE).then(c => c.put(req, copy));
-          }
-          return res;
-        })
+    caches.open(CACHE).then(c =>
+      c.match(req, { ignoreSearch: url.origin === location.origin }).then(
+        hit =>
+          hit ||
+          fetch(req).then(res => {
+            if (res.ok || res.type === 'opaque') {
+              const copy = res.clone();
+              c.put(req, copy);
+            }
+            return res;
+          })
+      )
     )
   );
 });

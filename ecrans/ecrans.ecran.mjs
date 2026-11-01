@@ -694,6 +694,49 @@ test('Coach : mes disponibilités, ce qui reste libre s’affiche au planning', 
   await ctx.close();
 });
 
+test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et maximum', async () => {
+  for (const w of [1280, 360]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 800 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+    await page.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
+    await page.waitForSelector('.cocols');
+    const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
+    await page.click('[data-a="coVue"][data-k="mois"]');
+    await page.waitForSelector('.cogm');
+    assert.ok((await page.locator('.comc').count()) % 7 === 0, 'des semaines entières');
+    assert.equal(await page.$eval('.cogm', x => getComputedStyle(x).display), 'grid', 'la grille du mois a son style');
+    assert.ok(await large(), 'mois sans débordement');
+    const t0 = await page.textContent('.coweek b');
+    await page.click('[data-a="coMois"][data-n="1"]');
+    assert.notEqual(await page.textContent('.coweek b'), t0, 'mois suivant');
+    await page.locator('.comc').nth(10).click();
+    await page.waitForSelector('.cogrid');
+    assert.ok(await large(), 'jour sans débordement');
+    assert.equal(await page.$eval('.cogrid', x => getComputedStyle(x).position), 'relative', 'le quadrillage a son style');
+    await page.click('[data-a="coJour"][data-n="1"]');
+    await page.waitForSelector('.cogrid');
+    await page.click('[data-a="coVue"][data-k="semaine"]');
+    await page.waitForSelector('.cocols');
+    await page.click('.cotopact [data-a="nvNew"]');
+    await page.waitForSelector('#nv-form #nv-mx-0');
+    await page.selectOption('#nv-pl-0', '2');
+    await page.selectOption('#nv-mx-0', '4');
+    await page.fill('#nv-no-0', 'Débutants');
+    await page.fill('#nv-theme', 'Volée');
+    await page.click('#nv-form > button:not([type=button])');
+    await page.waitForFunction(() => !document.querySelector('#nv-form'));
+    assert.equal(await page.evaluate(() => view().v), 'planning');
+    const t = await page.evaluate(() => posts.find(p => p.kind === 'niveaux' && p.nv.theme === 'Volée').nv.tiers[0]);
+    assert.equal(t.nom, 'Débutants');
+    assert.equal(t.places, 2);
+    assert.equal(t.max, 4);
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
 test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et la plage n’est plus libre', async () => {
   const cc = await browser.newContext(), sc = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await sc.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
@@ -710,8 +753,8 @@ test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et
   await page.goto(JA + '/club/index.html');
   await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
   await page.waitForTimeout(800);
-  // la semaine suivante : forcément entièrement à venir
-  await page.evaluate(k => { S.resaW = 1; A.open({ v: 'resa', id: k }); }, club.key);
+  // dans deux semaines : forcément à plus de 24 h, donc annulable
+  await page.evaluate(k => { S.resaW = 2; A.open({ v: 'resa', id: k }); }, club.key);
   await page.waitForSelector('.rsl', { timeout: 8000 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
   const n0 = await page.locator('.rsl').count();
@@ -727,6 +770,13 @@ test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et
   assert.ok((await page.locator('.rsl').count()) < n0, 'la plage n’est plus libre');
   assert.match(await page.locator('.rsp').first().innerText(), /pris/);
   await page.waitForFunction(k => GROUPS.some(x => x.once && x.coach === k), club.key, { timeout: 8000 });   // le cours arrive dans son agenda
+  // la liste d'attente, puis l'annulation par l'élève
+  await page.click('.rsa');
+  await page.waitForSelector('.rsa[aria-pressed="true"]', { timeout: 8000 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement avec la liste d’attente');
+  page.on('dialog', x => x.accept());
+  await page.click('[data-a="resaCancel"]');
+  await page.waitForFunction(n => document.querySelectorAll('.rsl').length === n && !document.querySelector('[data-a="resaCancel"]'), n0, { timeout: 8000 });
   assert.deepEqual(errs, []);
   await cc.close();
   await sc.close();

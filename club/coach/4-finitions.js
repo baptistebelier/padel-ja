@@ -212,7 +212,12 @@ const coRefresh = () => (window.ramSafeRender ? ramSafeRender() : render(true));
 const CO_LEGER = ['today', 'dash', 'msgs', 'chan', 'clubs', 'cclub', 'me', 'niveaux', 'formules'];
 function coHistoNeeded() {
   const v = view().v;
-  if (v === 'planning') return !!(window.RAM && RAM.histoAvant) && monday(S.pl.w) < RAM.histoAvant;
+  if (v === 'planning') {
+    // la vue affichée : la date la plus ancienne qu'elle montre
+    const m = new Date(+TODAY.slice(0, 4), +TODAY.slice(5, 7) - 2 + (S.pl.m || 0), 20),
+      de = S.pl.v === 'jour' ? S.pl.j || TODAY : S.pl.v === 'mois' ? REGLES.isoOfAt(m) : monday(S.pl.w);
+    return !!(window.RAM && RAM.histoAvant) && de < RAM.histoAvant;
+  }
   return !CO_LEGER.includes(v);
 }
 let coHistoRun = false;

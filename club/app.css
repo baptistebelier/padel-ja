@@ -919,3 +919,7 @@ details.aide .aq p{margin:0;line-height:1.5}
   .rsd .rss{flex-direction:column}
   .rsd .rsl,.rsd .rsp{justify-content:center;width:100%}
 }
+/* réservation : liste d'attente d'une plage prise */
+.rsp{flex-wrap:wrap;gap:6px;padding:6px 10px}
+.chip.rsa{min-height:36px;font-size:12px}
+.chip.rsa svg{width:14px;height:14px}

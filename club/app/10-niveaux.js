@@ -2,22 +2,27 @@
    date unique ou chaque semaine) et inscriptions.
    Les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 const NV_MAX = 6;
-/* une ligne de fourchette du formulaire : de, à, places */
+const NV_PLACES = ['1', '2', '3', '4', '5', '6', '7', '8', '10', '12', '16'];
+/* une ligne de fourchette du formulaire : nom, de, à, minimum, maximum */
 function nvRow(i, sport, t) {
   const lv = sport === 'Padel' ? LV : RANKS,
     lo = t ? (sport === 'Padel' ? 'Niveau ' + t.lo : t.lo) : lv[Math.min(lv.length - 1, i * 3)],
     hi = t ? (sport === 'Padel' ? 'Niveau ' + t.hi : t.hi) : lv[Math.min(lv.length - 1, i * 3 + 2)],
     pl = String((t && t.places) || S.nvPl || 4);
-  return `<div class="nv-row card" data-i="${i}"><div class="row"><b class="grow">Fourchette ${i + 1}</b>${i ? `<button type="button" class="ib" data-a="nvRowDel" data-i="${i}" aria-label="Retirer la fourchette ${i + 1}">${ic('x')}</button>` : ''}</div><div class="two">${Sel('nv-lo-' + i, sport === 'Padel' ? 'Niveau de' : 'Classement de', lv, lo)}${Sel('nv-hi-' + i, 'à', lv, hi)}</div>${Sel('nv-pl-' + i, 'Places', ['1', '2', '3', '4', '5', '6', '7', '8', '10', '12', '16'], pl)}</div>`;
+  return `<div class="nv-row card" data-i="${i}"><div class="row"><b class="grow">Fourchette ${i + 1}</b>${i ? `<button type="button" class="ib" data-a="nvRowDel" data-i="${i}" aria-label="Retirer la fourchette ${i + 1}">${ic('x')}</button>` : ''}</div><div class="two">${Sel('nv-lo-' + i, sport === 'Padel' ? 'Niveau de' : 'Classement de', lv, lo)}${Sel('nv-hi-' + i, 'à', lv, hi)}</div><div class="fld"><label for="nv-no-${i}">Nom du groupe (facultatif)</label><input id="nv-no-${i}" maxlength="40" placeholder="Débutants, confirmés…" value="${esc((t && t.nom) || '')}"></div><div class="two">${Sel('nv-pl-' + i, 'Minimum', NV_PLACES, pl)}${Sel('nv-mx-' + i, 'Maximum', NV_PLACES, String((t && t.max) || pl))}</div></div>`;
 }
 /* fourchettes déjà saisies (pour les garder quand on change de sport ou qu'on en ajoute une) */
 function nvRead(sport) {
   return [...document.querySelectorAll('#nv-tiers .nv-row')].map((r, i) => {
     const v = id => ($(id) || {}).value || '';
     const num = x => +String(x).replace(/\D+/g, '');
-    return sport === 'Padel'
-      ? { lo: num(v('nv-lo-' + i)), hi: num(v('nv-hi-' + i)), places: +v('nv-pl-' + i) || 1 }
-      : { lo: v('nv-lo-' + i), hi: v('nv-hi-' + i), places: +v('nv-pl-' + i) || 1 };
+    const fin = { places: +v('nv-pl-' + i) || 1, max: +v('nv-mx-' + i) || 1, nom: v('nv-no-' + i).trim() };
+    return Object.assign(
+      sport === 'Padel'
+        ? { lo: num(v('nv-lo-' + i)), hi: num(v('nv-hi-' + i)) }
+        : { lo: v('nv-lo-' + i), hi: v('nv-hi-' + i) },
+      fin
+    );
   });
 }
 function nvTiers(sport, list) {
@@ -38,7 +43,7 @@ Object.assign(A, {
  <div class="two">${Sel('nv-sport', 'Sport', ['Tennis', 'Padel'])}${cours ? '' : Sel('nv-fmt', 'Format', ['Double', 'Simple'], 'Double')}</div>
  ${Dt('a-d1', cours ? 'Date (première séance)' : 'Date', 1)}<div class="two">${Sel('a-h1', 'Heure', HOURS, '18 h')}${Sel('a-dur', 'Durée', ['1 h', '1 h 30', '2 h'], '1 h 30')}</div>${O('nv-place', 'Lieu (facultatif)', 'Court 3, salle…')}${O('nv-price', 'Tarif', cours ? '15 € par séance' : '10 € par joueur')}
  ${cours ? Sel('nv-rep', 'Récurrence', ['Une seule fois', 'Chaque semaine · 4 semaines', 'Chaque semaine · 6 semaines', 'Chaque semaine · 8 semaines', 'Chaque semaine · 10 semaines', 'Chaque semaine · 12 semaines']) : ''}
- <div class="fld"><span class="lb">Fourchettes de niveau</span><p class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première fourchette complète valide ${cours ? 'la séance' : 'la partie'} ; les inscrits des autres passent en liste d'attente.</p></div>
+ <div class="fld"><span class="lb">Fourchettes de niveau</span><p class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première à atteindre son minimum valide ${cours ? 'la séance' : 'la partie'}, qui arrive alors au planning ; les inscrits des autres passent en liste d'attente. Avant, rien n'est bloqué.</p></div>
  <div id="nv-tiers" class="stack"></div><button type="button" class="btn ghost full" id="nv-add" data-a="nvRowAdd">${ic('plus')}Ajouter une fourchette</button>
  <button class="btn full">${cours ? 'Proposer la séance' : 'Publier la recherche'}</button></form>`
     );
@@ -111,7 +116,11 @@ document.addEventListener('submit', e => {
     tiers = nvRead(sport).map((t, i) => {
       // une fourchette se lit toujours du plus bas au plus haut
       const swap = sport === 'Padel' ? t.lo > t.hi : rIdx(t.lo) > rIdx(t.hi);
-      return { id: 't' + (i + 1), lo: swap ? t.hi : t.lo, hi: swap ? t.lo : t.hi, places: t.places };
+      return Object.assign(
+        { id: 't' + (i + 1), lo: swap ? t.hi : t.lo, hi: swap ? t.lo : t.hi, places: t.places },
+        t.nom ? { nom: t.nom } : {},
+        t.max > t.places ? { max: t.max } : {}
+      );
     }),
     weeks = cours ? +(val('nv-rep').match(/(\d+) semaines/) || [0, 1])[1] : 1,
     d0 = val('a-d1') || isoIn(1);
@@ -142,7 +151,7 @@ document.addEventListener('submit', e => {
   });
   const n = adults().filter(k => k !== ME() && tiers.some(t => nvFits(t, k, sport))).length;
   closeSheet();
-  S.tab = 'home';
+  S.tab = typeof coPlanning === 'function' ? 'planning' : 'home'; // /RAM Coach : retour au planning
   S.stack = [];
   render();
   toast(
