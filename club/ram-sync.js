@@ -1677,7 +1677,7 @@
   }
   /* ---------- cache sur l'appareil (IndexedDB) : l'appli s'ouvre aussitôt avec le dernier état connu, puis seules les nouveautés
      arrivent. Un état par compte, club et appli, refait à neuf au bout de 7 jours ; tout est effacé à la déconnexion. ---------- */
-  const CACHE_V = 1,
+  const CACHE_V = 2,
     CACHE_TTL = 7 * 864e5;
   const cacheDb = () =>
     new Promise((ok, ko) => {

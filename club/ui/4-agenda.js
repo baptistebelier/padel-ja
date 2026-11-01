@@ -29,7 +29,7 @@ function planItems(iso) {
             (g.mem.length + (g.ext || []).length > 1 ? 's' : '')),
       title: g.name,
       cx,
-      v: chans.some(c => c.id === g.id) ? 'chan' : 'grp',
+      v: chans.some(c => c.id === g.id && chanOk(c)) ? 'chan' : seesMinors() ? 'grp' : 'ginfo',
       id: g.id,
       my: g.mem.some(mine) || g.coach === me
     });

@@ -99,6 +99,9 @@ function render(keep) {
     const g = grp(v.id);
     t = g.name;
     sub = g.sub;
+  } else if (v.v === 'ginfo') {
+    t = (grp(v.id) || {}).name || 'Groupe';
+    sub = 'Groupe d’entraînement';
   } else if (v.v === 'team') {
     const g = grp(v.id);
     t = teamName(g);

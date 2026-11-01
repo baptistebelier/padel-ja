@@ -291,4 +291,4 @@ const muteBtn = c =>
 const chanOk = c =>
   (S.role !== 'kid' || c.id === 'annonces' || c.kid) &&
   // démonstration : le serveur ne garde déjà que les discussions ouvertes à chacun
-  (isAdmin() || !REGLES.chanRegle(c) || REGLES.chanOuvert(c, grp(c.id), [ME()].concat((M[ME()] || {}).kids || [])));
+  (isAdmin() || REGLES.chanOuvert(c, grp(c.id), [ME()].concat((M[ME()] || {}).kids || [])));

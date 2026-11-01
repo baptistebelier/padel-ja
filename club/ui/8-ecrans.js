@@ -180,6 +180,12 @@ const V = {
       : ''
   }${it('open', 'club', 'Partenaires', `${PARTNERS.length} partenaires · les mettre en avant sur le mur`, 'data-v="partners"')}${it('look', 'edit', 'Apparence', 'Nom, sigle, logo et couleur du club')}${it('season', 'folder', 'Saison ' + S.season, 'Clôturer la saison en cours et lancer la prochaine')}</div></div>`;
   },
+  /* un groupe dont je ne suis pas : ses horaires, sans ses élèves ni sa discussion */
+  ginfo(id) {
+    const g = grp(id);
+    if (!g) return `<div class="pad">${empty('users', 'Groupe introuvable', '')}</div>`;
+    return `<div class="pad"><div class="card"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${esc(g.sub || DAYS[g.day] + ' ' + g.h)}</span>${g.coach && M[g.coach] ? `<p class="small">Avec ${esc(name(g.coach))}</p>` : ''}<p class="muted small">La discussion et la liste des élèves sont réservées aux membres du groupe.</p></div></div>`;
+  },
   grp(id) {
     const g = grp(id),
       crit = [],

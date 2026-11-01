@@ -265,7 +265,10 @@ A.chanCfg = d => {
     `<form class="body" id="chan-cfg" data-id="${c.id}"><div class="fld"><label for="cc-n">Nom</label><input id="cc-n" required maxlength="60" value="${esc(c.name)}"></div><div class="fld"><label for="cc-a">Qui y a accès</label><select id="cc-a">${CHAN_ACCES.filter(
       x => g || x[0] !== 'groupe'
     )
-      .map(x => `<option value="${x[0]}" ${(c.acces || 'tous') === x[0] ? 'selected' : ''}>${x[1]}</option>`)
+      .map(
+        x =>
+          `<option value="${x[0]}" ${(c.acces || (g ? 'groupe' : 'tous')) === x[0] ? 'selected' : ''}>${x[1]}</option>`
+      )
       .join(
         ''
       )}</select></div><span class="kicker">Participants</span><p class="muted small">Ajouter ou retirer quelqu'un prime sur la règle d'accès.</p><div class="fld"><input id="cc-q" type="search" placeholder="Rechercher" aria-label="Rechercher un adhérent"></div><div class="ccl">${chanKeys()

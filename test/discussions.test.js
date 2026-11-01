@@ -85,3 +85,29 @@ test('réglages d’une discussion : la règle et le choix à la main sont respe
   assert.ok(item(c1, 'chan', 'prive') && item(c1, 'msg', 'm1'), 'il reçoit la discussion et ses messages');
 });
 
+test('discussion d’un groupe, sans réglage : réservée à ses membres, à leurs parents et à l’équipe', async () => {
+  const club = await ram.create({ id: 'B3', name: 'Hugo Martin' }, { name: 'TC Groupes', short: 'TCG' });
+  const keys = { B3: (await ram.myClubs('B3')).find(c => c.id === club.id).key };
+  await ram.ops('B3', club.id, [{ coll: 'conf', id: 'main', op: 'put', data: { season: '2026' } }]);
+  for (const [id, name] of [['A3', 'Inès Faure'], ['C3', 'Paul Girard']]) {
+    await ram.join({ id, name }, club.code);
+    keys[id] = (await ram.myClubs(id)).find(c => c.id === club.id).key;
+    await ram.ops('B3', club.id, [{ coll: 'member', id: keys[id], op: 'put', data: { n: name, valid: '2026' } }]);
+  }
+  await ram.ops('B3', club.id, [
+    { coll: 'group', id: 'g3', op: 'put', data: { type: 'train', name: 'Jeunes', mem: [keys.A3], day: 1, h: '18 h' } },
+    { coll: 'chan', id: 'g3', op: 'put', data: { g: 'train', name: 'Jeunes' } },
+    { coll: 'msg', id: 'mg', op: 'put', data: { ref: 'c:g3', by: keys.A3, x: 'Salut', at: 1000 } },
+    { coll: 'chan', id: 'libre3', op: 'put', data: { g: 'club', name: 'Libre' } }
+  ]);
+  const a = await ram.sync('A3', club.id, 0), c = await ram.sync('C3', club.id, 0), b = await ram.sync('B3', club.id, 0);
+  assert.ok(item(a, 'chan', 'g3') && item(a, 'msg', 'mg'), 'membre');
+  assert.ok(item(b, 'chan', 'g3') && item(b, 'msg', 'mg'), 'bureau');
+  assert.ok(!item(c, 'chan', 'g3') && !item(c, 'msg', 'mg'), 'les autres adhérents : ni la discussion ni ses messages');
+  assert.ok(item(c, 'group', 'g3'), 'le groupe reste connu : ses cours restent à l’agenda');
+  assert.ok(item(c, 'chan', 'libre3'), 'une discussion sans groupe reste ouverte');
+  // « tous les adhérents » choisi à la main : ouverte
+  await ram.ops('B3', club.id, [{ coll: 'chan', id: 'g3', op: 'put', data: { g: 'train', name: 'Jeunes', acces: 'tous' } }]);
+  assert.ok(item(await ram.sync('C3', club.id, 0), 'chan', 'g3'));
+});
+

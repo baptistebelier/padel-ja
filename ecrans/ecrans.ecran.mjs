@@ -646,3 +646,28 @@ test('Club : favoris avec du nouveau en tête, réglages d’une discussion, fil
   await ctx.close();
 });
 
+test('Club : un cours d’un groupe dont je ne suis pas reste à l’agenda, sans sa discussion ni ses élèves', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof planItems === 'function');
+  const r = await page.evaluate(() => {
+    S.role = 'member';
+    const g = GROUPS.find(x => x.type === 'train' && !x.once && !x.mem.includes(ME()) && chans.some(c => c.id === x.id));
+    if (!g) return null;
+    const c = chans.find(x => x.id === g.id);
+    let iso = TODAY;
+    for (let i = 0; i < 14 && !trainOn(g, iso); i++) iso = isoIn(1, iso);
+    S.plan.scope = 'club';
+    const it = planItems(iso).find(x => x.id === g.id);
+    return { ok: chanOk(c), v: it && it.v, id: g.id };
+  });
+  assert.ok(r, 'un groupe d’essai');
+  assert.equal(r.ok, false, 'pas sa discussion');
+  assert.equal(r.v, 'ginfo', 'le cours reste à l’agenda');
+  await page.evaluate(id => A.open({ v: 'ginfo', id }), r.id);
+  await page.waitForFunction(() => document.body.innerText.includes('réservées aux membres du groupe'));
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
