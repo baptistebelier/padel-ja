@@ -305,7 +305,7 @@ function coPlanning() {
       mini = i > 4 && !x.length;
     tracks += mini ? ' minmax(120px, .55fr)' : ' minmax(210px, 1fr)';
     cols.push(
-      `<section class="cocol${i === on ? ' on' : ''}${d === TODAY ? ' today' : ''}" aria-label="${DAYS[coDow(d)]} ${+d.slice(8)}"><h3 class="cocolh">${DAYS[coDow(d)]} <b>${+d.slice(8)}</b> ${MO[+d.slice(5, 7) - 1]}</h3>${x.map(s => coSesCard(s, 1)).join('') || '<div class="card cocolv muted small">Aucun cours</div>'}</section>`
+      `<section class="cocol${i === on ? ' on' : ''}${d === TODAY ? ' today' : ''}" aria-label="${DAYS[coDow(d)]} ${+d.slice(8)}"><h3 class="cocolh">${DAYS[coDow(d)]} <b>${+d.slice(8)}</b> ${MO[+d.slice(5, 7) - 1]}</h3>${x.map(s => coSesCard(s, 1)).join('') || '<div class="card cocolv muted small">Aucun cours</div>'}${typeof coLibreHtml === 'function' ? coLibreHtml(d) : ''}</section>`
     );
   }
   const dOn = isoIn(on, from),
@@ -1113,7 +1113,7 @@ function coProfile() {
     `<div class="colist"><div class="cokv"><span class="muted">E-mail</span><b>${user ? esc(user.email || '') : 'Démonstration'}</b></div><div class="cokv"><span class="muted">Applis</span><b>/RAM Coach · /RAM Club · /RAM JA</b></div></div><p class="muted small">Un seul compte /RAM pour les trois applis. Le mot de passe changé ici vaut aussitôt dans les trois.</p><div class="cotools">${user ? `<button class="btn ghost" data-a="ramPw">${ic('shield')}${user.hasPassword ? 'Changer le mot de passe' : 'Choisir un mot de passe'}</button>` : ''}<button class="btn ghost" data-a="open" data-v="aide">${ic('info')}Aide</button><button class="btn ghost" data-a="open" data-v="legal">${ic('shield')}Conditions</button>${user ? `<button class="btn ghost" data-a="logout">${ic('logout')}Se déconnecter</button>` : ''}</div>`
   );
   const stats = `<div class="stats"><div><b>${mine.length}</b><span>Groupes</span></div><div><b>${nEl}</b><span>Élèves</span></div><div><b>${fr(hrs)}</b><span>Heures / sem.</span></div><div><b>${p.since ? +TODAY.slice(0, 4) - +p.since : '–'}</b><span>Ans d'expérience</span></div></div>`;
-  return `<div class="pad coprof">${hero}${stats}${fiche}${tarifs}${coVacCard()}${mesClubs}${look}${notifs}${compte}</div>`;
+  return `<div class="pad coprof">${hero}${stats}${fiche}${tarifs}${coDispoCard()}${coVacCard()}${mesClubs}${look}${notifs}${compte}</div>`;
 }
 Object.assign(V, {
   today: coToday,

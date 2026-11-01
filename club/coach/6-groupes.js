@@ -127,7 +127,57 @@ function coVacCard() {
       )}${hits.length ? `<span class="kicker" style="margin-top:12px">${plural(hits.length, 'séance programmée', 'séances programmées')} pendant des vacances</span><div class="list">${hits.map(x => `<button class="item" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}"><span class="tile">${ic('cal')}</span><span class="grow"><span class="nm">${esc(x.g.name)}</span><br><span class="muted small">${fmtD(x.d)} · ${esc(x.o.nom || 'Vacances')}</span></span></button>`).join('')}</div><button class="btn sm ghost full" data-a="coVacClear">${ic('trash')}Retirer ces séances</button>` : ''}<p class="muted small">Ces périodes sont les tiennes : un autre enseignant du club règle les siennes. Rien n'est retiré du planning sans ton geste.</p>`
   );
 }
+/* ---------- disponibilités : les périodes où je travaille, par jour et par lieu ----------
+   première étape de la réservation : le planning montre ce qui reste libre. Personne ne réserve encore sur ces plages. */
+const COJOURS = [1, 2, 3, 4, 5, 6, 0];
+const hMinTxt = n => Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).padStart(2, '0') : '');
+const coOccupe = d =>
+  coSessions(d, d, 'me', 1)
+    .filter(x => !isCx(x.g, x.d))
+    .map(x => [hMin(x.g.h), hMin(x.g.h) + durMin(x.g.dur)]);
+/* ce qui reste libre un jour donné (au moins une heure) ; rien pour un jour passé */
+const coLibre = d => (d < TODAY ? [] : REGLES.plagesLibres(OFFRES.dispos, d, coOccupe(d), OFFRES.conges, 60));
+const coLibreHtml = d =>
+  coLibre(d)
+    .map(
+      p =>
+        `<div class="cofree">${ic('clock')}<span>Libre ${hMinTxt(p.du)} – ${hMinTxt(p.au)}${p.lieu ? ' · ' + esc(p.lieu) : ''}</span></div>`
+    )
+    .join('');
+function coDispoCard() {
+  const l = OFFRES.dispos || [];
+  return coPCard(
+    'Réservation',
+    'Mes disponibilités',
+    `${
+      COJOURS.filter(j => l.some(x => +x.jour === j))
+        .map(j =>
+          l
+            .map((x, i) => [x, i])
+            .filter(([x]) => +x.jour === j)
+            .sort((a, b) => a[0].du.localeCompare(b[0].du))
+            .map(
+              ([x, i]) =>
+                `<div class="cokv"><span>${DAYS[j]}<br><span class="muted small">${esc(x.du)} – ${esc(x.au)}${x.lieu ? ' · ' + esc(x.lieu) : ''}</span></span><button class="ib" data-a="coDispoDel" data-i="${i}" aria-label="Retirer ${DAYS[j]} ${esc(x.du)}">${ic('x')}</button></div>`
+            )
+            .join('')
+        )
+        .join('') ||
+      '<p class="muted small">Indique quand tu travailles : ce qui reste libre s’affiche dans ton planning.</p>'
+    }<button class="btn sm ghost full" data-a="coDispoAdd">${ic('plus')}Ajouter une période</button><p class="muted small">Les élèves ne peuvent pas encore réserver sur ces plages.</p>`
+  );
+}
 Object.assign(A, {
+  coDispoAdd() {
+    sheet(
+      'Période de travail',
+      `<form class="body" id="co-dispo"><div class="fld"><label for="co-di-j">Jour</label><select id="co-di-j">${COJOURS.map(j => `<option value="${j}">${DAYS[j]}</option>`).join('')}</select></div><div class="row" style="gap:8px"><div class="fld grow"><label for="co-di-d">De</label><input id="co-di-d" type="time" required value="09:00"></div><div class="fld grow"><label for="co-di-a">À</label><input id="co-di-a" type="time" required value="12:00"></div></div>${O('co-di-l', 'Lieu (facultatif)', 'Le club, le nom d’un site…')}<button class="btn full">Enregistrer</button></form>`
+    );
+  },
+  coDispoDel(d) {
+    OFFRES.dispos = (OFFRES.dispos || []).filter((x, i) => i !== +d.i);
+    ofSave('Période retirée');
+  },
   coVacAdd(d) {
     sheet(
       d.k === 'me' ? 'Mes vacances' : 'Vacances du club',
@@ -177,6 +227,19 @@ Object.assign(A, {
     l.forEach(x => coDateOff(x.g, x.d));
     coSave(plural(l.length, 'séance retirée', 'séances retirées'));
   }
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-dispo') return;
+  e.preventDefault();
+  const du = $('co-di-d').value,
+    au = $('co-di-a').value;
+  if (!du || !au || au <= du) return toast('La fin doit suivre le début');
+  const o = { jour: +$('co-di-j').value, du, au },
+    lieu = $('co-di-l').value.trim().slice(0, 60);
+  if (lieu) o.lieu = lieu;
+  OFFRES.dispos = (OFFRES.dispos || []).concat(o);
+  closeSheet();
+  ofSave('Période enregistrée');
 });
 document.addEventListener('submit', e => {
   if (e.target.id !== 'co-vac') return;

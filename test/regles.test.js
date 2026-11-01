@@ -78,3 +78,20 @@ test('paiements : un achat sans échéances est réglé ; avec, seul ce qui est 
   assert.equal(r.parMois['2026-10'], 90);
 });
 
+test('disponibilités : les cours et les vacances retirent du temps, les plages trop courtes ne comptent pas', () => {
+  // 2026-11-02 est un lundi
+  const dispos = [{ jour: 1, du: '09:00', au: '12:00', lieu: 'Club' }, { jour: 1, du: '14:00', au: '15:00' }, { jour: 2, du: '09:00', au: '10:00' }];
+  assert.deepEqual(R.plagesLibres(dispos, '2026-11-02', [], [], 60), [{ du: 540, au: 720, lieu: 'Club' }, { du: 840, au: 900, lieu: '' }]);
+  assert.deepEqual(R.plagesLibres(dispos, '2026-11-02', [[600, 660]], [], 60), [{ du: 540, au: 600, lieu: 'Club' }, { du: 660, au: 720, lieu: 'Club' }, { du: 840, au: 900, lieu: '' }]);
+  assert.deepEqual(R.plagesLibres(dispos, '2026-11-02', [[570, 690]], [], 60), [{ du: 840, au: 900, lieu: '' }], 'moins d’une heure de chaque côté');
+  assert.deepEqual(R.plagesLibres(dispos, '2026-11-02', [], [{ du: '2026-11-01', au: '2026-11-03' }], 60), [], 'en vacances');
+});
+test('disponibilités : gardées sur le compte, jamais montrées aux adhérents', () => {
+  const F = require('../lib/formules.js');
+  const o = F.clean({ dispos: [{ jour: 1, du: '09:00', au: '12:00', lieu: 'Club' }, { jour: 9, du: '09:00', au: '12:00' }, { jour: 1, du: '12:00', au: '09:00' }], conges: [{ nom: 'Noël', du: '2026-12-20', au: '2026-12-30' }] });
+  assert.deepEqual(o.dispos, [{ jour: 1, du: '09:00', au: '12:00', lieu: 'Club' }]);
+  const p = F.publicOf(o);
+  assert.equal(p.dispos, undefined);
+  assert.equal(p.conges, undefined);
+});
+

@@ -671,3 +671,26 @@ test('Club : un cours d’un groupe dont je ne suis pas reste à l’agenda, san
   await ctx.close();
 });
 
+test('Coach : mes disponibilités, ce qui reste libre s’affiche au planning', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof coDispoCard === 'function');
+  await page.evaluate(() => { OFFRES.dispos = []; OFFRES.conges = []; A.open({ v: 'me' }); });
+  await page.click('[data-a="coDispoAdd"]');
+  const jour = await page.evaluate(() => new Date(isoIn(1).split('-').map(Number)[0], isoIn(1).split('-').map(Number)[1] - 1, isoIn(1).split('-').map(Number)[2]).getDay());
+  await page.selectOption('#co-di-j', String(jour));
+  await page.fill('#co-di-d', '06:00');
+  await page.fill('#co-di-a', '08:00');
+  await page.fill('#co-di-l', 'Site test');
+  await page.click('#co-dispo .btn.full');
+  await page.waitForSelector('[data-a="coDispoDel"]');
+  await page.evaluate(() => { S.stack = []; S.pl.w = coDow(TODAY) === 0 ? 1 : 0; A.tab({ t: 'planning' }); });
+  await page.waitForFunction(() => document.querySelector('.cofree') && /Libre 6 h – 8 h · Site test/.test(document.querySelector('.cofree').textContent));
+  // en vacances : plus rien de libre
+  await page.evaluate(() => { OFFRES.conges = [{ nom: 'Test', du: isoIn(0), au: isoIn(30) }]; render(true); });
+  await page.waitForFunction(() => !document.querySelector('.cofree'));
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+

@@ -195,7 +195,39 @@
     return true;
   }
 
+  /* réservation : les plages libres d'un coach un jour donné, en minutes depuis minuit.
+     dispos : [{ jour (0 dimanche), du: '09:00', au: '12:00', lieu }] ; occupes : [[début, fin]] ses cours du jour ;
+     conges : ses vacances [{ du, au }] ; mini : la durée la plus courte qu'on peut réserver */
+  const hhmmMin = s => {
+    const m = String(s || '').match(/^(\d{1,2}):(\d{2})$/);
+    return m ? +m[1] * 60 + +m[2] : 0;
+  };
+  function plagesLibres(dispos, iso, occupes, conges, mini) {
+    if ((conges || []).some(o => iso >= o.du && iso <= o.au)) return [];
+    const wd = dowOf(iso),
+      out = [];
+    (dispos || [])
+      .filter(x => +x.jour === wd)
+      .forEach(x => {
+        let l = [[hhmmMin(x.du), hhmmMin(x.au)]];
+        (occupes || []).forEach(([a, b]) => {
+          l = l.flatMap(([u, v]) =>
+            b <= u || a >= v
+              ? [[u, v]]
+              : [
+                  [u, a],
+                  [b, v]
+                ].filter(([p, q]) => q > p)
+          );
+        });
+        l.forEach(([du, au]) => out.push({ du, au, lieu: x.lieu || '' }));
+      });
+    return out.filter(p => p.au - p.du >= (mini || 0)).sort((a, b) => a.du - b.du);
+  }
+
   return {
+    plagesLibres,
+    hhmmMin,
     chanRegle,
     chanOuvert,
     trainOn,
