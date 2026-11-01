@@ -98,6 +98,11 @@ Object.assign(A, {
     S.elF = d.v;
     render(true);
   },
+  coElFO() {
+    S.elFO = !(S.elFO || S.elF !== 'all');
+    if (!S.elFO) S.elF = 'all';
+    render(true);
+  },
   coStP(d) {
     S.stP = d.v;
     render(true);

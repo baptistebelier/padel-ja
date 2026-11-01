@@ -183,8 +183,56 @@
   font-variant-numeric: tabular-nums;
   order: -1;
 }
-.cosearch input {
-  width: 100%;
+.cosearch {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.cosq {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: var(--rb);
+  background: var(--card2);
+}
+.cosq svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--muted);
+}
+.cosq input {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: 0;
+}
+.cofbtn {
+  position: relative;
+  flex: none;
+  width: 48px;
+  padding: 0;
+  justify-content: center;
+}
+.cofbtn svg {
+  width: 20px;
+  height: 20px;
+}
+.codot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 .coadd {
   max-height: 52vh;

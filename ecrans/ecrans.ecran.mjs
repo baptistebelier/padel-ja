@@ -315,3 +315,34 @@ test('Cache sur l’appareil : deuxième ouverture sans tout retélécharger, no
   await ctx.close();
 });
 
+test('JA : tournois par statut et création dans une fenêtre, la même depuis le calendrier', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/demo');
+  await page.waitForTimeout(500);
+  await page.goto(JA + '/app');
+  await page.waitForSelector('.tboard .tcard', { timeout: 8000 });
+  const cols = await page.$$eval('.tboard .tcol-h .eyebrow', l => l.map(x => x.textContent));
+  assert.deepEqual(cols, ['À venir', 'En cours', 'Clôturés']);
+  for (const url of ['/app', '/calendrier', '/dashboard']) {
+    await page.goto(JA + url);
+    await page.waitForTimeout(300);
+    const y0 = await page.evaluate(() => scrollY);
+    await page.click('.phead-act a[href$="#nouveau"]');
+    await page.waitForSelector('dialog.nvdlg[open] .tpl');
+    assert.equal(new URL(page.url()).pathname, url, 'reste sur la page');
+    assert.equal(await page.evaluate(() => scrollY), y0, 'sans défilement');
+    const onglets = await page.$$eval('.nvtabs button', l => l.map(x => x.textContent));
+    assert.deepEqual(onglets, ['Modèles officiels', 'Mes modèles', 'Vierge', 'Animations']);
+  }
+  // créer une animation depuis la fenêtre, sur téléphone aussi sans débordement
+  await page.click('.nvtabs button:nth-child(4)');
+  assert.equal((await page.$$('.nvbody .tpl')).length, 4);
+  await page.click('.nvbody .tpl');
+  await page.fill('#nvName', 'Americano essai');
+  await page.click('#nvForm button[type=submit]');
+  await page.waitForURL(/\/t\//, { timeout: 8000 });
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+

@@ -493,6 +493,10 @@ details.more .fld input,details.more .fld select{background:var(--card)}
 .toast{position:absolute;left:14px;right:14px;bottom:84px;background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:var(--rb);z-index:20;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .empty{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:28px 16px;color:var(--muted)}
 .empty svg{width:34px;height:34px;color:var(--accent)}
+/* aucun texte directement sur le fond : un état vide a toujours sa surface pleine */
+.empty{background:var(--card);border-radius:var(--r)}
+.chat>.empty{margin:12px}
+.bds.wrap{flex-wrap:wrap;display:inline-flex;gap:4px}
 
 /* planning */
 .wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
@@ -801,3 +805,4 @@ details.aide .aq p{margin:0;line-height:1.5}
 .prof .ctl a.btn{text-decoration:none}
 .prof .ctl .btn{flex:1 1 30%}
 .prof .ctl .btn:not(.ghost){flex-basis:100%}
+.chip svg{width:16px;height:16px;flex:none}

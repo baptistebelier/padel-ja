@@ -1,5 +1,27 @@
 /* /RAM Club — ui/5-club.js : Onglet Club : actus, archives, équipes, commissions.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
+/* équipe du club : toutes les étiquettes d'une personne (fonction, bureau, enseignant, capitaine, juge-arbitre), sur plusieurs lignes si besoin */
+function teamRoles(id) {
+  const m = M[id] || {},
+    acc = window.RAM && RAM.roles ? RAM.roles[id] : '',
+    gs = GROUPS.filter(g => !g.old),
+    l = [];
+  const add = t => {
+    if (t && !l.some(x => fold0(x) === fold0(t))) l.push(t);
+  };
+  add(m.role);
+  if (acc === 'bureau') add('Bureau');
+  if (acc === 'coach' || gs.some(g => g.type === 'train' && g.coach === id)) add('Enseignant');
+  if (gs.some(g => g.cap === id)) add('Capitaine');
+  ((window.RAM && RAM.jaTitles && RAM.jaTitles[id]) || []).forEach(add);
+  const r = rk(id);
+  return `<span class="bds wrap">${l.map(t => `<span class="bd ${RC[t] || ''}">${t}</span>`).join('')}${r ? `<span class="bd rk">${r}</span>` : ''}</span>`;
+}
+const fold0 = s =>
+  String(s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 /* ---------- club ---------- */
 const artCard = a =>
   `<button class="art" data-a="open" data-v="art" data-id="${a.id}">${a.img ? `<span class="ph wide" style="background-image:url(${a.img})"></span>` : ''}<span class="row" style="gap:8px"><span class="kicker">${a.cat} · ${a.date}</span>${a.sport ? sportTag(a.sport) : a.both ? sportTag('Tennis') + sportTag('Padel') : ''}</span><span class="h3">${a.title}</span><span class="muted">${a.lead}</span></button>`;
@@ -137,7 +159,7 @@ function clubView() {
  <div><h2 class="tilt sm">Formules <em>et tarifs</em><i class="dd"></i></h2><div class="card" style="margin-top:10px;gap:0">${FORM.map(f => `<div class="price"><span><span class="nm">${f[0]}</span><br><span class="muted small">${f[1]}</span></span><b>${f[2]}</b></div>`).join('')}</div></div>
  <button class="btn full" data-a="toast" data-msg="Demande envoyée au secrétariat du club">Demander une inscription</button>
  <div class="card" style="gap:0"><div class="price"><span class="nm">Club-house</span><span class="muted">${I2.house}</span></div><div class="price"><span class="nm">Secrétariat</span><span class="muted">${I2.secr}</span></div><div class="price"><span class="nm">Adresse</span><span class="muted">${I2.addr}</span></div></div>
- <div><span class="kicker">L'équipe du club</span>${(window.ramTeam ? ramTeam() : ['hugo', 'sarah', 'mehdi', 'marc']).map(p => `<div class="item">${av(p, 'sm')}<span class="grow">${who(p)} ${bd(p)}</span></div>`).join('')}</div>
+ <div><span class="kicker">L'équipe du club</span>${(window.ramTeam ? ramTeam() : ['hugo', 'sarah', 'mehdi', 'marc']).map(p => `<div class="item">${av(p, 'sm')}<span class="grow">${who(p)} ${teamRoles(p)}</span></div>`).join('')}</div>
  <button class="btn full ghost" data-a="open" data-v="archive">${ic('folder')}Archives des saisons</button></div>`
   );
 }

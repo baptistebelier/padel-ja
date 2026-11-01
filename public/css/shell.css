@@ -552,3 +552,22 @@ html, body { overscroll-behavior-x: none; } /* pas de retour arrière par glisse
 
 /* pictogrammes devant les titres des cartes des pages compte (administration) : même rendu que la fiche tournoi */
 .card h2.h2s .pic { display: inline-block; width: 1em; height: 1em; vertical-align: -.12em; margin-right: .45em; color: var(--ui-accent-text, var(--ui-accent)); flex: none; }
+
+/* Mes tournois : trois listes par statut ; la création dans une fenêtre (js/creation.js) */
+.tboard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.tboard .tlist { grid-template-columns: minmax(0, 1fr); }
+.tcol-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.tcol-h .eyebrow { margin: 0; }
+@media (max-width: 900px) { .tboard { grid-template-columns: minmax(0, 1fr); } }
+.nvdlg { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 20px; border: 2px solid var(--ui-border-2, #333); background: var(--ui-bg, #111); color: inherit; }
+.nvdlg::backdrop { background: rgba(0, 0, 0, .6); }
+.nvhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.nvhead h2 { margin: 0; }
+.nvtabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.nvtabs[hidden] { display: none; }
+.nvtabs button { min-height: 40px; padding: 0 12px; border: 2px solid var(--ui-border-2, #333); background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.nvtabs button[aria-selected="true"] { background: var(--ui-accent, #E0F50A); color: #0B0306; border-color: transparent; }
+.nvlab { display: block; margin-bottom: 6px; font-weight: 700; }
+#nvName { width: 100%; min-height: 46px; padding: 0 12px; font: inherit; }
+.nvact { margin-top: 14px; justify-content: flex-end; }
+.nverr { margin: 10px 0 0; color: var(--ui-danger, #F5104C); }

@@ -42,7 +42,13 @@ Object.assign(I, {
   timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',
   ladder: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>',
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
-  euro: '<path d="M18 6a7 7 0 100 12M4 10h10M4 14h10"/>'
+  euro: '<path d="M18 6a7 7 0 100 12M4 10h10M4 14h10"/>',
+  // un club / plusieurs clubs ; filtres de la liste d'élèves
+  clubs: '<path d="M4 21V5h9l-2 3 2 3H4"/><path d="M13 8h7l-2 3 2 3h-8v-3"/><path d="M10 14v7"/>',
+  funnel: '<path d="M3 5h18l-7 8v6l-4 2v-8z"/>',
+  padel: '<ellipse cx="10" cy="9" rx="6" ry="7"/><path d="M14 14l6 7M8 7h.01M12 7h.01M10 11h.01"/>',
+  kid: '<circle cx="12" cy="7" r="3.5"/><path d="M6 21v-2a6 6 0 0112 0v2M10 7h.01M14 7h.01"/>',
+  nolink: '<circle cx="10" cy="8" r="3.5"/><path d="M3 20a7 7 0 0111.5-5.4M16 16l5 5M21 16l-5 5"/>'
 });
 
 /* ---------- échelles de niveaux : prérequis pour y entrer, attendus pour le valider ---------- */

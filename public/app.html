@@ -19,33 +19,20 @@
 <link rel="stylesheet" href="/css/street.css">
 <script src="/js/theme.js"></script>
 <script src="/js/rail.js" defer></script>
+<script src="/js/creation.js" defer></script>
 </head>
 <body class="acct" data-page="tournois">
 <div class="guest" id="guestBar" hidden>Mode démo : vos tournois seront effacés dans 24 h. <a href="/inscription">Créer mon compte gratuitement</a></div>
 <main class="page">
   <header class="phead">
     <div><span class="eyebrow" id="who">Juge-arbitre</span><h1>Mes <span class="band lime">tournois</span></h1></div>
-    <div class="phead-act"><span id="plan" class="tag" hidden></span><a class="btn" href="/calendrier">Calendrier</a><a class="btn" href="#animation">+ Nouvelle animation</a><a class="btn primary" href="#nouveau">+ Nouveau tournoi</a></div>
+    <div class="phead-act"><span id="plan" class="tag" hidden></span><a class="btn" href="/calendrier">Calendrier</a><a class="btn primary" href="#nouveau">+ Nouveau tournoi</a></div>
   </header>
-  <section>
-    <span class="eyebrow">En cours</span>
-    <div class="tlist" id="tlist"><p class="muted">Chargement…</p></div>
-  </section>
-  <section class="card" id="nouveau">
-    <span class="eyebrow">Nouveau tournoi</span>
-    <h2 style="font-size:26px;margin-bottom:14px">Partir d'un modèle</h2>
-    <div class="tpls" id="tpls"></div>
-  </section>
-  <section class="card" id="animation">
-    <span class="eyebrow">Nouvelle animation</span>
-    <h2 style="font-size:26px;margin-bottom:14px">Americano, mexicano, montée-descente</h2>
-    <p class="muted small" style="margin-top:0">Formats conviviaux hors classement FFT : rotation des partenaires, classement individuel en direct, chronomètre commun et écran TV.</p>
-    <div class="tpls" id="anis"></div>
-  </section>
-  <section id="closedSec" hidden>
-    <span class="eyebrow" id="clotures">Tournois clôturés</span>
-    <div class="tlist" id="tclosed"></div>
-  </section>
+  <div class="tboard">
+    <section><div class="tcol-h"><span class="eyebrow">À venir</span><span class="tag" id="nUp">0</span></div><div class="tlist" id="tup"><p class="muted">Chargement…</p></div></section>
+    <section><div class="tcol-h"><span class="eyebrow">En cours</span><span class="tag" id="nLive">0</span></div><div class="tlist" id="tlist"></div></section>
+    <section><div class="tcol-h"><span class="eyebrow" id="clotures">Clôturés</span><span class="tag" id="nDone">0</span></div><div class="tlist" id="tclosed"></div></section>
+  </div>
 </main>
 <script>
 (function () {
@@ -57,35 +44,8 @@
     if (!d.user.guest) { $('#plan').hidden = false; $('#plan').textContent = d.user.planLabel; $('#plan').className = 'tag ' + (d.user.admin ? 'pink' : d.user.free ? 'lime' : 'ink'); }
     $('#guestBar').hidden = !d.user.guest;
   });
-  async function create(body) {
-    const r = await fetch('/api/tournaments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const d = await r.json(); if (d.id) location.href = '/t/' + d.id;
-    else blocked(d);
-  }
-  // essai terminé ou tournoi d'essai déjà utilisé : on explique et on propose les offres
-  function blocked(d) {
-    const shop = (d.access && d.access.shop) || (window.PadelAccess && window.PadelAccess.shop);
-    if (shop && confirm((d.error || 'Création impossible.') + '\n\nVoir les offres /RAM JA ?')) window.open(shop, '_blank', 'noopener');
-    else if (!shop) alert(d.error || 'Création impossible.');
-  }
   async function load() {
     const d = await fetch('/api/tournaments').then(r => r.json());
-    const tpl = (t, mine) => `<button class="tpl" data-t="${t.id}"><span class="tag ${mine ? 'lime' : ''}">${mine ? 'Mon modèle' : esc(t.fields.category)}</span><b>${esc(t.name)}</b><small>${esc(t.desc || '')}</small></button>`;
-    $('#tpls').innerHTML = `<button class="tpl blank" data-t=""><span class="tag ink">Vierge</span><b>Tournoi vierge</b><small>Je configure tout moi-même.</small></button>` +
-      d.mine.map(t => tpl(t, true)).join('') + d.presets.map(t => tpl(t, false)).join('');
-    // boutons du haut « + Nouvelle animation » et « + Nouveau tournoi » : on descend jusqu'au bloc
-    document.querySelectorAll('.phead-act a[href^="#"]').forEach(a => a.onclick = e => { const t = document.querySelector(a.getAttribute('href')); if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
-    // animations : americano, mexicano, par équipes, montée-descente
-    const ANIS = [['americano', 'Americano', 'Nouveau partenaire à chaque manche, classement individuel aux points.'], ['mexicano', 'Mexicano', 'Équipes formées selon le classement : des matchs serrés.'], ['equipes', 'Americano par équipes', 'Paires fixes qui se rencontrent toutes.'], ['montee', 'Montée-descente', 'Les gagnants montent d’un terrain, les perdants descendent.']];
-    $('#anis').innerHTML = ANIS.map(a => `<button class="tpl" data-ani="${a[0]}"><span class="tag lime">Animation</span><b>${a[1]}</b><small>${a[2]}</small></button>`).join('');
-    document.querySelectorAll('[data-ani]').forEach(b => b.onclick = () => {
-      const name = prompt('Nom de l’animation ?', b.querySelector('b').textContent + ' du ' + new Date().toLocaleDateString('fr-FR', { weekday: 'long' }));
-      if (name !== null) create({ kind: 'animation', format: b.dataset.ani, name: name || b.querySelector('b').textContent });
-    });
-    document.querySelectorAll('.tpl[data-t]').forEach(b => b.onclick = () => {
-      const name = prompt('Nom du tournoi ?', b.dataset.t ? b.querySelector('b').textContent : 'Mon tournoi');
-      if (name !== null) create({ name: name || 'Tournoi', template: b.dataset.t || undefined });
-    });
     const fmt = s => s ? new Date(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     const card = t => `
       <article class="tcard">
@@ -95,10 +55,15 @@
         <div class="tc-act"><a class="btn primary sm" href="/t/${t.id}">Ouvrir</a><a class="btn ghost sm" href="/t/${t.id}/tv" target="_blank">Écran TV</a>
           <button class="btn ghost sm" data-dup="${t.id}">Dupliquer</button><button class="btn ghost sm danger" data-del="${t.id}">Supprimer</button></div>
       </article>`;
-    const open = d.tournaments.filter(t => !t.closed), closed = d.tournaments.filter(t => t.closed).sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
-    $('#tlist').innerHTML = open.length ? open.map(card).join('') : '<p class="muted">Aucun tournoi en cours : choisissez un modèle ci-dessus.</p>';
-    $('#closedSec').hidden = !closed.length;
-    $('#tclosed').innerHTML = closed.map(card).join('');
+    // À venir : le plus proche d'abord ; En cours : le plus récent ; Clôturés : le plus récent
+    const today = new Date().toISOString().slice(0, 10), started = t => t.drawn || (t.dateStart && t.dateStart <= today);
+    const up = d.tournaments.filter(t => !t.closed && !started(t)).sort((x, y) => String(x.dateStart || '9').localeCompare(String(y.dateStart || '9')));
+    const live = d.tournaments.filter(t => !t.closed && started(t)).sort((x, y) => (y.updated_at || 0) - (x.updated_at || 0));
+    const closed = d.tournaments.filter(t => t.closed).sort((x, y) => (y.closedAt || 0) - (x.closedAt || 0));
+    const fill = (id, n, l, none) => { $(id).innerHTML = l.length ? l.map(card).join('') : `<p class="muted small">${none}</p>`; $(n).textContent = l.length; };
+    fill('#tup', '#nUp', up, 'Aucun tournoi prévu.');
+    fill('#tlist', '#nLive', live, 'Aucun tournoi en cours.');
+    fill('#tclosed', '#nDone', closed, 'Aucun tournoi clôturé.');
     document.querySelectorAll('[data-dup]').forEach(b => b.onclick = async () => { const r = await fetch('/api/tournaments/' + b.dataset.dup + '/duplicate', { method: 'POST' }).then(r => r.json()); if (r.id) load(); else blocked(r); });
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (confirm('Supprimer définitivement ce tournoi ?')) { await fetch('/api/tournaments/' + b.dataset.del, { method: 'DELETE' }); load(); } });
   }

@@ -340,10 +340,10 @@ ${hd('Bilan de la séance')}${dr ? `<div class="card codraft"><span class="kicke
 /* filtre par club (quand j'enseigne dans plusieurs clubs) : Planning, Élèves, Tableau de bord */
 const coClubChips = () =>
   coMulti()
-    ? `<div class="card"><div class="chips"><button class="chip" data-a="coClub" data-c="all" aria-pressed="${!S.coClub || S.coClub === 'all'}">Tous mes clubs</button>${coClubList()
+    ? `<div class="card"><div class="chips"><button class="chip" data-a="coClub" data-c="all" aria-pressed="${!S.coClub || S.coClub === 'all'}">${ic('clubs')}Tous mes clubs</button>${coClubList()
         .map(
           c =>
-            `<button class="chip" data-a="coClub" data-c="${c.id}" aria-pressed="${S.coClub === c.id}">${esc(c.name)}</button>`
+            `<button class="chip" data-a="coClub" data-c="${c.id}" aria-pressed="${S.coClub === c.id}">${ic('club')}${esc(c.name)}</button>`
         )
         .join('')}</div></div>`
     : '';
@@ -358,8 +358,10 @@ function coEleves() {
       .filter(k => coInClub(M[k] || coEl(k) || {}))
       .filter(k => f === 'all' || (f === 'nc' ? !M[k] : f === 'jeunes' ? M[k] && isMinor(k) : coSport(k) === f))
       .sort((a, b) => svName(a).localeCompare(svName(b)));
-  const chip = (v, t) => `<button class="chip" data-a="coElF" data-v="${v}" aria-pressed="${f === v}">${t}</button>`;
-  return `<div class="pad">${coClubChips()}<div class="card"><div class="fld cosearch"><input id="co-q" type="search" placeholder="Rechercher un élève" value="${esc(S.elQ || '')}" aria-label="Rechercher un élève"></div><div class="chips">${chip('all', 'Tous')}${chip('Padel', 'Padel')}${chip('Tennis', 'Tennis')}${chip('jeunes', 'Jeunes')}${chip('nc', 'Sans compte')}</div></div>${hd(plural(l.length, 'élève'))}${
+  const chip = (v, t, i) =>
+      `<button class="chip" data-a="coElF" data-v="${v}" aria-pressed="${f === v}">${ic(i)}${t}</button>`,
+    openF = S.elFO || f !== 'all';
+  return `<div class="pad">${coClubChips()}<div class="card"><div class="cosearch"><label class="cosq">${ic('search')}<input id="co-q" type="search" placeholder="Rechercher un élève" value="${esc(S.elQ || '')}" aria-label="Rechercher un élève"></label><button class="btn ghost cofbtn" data-a="coElFO" aria-expanded="${!!openF}" aria-label="Filtres">${ic('funnel')}${f !== 'all' ? '<i class="codot"></i>' : ''}</button></div>${openF ? `<div class="chips" style="margin-top:10px">${chip('all', 'Tous', 'users')}${chip('Padel', 'Padel', 'padel')}${chip('Tennis', 'Tennis', 'ball')}${chip('jeunes', 'Jeunes', 'kid')}${chip('nc', 'Sans compte', 'nolink')}</div>` : ''}</div>${hd(plural(l.length, 'élève'))}${
     l.length
       ? list(
           l
