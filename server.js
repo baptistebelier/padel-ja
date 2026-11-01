@@ -1058,6 +1058,23 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
         return ram.join({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, b.code).then(c => json(res, 200, c), fail);
       }
+      /* une seule connexion en direct par appareil, pour TOUS ses clubs : { club, rev } à chaque changement d'un club,
+         { club, typing } quand quelqu'un écrit ; { club, rev: -1 } quand on n'en fait plus partie */
+      if (p === '/api/ram/events' && req.method === 'GET') {
+        const mine = (await ram.myClubs(u.id)).map(c => c.id).slice(0, 30), offs = [];
+        let ka = null, closed = false;
+        const send = o => res.write(`data: ${JSON.stringify(o)}\n\n`), end = () => { closed = true; clearInterval(ka); offs.forEach(f => f && f()); };
+        req.on('close', end);   // posé avant les écoutes : un appareil parti pendant leur mise en place ne laisse rien derrière lui
+        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+        res.write(': ok\n\n');
+        for (const id of mine) {
+          const on = await ram.listen(u.id, id, rev => send({ club: id, rev })), ot = await ram.listenTyping(u.id, id, t => send({ club: id, typing: t }));
+          if (closed) { [on, ot].forEach(f => f && f()); return; }
+          offs.push(on, ot);
+        }
+        ka = setInterval(() => res.write(': ping\n\n'), 20000);
+        return;
+      }
       const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo|media|older|posts)$/);
       // connexion en direct : l'appareil est prévenu dès qu'un élément du club change, puis il synchronise
       if (m && m[2] === 'events') {

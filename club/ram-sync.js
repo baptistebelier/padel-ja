@@ -1363,6 +1363,15 @@
     s[R.club] = Date.now();
     LS.set('ram-seen', J(s));
   }
+  /* nouveautés dans un autre de mes clubs : pastilles recalculées, au plus une fois toutes les 10 secondes */
+  let badgesT = null;
+  function badgesSoon() {
+    if (!badgesT)
+      badgesT = setTimeout(() => {
+        badgesT = null;
+        badges();
+      }, 10000);
+  }
   async function badges() {
     if (!R.live || R.clubs.length < 2) return;
     seenNow();
@@ -1398,16 +1407,16 @@
     if (d.wallet) {
       const ch = !R.wallet || R.wallet.earned !== d.wallet.earned;
       R.wallet = d.wallet;
-      if (ch && !d.items.length && S.tab === 'club') render(true);
+      if (ch && !d.items.length && S.tab === 'club') safeRender();
     }
     if (d.reads && JSON.stringify(d.reads) !== JSON.stringify(R.reads)) {
       R.reads = d.reads;
-      if (!d.items.length && view().v === 'chan') render(true);
+      if (!d.items.length && view().v === 'chan') safeRender();
     }
     if (d.scores) {
       const ch = Object.keys(d.scores).some(k => d.scores[k] !== R.scores[k]);
       R.scores = d.scores;
-      if (ch && !d.items.length) render(true);
+      if (ch && !d.items.length) safeRender();
     }
     if (!d.items.length) {
       R.rev = d.rev;
@@ -1525,8 +1534,20 @@
       return;
     }
     pend = false;
+    // le texte tapé puis laissé dans un champ de l'écran (thème de séance…) survit au redessin
+    const main = $('main'),
+      keep = main
+        ? [...main.querySelectorAll('input[id],textarea[id]')]
+            .filter(i => !['checkbox', 'radio', 'file', 'hidden'].includes(i.type) && i.value !== i.defaultValue)
+            .map(i => [i.id, i.value])
+        : [];
     ramRender(true);
+    keep.forEach(([id, v]) => {
+      const e = $(id);
+      if (e) e.value = v;
+    });
   }
+  window.ramSafeRender = safeRender; // pour les mises à jour qui arrivent toutes seules (autres clubs de /RAM Coach)
   document.addEventListener('focusout', () =>
     setTimeout(() => {
       if (pend && R.live) safeRender();
@@ -1550,12 +1571,19 @@
   function listen() {
     if (es) es.close();
     if (!window.EventSource) return;
-    es = new EventSource('/api/ram/c/' + R.club + '/events', { withCredentials: true });
+    // une seule connexion pour tous mes clubs : le club ouvert se met à jour aussitôt ; les autres clubs où j'enseigne
+    // (/RAM Coach : ramOtherClub) aussi ; pour les autres, les pastilles de nouveautés
+    es = new EventSource('/api/ram/events', { withCredentials: true });
     es.onmessage = ev => {
       let d = {};
       try {
         d = JSON.parse(ev.data);
       } catch (x) {}
+      if (d.club && d.club !== R.club) {
+        if (d.typing || d.rev < 0) return;
+        if (!(window.ramOtherClub && ramOtherClub(d.club, d.rev))) badgesSoon();
+        return;
+      }
       if (d.typing) {
         if (window.ramTyping) ramTyping(d.typing);
         return;

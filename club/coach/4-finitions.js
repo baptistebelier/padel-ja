@@ -202,6 +202,8 @@ async function coPull(cid) {
     .forEach(it => coApply(cid, it));
   c.rev = d.rev;
 }
+/* mise à jour arrivée toute seule : jamais de redessin pendant une saisie (sinon le texte tapé disparaît) */
+const coRefresh = () => (window.ramSafeRender ? ramSafeRender() : render(true));
 /* les autres clubs où j'enseigne : chargés une fois, puis tenus à jour */
 async function coLoadExt() {
   const others = RAM.clubs.filter(c => c.id !== RAM.club && coTeach(c));
@@ -215,7 +217,7 @@ async function coLoadExt() {
       return coPull(c.id).catch(() => {});
     })
   );
-  render(true);
+  coRefresh();
 }
 /* mes changements dans les autres clubs : comparés à la dernière version reçue, envoyés par petites opérations */
 let coPushing = false,
@@ -295,12 +297,21 @@ render = function () {
   coPushT = setTimeout(coPush, 400);
   return r;
 };
+/* un autre club où j'enseigne a changé (connexion en direct de ram-sync.js) : ses nouveautés arrivent aussitôt */
+window.ramOtherClub = (cid, rev) => {
+  const c = CO_EXT[cid];
+  if (!c) return false;
+  if (c.base && rev > (c.rev || 0) && !coPushing)
+    coPull(cid)
+      .then(coRefresh)
+      .catch(() => {});
+  return true;
+};
+/* filet de sécurité (connexion coupée, appli en arrière-plan) : relecture de tous mes autres clubs toutes les 2 minutes */
 setInterval(() => {
   if (!(window.RAM && RAM.live) || document.hidden || coPushing) return;
-  Promise.all(Object.keys(CO_EXT).map(id => (CO_EXT[id].base ? coPull(id).catch(() => {}) : 0))).then(() =>
-    render(true)
-  );
-}, 25000);
+  Promise.all(Object.keys(CO_EXT).map(id => (CO_EXT[id].base ? coPull(id).catch(() => {}) : 0))).then(coRefresh);
+}, 120000);
 /* démonstration : l'enseignante a aussi un groupe dans un deuxième club, avec ses élèves */
 if (
   !(/^(club|coach)\./.test(location.hostname) || location.pathname.startsWith('/club')) ||

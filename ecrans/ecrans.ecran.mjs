@@ -182,3 +182,37 @@ test('JA : animation americano (page du juge-arbitre, TV, saisie des joueurs) sa
   }
   await desk.close(); await ctx.close();
 });
+
+test('Coach : la saisie du thème n’est jamais effacée quand un autre club change (connexion directe unique)', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1100, height: 800 } }), page = await ctx.newPage(), errs = [];
+  const urls = [];
+  page.on('pageerror', e => errs.push(e.message));
+  page.on('request', r => urls.push(new URL(r.url()).pathname));
+  const post = async (url, data) => (await ctx.request.post(JA + url, { data })).json();
+  await post('/api/auth/signup', { email: `coach-${Date.now()}@exemple.test`, password: 'essai-' + Date.now(), first: 'Essai', last: 'Coach' });
+  const a = await post('/api/ram/clubs', { name: 'Club Essai A' }), b = await post('/api/ram/clubs', { name: 'Club Essai B' });
+  await post('/api/ram/main', { id: a.id });
+  const today = new Date().toISOString().slice(0, 10), gid = 'gessai';
+  await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'cours', id: gid, op: 'put', data: { type: 'train', name: 'Cours essai', sport: 'Padel', coach: a.key, once: today, h: '18 h', dur: '1 h', mem: [], ext: [], day: new Date().getDay() } }] });
+  await page.goto(`${JA}/club/coach.html`);   // sous /club/ : la vraie synchro (sous /coach/ en local : la démo)
+  await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
+  await page.waitForTimeout(800);
+  const club = await page.evaluate(() => RAM.club), other = club === a.id ? b : a;
+  assert.ok(urls.includes('/api/ram/events'), 'connexion directe unique ouverte');
+  assert.ok(!urls.some(u => u.startsWith('/api/ram/c/') && u.endsWith('/events')), 'plus de connexion par club');
+  await page.evaluate(id => { S.stack.push({ v: 'seance', id }); render(); }, `${gid}.${today}`);
+  await page.waitForSelector('#co-th');
+  await page.fill('#co-th', 'Bandeja lente');
+  await page.focus('#co-th');
+  // un autre de mes clubs change : l'événement arrive en direct, l'appli relit ce club
+  await post(`/api/ram/c/${other.id}/ops`, { ops: [{ coll: 'post', id: 'pe' + Date.now(), op: 'put', data: { by: other.key, kind: 'txt', body: 'essai', at: Date.now() } }] });
+  await page.waitForTimeout(1500);
+  assert.equal(await page.inputValue('#co-th'), 'Bandeja lente', 'le texte reste');
+  assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.id), 'co-th', 'le champ garde la main');
+  // sortie du champ sans valider : le redessin en attente garde le texte
+  await page.evaluate(() => document.activeElement.blur());
+  await page.waitForTimeout(600);
+  assert.equal(await page.inputValue('#co-th'), 'Bandeja lente', 'le texte survit au redessin');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
