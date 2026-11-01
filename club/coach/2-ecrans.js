@@ -303,7 +303,7 @@ function coPlanning() {
       x = l.filter(s => s.d === d),
       // samedi et dimanche : toujours là, plus étroits s'ils sont vides
       mini = i > 4 && !x.length;
-    tracks += mini ? ' minmax(120px, .55fr)' : ' minmax(210px, 1fr)';
+    tracks += mini ? ' minmax(100px, .55fr)' : ' minmax(170px, 1fr)';
     cols.push(
       `<section class="cocol${i === on ? ' on' : ''}${d === TODAY ? ' today' : ''}" aria-label="${DAYS[coDow(d)]} ${+d.slice(8)}"><h3 class="cocolh">${DAYS[coDow(d)]} <b>${+d.slice(8)}</b> ${MO[+d.slice(5, 7) - 1]}</h3>${x.map(s => coSesCard(s, 1)).join('') || '<div class="card cocolv muted small">Aucun cours</div>'}${typeof coLibreHtml === 'function' ? coLibreHtml(d) : ''}</section>`
     );
