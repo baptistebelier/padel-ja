@@ -166,7 +166,11 @@ const CLUB_ROOT = path.join(__dirname, 'club');
 // L'adresse de base (comme /RAM JA) : l'appli pour un compte connecté, sinon la présentation ;
 // /demo : l'appli de démonstration (club fictif), connecté ou non.
 const CLUB_PAGES = { '/connexion': '/connexion.html', '/inscription': '/connexion.html', '/mot-de-passe-oublie': '/connexion.html', '/presentation': '/presentation.html', '/demo': '/index.html' };
+const bundler = require('./lib/bundle.js').createBundler(CLUB_ROOT);   // un seul fichier au lieu d'une quarantaine
 function sendClub(res, rel, logged) {
+  // le fichier réuni : son adresse porte son empreinte, gardé un an par l'appareil
+  const b = /^\/b-[0-9a-f]{16}\.js$/.test(rel || '') ? bundler.file(rel) : null;
+  if (b) return sendStatic(res, rel, b, { 'Content-Type': MIME['.js'], 'Cache-Control': 'public, max-age=31536000, immutable' });
   if ((!rel || rel === '/') && !logged) rel = '/presentation.html';
   if (CLUB_PAGES[rel]) rel = CLUB_PAGES[rel];
   if (!rel || rel.endsWith('/')) rel = (rel || '/') + 'index.html';
@@ -175,6 +179,7 @@ function sendClub(res, rel, logged) {
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Page introuvable'); }
     const ext = path.extname(file);
+    if (/\/(index|coach)\.html$/.test(rel)) data = bundler.page(rel, data);
     const longCache = /\.(png|webp|jpg|woff2)$/.test(ext) && !/icon|favicon/.test(rel);
     // l'appli elle-même : le service worker ne garde en cache (hors ligne) que cette page, jamais la présentation ni la connexion
     sendStatic(res, file, data, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, /\/(index|coach)\.html$/.test(rel) ? { 'X-Club-Page': 'appli' } : {}));

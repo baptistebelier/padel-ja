@@ -267,3 +267,21 @@ test('JA en direct : un écran TV qui reçoit des différences retrouve exacteme
   await ctx.close();
 });
 
+test('Club et Coach servis : un seul fichier de scripts, tout l’écran fonctionne, et le fichier est gardé pour le hors-ligne', async () => {
+  for (const [page0, onglet] of [['/club/demo', 'home'], ['/club/coach.html', 'planning']]) {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 800 } }), page = await ctx.newPage(), errs = [], js = [];
+    page.on('pageerror', x => errs.push(x.message));
+    page.on('response', r => { const p = new URL(r.url()).pathname; if (p.endsWith('.js') && !p.endsWith('sw.js')) js.push(p); });
+    await page.goto(JA + page0);
+    await page.waitForSelector('#tabs', { timeout: 8000 });
+    await page.waitForTimeout(600);
+    assert.ok(js.some(p => /\/b-[0-9a-f]{16}\.js$/.test(p)), 'fichier réuni servi');
+    assert.ok(js.length <= 3, 'peu de fichiers : ' + js.join(' '));
+    await page.evaluate(t => { S.tab = t; render(); }, onglet);
+    const garde = await page.evaluate(async () => { await navigator.serviceWorker.ready; for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) if (new URL(r.url).pathname.split('/').pop().startsWith('b-')) return true; return false; });
+    assert.ok(garde, 'service worker installé avec le fichier réuni');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+

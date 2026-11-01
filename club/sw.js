@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-01-histo1';
+const VERSION = '2026-11-01-reuni1';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -80,7 +80,13 @@ self.addEventListener('install', e => {
   e.waitUntil(
     caches
       .open(CACHE)
-      .then(c => c.addAll(CORE))
+      .then(async c => {
+        // les fichiers que la page cite vraiment : le fichier réuni en ligne, les fichiers séparés sur GitHub Pages
+        const html = await (await fetch(SHELL, { cache: 'no-cache' })).text(),
+          cites = [...html.matchAll(/(?:src|href)="([\w./-]+\.(?:js|css))"/g)].map(m => m[1]),
+          fixes = CORE.filter(f => !/\.js$/.test(f) && !/\.css$/.test(f));
+        await c.addAll([...new Set(cites.concat(fixes))]);
+      })
       .then(() => self.skipWaiting())
   );
 });
