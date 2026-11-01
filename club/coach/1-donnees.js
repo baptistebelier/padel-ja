@@ -51,7 +51,27 @@ Object.assign(I, {
   funnel: '<path d="M3 5h18l-7 8v6l-4 2v-8z"/>',
   padel: '<ellipse cx="10" cy="9" rx="6" ry="7"/><path d="M14 14l6 7M8 7h.01M12 7h.01M10 11h.01"/>',
   kid: '<circle cx="12" cy="7" r="3.5"/><path d="M6 21v-2a6 6 0 0112 0v2M10 7h.01M14 7h.01"/>',
-  nolink: '<circle cx="10" cy="8" r="3.5"/><path d="M3 20a7 7 0 0111.5-5.4M16 16l5 5M21 16l-5 5"/>'
+  nolink: '<circle cx="10" cy="8" r="3.5"/><path d="M3 20a7 7 0 0111.5-5.4M16 16l5 5M21 16l-5 5"/>',
+  // fiche élève : main, côté de jeu, objectifs, note privée ; appel : a prévenu de son absence
+  hand: '<path d="M8 13V5.5a1.5 1.5 0 013 0V11M11 11V4a1.5 1.5 0 013 0v7M14 11V5.5a1.5 1.5 0 013 0V14c0 4-2.5 7-6.5 7S5 18 4 15l-1-3a1.5 1.5 0 012.6-1.4L8 13"/>',
+  side: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M4 12h16M12 3v18"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  secret: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
+  excuse: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8.500 10.500l2.500 2.500 4.500-5"/>',
+  // les coups de la grille technique
+  tDroit: '<ellipse cx="8" cy="8" rx="4.500" ry="5.500"/><path d="M11 12l4 5M14 6h7M18 3l3 3-3 3"/>',
+  tRevers: '<ellipse cx="16" cy="8" rx="4.500" ry="5.500"/><path d="M13 12l-4 5M10 6H3M6 3L3 6l3 3"/>',
+  tVolee: '<path d="M3 20h18M12 20v-9M6 20v-9M18 20v-9M3 11h18"/><circle cx="12" cy="5.500" r="2.500"/>',
+  tBandeja: '<path d="M4 18C7 8 14 5 20 6M16 3l4 3-3 4"/><circle cx="5" cy="20" r="1.500"/>',
+  tVibora: '<path d="M3 6c3-3 5 3 8 0s5 3 8 0M4 13l8 7 8-7"/>',
+  tSmash: '<circle cx="6" cy="5" r="2.500"/><path d="M9 8l10 11M19 12v7h-7"/>',
+  tLob: '<path d="M3 20C6 4 17 4 20 18M16 16l4 3 1-5"/>',
+  tVitre: '<path d="M20 3v18M4 7l14 5-14 5"/>',
+  tService: '<circle cx="15" cy="4.500" r="2.500"/><path d="M6 21l5-8M11 13l2-5M9 10l7 1"/>',
+  tRetour: '<path d="M20 7H8a4 4 0 000 8h10M15 12l3 3-3 3"/>',
+  tJambes: '<path d="M10 3v8l-3 10M10 11l5 3v7M7 21h3M15 21h3"/>',
+  tTactique:
+    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7l3 3M10 7l-3 3M8 17c4 0 8-1 8-7M13 11l3-2 2 3"/>'
 });
 
 /* ---------- échelles de niveaux : prérequis pour y entrer, attendus pour le valider ---------- */
@@ -165,7 +185,7 @@ const SCALES = {
     ]
   }
 };
-/* grilles de progression technique : 1 à découvrir · 2 en cours · 3 acquis · 4 maîtrisé */
+/* grilles de progression technique : chaque coup est noté de 1 à 10 */
 const TECH = {
   Padel: [
     'Coup droit',
@@ -182,7 +202,24 @@ const TECH = {
   ],
   Tennis: ['Coup droit', 'Revers', 'Service', 'Retour', 'Volée', 'Smash', 'Jeu de jambes', 'Tactique']
 };
-const STEPS = ['', 'À découvrir', 'En cours', 'Acquis', 'Maîtrisé'];
+const TECH_IC = {
+  'Coup droit': 'tDroit',
+  Revers: 'tRevers',
+  'Volée coup droit': 'tVolee',
+  'Volée revers': 'tVolee',
+  Volée: 'tVolee',
+  Bandeja: 'tBandeja',
+  Víbora: 'tVibora',
+  Smash: 'tSmash',
+  Lob: 'tLob',
+  'Sortie de vitre': 'tVitre',
+  'Service / retour': 'tService',
+  Service: 'tService',
+  Retour: 'tRetour',
+  'Placement à deux': 'users',
+  'Jeu de jambes': 'tJambes',
+  Tactique: 'tTactique'
+};
 const THEMES = {
   Padel: [
     'Sortie de vitre de fond',
@@ -262,7 +299,7 @@ const durMin = REGLES.durMin; // regles.js, comme le serveur
     const sp = mine.find(g => g.mem.includes(k)).sport,
       lv = 2 + (h(k) % 4),
       tech = {};
-    TECH[sp].forEach((t, i) => (tech[t] = 1 + ((h(k + t) + i) % 4)));
+    TECH[sp].forEach((t, i) => (tech[t] = 1 + ((h(k + t) + i) % 10)));
     ELEVES.push({
       id: k,
       n: M[k].n,

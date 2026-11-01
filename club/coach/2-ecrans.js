@@ -125,7 +125,8 @@ function coDone() {
   });
   return o;
 }
-const presLbl = { P: 'Présent', E: 'Excusé', A: 'Absent' };
+const presLbl = { P: 'Présent', E: 'Excusé', A: 'Absent' },
+  PRES_IC = { P: 'check', E: 'excuse', A: 'x' };
 const plural = (n, w, ws) => n + ' ' + (n > 1 ? ws || w + 's' : w);
 const coVideosTodo = () =>
   SUIVI.filter(
@@ -323,7 +324,8 @@ function coSeance(id) {
   if (!g) return `<div class="pad">${none('cal', 'Séance introuvable', '')}</div>`;
   const s = sesFind(g, d) || {},
     cx = isCx(g, d),
-    st = coStu(g),
+    plus = (s.plus || []).filter(k => !coStu(g).includes(k)), // élèves accueillis sur cette seule séance
+    st = coStu(g).concat(plus),
     past = d <= TODAY,
     loc = (g.loc || {})[d] || g.defLoc || 'En salle',
     // bilan préparé en brouillon (par Claude ou par l'enseignant) : relu ici, publié par l'enseignant
@@ -337,7 +339,7 @@ function coSeance(id) {
       const at = ((g.att || {})[d] || {})[k],
         v = (s.pres || {})[k] || (at === true ? 'P' : at === false ? 'A' : ''),
         ann = M[k] ? respOf(g, d, k) : '';
-      return `<div class="corow">${coAv(k)}<span class="grow"><button class="nm" data-a="open" data-v="eleve" data-id="${k}">${esc(svName(k))}</button>${ann ? `<br><span class="muted small">A annoncé : ${ann === 'ok' ? 'présent' : 'absent'}</span>` : ''}</span><span class="pea" role="group" aria-label="Présence de ${esc(svName(k))}">${['P', 'E', 'A'].map(x => `<button class="${v === x ? 'on ' + x : ''}" data-a="coPres" data-id="${id}" data-k="${k}" data-s="${x}" aria-pressed="${v === x}" aria-label="${presLbl[x]}">${x}</button>`).join('')}</span></div>`;
+      return `<div class="corow">${coAv(k)}<span class="grow"><button class="nm" data-a="open" data-v="eleve" data-id="${k}">${esc(svName(k))}</button>${ann ? `<br><span class="muted small">A annoncé : ${ann === 'ok' ? 'présent' : 'absent'}</span>` : ''}${plus.includes(k) ? `<br><span class="tag">Ponctuel</span>${v === 'P' && coDue(k, d) ? ' <span class="tag cost todo">À payer</span>' : ''} <button class="colk" data-a="coPlusRm" data-id="${id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} de cette séance">Retirer</button>` : ''}</span><span class="pea" role="group" aria-label="Présence de ${esc(svName(k))}">${['P', 'E', 'A'].map(x => `<button class="${v === x ? 'on ' + x : ''}" data-a="coPres" data-id="${id}" data-k="${k}" data-s="${x}" aria-pressed="${v === x}" aria-label="${presLbl[x]}">${ic(PRES_IC[x])}<span>${presLbl[x]}</span></button>`).join('')}</span></div>`;
     })
     .join('');
   const nP = Object.values(s.pres || {}).filter(v => v === 'P').length;
@@ -348,7 +350,7 @@ ${coActs(g, d, loc, cx)}</div>
 ${
   cx
     ? '<div class="card"><p>Les élèves et leurs parents sont prévenus dans /RAM Club.</p></div>'
-    : `${hd(`Appel · ${nP} présent${nP > 1 ? 's' : ''} sur ${st.length}`)}<div class="card">${roll || empty('users', 'Aucun élève', '')}<button class="btn sm ghost full" data-a="coAllP" data-id="${id}">Tout le monde présent</button></div>
+    : `${hd(`Appel · ${nP} présent${nP > 1 ? 's' : ''} sur ${st.length}`)}<div class="card">${roll || empty('users', 'Aucun élève', '')}<div class="ctl" style="flex-wrap:wrap"><button class="btn sm ghost grow" data-a="coAllP" data-id="${id}">${ic('check')}Tout le monde présent</button>${coIsGrp(g) ? `<button class="btn sm ghost grow" data-a="coPlus" data-id="${id}">${ic('plus')}Élève pour cette séance</button>` : ''}</div></div>
 ${hd('Bilan de la séance')}${dr ? `<div class="card codraft"><span class="kicker">Brouillon à relire</span><p>Ce bilan a été préparé${dr.src === 'claude' ? ' par Claude' : ''} et n'est pas encore envoyé : relis-le, corrige-le si besoin, puis publie-le.</p></div>` : ''}<form id="co-bilan" data-id="${id}" class="card"><div class="fld"><label for="co-recap">Pour tout le groupe</label><textarea id="co-recap" placeholder="Ce qui a été travaillé, ce qu'on garde pour la prochaine fois">${esc(dr && dr.recap != null ? dr.recap : s.recap || '')}</textarea></div>${st
         .filter(k => !s.pres || s.pres[k] !== 'A')
         .map(
@@ -399,27 +401,52 @@ function coEleves() {
       : none('users', 'Aucun élève', q ? 'Personne ne correspond à la recherche.' : '')
   }<div class="card"><button class="btn full ghost" data-a="coNewEl">${ic('plus')}Ajouter un élève sans compte</button><p class="muted small">Un élève sans compte /RAM Club retrouve sa fiche, ses bilans et ses messages dès qu'il est relié à son compte.</p></div></div>`;
 }
+/* une tuile : pictogramme, valeur, libellé ; txt : la valeur est un mot, écrit plus petit qu'un chiffre */
+const coTile = (i, v, l, txt) =>
+  `<div class="cotile">${ic(i)}<b${txt ? ' class="cotxt"' : ''}>${esc(String(v))}</b><span>${l}</span></div>`;
+/* toile d'araignée du profil technique : une branche par coup, de 0 au centre à 10 au bord */
+function coRadar(axes, t) {
+  if (!axes.some(x => t[x])) return '<p class="muted small">Note un coup pour dessiner le profil technique.</p>';
+  const R = 92,
+    cx = 180,
+    cy = 140,
+    pt = (i, r) => {
+      const a = (Math.PI * 2 * i) / axes.length - Math.PI / 2;
+      return [+(cx + r * Math.cos(a)).toFixed(1), +(cy + r * Math.sin(a)).toFixed(1)];
+    },
+    poly = f => axes.map((x, i) => pt(i, f(x)).join(',')).join(' ');
+  return `<svg class="coradar" viewBox="0 0 360 280" role="img" aria-label="Profil technique : ${esc(axes.map(x => x + ' ' + (t[x] || 0) + ' sur 10').join(', '))}">${[2.5, 5, 7.5, 10].map(n => `<polygon class="corg" points="${poly(() => (R * n) / 10)}"/>`).join('')}${axes
+    .map((x, i) => {
+      const [a, b] = pt(i, R),
+        [c, d] = pt(i, R + 9),
+        pos = c > cx + 4 ? 'start' : c < cx - 4 ? 'end' : 'middle';
+      return `<line class="corg" x1="${cx}" y1="${cy}" x2="${a}" y2="${b}"/><text x="${c}" y="${d + 4}" text-anchor="${pos}">${esc(x)}</text>`;
+    })
+    .join('')}<polygon class="corv" points="${poly(x => (R * (t[x] || 0)) / 10)}"/></svg>`;
+}
 function coEleve(id) {
   const e = coEl(id) || {},
     sp = coSport(id),
     sc = SCALES[sp],
     lv = coLvl(id),
     gs = coGroupsOf(id),
-    tab = S.elTab;
-  const row = (l, v) => `<div class="cokv"><span class="muted">${l}</span><b>${v || '–'}</b></div>`;
+    tab = S.elTab,
+    ct = (M[id] && M[id].ct) || {},
+    tel = e.tel || ct.tel || '',
+    mail = e.mail || ct.mail || '';
   let b = '';
   if (tab === 'fiche')
-    b = `<div class="card">${row('Sport', sp)}${row('Niveau', lv ? lv.n + ' · ' + lv.t : '')}${row('Main', e.hand === 'G' ? 'Gaucher' : e.hand === 'D' ? 'Droitier' : '')}${sp === 'Padel' ? row('Côté', e.side === 'G' ? 'Gauche' : e.side === 'D' ? 'Droite' : e.side === '2' ? 'Les deux' : '') : ''}${row('Groupes', gs.map(g => esc(g.name)).join(', '))}${e.mail ? row('E-mail', esc(e.mail)) : ''}</div>
-${hd('Objectifs')}<div class="card"><p>${esc(e.goals || 'Aucun objectif noté.')}</p></div>
-${hd('Note privée')}<div class="card"><p>${esc(e.note || 'Aucune note.')}</p><span class="muted small">Visible par l'équipe pédagogique seulement.</span></div>
-${coAchatsCard(id)}
-${(e.parents || []).length ? hd('Parents') + `<div class="card">${e.parents.map(p => `<div class="cokv"><span>${esc(p.n)}</span><b>${esc(p.tel || p.mail || '')}</b></div>`).join('')}</div>` : ''}
-<div class="card cotools"><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte du club</button>`}</div>`;
+    b = `<div class="cotiles${sp === 'Padel' ? '' : ' n3'}">${coTile(sp === 'Padel' ? 'padel' : 'ball', sp, 'Sport', 1)}<div class="cotile cotile-hi">${ic('ladder')}<b>${lv ? lv.n : '–'}</b><span>${lv ? esc(lv.t) : 'Niveau à donner'}</span></div>${coTile('hand', e.hand === 'G' ? 'Gaucher' : e.hand === 'D' ? 'Droitier' : '–', 'Main', 1)}${sp === 'Padel' ? coTile('side', { G: 'Gauche', D: 'Droite', 2: 'Les deux' }[e.side] || '–', 'Côté', 1) : ''}</div>
+<div class="cobento"><div class="cobmain">${hd(ic('users') + 'Groupes')}${gs.length ? list(gs.map(g => `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coSlot(g)} · ${g.dur}</span></span></button>`).join('')) : '<div class="card"><p class="muted small">Dans aucun groupe en cours.</p></div>'}
+${coAchatsCard(id)}</div>
+<div class="cobside">${hd(ic('target') + 'Objectifs')}<div class="card"><p>${esc(e.goals || 'Aucun objectif noté.')}</p></div>
+${hd(ic('secret') + 'Note privée')}<div class="card"><p>${esc(e.note || 'Aucune note.')}</p><span class="muted small">Visible par l'équipe pédagogique seulement.</span></div>
+${(e.parents || []).length ? hd(ic('kid') + 'Parents') + `<div class="card">${e.parents.map(p => `<div class="cokv"><span>${esc(p.n)}</span><b>${esc(p.tel || p.mail || '')}</b></div>`).join('')}</div>` : ''}</div></div>`;
   if (tab === 'histo') {
     const h = SEANCES.filter(s => s.pres && s.pres[id] && s.d <= TODAY).sort((a, b) => b.d.localeCompare(a.d)),
       nP = h.filter(s => s.pres[id] === 'P').length;
     b =
-      `<div class="stats"><div><b>${h.length}</b><span>Séances</span></div><div><b>${h.length ? Math.round((nP * 100) / h.length) : 0} %</b><span>Présence</span></div><div><b>${h.filter(s => s.pres[id] === 'E').length}</b><span>Excusé</span></div><div><b>${h.filter(s => s.pres[id] === 'A').length}</b><span>Absent</span></div></div>` +
+      `<div class="cotiles">${coTile('cal', h.length, 'Séances')}${coTile('check', (h.length ? Math.round((nP * 100) / h.length) : 0) + ' %', 'Présence')}${coTile('excuse', h.filter(s => s.pres[id] === 'E').length, 'Excusé')}${coTile('x', h.filter(s => s.pres[id] === 'A').length, 'Absent')}</div>` +
       (h.length
         ? list(
             h
@@ -441,8 +468,14 @@ ${(e.parents || []).length ? hd('Parents') + `<div class="card">${e.parents.map(
           ? `<span class="h3">${lv.n} · ${lv.t}</span><span class="kicker">Prérequis</span><ul class="coul">${lv.pre.map(x => `<li>${esc(x)}</li>`).join('')}</ul><span class="kicker">Attendus pour valider</span><ul class="coul">${lv.att.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`
           : '<p class="muted small">Touche un niveau pour le donner à l’élève.</p>'
       }</div>` +
-      hd('Grille technique · touche pour faire avancer') +
-      `<div class="card">${TECH[sp].map(x => `<button class="cotech" data-a="coTech" data-id="${id}" data-t="${esc(x)}"><span class="grow">${esc(x)}</span><span class="pips" aria-hidden="true">${[1, 2, 3, 4].map(n => `<i class="${(t[x] || 0) >= n ? 'on' : ''}"></i>`).join('')}</span><span class="muted small">${STEPS[t[x] || 0] || 'Non évalué'}</span></button>`).join('')}</div>` +
+      `<div class="cobento"><div class="cobmain">${hd('Grille technique · note de 1 à 10')}<div class="card">${TECH[sp]
+        .map(
+          x =>
+            `<div class="cotech"><div class="cotechl">${ic(TECH_IC[x] || 'ball')}<span class="grow">${esc(x)}</span><b>${t[x] || '–'}<small>/10</small></b></div><div class="cogauge" role="group" aria-label="${esc(x)}">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<button class="${(t[x] || 0) >= n ? 'on' : ''}" data-a="coTech" data-id="${id}" data-t="${esc(x)}" data-n="${n}" aria-pressed="${t[x] === n}" aria-label="${esc(x)} : ${n} sur 10"></button>`).join('')}</div></div>`
+        )
+        .join(
+          ''
+        )}</div></div><div class="cobside">${hd('Profil technique')}<div class="card">${coRadar(TECH[sp], t)}</div></div></div>` +
       ((e.lvlH || []).length
         ? hd('Évolution') +
           `<div class="card">${e.lvlH
@@ -479,7 +512,7 @@ ${(e.parents || []).length ? hd('Parents') + `<div class="card">${e.parents.map(
       (cards ? hd('Bilans, vidéos et contenus') + cards : '');
   }
   return (
-    `<div class="pad"><div class="card"><div class="row" style="gap:12px">${coAv(id, 'lg')}<div class="grow"><span class="h3">${esc(svName(id))}</span><br><span class="muted small">${lv ? 'Niveau ' + lv.n + ' · ' + lv.t : sp}${M[id] ? '' : ' · sans compte'}</span></div></div></div></div>` +
+    `<div class="pad"><div class="card coid"><div class="row" style="gap:12px">${coAv(id, 'lg')}<div class="grow"><span class="h3">${esc(svName(id))}</span><br><span class="tag">${M[id] ? 'Compte /RAM Club' : 'Sans compte'}</span></div></div><div class="cocontact">${tel ? `<a href="tel:${esc(String(tel).replace(/[^+\d]/g, ''))}">${ic('phone')}${esc(tel)}</a>` : `<button data-a="coEditEl" data-id="${id}">${ic('phone')}Ajouter un téléphone</button>`}${mail ? `<a href="mailto:${esc(mail)}">${ic('mail')}${esc(mail)}</a>` : ''}</div></div><div class="card cotools"><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte du club</button>`}</div></div>` +
     segs('elTab', [
       ['fiche', 'Fiche', 'user'],
       ['histo', 'Historique', 'cal'],
@@ -732,7 +765,7 @@ function coClubs() {
 }
 /* un groupe dans la liste : la ligne ouvre le groupe ; l'interrupteur le remet en cours ou termine son cycle */
 const coGrpRow = g =>
-  `<div class="item cofr"><button class="cofav" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coOver(g) ? (g.from ? 'Du ' + fmtD(g.from) + ' au ' : 'Jusqu’au ') + fmtD(g.to) : coSlot(g) + ' · ' + g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}</span></span>${coStack(coStu(g))}</button>${coCycleTg(g)}</div>`;
+  `<div class="item cofr"><button class="cofav" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coOver(g) ? (g.from ? 'Du ' + fmtD(g.from) + ' au ' : 'Jusqu’au ') + fmtD(g.to) : coSlot(g) + ' · ' + g.dur} · ${plural(coStu(g).length, 'élève')}${g.max ? ' sur ' + g.max : ''}${g.coach && M[g.coach] ? ' · ' + esc(first(g.coach)) : ''}</span></span>${coStack(coStu(g))}</button>${coCycleTg(g)}</div>`;
 const coCycleTg = g =>
   `<span class="cocyc"><span class="muted small">${coOver(g) ? 'Terminé' : 'En cours'}</span><button class="tg" role="switch" aria-checked="${!coOver(g)}" data-a="coCycle" data-id="${g.id}" aria-label="${esc(g.name)} : ${coOver(g) ? 'remettre le groupe en cours' : 'terminer le cycle'}"></button></span>`;
 function coClubPage(id) {
@@ -862,15 +895,17 @@ function coGroupe(id) {
       return !isCx(g, d) && !(s && (s.recap || s.noRecap)) && !BROUILLONS.some(b => b.id === sesKey(g, d));
     }).length,
     recaps = past.map(d => ({ d, s: sesFind(g, d) })).filter(x => x.s && x.s.recap);
-  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span><div class="cokv"><span class="muted">Enseignant</span><b>${g.coach && M[g.coach] ? esc(name(g.coach)) : 'À choisir'}</b></div><div class="cokv"><span class="muted">Élèves</span><b>${st.length}${g.max ? ' sur ' + g.max + ' places' : ''}</b></div><div class="cokv"><span class="muted">Tarif</span><b>${t.prix ? t.prix + ' € ' + TARIF_MODES[t.mode] : 'Non renseigné'}</b></div>${coGrpOffer(g)}${coLocTg(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages</button></div></div>
-${hd('Discussion du groupe')}${
+  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages</button></div></div>
+<div class="cotiles">${coTile('user', g.coach && M[g.coach] ? first(g.coach) : 'À choisir', 'Enseignant', 1)}<div class="cotile">${ic('users')}<b>${st.length}${g.max ? '<small>/' + g.max + '</small>' : ''}</b><span>${g.max ? 'Places occupées' : plural(st.length, 'élève')}</span>${g.max ? `<span class="cobarre" aria-hidden="true"><i style="width:${Math.min(100, Math.round((st.length * 100) / g.max))}%"></i></span>` : ''}</div>${coTile('euro', t.prix ? t.prix + ' €' : '–', t.prix ? TARIF_MODES[t.mode] : 'Tarif à renseigner')}${coGrpOffer(g)}</div>
+<div class="card">${coCycleBar(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div>${coLocTg(g)}</div>
+${hd(ic('chat') + 'Discussion du groupe')}${
     c
       ? list(
           `<button class="item" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">Dans /RAM Club pour les élèves et les parents</span></span></button><button class="item" data-a="chanDel" data-id="${c.id}"><span class="tile">${ic('x')}</span><span class="grow"><span class="nm">Supprimer la discussion</span><br><span class="muted small">Le groupe et ses séances restent</span></span></button>`
         )
       : `<div class="card"><p class="muted small">Ce groupe n'a pas de discussion dans /RAM Club.</p><button class="btn sm full ghost" data-a="coChanNew" data-id="${g.id}">${ic('plus')}Créer la discussion du groupe</button></div>`
   }
-${hd('Séances à venir · ' + up.length, `<button class="chip" data-a="coPlan" data-id="${g.id}">${ic('plus')}Ajouter</button>`)}${
+${hd(ic('cal') + 'Séances à venir · ' + up.length, `<button class="chip" data-a="coPlan" data-id="${g.id}">${ic('plus')}Ajouter</button>`)}${
     up.length
       ? list(
           up
@@ -885,7 +920,7 @@ ${hd('Séances à venir · ' + up.length, `<button class="chip" data-a="coPlan" 
   }
 ${coOffHtml(g)}
 ${next.length ? `<details class="card cothm"><summary><b>Thèmes des prochaines séances</b><span class="muted small"> · les élèves les voient dans leurs cours</span></summary><form id="co-themes" data-id="${g.id}">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist><button class="btn full">Enregistrer les thèmes</button></form></details>` : ''}
-${hd('Séances effectuées · ' + past.length, todo ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '')}${past.length ? list(past.map(d => coSesRow(g, d)).join('')) : none('check', 'Aucune séance faite', 'Après chaque séance : l’appel et le bilan, ici.')}
+${hd(ic('check') + 'Séances effectuées · ' + past.length, todo ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '')}${past.length ? list(past.map(d => coSesRow(g, d)).join('')) : none('check', 'Aucune séance faite', 'Après chaque séance : l’appel et le bilan, ici.')}
 ${
   recaps.length
     ? hd('Bilans du groupe') +
@@ -900,7 +935,7 @@ ${
       )
     : ''
 }
-${hd('Élèves')}<div class="card">${st.map(k => `<div class="corow">${coAv(k)}<button class="nm grow" data-a="open" data-v="eleve" data-id="${k}" style="text-align:left">${esc(svName(k))}</button><button class="ib" data-a="coRm" data-g="${g.id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} du groupe">${ic('x')}</button></div>`).join('') || empty('users', 'Aucun élève', '')}<button class="btn sm full" data-a="coAdd" data-id="${g.id}">${ic('plus')}Ajouter des élèves</button></div></div>`;
+${hd(ic('users') + 'Élèves')}<div class="card">${st.map(k => `<div class="corow">${coAv(k)}<button class="nm grow" data-a="open" data-v="eleve" data-id="${k}" style="text-align:left">${esc(svName(k))}</button><button class="ib" data-a="coRm" data-g="${g.id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} du groupe">${ic('x')}</button></div>`).join('') || empty('users', 'Aucun élève', '')}<button class="btn sm full" data-a="coAdd" data-id="${g.id}">${ic('plus')}Ajouter des élèves</button></div></div>`;
 }
 /* ---------- Profil : la page de l'enseignant, sur le modèle du profil /RAM JA ----------
    carte d'identité bordeaux, puis des cartes titrées : fiche enseignant, clubs (pour information : on n'y

@@ -22,6 +22,7 @@ const I = {
   news: '<path d="M4 4h13v16H4zM17 9h3v11h-3M7 8h7M7 12h7M7 16h4"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.500v.500"/>',
   phone: '<path d="M7 3h10v18H7zM11 18h2"/>',
+  diploma: '<circle cx="12" cy="9" r="6"/><path d="M8.500 14l-1.500 7 5-2.500 5 2.500-1.500-7M12 6.500v5"/>',
   mail: '<path d="M3 6h18v12H3zM3 7l9 6 9-6"/>',
   at: '<circle cx="12" cy="12" r="4"/><path d="M16 8v5a2.500 2.500 0 005 0v-1a9 9 0 10-4 7.500"/>',
   ball: '<circle cx="12" cy="12" r="9"/><path d="M5.500 5.500c3 3 3 10 0 13M18.500 5.500c-3 3-3 10 0 13"/>',

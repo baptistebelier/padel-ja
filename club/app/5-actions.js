@@ -31,6 +31,18 @@ const A = {
     S.stack.pop();
     render();
   },
+  /* les groupes d'un enseignant, depuis sa fiche : le Coach ouvre sa fiche groupe, le Club la sienne */
+  proGroups(d) {
+    const gs = GROUPS.filter(g => g.type === 'train' && g.coach === d.id && !g.once && !(g.to && g.to < TODAY));
+    sheet(
+      'Groupes de ' + first(d.id),
+      `<div class="body">${gs.map(g => `<button class="item" data-a="proGroupGo" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${esc(g.sub || g.sport || '')}</span></span></button>`).join('')}</div>`
+    );
+  },
+  proGroupGo(d) {
+    closeSheet();
+    A.open({ v: V.cgroupe ? 'cgroupe' : 'grp', id: d.id });
+  },
   open(d) {
     closeSheet();
     S.dir = 1;

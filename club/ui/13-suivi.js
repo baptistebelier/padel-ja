@@ -172,11 +172,11 @@ function proBody(k) {
     gs = GROUPS.filter(g => g.type === 'train' && g.coach === k && !g.once && !(g.to && g.to < TODAY)),
     off = proOffers(k),
     yrs = p.since ? +TODAY.slice(0, 4) - +p.since : 0,
-    row = (l, v) => (v ? `<div class="prow"><span class="muted">${l}</span><span>${v}</span></div>` : ''),
+    tile = (i, v, l) => (v ? `<div class="ptile">${ic(i)}<b>${v}</b><span>${l}</span></div>` : ''),
     web = svLink(toUrlP(p.web)),
     book = svLink(toUrlP(p.book)),
     tel = String(p.tel || '').replace(/[^+\d]/g, '');
-  return `<div class="pbody">${p.bio ? `<p>${esc(p.bio)}</p>` : ''}${row('Diplôme', esc(p.dip || ''))}${row('Enseigne depuis', p.since ? esc(p.since) + (yrs > 0 ? ` (${yrs} an${yrs > 1 ? 's' : ''})` : '') : '')}${row('Âge', p.age && M[k].bd ? age(k) + ' ans' : '')}${row('Sports', esc(p.sports || [...new Set(gs.map(g => g.sport))].join(', ')))}${row('Groupes', gs.map(g => esc(g.name)).join(', '))}${row('Téléphone', p.tel ? `<a href="tel:${tel}">${esc(p.tel)}</a>` : '')}${row('E-mail', p.mail ? `<a href="mailto:${esc(p.mail)}">${esc(p.mail)}</a>` : '')}${row('Site internet', web ? `<a href="${esc(web)}" target="_blank" rel="noopener">${esc(String(p.web).replace(/^https?:\/\//, ''))}</a>` : '')}${
+  return `<div class="pbody">${p.bio ? `<p>${esc(p.bio)}</p>` : ''}<div class="ptiles">${tile('diploma', esc(p.dip || ''), 'Diplôme')}${tile('cal', p.since ? (yrs > 0 ? yrs + ' an' + (yrs > 1 ? 's' : '') : esc(p.since)) : '', p.since ? 'Enseigne depuis ' + esc(p.since) : '')}${tile('ball', esc(p.sports || [...new Set(gs.map(g => g.sport))].join(', ')), 'Sports')}${tile('user', p.age && M[k].bd ? age(k) + ' ans' : '', 'Âge')}</div><div class="pcontact">${p.tel ? `<a href="tel:${tel}">${ic('phone')}${esc(p.tel)}</a>` : ''}${p.mail ? `<a href="mailto:${esc(p.mail)}">${ic('mail')}${esc(p.mail)}</a>` : ''}${web ? `<a href="${esc(web)}" target="_blank" rel="noopener">${ic('link')}${esc(String(p.web).replace(/^https?:\/\//, ''))}</a>` : ''}</div>${gs.length ? `<button class="item" data-a="proGroups" data-id="${k}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">Ses groupes</span><br><span class="muted small">${gs.length} groupe${gs.length > 1 ? 's' : ''}</span></span></button>` : ''}${
     off && off.formules.length
       ? proOffersHtml(off)
       : proLines(p.tarifs).length

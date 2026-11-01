@@ -35,12 +35,49 @@ function coSelBar() {
 
 /* ---------- formule d'un groupe : ce qu'il suit et où il en est ---------- */
 function coGrpOffer(g) {
-  if (!g.offre || typeof ofLabel !== 'function') return '';
-  const [t, ref] = g.offre.split(':'),
-    pk = t === 'pack' ? OFFRES.packs.find(p => p.id === ref) : null,
-    done = coDates(g, g.from || isoIn(-365), TODAY).filter(d => !isCx(g, d)).length,
-    left = coDates(g, isoIn(1), g.to || isoIn(180)).length;
-  return `<div class="cokv"><span class="muted">Formule</span><b>${esc(ofLabel(t, ref))}</b></div>${pk ? `<div class="cokv"><span class="muted">Avancement</span><b>${Math.min(done, pk.seances)} sur ${pk.seances} séances${left ? ' · ' + left + ' à venir' : ''}</b></div>` : ''}`;
+  const [t, ref] = (g.offre || '').split(':'),
+    found = !g.offre
+      ? null
+      : t === 'pack'
+        ? OFFRES.packs.find(p => p.id === ref)
+        : t === 'abo'
+          ? OFFRES.abos.find(a => a.id === ref)
+          : foOf(ref),
+    act = !found
+      ? 'data-a="open" data-v="formules"'
+      : `data-a="${t === 'pack' ? 'coPkEdit' : t === 'abo' ? 'coAbEdit' : 'coFoEdit'}" data-id="${ref}"`;
+  return `<button class="cotile cotile-go" ${act}>${ic('ball')}<b class="cotxt">${found ? esc(ofLabel(t, ref)) : 'À choisir'}</b><span>Formule · modifier</span></button>`;
+}
+/* le cycle : un segment par séance, comme une suite de stories. Faites : couleur d'accent ; aujourd'hui : orange ;
+   à venir : discrètes ; annulées : barrées. Une séance reportée suit sa nouvelle date. Un groupe sans fin de cycle
+   montre ses 8 dernières séances et les 8 suivantes. */
+function coCycleBar(g) {
+  const all = coDates(g, g.from || isoIn(-365), g.to || isoIn(180)),
+    l = g.to
+      ? all
+      : all
+          .filter(d => d < TODAY)
+          .slice(-8)
+          .concat(all.filter(d => d >= TODAY).slice(0, 9));
+  if (!l.length) return '';
+  const st = d => (isCx(g, d) ? 'cx' : d === TODAY ? 'now' : d < TODAY ? 'done' : 'next'),
+    n = k => all.filter(d => st(d) === k).length,
+    lab = { done: 'Faite', now: "Aujourd'hui", next: 'À venir', cx: 'Annulée' },
+    faites = n('done') + n('now'),
+    total = all.length - n('cx'),
+    pk = (g.offre || '').startsWith('pack:') ? OFFRES.packs.find(p => p.id === g.offre.slice(5)) : null;
+  return `<div class="cocycle"><div class="cocyct"><b>${g.to ? faites + ' sur ' + total : faites}</b><span class="muted small">${g.to ? 'séances faites' : faites > 1 ? 'séances faites' : 'séance faite'}${pk ? ' · pack de ' + pk.seances : ''}</span></div><div class="cocycb" role="img" aria-label="${faites} séances faites, ${n('next')} à venir">${l.map(d => `<i class="${st(d)}" title="${fmtD(d)} · ${lab[st(d)]}"></i>`).join('')}</div><div class="cocycl">${[
+    'done',
+    'now',
+    'next',
+    'cx'
+  ]
+    .filter(k => l.some(d => st(d) === k))
+    .map(
+      k =>
+        `<span><i class="${k}"></i>${lab[k] === 'Faite' ? 'Faites' : lab[k] === 'Annulée' ? 'Annulées' : lab[k]}</span>`
+    )
+    .join('')}</div></div>`;
 }
 
 /* ---------- périodes sans cours (vacances scolaires, fermeture du club…) ----------
@@ -50,7 +87,7 @@ function coOffHtml(g) {
   if (g.once) return '';
   const l = (g.off || []).slice().sort((a, b) => a.du.localeCompare(b.du)),
     past = o => o.au < TODAY;
-  return `${hd('Périodes sans cours', `<button class="chip" data-a="coOffAdd" data-id="${g.id}">${ic('plus')}Ajouter</button>`)}${
+  return `${hd(ic('ban') + 'Périodes sans cours', `<button class="chip" data-a="coOffAdd" data-id="${g.id}">${ic('plus')}Ajouter</button>`)}${
     l.length
       ? list(
           l
@@ -70,7 +107,7 @@ function coOffHtml(g) {
    (où « Extérieur » n'était qu'une valeur par défaut) passent une fois en salle (coLocInit). */
 const coLocTg = g => {
   const out = g.defLoc === 'Extérieur';
-  return `<div class="cokv"><span class="muted">${out ? 'Saison en extérieur · « Passer en salle » s’il pleut' : 'En salle · saison en extérieur au printemps'}</span><span class="cocyc"><span class="muted small">Extérieur</span><button class="tg" role="switch" aria-checked="${out}" data-a="coLocSeason" data-id="${g.id}" aria-label="${esc(g.name)} : ${out ? 'repasser en salle' : 'passer la saison en extérieur'}"></button></span></div>`;
+  return `<div class="cokv"><span class="muted coki">${ic(out ? 'sun' : 'home')}${out ? 'Saison en extérieur · « Passer en salle » s’il pleut' : 'En salle · saison en extérieur au printemps'}</span><span class="cocyc"><span class="muted small">Extérieur</span><button class="tg" role="switch" aria-checked="${out}" data-a="coLocSeason" data-id="${g.id}" aria-label="${esc(g.name)} : ${out ? 'repasser en salle' : 'passer la saison en extérieur'}"></button></span></div>`;
 };
 function coLocInit() {
   coGroups('', true).forEach(g => {

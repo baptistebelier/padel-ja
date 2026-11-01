@@ -64,7 +64,7 @@ AIDE.splice(
       ],
       [
         'Progression',
-        'Touche un niveau de l’échelle pour le donner : prérequis et attendus s’affichent. Dans la grille technique, chaque toucher fait avancer : à découvrir, en cours, acquis, maîtrisé.'
+        'Touche un niveau de l’échelle pour le donner : prérequis et attendus s’affichent. Dans la grille technique, chaque coup se note de 1 à 10 : la toile d’araignée dessine le profil de l’élève.'
       ],
       [
         'Un élève sans compte',

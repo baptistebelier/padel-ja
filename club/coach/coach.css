@@ -72,15 +72,22 @@
   flex: none;
 }
 .pea button {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
+  width: 48px;
+  min-height: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   border-radius: 10px;
   background: var(--card2);
-  font-family: var(--f-display);
-  font-size: 17px;
+  font-size: 10px;
+  line-height: 1;
   color: var(--fg);
+}
+.pea button svg {
+  width: 18px;
+  height: 18px;
 }
 .pea button.on.P {
   background: var(--accent);
@@ -126,29 +133,47 @@
   gap: 4px;
 }
 .cotech {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  min-height: 48px;
-  width: 100%;
-  text-align: left;
+  padding: 8px 0;
   border-bottom: 1px solid var(--line);
-  color: inherit;
 }
 .cotech:last-child {
   border-bottom: 0;
 }
-.cotech .pips {
-  margin: 0;
-  flex: none;
+.cotechl {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
 }
-.cotech .pips i.on {
+.cotechl svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--accent);
+}
+.cotechl b {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 18px;
+}
+.cotechl small,
+.cotile small {
+  font-size: 12px;
+  color: var(--muted);
+}
+/* la jauge : dix cases à toucher, assez hautes pour le doigt */
+.cogauge {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 3px;
+}
+.cogauge button {
+  height: 24px;
+  border-radius: 4px;
+  background: var(--card2);
+}
+.cogauge button.on {
   background: var(--accent);
-}
-.cotech .small {
-  width: 78px;
-  text-align: right;
-  flex: none;
 }
 .cobars {
   flex-direction: row;
@@ -1250,6 +1275,7 @@ button.copp:hover span:last-child {
   padding: 12px;
   border-radius: var(--r);
   background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 .cotile svg {
   width: 20px;
@@ -1258,6 +1284,7 @@ button.copp:hover span:last-child {
 }
 .cotile b {
   font-family: var(--f-display);
+  font-weight: 400;
   font-size: 26px;
   line-height: 1.1;
 }
@@ -1355,4 +1382,154 @@ button.copp:hover span:last-child {
   .cocol .coses {
     flex-direction: row;
   }
+}
+/* C06 : carte d'identité de l'élève */
+.coid .tag {
+  margin-top: 4px;
+}
+.cocontact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 10px;
+}
+.cocontact a,
+.cocontact button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  min-width: 0;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.cocontact svg,
+.cohd svg,
+.coki svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  vertical-align: -3px;
+  color: var(--accent);
+}
+.cohd svg,
+.coki svg {
+  display: inline-block;
+  margin-right: 6px;
+}
+/* tuiles : valeur en mot, tuile mise en valeur, tuile à toucher */
+.cotile b.cotxt {
+  font-size: 19px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.cotile-hi {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.cotile-hi svg,
+.cotile-hi span {
+  color: inherit;
+}
+.cotile-go {
+  text-align: left;
+  color: inherit;
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+.cotile .cobarre {
+  margin-top: 4px;
+}
+.cotiles.n3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 480px) {
+  .cotiles.n3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.colk {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: underline;
+  min-height: 28px;
+}
+/* C07 : toile d'araignée */
+.coradar {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.coradar .corg {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.coradar .corv {
+  fill: color-mix(in srgb, var(--accent) 35%, transparent);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.coradar text {
+  fill: var(--fg);
+  font-size: 11px;
+}
+/* C11 : le cycle, un segment par séance */
+.cocycle {
+  margin-bottom: 8px;
+}
+.cocyct {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.cocyct b {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 24px;
+}
+.cocycb {
+  display: flex;
+  gap: 3px;
+}
+.cocycb i {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 12px;
+  border-radius: 3px;
+}
+.cocycb i.done,
+.cocycl i.done {
+  background: var(--accent);
+}
+.cocycb i.now,
+.cocycl i.now {
+  background: #ff8a00;
+}
+.cocycb i.next,
+.cocycl i.next {
+  background: var(--card2);
+}
+.cocycb i.cx,
+.cocycl i.cx {
+  background: repeating-linear-gradient(135deg, var(--hot) 0 2px, var(--card2) 2px 5px);
+}
+.cocycl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cocycl span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cocycl i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
 }

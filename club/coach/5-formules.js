@@ -109,6 +109,12 @@ const coVenues = id =>
     .map(s => ({ s, g: GROUPS.find(g => g.id === s.g && (g._club || '') === (s._club || '')) }))
     .filter(x => x.g && !isCx(x.g, x.s.d))
     .map(x => ({ d: x.s.d, min: durMin(x.g.dur), n: coStu(x.g).length, sport: x.g.sport }));
+/* cette présence n'est couverte par aucun achat de l'élève (le pack ne correspond pas, ou il n'en a pas) */
+function coDue(id, d) {
+  const vs = coVenues(id),
+    v = vs.find(x => x.d === d);
+  return !!v && !REGLES.couverture((coEl(id) || {}).achats || [], vs, OFFRES).couvre.has(v);
+}
 function coPacks(id) {
   return REGLES.couverture((coEl(id) || {}).achats || [], coVenues(id), OFFRES).achats;
 }

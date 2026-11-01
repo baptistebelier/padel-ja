@@ -795,6 +795,16 @@ details.aide .aq p{margin:0;line-height:1.5}
 .prow{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
 .prow span:last-child{text-align:right;min-width:0;overflow-wrap:anywhere}
 .prow a{color:inherit;text-decoration:underline}
+/* fiche enseignant en blocs, la même dans le Club et le Coach */
+.ptiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ptile{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:var(--r);background:var(--card2);min-width:0}
+.ptile svg{width:20px;height:20px;color:var(--accent)}
+.ptile b{font-weight:700;overflow-wrap:anywhere}
+.ptile span{font-size:12px;color:var(--muted)}
+.pcontact{display:flex;flex-wrap:wrap;gap:6px 16px}
+.pcontact:empty{display:none}
+.pcontact a{display:inline-flex;align-items:center;gap:6px;min-height:36px;min-width:0;color:inherit;overflow-wrap:anywhere}
+.pcontact svg{width:18px;height:18px;flex:none;color:var(--accent)}
 .ptar{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
 .ptar li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--line)}
 .ptar li:last-child{border-bottom:0}

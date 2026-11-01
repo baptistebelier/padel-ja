@@ -139,7 +139,7 @@ function ecoleBody(t) {
       gs
         .map(
           g =>
-            `<button class="item" data-a="open" data-v="grp" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${g.name}</span><br><span class="muted small">${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'En salle'}</span></span>${grpFull(g) ? '<span class="tag">Complet</span>' : ''}</button>`
+            `<button class="item" data-a="open" data-v="grp" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${g.name}</span><br><span class="muted small">${g.coach && M[g.coach] ? esc(first(g.coach)) + ' · ' : ''}${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'En salle'}</span></span>${grpFull(g) ? '<span class="tag">Complet</span>' : ''}</button>`
         )
         .join('') +
       (gs.length

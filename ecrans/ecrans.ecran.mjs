@@ -428,3 +428,61 @@ test('Coach : Tableau de bord et Statistiques, planning en colonnes, un jour sur
   }
 });
 
+test('Coach : fiche élève en blocs, notes de 1 à 10 et toile, jauge du cycle, élève ponctuel, fiche enseignant', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof coEleve === 'function' && typeof coDue === 'function');
+  const large = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+  // fiche élève : identité, actions juste en dessous, tuiles, groupes qui s'ouvrent
+  await page.evaluate(() => { S.elTab = 'fiche'; A.open({ v: 'eleve', id: 'ines' }); });
+  await page.waitForSelector('.coid');
+  assert.equal(await page.locator('.coid + .cotools [data-a="coEditEl"]').count(), 1, 'actions sous la carte');
+  assert.ok(await page.locator('.cotile').count() >= 3);
+  assert.ok(await large(), 'fiche : pas de débordement');
+  await page.click('.coid [data-a="coEditEl"]');
+  await page.fill('#co-tel', '06 11 22 33 44');
+  await page.click('#co-el .btn.full');
+  await page.waitForSelector('.coid a[href="tel:0611223344"]');
+  await page.click('.cobmain .item[data-v="cgroupe"]');
+  await page.waitForSelector('.cocycb');
+  // fiche groupe : un segment par séance, la case formule ouvre une fenêtre ou la page des formules
+  assert.ok((await page.locator('.cocycb i').count()) > 0);
+  assert.equal(await page.locator('.cotile-go').count(), 1);
+  assert.ok(await large(), 'groupe : pas de débordement');
+  // progression
+  await page.evaluate(() => { S.elTab = 'prog'; A.open({ v: 'eleve', id: 'ines' }); });
+  await page.waitForSelector('.cogauge');
+  const t0 = await page.evaluate(() => TECH[coSport('ines')][0]);
+  await page.locator('.cogauge').first().locator('button').nth(6).click();
+  assert.equal(await page.evaluate(t => coEl('ines').tech[t], t0), 7);
+  assert.equal(await page.locator('.cogauge').first().locator('button.on').count(), 7);
+  assert.equal(await page.locator('.coradar .corv').count(), 1);
+  assert.ok(await large(), 'progression : pas de débordement');
+  // appel et élève ponctuel : dans la séance, ni dans le groupe ni dans les autres séances
+  const r = await page.evaluate(() => {
+    const g = GROUPS.find(x => x.id === 'padl'), d = coDates(g, isoIn(-40), TODAY).slice(-1)[0], cand = Object.keys(M).find(k => k !== 'club' && !coStu(g).includes(k) && coClubOf(M[k]) === coClubOf(g));
+    return { id: g.id + '.' + d, cand, n: coStu(g).length };
+  });
+  await page.evaluate(id => A.open({ v: 'seance', id }), r.id);
+  await page.waitForSelector('.pea svg');
+  await page.click('[data-a="coPlus"]');
+  await page.check(`#co-plus input[value="${r.cand}"]`);
+  await page.click('#co-plus .btn.full');
+  await page.waitForSelector(`[data-a="coPres"][data-k="${r.cand}"]`);
+  assert.equal(await page.evaluate(() => coStu(GROUPS.find(x => x.id === 'padl')).length), r.n, 'le groupe ne change pas');
+  await page.click(`[data-a="coPres"][data-k="${r.cand}"][data-s="P"]`);
+  await page.waitForFunction(k => document.querySelector(`[data-a="coPres"][data-k="${k}"][data-s="P"].on`), r.cand);
+  assert.ok(await large(), 'appel : pas de débordement');
+  await page.click(`[data-a="coPlusRm"][data-k="${r.cand}"]`);
+  await page.waitForFunction(k => !document.querySelector(`[data-a="coPres"][data-k="${k}"]`), r.cand);
+  // fiche enseignant : blocs et raccourci vers les groupes
+  await page.evaluate(() => { M[ME()].pro = { on: true, dip: 'DE JEPS', since: '2015', tel: '06 00 00 00 00', mail: 'a@exemple.fr' }; A.open({ v: 'me' }); });
+  await page.waitForSelector('.ptiles');
+  await page.click('[data-a="proGroups"]');
+  await page.click('[data-a="proGroupGo"]');
+  await page.waitForSelector('.cocycb');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+

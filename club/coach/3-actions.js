@@ -103,10 +103,12 @@ Object.assign(A, {
     const s = sesGet(d.id),
       g = grp(s.g);
     s.pres = s.pres || {};
-    coStu(g).forEach(k => {
-      if (!s.pres[k]) s.pres[k] = 'P';
-      coAtt(s, k, s.pres[k]);
-    });
+    coStu(g)
+      .concat(s.plus || [])
+      .forEach(k => {
+        if (!s.pres[k]) s.pres[k] = 'P';
+        coAtt(s, k, s.pres[k]);
+      });
     coSave('Tout le monde est présent');
   },
   coElF(d) {
@@ -139,9 +141,10 @@ Object.assign(A, {
   coTech(d) {
     const e = coElGet(d.id);
     e.tech = e.tech || {};
-    e.tech[d.t] = ((e.tech[d.t] || 0) % 4) + 1;
+    if (e.tech[d.t] === +d.n)
+      delete e.tech[d.t]; // toucher la note donnée la retire
+    else e.tech[d.t] = +d.n;
     render(true);
-    coPop(`[data-a="coTech"][data-t="${d.t}"] .pips`);
   },
   coNewEl() {
     sheet(
@@ -154,10 +157,11 @@ Object.assign(A, {
       p = (e.parents || [])[0] || {};
     sheet(
       'Fiche de ' + svFirst(d.id),
-      `<form class="body" id="co-el" data-id="${d.id}">${Sel('co-sp', 'Sport', ['Padel', 'Tennis'], coSport(d.id))}${Sel('co-hand', 'Main', ['Droitier', 'Gaucher'], e.hand === 'G' ? 'Gaucher' : 'Droitier')}${Sel('co-side', 'Côté (padel)', ['–', 'Droite', 'Gauche', 'Les deux'], { D: 'Droite', G: 'Gauche', 2: 'Les deux' }[e.side] || '–')}${T('co-goals', 'Objectifs', '', e.goals)}${T('co-note', 'Note privée (équipe pédagogique)', '', e.note)}${O('co-pn', 'Parent : nom', '', p.n)}${O('co-pt', 'Parent : téléphone', '', p.tel)}${O('co-pm', 'Parent : e-mail', '', p.mail)}<button class="btn full">Enregistrer</button></form>`
+      `<form class="body" id="co-el" data-id="${d.id}">${O('co-tel', 'Téléphone', '', e.tel)}${Sel('co-sp', 'Sport', ['Padel', 'Tennis'], coSport(d.id))}${Sel('co-hand', 'Main', ['Droitier', 'Gaucher'], e.hand === 'G' ? 'Gaucher' : 'Droitier')}${Sel('co-side', 'Côté (padel)', ['–', 'Droite', 'Gauche', 'Les deux'], { D: 'Droite', G: 'Gauche', 2: 'Les deux' }[e.side] || '–')}${T('co-goals', 'Objectifs', '', e.goals)}${T('co-note', 'Note privée (équipe pédagogique)', '', e.note)}${O('co-pn', 'Parent : nom', '', p.n)}${O('co-pt', 'Parent : téléphone', '', p.tel)}${O('co-pm', 'Parent : e-mail', '', p.mail)}<button class="btn full">Enregistrer</button></form>`
     );
     $('co-goals').required = false;
     $('co-note').required = false;
+    $('co-tel').type = 'tel';
   },
   /* élève sans compte : rattaché à l'adhérent qui vient de créer le sien ; il retrouve tout */
   coLink(d) {
@@ -218,6 +222,28 @@ Object.assign(A, {
       'Ajouter à ' + g.name,
       `<form class="body" id="co-add" data-id="${g.id}"><div class="fld"><input id="co-aq" type="search" placeholder="Rechercher" aria-label="Rechercher un adhérent"></div><div class="coadd">${cand.map(k => `<label class="corow" data-n="${esc(fold(svName(k)))}"><input type="checkbox" value="${k}">${coAv(k)}<span class="grow">${esc(svName(k))}${M[k] ? '' : ' <span class="tag">Sans compte</span>'}</span></label>`).join('')}</div><button class="btn full">Ajouter</button></form>`
     );
+  },
+  /* élève accueilli sur une seule séance : il n'entre pas dans le groupe et n'apparaît sur aucune autre séance */
+  coPlus(d) {
+    const s = sesGet(d.id),
+      g = grp(s.g),
+      st = coStu(g).concat(s.plus || []),
+      cid = coClubOf(g),
+      cand = Object.keys(M)
+        .filter(k => k !== 'club' && !st.includes(k) && coClubOf(M[k]) === cid)
+        .concat(ELEVES.filter(e => !M[e.id] && !st.includes(e.id) && coClubOf(e) === cid).map(e => e.id))
+        .sort((a, b) => svName(a).localeCompare(svName(b)));
+    sheet(
+      'Élève pour cette séance',
+      `<form class="body" id="co-plus" data-id="${d.id}"><p class="muted small">Il participe à cette séance seulement, sans entrer dans le groupe. Présent, il consomme son pack si la formule correspond ; sinon il apparaît à payer.</p><div class="fld"><input id="co-aq" type="search" placeholder="Rechercher" aria-label="Rechercher un adhérent"></div><div class="coadd">${cand.map(k => `<label class="corow" data-n="${esc(fold(svName(k)))}"><input type="checkbox" value="${k}">${coAv(k)}<span class="grow">${esc(svName(k))}${M[k] ? '' : ' <span class="tag">Sans compte</span>'}</span></label>`).join('')}</div><button class="btn full">Ajouter à la séance</button></form>`
+    );
+  },
+  coPlusRm(d) {
+    const s = sesGet(d.id);
+    s.plus = (s.plus || []).filter(k => k !== d.k);
+    if (s.pres) delete s.pres[d.k];
+    coAtt(s, d.k);
+    coSave(svFirst(d.k) + ' retiré de la séance');
   },
   coRm(d) {
     const g = grp(d.g);
@@ -324,6 +350,7 @@ document.addEventListener('submit', e => {
   }
   if (f.id === 'co-el') {
     const e2 = coElGet(id);
+    e2.tel = val('co-tel');
     e2.sport = val('co-sp');
     e2.hand = val('co-hand') === 'Gaucher' ? 'G' : 'D';
     e2.side = { Droite: 'D', Gauche: 'G', 'Les deux': '2' }[val('co-side')] || '';
@@ -348,6 +375,7 @@ document.addEventListener('submit', e => {
       }
     });
     SEANCES.forEach(s => {
+      if ((s.plus || []).includes(id)) s.plus = s.plus.map(x => (x === id ? k : x));
       if (s.pres && s.pres[id]) {
         s.pres[k] = s.pres[id];
         delete s.pres[id];
@@ -381,6 +409,20 @@ document.addEventListener('submit', e => {
     else delete g.max;
     closeSheet();
     return coSave('Groupe enregistré');
+  }
+  if (f.id === 'co-plus') {
+    const s = sesGet(id),
+      g = grp(s.g),
+      ks = [...f.querySelectorAll('input[type=checkbox]:checked')].map(i => i.value);
+    if (!ks.length) return;
+    s.plus = [...new Set((s.plus || []).concat(ks))];
+    closeSheet();
+    const n = coStu(g).length + s.plus.length;
+    return coSave(
+      g.max && n > g.max
+        ? 'Ajouté : la séance dépasse la capacité (' + n + ' pour ' + g.max + ' places)'
+        : 'Ajouté à cette séance'
+    );
   }
   if (f.id === 'co-add') {
     const g = grp(id),
