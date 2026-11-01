@@ -139,7 +139,7 @@ function ecoleBody(t) {
         );
   }
   // messages, bilans, analyses vidéo et contenus de l'enseignant (/RAM Coach), historique des séances
-  if (t === 'perso') b = persoBody();
+  if (t === 'perso') b = (typeof resaMine === 'function' ? resaMine() : '') + persoBody();
   // l'équipe pédagogique : fiche de chaque enseignant (remplie dans /RAM Coach)
   if (t === 'profs') b = profsBody();
   if (t === 'stages') {

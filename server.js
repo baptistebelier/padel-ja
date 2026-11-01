@@ -39,7 +39,8 @@ withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le 
 const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, onUsers: ids => Promise.all(ids.map(id => followRamClub(id).catch(() => {}))) });   // qui appartient à quel club, rôle et saison
 const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
-const coachTables = require('./lib/coach-tables.js').createCoachTables({ ram, store });   // planning de l'enseignant lu dans les vraies tables
+const coachTables = require('./lib/coach-tables.js').createCoachTables({ ram, store });
+const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules });   // planning de l'enseignant lu dans les vraies tables
 const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
 const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m) });   // notifications sur le téléphone
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
@@ -1499,6 +1500,17 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/coach/formules/public') {
       const m = await ram.memberByKey(url.searchParams.get('c') || '', url.searchParams.get('k') || '').catch(() => null);
       return json(res, 200, { formules: m && m.user_id ? Formules.publicOf(await Formules.get(store, m.user_id)) : null });
+    }
+    /* ---------- /RAM Réservation : réserver un cours depuis /RAM Club (lib/reservation.js) ---------- */
+    if (p.startsWith('/api/reservation/')) {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      const q = k => url.searchParams.get(k) || '', refus = e => { if (e instanceof reservation.Refus) return json(res, 400, { error: e.message }); throw e; };
+      try {
+        if (p === '/api/reservation/creneaux' && req.method === 'GET') return json(res, 200, await reservation.creneaux(u.id, q('c'), q('k'), q('de')));
+        if (p === '/api/reservation/enseignants' && req.method === 'GET') return json(res, 200, { enseignants: await reservation.enseignants(u.id, q('c')) });
+        if (p === '/api/reservation/reserver' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.reserver(u.id, String(b.c || ''), String(b.k || ''), b)); }
+      } catch (e) { return refus(e); }
+      return json(res, 404, { error: 'Introuvable' });
     }
     /* ---------- /RAM Coach : échelles de niveaux de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
     if (p === '/api/coach/echelles') {

@@ -906,3 +906,16 @@ details.aide .aq p{margin:0;line-height:1.5}
   height: 12px;
   border-radius: 3px;
 }
+/* réserver un cours : un jour sous l'autre sur téléphone, en colonnes sur ordinateur */
+.rsj{display:flex;flex-direction:column;gap:10px}
+.rsd{background:var(--card);border-radius:var(--rb);padding:10px 12px;min-width:0}
+.rsd.today .kicker{color:var(--accent)}
+.rss{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip.rsl{min-height:44px}
+.rsp{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;border-radius:var(--rb);background:var(--card2);color:var(--muted);font-size:13px}
+@media (min-width:1024px){
+  #main>.rsw{max-width:none!important}
+  .rsj{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:start}
+  .rsd .rss{flex-direction:column}
+  .rsd .rsl,.rsd .rsp{justify-content:center;width:100%}
+}

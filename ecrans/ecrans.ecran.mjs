@@ -694,3 +694,41 @@ test('Coach : mes disponibilités, ce qui reste libre s’affiche au planning', 
   await ctx.close();
 });
 
+test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et la plage n’est plus libre', async () => {
+  const cc = await browser.newContext(), sc = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await sc.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  const post = async (c, url, data) => (await c.request.post(JA + url, { data })).json(), t = Date.now();
+  await post(cc, '/api/auth/signup', { email: `resa-c-${t}@exemple.test`, password: 'essai-' + t, first: 'Sarah', last: 'Coach' });
+  const club = await post(cc, '/api/ram/clubs', { name: 'Club Résa' });
+  const now = new Date(), y = now.getFullYear(), saison = now.getMonth() >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;   // la saison du club à sa création
+  await post(cc, '/api/coach/formules', { formules: { formules: [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35 }], dispos: [0, 1, 2, 3, 4, 5, 6].map(jour => ({ jour, du: '09:00', au: '11:00' })) } });
+  await post(sc, '/api/auth/signup', { email: `resa-e-${t}@exemple.test`, password: 'essai-' + t, first: 'Ines', last: 'Eleve' });
+  const code = club.code || (await (await cc.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.id === club.id).code;
+  await post(sc, '/api/ram/join', { code });
+  const mine = (await (await sc.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.id === club.id);
+  await post(cc, `/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'member', id: mine.key, op: 'put', data: { n: 'Ines Eleve', valid: saison } }] });
+  await page.goto(JA + '/club/index.html');
+  await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
+  await page.waitForTimeout(800);
+  // la semaine suivante : forcément entièrement à venir
+  await page.evaluate(k => { S.resaW = 1; A.open({ v: 'resa', id: k }); }, club.key);
+  await page.waitForSelector('.rsl', { timeout: 8000 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
+  const n0 = await page.locator('.rsl').count();
+  const first = page.locator('.rsl').first(), d = await first.getAttribute('data-d');
+  await first.click();
+  await page.waitForSelector('#rs-go');
+  await page.click('#rs-go .btn.full');
+  assert.ok(await page.locator('#rs-go').count(), 'objectif obligatoire');
+  await page.fill('#rs-o', 'Travailler la volée');
+  await page.click('#rs-go .btn.full');
+  await page.waitForFunction(() => !document.querySelector('#rs-go'));
+  await page.waitForSelector('.rsp', { timeout: 8000 });
+  assert.ok((await page.locator('.rsl').count()) < n0, 'la plage n’est plus libre');
+  assert.match(await page.locator('.rsp').first().innerText(), /pris/);
+  await page.waitForFunction(k => GROUPS.some(x => x.once && x.coach === k), club.key, { timeout: 8000 });   // le cours arrive dans son agenda
+  assert.deepEqual(errs, []);
+  await cc.close();
+  await sc.close();
+});
+

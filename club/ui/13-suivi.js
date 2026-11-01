@@ -184,7 +184,7 @@ function proBody(k) {
             .map(x => `<li>${esc(x)}</li>`)
             .join('')}</ul>`
         : ''
-  }<div class="ctl" style="flex-wrap:wrap">${book ? `<a class="btn grow" href="${esc(book)}" target="_blank" rel="noopener">${ic('cal')}Réserver une séance</a>` : ''}${tel ? `<a class="btn grow ghost" href="tel:${tel}">${ic('phone')}Appeler</a>` : ''}${p.mail ? `<a class="btn grow ghost" href="mailto:${esc(p.mail)}">${ic('mail')}Écrire</a>` : ''}${k !== ME() ? `<button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button>` : ''}</div></div>`;
+  }<div class="ctl" style="flex-wrap:wrap">${off && off.resa && k !== ME() ? `<button class="btn grow" data-a="open" data-v="resa" data-id="${k}">${ic('cal')}Réserver un cours</button>` : book ? `<a class="btn grow" href="${esc(book)}" target="_blank" rel="noopener">${ic('cal')}Réserver une séance</a>` : ''}${tel ? `<a class="btn grow ghost" href="tel:${tel}">${ic('phone')}Appeler</a>` : ''}${p.mail ? `<a class="btn grow ghost" href="mailto:${esc(p.mail)}">${ic('mail')}Écrire</a>` : ''}${k !== ME() ? `<button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button>` : ''}</div></div>`;
 }
 /* formules et tarifs d'un enseignant (rangés sur son compte /RAM), lus une fois par enseignant */
 const PRO_OFF = {};
