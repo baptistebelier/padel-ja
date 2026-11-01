@@ -92,5 +92,52 @@ test('tableau de bord : séances de la période et chiffre d’affaires réel, u
   // connecteur : pas de période de chiffre d'affaires, pas d'achats lus
   assert.deepEqual((await tables.tableauClubs([{ id: a.id, key: a.key, name: 'A' }], '2026-11-01', '2026-11-30', [], null)).chiffres, []);
 });
+test('en ligne : un club se lit par la vue, un lot s’écrit par la fonction, en une transaction', async () => {
+  const appels = [], realFetch = global.fetch;
+  global.fetch = async (u, o = {}) => {
+    const t = new URL(u), nom = t.pathname.split('/').pop();
+    appels.push({ nom, chemin: t.pathname, q: decodeURIComponent(t.search), body: o.body ? JSON.parse(o.body) : null });
+    const rows = nom === 'ram_clubs' ? [{ id: 'cl1', code: 'C-1', name: 'Club' }] : nom === 'ram_members' ? [{ club_id: 'cl1', user_id: 'U', key: 'k', role: 'bureau' }]
+      : nom === 'ram_items_v' && !t.search.includes('coll=eq.member') ? [{ coll: 'conf', id: 'main', data: { id: 'main', name: 'Club', season: 's' }, rev: 5, deleted: false }, { coll: 'cours', id: 'c1', data: { id: 'c1', type: 'train', once: '2026-11-05', coach: 'k', mem: [] }, rev: 6, deleted: false }, { coll: 'seance', id: 's0', data: null, rev: 7, deleted: true }] : [];
+    return { ok: true, status: 200, text: async () => JSON.stringify(rows), json: async () => rows };
+  };
+  process.env.SUPABASE_URL = 'https://x.supabase.co'; process.env.SUPABASE_SERVICE_KEY = 'sb_secret_essai';
+  const online = createRamClub(DIR);
+  delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  try {
+    const s = await online.sync('U', 'cl1', 0);
+    assert.equal(s.items.find(i => i.coll === 'cours').id, 'c1');
+    assert.equal(s.items.some(i => i.id === 's0'), false, 'une suppression n’est pas annoncée à l’ouverture');
+    assert.ok(appels.some(x => x.nom === 'ram_items_v' && x.q.includes('club_id=eq.cl1')), 'lu par la vue');
+    assert.equal(appels.some(x => x.nom === 'ram_items' && x.q.includes('club_id=eq.cl1')), false, 'plus lu dans l’ancien stockage');
+    appels.length = 0;
+    const r = await online.ops('U', 'cl1', [{ coll: 'cours', id: 'c1', op: 'patch', patch: [{ p: ['goal'], t: 'set', v: 'Bandeja' }] }, { coll: 'seance', id: 'c1.2026-11-05', op: 'put', data: { g: 'c1', d: '2026-11-05', pres: {} } }]);
+    assert.deepEqual(r.rejected, []);
+    const e = appels.filter(x => x.body);
+    assert.equal(e.length, 1, 'un seul appel d’écriture');
+    assert.equal(e[0].chemin.endsWith('/rpc/ram_save_items'), true);
+    assert.equal(e[0].body.p_club, 'cl1');
+    assert.deepEqual(e[0].body.p_rows.map(x => [x.coll, x.id, x.deleted]), [['cours', 'c1', false], ['seance', 'c1.2026-11-05', false]]);
+    assert.equal(e[0].body.p_rows[0].data.goal, 'Bandeja');
+    assert.ok(e[0].body.p_rows[0].rev > 7, 'nouvelle version');
+  } finally { global.fetch = realFetch; }
+});
+
+test('formules et échelles : dans leur propre ligne, et une écriture du compte ne les écrase plus', async () => {
+  const { createStore } = require('../lib/store');
+  const dirS = fs.mkdtempSync(path.join(os.tmpdir(), 'ram-reglages-')), u = process.env.SUPABASE_URL, k = process.env.SUPABASE_SERVICE_KEY;
+  delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  const store = createStore(dirS);
+  if (u) process.env.SUPABASE_URL = u; if (k) process.env.SUPABASE_SERVICE_KEY = k;
+  const F = require('../lib/formules'), E = require('../lib/echelles');
+  await store.saveAccount('O', { templates: [], coachOffers: { formules: [{ id: 'vieux', nom: 'Ancienne', joueurs: 1, duree: 60, prix: 10 }] } });
+  assert.equal((await F.get(store, 'O')).formules[0].id, 'vieux', 'pas encore à part : lu sur le compte');
+  await F.save(store, 'O', { formules: [{ id: 'f', nom: 'Neuve', joueurs: 1, duree: 60, prix: 35 }] });
+  const compte = await store.getAccount('O'); await store.saveAccount('O', compte);   // écriture du compte après coup
+  assert.equal((await F.get(store, 'O')).formules[0].id, 'f');
+  const avant = await E.get(store, 'O');
+  await E.save(store, 'O', Object.assign({}, avant, { Tennis: Object.assign({}, avant.Tennis, { levels: [{ t: 'Mini' }] }) }));
+  assert.equal((await E.get(store, 'O')).Tennis.levels.length, 1);
+});
 if (saved.url) process.env.SUPABASE_URL = saved.url;
 if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
