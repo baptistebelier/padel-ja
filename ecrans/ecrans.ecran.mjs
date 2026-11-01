@@ -411,15 +411,23 @@ test('Coach : Tableau de bord et Statistiques, planning en colonnes, un jour sur
     assert.deepEqual(await page.evaluate(() => TABBAR.slice(0, 2).map(t => t[2])), ['Tableau de bord', 'Statistiques']);
     assert.equal(await page.locator('.cotile').count(), 4, 'quatre petits chiffres');
     await page.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
-    await page.waitForSelector('.cocols');
-    const vues = await page.$$eval('.cocol', l => l.filter(x => getComputedStyle(x).display !== 'none').length);
-    assert.equal(vues, cols, 'colonnes visibles');
+    await page.waitForSelector('.cowg');
+    assert.equal(await page.locator('.cowj').count(), 7, 'les 7 jours, sur téléphone comme sur ordinateur');
     assert.ok(await page.locator('.cotopact [data-a="coNewSes"]').isVisible(), 'action en haut');
+    const hauts = await page.$$eval('.cotopact .btn', l => [...new Set(l.map(x => Math.round(x.getBoundingClientRect().top)))]);
+    assert.equal(hauts.length, 1, 'les 4 boutons sur une seule ligne');
+    assert.ok(await page.$$eval('.cowb', l => l.every(x => x.getBoundingClientRect().width > 8)), 'des cours lisibles');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
     if (w < 500) {
-      const j0 = await page.textContent('.cowphone b');
-      await page.click('.cowphone [data-n="1"]');
-      assert.notEqual(await page.textContent('.cowphone b'), j0, 'flèche : jour suivant');
-      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'pas de débordement');
+      const s0 = await page.textContent('.coweek b');
+      await page.click('.coweek [data-n="1"]');
+      assert.notEqual(await page.textContent('.coweek b'), s0, 'flèche : semaine suivante');
+      await page.evaluate(() => { S.pl.v = 'jour'; S.pl.j = TODAY; render(); });
+      await page.waitForSelector('.cogrid');
+      const j0 = await page.textContent('.coweek b');
+      await page.evaluate(() => { const el = document.querySelector('#main .cogrid'), mk = (type, x) => { const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 }); el.dispatchEvent(new TouchEvent(type, { bubbles: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] })); }; mk('touchstart', 300); mk('touchend', 120); });
+      await page.waitForFunction(j => document.querySelector('.coweek b').textContent !== j, j0, { timeout: 4000 });
+      await page.evaluate(() => { S.pl.v = 'semaine'; S.pl.w = 0; render(); });
     }
     await page.evaluate(() => { S.tab = 'clubs'; render(); });
     await page.waitForFunction(() => document.querySelector('.seg [data-k="coClubTab"]'));
@@ -686,10 +694,10 @@ test('Coach : mes disponibilités, ce qui reste libre s’affiche au planning', 
   await page.click('#co-dispo .btn.full');
   await page.waitForSelector('[data-a="coDispoDel"]');
   await page.evaluate(() => { S.stack = []; S.pl.w = coDow(TODAY) === 0 ? 1 : 0; A.tab({ t: 'planning' }); });
-  await page.waitForFunction(() => document.querySelector('.cofree') && /Libre 6 h – 8 h · Site test/.test(document.querySelector('.cofree').textContent));
+  await page.waitForFunction(() => document.querySelector('.cowf') && /Libre 6 h – 8 h · Site test/.test(document.querySelector('.cowf').title));
   // en vacances : plus rien de libre
   await page.evaluate(() => { OFFRES.conges = [{ nom: 'Test', du: isoIn(0), au: isoIn(30) }]; render(true); });
-  await page.waitForFunction(() => !document.querySelector('.cofree'));
+  await page.waitForFunction(() => !document.querySelector('.cowf'));
   assert.deepEqual(errs, []);
   await ctx.close();
 });
@@ -701,7 +709,7 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
     await page.goto(JA + '/club/coach.html');
     await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
     await page.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
-    await page.waitForSelector('.cocols');
+    await page.waitForSelector('.cowg');
     const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
     await page.click('[data-a="coVue"][data-k="mois"]');
     await page.waitForSelector('.cogm');
@@ -718,7 +726,7 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
     await page.click('[data-a="coJour"][data-n="1"]');
     await page.waitForSelector('.cogrid');
     await page.click('[data-a="coVue"][data-k="semaine"]');
-    await page.waitForSelector('.cocols');
+    await page.waitForSelector('.cowg');
     await page.click('.cotopact [data-a="nvNew"]');
     await page.waitForSelector('#nv-form #nv-mx-0');
     await page.selectOption('#nv-pl-0', '2');

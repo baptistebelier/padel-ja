@@ -278,13 +278,6 @@ const coOccupe = d =>
     .map(x => [hMin(x.g.h), hMin(x.g.h) + durMin(x.g.dur)]);
 /* ce qui reste libre un jour donné (au moins une heure) ; rien pour un jour passé */
 const coLibre = d => (d < TODAY ? [] : REGLES.plagesLibres(OFFRES.dispos, d, coOccupe(d), OFFRES.conges, 60));
-const coLibreHtml = d =>
-  coLibre(d)
-    .map(
-      p =>
-        `<div class="cofree">${ic('clock')}<span>Libre ${hMinTxt(p.du)} – ${hMinTxt(p.au)}${p.lieu ? ' · ' + esc(p.lieu) : ''}</span></div>`
-    )
-    .join('');
 function coDispoCard() {
   const l = OFFRES.dispos || [];
   return coPCard(

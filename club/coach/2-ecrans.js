@@ -311,7 +311,24 @@ const COVUES = [
 const coVueTabs = () =>
   `<div class="chips covue" role="group" aria-label="Vue du planning">${COVUES.map(([v, l]) => `<button class="chip" data-a="coVue" data-k="${v}" aria-pressed="${(S.pl.v || 'semaine') === v}">${l}</button>`).join('')}</div>`;
 const coPlanTools = () =>
-  `${coClubChips()}<div class="card cotools cotopact"><button class="btn" data-a="coNewSes">${ic('plus')}Ajouter une séance</button><button class="btn ghost" data-a="coNewGrp">${ic('users')}Créer un groupe</button><button class="btn ghost" data-a="nvNew" data-m="cours">${ic('school')}Ouvrir un collectif</button><button class="btn ghost" data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div>${coVueTabs()}`;
+  `<div class="card cotopact">${[
+    ['coNewSes', '', 'plus', 'Séance', 'Ajouter une séance'],
+    ['coNewGrp', '', 'users', 'Groupe', 'Créer un groupe'],
+    ['nvNew', 'data-m="cours"', 'school', 'Collectif', 'Ouvrir un collectif'],
+    ['open', 'data-v="histo"', 'cal', 'Historique', 'Historique des séances']
+  ]
+    .map(
+      ([a, x, icn, l, tout], i) =>
+        `<button class="btn${i ? ' ghost' : ''}" data-a="${a}" ${x} aria-label="${tout}">${ic(icn)}<span>${l}</span></button>`
+    )
+    .join('')}</div>${coVueTabs()}`;
+/* la sélection du club, à droite du bandeau « Planning » (quand j'enseigne dans plusieurs clubs) */
+const coTopClub = () =>
+  coMulti()
+    ? `<label class="cotopclub"><span class="sr">Club affiché</span><select id="co-topclub"><option value="all"${!S.coClub || S.coClub === 'all' ? ' selected' : ''}>Tous mes clubs</option>${coClubList()
+        .map(c => `<option value="${c.id}"${S.coClub === c.id ? ' selected' : ''}>${esc(c.name)}</option>`)
+        .join('')}</select></label>`
+    : '';
 /* ---------- vue jour : un quadrillage d'heures ; le libre en fond, les cours dessus ---------- */
 const CO_H = 56; // hauteur d'une heure, en pixels
 function coPlanJour() {
@@ -364,6 +381,16 @@ function coPlanMois() {
   const titre = m0.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   return `<div class="pad covuem">${coPlanTools()}<div class="card coweek" style="display:flex"><button class="ib" data-a="coMois" data-n="-1" aria-label="Mois précédent">${ic('back')}</button><span class="grow" style="text-align:center"><b style="text-transform:capitalize">${titre}</b><br><span class="muted small">${plural(l.filter(s => s.d.slice(0, 7) === mois && !isCx(s.g, s.d)).length, 'séance')}</span></span><button class="ib flip" data-a="coMois" data-n="1" aria-label="Mois suivant">${ic('back')}</button></div><div class="cogm">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(j => `<span class="comj">${j}</span>`).join('')}${cases.join('')}</div></div>`;
 }
+/* ---------- vue semaine : 7 petites colonnes, comme un agenda ; toucher un jour l'ouvre ---------- */
+const CO_HW = 46; // hauteur d'une heure, en pixels
+/* vacances à afficher : les miennes, et celles du club choisi (ou de tous mes clubs) */
+function coVacSemaine(from, to) {
+  const clubs = S.coClub && S.coClub !== 'all' ? [S.coClub] : Object.keys(OFFRES.vacClubs || {}),
+    vu = new Set();
+  return (OFFRES.conges || [])
+    .concat(clubs.flatMap(c => (OFFRES.vacClubs || {})[c] || []))
+    .filter(o => o.du <= to && o.au >= from && !vu.has(o.nom + o.du + o.au) && vu.add(o.nom + o.du + o.au));
+}
 function coPlanning() {
   if (S.pl.v === 'jour') return coPlanJour();
   if (S.pl.v === 'mois') return coPlanMois();
@@ -371,25 +398,68 @@ function coPlanning() {
     to = isoIn(6, from),
     l = coSessions(from, to, '', 1),
     stages = posts.filter(p => p.stage && !p.arch && (p.date || '') >= from && (p.date || '') <= to),
-    on = coPlDay(),
-    cols = [];
-  let tracks = '';
-  for (let i = 0; i < 7; i++) {
-    const d = isoIn(i, from),
-      x = l.filter(s => s.d === d),
-      // samedi et dimanche : toujours là, plus étroits s'ils sont vides
-      mini = i > 4 && !x.length;
-    tracks += mini ? ' minmax(100px, .55fr)' : ' minmax(170px, 1fr)';
-    cols.push(
-      `<section class="cocol${i === on ? ' on' : ''}${d === TODAY ? ' today' : ''}" aria-label="${DAYS[coDow(d)]} ${+d.slice(8)}"><h3 class="cocolh">${DAYS[coDow(d)]} <b>${+d.slice(8)}</b> ${MO[+d.slice(5, 7) - 1]}</h3>${x.map(s => coSesCard(s, 1)).join('') || '<div class="card cocolv muted small">Aucun cours</div>'}${typeof coLibreHtml === 'function' ? coLibreHtml(d) : ''}${coCollHtml(d)}</section>`
-    );
-  }
-  const dOn = isoIn(on, from),
-    n = plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance');
-  return `<div class="pad">${coPlanTools()}
-<div class="card coweek cowdesk"><button class="ib" data-a="coWeek" data-n="-1" aria-label="Semaine précédente">${ic('back')}</button><span class="grow" style="text-align:center"><b>Semaine du ${+from.slice(8)} ${MO[+from.slice(5, 7) - 1]}</b><br><span class="muted small">${n}${S.pl.w ? '' : ' · cette semaine'}</span></span><button class="ib flip" data-a="coWeek" data-n="1" aria-label="Semaine suivante">${ic('back')}</button></div>
-<div class="card coweek cowphone"><button class="ib" data-a="coDay" data-n="-1" aria-label="Jour précédent">${ic('back')}</button><span class="grow" style="text-align:center"><b>${DAYS[coDow(dOn)]} ${+dOn.slice(8)} ${MO[+dOn.slice(5, 7) - 1]}</b><br><span class="muted small">${dOn === TODAY ? "Aujourd'hui · " : ''}${n} cette semaine</span></span><button class="ib flip" data-a="coDay" data-n="1" aria-label="Jour suivant">${ic('back')}</button></div>
-<div class="cocols" style="grid-template-columns:${tracks}">${cols.join('')}</div>${stages.length ? hd('Stages') + list(stages.map(p => `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(p.title)}</span></span></button>`).join('')) : ''}</div>`;
+    n = plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance'),
+    jours = Array.from({ length: 7 }, (_, i) => isoIn(i, from)),
+    libres = jours.map(d => (typeof coLibre === 'function' ? coLibre(d) : [])),
+    bornes = l
+      .flatMap(x => [hMin(x.g.h), hMin(x.g.h) + durMin(x.g.dur)])
+      .concat(libres.flat().flatMap(p => [p.du, p.au])),
+    lo = Math.floor(Math.min(8 * 60, ...bornes) / 60),
+    hi = Math.ceil(Math.max(20 * 60, ...bornes) / 60),
+    y = m => ((m - lo * 60) / 60) * CO_HW,
+    pos = (i, a = 0, b = 1) =>
+      `left:calc(var(--cowg) + (100% - var(--cowg)) * ${(i + a / b) / 7});width:calc((100% - var(--cowg)) / ${7 * b} - 2px)`;
+  let lignes = '';
+  for (let h = lo; h < hi; h++)
+    lignes += `<div class="cogh" style="top:${(h - lo) * CO_HW}px"><span>${h} h</span></div>`;
+  const fond = jours.map((d, i) => `<div class="cowl${d === TODAY ? ' today' : ''}" style="${pos(i)}"></div>`).join(''),
+    tete = jours
+      .map(
+        (d, i) =>
+          `<button class="cowj${d === TODAY ? ' today' : ''}" data-a="coJourOpen" data-d="${d}" aria-label="${DAYS[coDow(d)]} ${+d.slice(8)} ${MO[+d.slice(5, 7) - 1]}">${['L', 'M', 'M', 'J', 'V', 'S', 'D'][i]}<b>${+d.slice(8)}</b>${coCollAtt(d).length ? '<span class="comatt" title="Collectif en attente"></span>' : ''}</button>`
+      )
+      .join(''),
+    vac = coVacSemaine(from, to)
+      .map(o => {
+        const a = o.du < from ? 0 : jours.indexOf(o.du),
+          b = o.au > to ? 6 : jours.indexOf(o.au);
+        return `<span class="cowv" style="grid-column:${a + 1} / ${b + 2}">${esc(o.nom || 'Vacances')}</span>`;
+      })
+      .join(''),
+    corps = jours
+      .map((d, i) => {
+        const lanes = [],
+          blocs = l
+            .filter(x => x.d === d)
+            .sort((p, q) => hMin(p.g.h) - hMin(q.g.h))
+            .map(x => {
+              const du = hMin(x.g.h),
+                au = du + durMin(x.g.dur);
+              let v = lanes.findIndex(fin => fin <= du);
+              if (v < 0) v = lanes.length;
+              lanes[v] = au;
+              return { x, du, au, v };
+            }),
+          nb = Math.max(1, lanes.length);
+        return (
+          libres[i]
+            .map(
+              p =>
+                `<div class="cowf" title="Libre ${hMinTxt(p.du)} – ${hMinTxt(p.au)}${p.lieu ? ' · ' + esc(p.lieu) : ''}" style="top:${y(p.du)}px;height:${y(p.au) - y(p.du)}px;${pos(i)}"></div>`
+            )
+            .join('') +
+          blocs
+            .map(
+              ({ x, du, au, v }) =>
+                `<button class="cogb cowb${isCx(x.g, x.d) ? ' cx' : ''}" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}" aria-label="${esc(x.g.name)}, ${DAYS[coDow(d)]} ${+d.slice(8)} à ${esc(x.g.h)}${isCx(x.g, x.d) ? ', annulé' : ''}" style="top:${y(du)}px;height:${y(au) - y(du) - 1}px;${pos(i, v, nb)}"><b>${esc(x.g.h)}</b> ${esc(x.g.name)}</button>`
+            )
+            .join('')
+        );
+      })
+      .join('');
+  return `<div class="pad covues">${coPlanTools()}
+<div class="card coweek" style="display:flex"><button class="ib" data-a="coWeek" data-n="-1" aria-label="Semaine précédente">${ic('back')}</button><span class="grow" style="text-align:center"><b>Semaine du ${+from.slice(8)} ${MO[+from.slice(5, 7) - 1]}</b><br><span class="muted small">${n}${S.pl.w ? '' : ' · cette semaine'}</span></span><button class="ib flip" data-a="coWeek" data-n="1" aria-label="Semaine suivante">${ic('back')}</button></div>
+<div class="card cowg"><div class="cowh"><div class="cowjs">${tete}</div>${vac ? `<div class="cowvs">${vac}</div>` : ''}</div><div class="cowc" style="height:${(hi - lo) * CO_HW}px">${lignes}${fond}${corps}</div></div>${jours.map(coCollHtml).join('')}${stages.length ? hd('Stages') + list(stages.map(p => `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(p.title)}</span></span></button>`).join('')) : ''}</div>`;
 }
 /* actions d'une séance : une grille de tuiles avec pictogramme (lieu, annuler, reporter, changer la date, supprimer) */
 function coActs(g, d, loc, cx) {

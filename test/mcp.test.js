@@ -20,8 +20,10 @@ const redirect = (res, to) => { res.writeHead(302, { Location: to }); res.end();
 const readBody = req => new Promise((ok, ko) => { let b = ''; req.on('data', d => (b += d)); req.on('end', () => { try { ok(b ? JSON.parse(b) : {}); } catch (e) { ko(e); } }); });
 const rooms = new Map();
 let me = null;   // « session » de l'utilisateur dans le navigateur (cookie) : simulée par l'en-tête x-test
+const applyServerAction = (room, action) => { const m = Ani.isAnimation(room.row.state) ? Ani : Engine; m.reduce(room.row.state, action); };
+const newTournament = async (owner, o) => { const state = o.animation ? Ani.initialState(o.animation) : Engine.initialState(); if (o.name) state.tournament.name = o.name; const row = { id: 'ja' + rooms.size, owner, state }; rooms.set(row.id, { row }); return row; };
 const mcp = createMcp({ store, ram, Engine, Ani, getRoom: async id => rooms.get(id) || null, mainClubOf: async () => null,
-  currentUser: async req => (req.headers['x-test'] ? me : null), readBody, json, redirect });
+  currentUser: async req => (req.headers['x-test'] ? me : null), readBody, json, redirect, newTournament, applyServerAction, accessFor: async () => ({ canCreate: true }) });
 const server = http.createServer(async (req, res) => { if (!(await mcp(req, res, new URL(req.url, 'http://x')))) { res.writeHead(404); res.end(); } });
 let base;
 const call = (p, o = {}) => fetch(base + p, Object.assign({ redirect: 'manual' }, o));
@@ -163,6 +165,83 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(parN.attribue.length, 1);
   assert.deepEqual((await w('coach_paiements', {})).a_regulariser.find(x => x.eleve === 'Ana Roy').echeances.map(x => [x.a_la_seance, x.montant]), [[4, 120]], 'à la séance 4');
   await ram.ops('U1', club.id, [{ coll: 'eleve', id: 'kid1', op: 'put', data: { n: 'Léo Martin', lvl: 3, sport: 'Tennis', note: 'timide' } }]);   // la suite repart de sa fiche d'origine
+  // ---------- séance déplacée, supprimée, bilan publié ----------
+  const gm = await w('coach_creer_groupe', { nom: 'Mobile', sport: 'Padel', jour: 'lundi', heure: '18 h', debut: '2030-04-01', eleves: ['kid1'] });
+  await w('coach_cycle', { groupe_id: gm.groupe_id, nom: 'C1', ajouter_dates: ['2030-04-01', '2030-04-08'] });
+  await w('coach_seance', { groupe_id: gm.groupe_id, date: '2030-04-01', theme: 'Volée', presents: ['kid1'], lieu: 'Extérieur' });
+  const mv = await w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-01', nouvelle_date: '2030-04-03' });
+  assert.equal(mv.vers, '2030-04-03');
+  const gr2 = () => ram.itemsOf(club.id, 'group').then(l => l.find(x => x.id === gm.groupe_id).data);
+  assert.deepEqual((await gr2()).cycles[0].dates, ['2030-04-03', '2030-04-08'], 'le cycle suit la séance');
+  const sm = await ram.itemsOf(club.id, 'seance');
+  assert.equal(sm.find(x => x.id === gm.groupe_id + '.2030-04-03').data.theme, 'Volée');
+  assert.ok(!sm.some(x => x.id === gm.groupe_id + '.2030-04-01'), 'plus rien à l’ancienne date');
+  await assert.rejects(w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', nouvelle_date: '2030-04-08' }), /déjà une séance/);
+  await assert.rejects(w('coach_supprimer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03' }), /appel/);
+  await w('coach_supprimer_seance', { groupe_id: gm.groupe_id, date: '2030-04-08' });
+  assert.deepEqual((await gr2()).cycles[0].dates, ['2030-04-03']);
+  await assert.rejects(w('coach_seance', { groupe_id: gm.groupe_id, date: '2030-04-08' }), /Pas de séance/);
+  await w('coach_bilan_brouillon', { groupe_id: gm.groupe_id, date: '2030-04-03', bilan_groupe: 'Bien', personnels: { kid1: 'Continue' } });
+  assert.deepEqual((await w('coach_publier_bilan', { groupe_id: gm.groupe_id, date: '2030-04-03' })).commentaires_personnels, ['Léo Martin']);
+  assert.equal((await ram.itemsOf(club.id, 'seance')).find(x => x.id === gm.groupe_id + '.2030-04-03').data.recap, 'Bien');
+  assert.equal((await ram.itemsOf(club.id, 'brouillon')).length, 0, 'le brouillon est parti');
+  assert.equal((await ram.itemsOf(club.id, 'suivi')).filter(x => x.data.k === 'bilan' && x.data.to === 'kid1').length, 1);
+  const pc2 = await w('coach_modifier_groupe', { groupe_id: gm.groupe_id, tarif_mode: 'eleve', tarif_prix: 20, heure: '19 h', jour: 'mardi', lieu: 'Extérieur', nom: 'Mobile 2' });
+  assert.deepEqual([pc2.groupe, pc2.tarif, pc2.creneau], ['Mobile 2', { mode: 'eleve', prix: 20 }, 'mardi 19 h · 1 h']);
+  assert.equal((await ram.itemsOf(club.id, 'chan')).find(x => x.id === gm.groupe_id).data.name, 'Mobile 2', 'la discussion suit');
+  await w('coach_modifier_groupe', { groupe_id: gm.groupe_id, jour: 'lundi' });
+  assert.equal((await w('coach_message_groupe', { groupe_id: gm.groupe_id, texte: 'Salut' })).a.length, 1);
+  // ---------- doublons : tout passe sur la fiche gardée ----------
+  const d1 = await w('coach_ajouter_eleve', { prenom: 'Zoé', nom: 'Un', groupe_id: gm.groupe_id }), d2 = await w('coach_ajouter_eleve', { prenom: 'Zoé', nom: 'Deux' });
+  await w('coach_noter_achats', { achats: [{ eleve: d1.eleve_id, produit: 'Pack 4', date: '2030-02-01' }, { eleve: d2.eleve_id, produit: 'Individuel', date: '2030-02-02' }] });
+  await w('coach_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', presents: [d1.eleve_id] });
+  await w('coach_envoyer_message', { eleve_id: d1.eleve_id, texte: 'Coucou' });
+  await w('coach_fusionner_eleves', { garder: d2.eleve_id, doublon: d1.eleve_id });
+  const fich = (await ram.itemsOf(club.id, 'eleve')).map(x => x.id);
+  assert.ok(fich.includes(d2.eleve_id) && !fich.includes(d1.eleve_id));
+  assert.equal((await ram.itemsOf(club.id, 'eleve')).find(x => x.id === d2.eleve_id).data.achats.length, 2, 'aucun achat perdu');
+  assert.ok((await gr2()).ext.includes(d2.eleve_id) && !(await gr2()).ext.includes(d1.eleve_id));
+  assert.equal((await ram.itemsOf(club.id, 'seance')).find(x => x.id === gm.groupe_id + '.2030-04-03').data.pres[d2.eleve_id], 'P');
+  assert.equal((await ram.itemsOf(club.id, 'suivi')).filter(x => x.data.to === d1.eleve_id).length, 0);
+  await assert.rejects(w('coach_relier_fiche', { eleve_id: d2.eleve_id, compte: 'Personne' }), /introuvable/);
+  // ---------- page publique, vacances, collectifs ----------
+  const pg = await w('coach_page_reservation', { ouvrir: true });
+  assert.equal(pg.page_ouverte, true); assert.ok(pg.lien_page.startsWith('/r/' + club.id));
+  assert.equal((await w('coach_page_reservation', { ouvrir: false })).lien_page, null);
+  await assert.rejects(w('coach_page_reservation', { adresses_ical: ['https://exemple.test/a.ics'] }), /Google/);
+  assert.equal((await w('coach_vacances_club', { periodes: [{ nom: 'Noël', du: '2030-12-21', au: '2031-01-03' }] })).periodes.length, 1);
+  assert.equal((await w('coach_disponibilites', {})).periodes.length, 1, 'les disponibilités restent');
+  const col2 = await w('coach_ouvrir_collectif', { mode: 'cours', sport: 'Padel', date: '2031-03-01', heure: '18 h', groupes: [{ de: '1', a: '3', minimum: 2 }] });
+  await w('coach_inscrire_collectif', { publication: col2.publication, date: '2031-03-01', groupe: 't1', eleve: 'kid1' });
+  assert.deepEqual((await w('coach_collectifs', {})).collectifs.find(x => x.publication === col2.publication).dates[0].groupes[0].inscrits, ['Léo Martin']);
+  await w('coach_inscrire_collectif', { publication: col2.publication, date: '2031-03-01', groupe: 't1', eleve: 'kid1', retirer: true });
+  assert.deepEqual((await w('coach_collectifs', {})).collectifs.find(x => x.publication === col2.publication).dates[0].groupes[0].inscrits, []);
+  // ---------- /RAM Club : mur (texte échappé), discussion, bar ----------
+  const pub = await w('club_publier', { titre: 'Fermeture', texte: 'Le club <b>ferme</b>' });
+  assert.equal((await ram.itemsOf(club.id, 'post')).find(x => x.id === pub.publication).data.body, 'Le club &lt;b&gt;ferme&lt;/b&gt;', 'jamais de code dans une publication');
+  assert.equal((await w('club_ecrire_discussion', { discussion_id: gm.groupe_id, texte: 'Bonjour' })).envoye, true);
+  assert.equal((await w('club_discussions', { discussion_id: gm.groupe_id })).discussions[0].derniers[0].texte, 'Bonjour');
+  await assert.rejects(w('club_ecrire_discussion', { discussion_id: 'rien', texte: 'x' }), /introuvable/);
+  assert.ok(Array.isArray((await w('club_bar', {})).reservations));
+  assert.ok(Array.isArray((await w('club_adhesions', {})).a_valider));
+  // ---------- /RAM JA : tournoi et animation du compte, jamais ceux d'un autre ----------
+  const tj = await w('ja_creer_tournoi', { nom: 'Open MCP' });
+  await w('ja_inscrire', { id: tj.id, joueur1: { prenom: 'A', nom: 'Un' }, joueur2: { prenom: 'B', nom: 'Deux' } });
+  const ip = await w('ja_inscrits', { id: tj.id });
+  assert.equal(ip.paires.length, 1);
+  await assert.rejects(w('ja_inscrire', { id: tj.id, joueur1: { nom: 'Seul' } }), /paire/);
+  await w('ja_retirer', { id: tj.id, inscrit_id: ip.paires[0].inscrit_id });
+  assert.equal((await w('ja_inscrits', { id: tj.id })).paires.length, 0);
+  assert.equal((await w('ja_matchs', { id: tj.id })).matchs.length, 0);
+  await assert.rejects(w('ja_inscrire', { id: 't2', joueur1: { nom: 'X' }, joueur2: { nom: 'Y' } }), /introuvable/, 'le tournoi d’un autre compte');
+  await assert.rejects(w('ja_matchs', { id: 't2' }), /introuvable/);
+  const an = await w('ja_creer_tournoi', { nom: 'Americano', type: 'animation', format: 'americano' });
+  for (const n of ['Ana', 'Ben', 'Cléo', 'Dan']) await w('ja_inscrire', { id: an.id, joueur1: { nom: n } });
+  const mch = await w('ja_manche_suivante', { id: an.id });
+  assert.equal(mch.matchs.length, 1);
+  const pts = rooms.get(an.id).row.state.ani.scoring.points;
+  await w('ja_saisir_score', { id: an.id, match_id: mch.matchs[0].match_id, score_a: pts - 1, score_b: 1 });
+  assert.equal((await w('ja_matchs', { id: an.id })).matchs[0].score, (pts - 1) + '-1');
   const md = await w('coach_modifier_groupe', { groupe_id: ec.groupe_id, fin: '2030-01-23', retirer_dates: ['2030-01-09'], ajouter_dates: ['2030-01-11'] });
   assert.deepEqual([md.debut, md.fin, md.prochaines_seances], ['2030-01-02', '2030-01-23', ['2030-01-02', '2030-01-11', '2030-01-16', '2030-01-23']]);
   await assert.rejects(w('coach_modifier_groupe', { groupe_id: ec.groupe_id }), /Rien à modifier/);
@@ -222,7 +301,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(it('chan', once.groupe_id), undefined, 'une séance ponctuelle n’a pas de discussion');
   const cours = sync.items.find(x => x.coll === 'cours' && x.data.once === '2026-03-18').data;
   assert.equal(Object.keys(it('seance', sync.items.find(x => x.data === cours).id + '.2026-03-18').pres).length, 2);
-  assert.equal(sync.items.filter(x => x.coll === 'suivi' && x.data.to === 'kid1').length, 1);
+  assert.equal(sync.items.filter(x => x.coll === 'suivi' && x.data.to === 'kid1').length, 3);
   assert.equal((await use('coach_echelles')).Tennis.levels.length, 2);
   // un brouillon reste invisible pour les adhérents
   const adh = await ram.join({ id: 'U3', name: 'Paul Adh' }, club.code);

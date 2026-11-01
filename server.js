@@ -725,7 +725,7 @@ async function firstJaVisit(u) {
   if ((await store.listTournaments(u.id).catch(() => [])).some(Access.isExample)) return;   // déjà un tournoi d'exemple (compte créé avant cette règle)
   await newTournament(u.id, { demo: true, example: true, name: 'Tournoi d\'exemple' }).catch(e => console.error('Tournoi d\'exemple :', e.message));
 }
-const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin });
+const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin, newTournament, applyServerAction, accessFor });
 /* réservation ou annulation Calendly → planning de l'enseignant : le compte /RAM de l'hôte (même e-mail), sinon CALENDLY_COMPTE */
 taches.on('calendly', async b => {
   const relie = b.hote && ((await store.getSetting('calendly-hotes').catch(() => null)) || {})[b.hote];   // l'enseignant a relié ce Calendly depuis /RAM Coach

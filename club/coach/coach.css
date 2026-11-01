@@ -1317,70 +1317,184 @@ button.copp:hover span:last-child {
   position: sticky;
   top: 0;
   z-index: 5;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
 }
 .cotopact .btn {
-  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  min-height: 56px;
+  margin: 0;
+  padding: 6px 2px;
+  font-size: 13px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.cotopact .btn svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
   margin: 0;
 }
-.cocols {
-  display: grid;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  align-items: start;
+.cotopact .btn span {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
 }
-.cocol {
+@media (min-width: 768px) {
+  .cotopact .btn {
+    flex-direction: row;
+    gap: 8px;
+    min-height: 46px;
+    font-size: 15px;
+  }
+}
+/* la sélection du club, à droite du bandeau */
+.cotopclub {
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 46%;
+  margin-left: auto;
 }
-.cocolh {
-  margin: 0 0 8px;
-  padding: 8px 10px;
-  border-radius: var(--rb);
-  background: var(--card);
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: capitalize;
+.cotopclub select {
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card2);
+  color: var(--tx, inherit);
+  font: inherit;
+  font-size: 14px;
+  text-overflow: ellipsis;
 }
-.cocol.today .cocolh {
+.cotopclub .sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+/* vue semaine : 7 petites colonnes, comme un agenda */
+.cowg {
+  --cowg: 34px;
+  gap: 0 !important;
+  padding: 0 !important;
+  margin-top: 8px;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.cowh {
+  padding-left: var(--cowg);
+  border-bottom: 1px solid var(--line);
+}
+.cowjs,
+.cowvs {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.cowj {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cowj b {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--tx, inherit);
+  font-size: 16px;
+  font-weight: 700;
+}
+.cowj.today {
+  color: var(--accent-tx, var(--accent));
+}
+.cowj.today b {
   background: var(--accent);
   color: var(--on-accent);
 }
-.cocol .coses {
-  flex-direction: column;
-  width: 100%;
-  margin-bottom: 8px;
+.cowj .comatt {
+  top: 4px;
+  right: 4px;
 }
-.cocolv {
-  text-align: center;
+.cowvs {
+  gap: 2px 0;
+  padding-bottom: 4px;
 }
-.cowphone {
+.cowv {
+  overflow: hidden;
+  margin: 0 1px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cowc {
+  position: relative;
+}
+.cowc .cogh span {
+  width: var(--cowg);
+  padding: 2px 3px;
+  font-size: 10px;
+}
+.cowl {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--line);
+  margin-right: -2px;
+}
+.cowl.today {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.cowf {
+  position: absolute;
+  border-radius: 3px;
+  background: var(--card2);
+  opacity: 0.55;
+}
+.cogb.cowb {
+  z-index: 1;
+  min-height: 18px;
+  padding: 1px 2px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.cogb.cowb b {
   display: none;
 }
-@media (max-width: 767px) {
-  .cowdesk {
-    display: none;
+@media (min-width: 768px) {
+  .cowg {
+    --cowg: 44px;
   }
-  .cowphone {
-    display: flex;
+  .cogb.cowb {
+    padding: 2px 5px;
+    font-size: 12px;
   }
-  .cocols {
+  .cogb.cowb b {
     display: block;
-    overflow: visible;
-  }
-  .cocol {
-    display: none;
-  }
-  .cocol.on {
-    display: block;
-  }
-  .cocol .cocolh {
-    display: none;
-  }
-  .cocol .coses {
-    flex-direction: row;
   }
 }
 /* C06 : carte d'identité de l'élève */
@@ -1626,7 +1740,7 @@ button.copp:hover span:last-child {
 }
 /* Planning sur ordinateur : la semaine occupe toute la largeur */
 @media (min-width: 1024px) {
-  #main > .pad:has(> .cocols) {
+  #main > .pad.covues {
     max-width: none !important;
   }
 }

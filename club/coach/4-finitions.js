@@ -468,9 +468,52 @@ render = function () {
     );
     if (coMobile() && typeof topPad === 'function') topPad();
   }
+  if (top && S.tab === 'planning' && !S.stack.length && top.querySelector('h1') && !top.querySelector('.cotopclub'))
+    top.querySelector('h1').insertAdjacentHTML('afterend', coTopClub());
   if ($('codrawer') && $('phone').classList.contains('drawer-open')) $('codrawer').innerHTML = coDrawerHTML();
   return r;
 };
+document.addEventListener('change', e => {
+  if (e.target.id !== 'co-topclub') return;
+  S.coClub = e.target.value;
+  render(true);
+});
+/* planning : glisser le doigt passe au jour, à la semaine ou au mois suivant (le bord gauche reste au menu) */
+(function () {
+  let g = null;
+  document.addEventListener(
+    'touchstart',
+    e => {
+      g = null;
+      if (
+        S.tab !== 'planning' ||
+        S.stack.length ||
+        e.touches.length !== 1 ||
+        $('sheet') ||
+        $('phone').classList.contains('drawer-open')
+      )
+        return;
+      const t = e.touches[0];
+      if (t.clientX < 24 || !e.target.closest('#main') || e.target.closest('input,select,textarea,.chips')) return;
+      g = { x: t.clientX, y: t.clientY, at: Date.now() };
+    },
+    { passive: true }
+  );
+  document.addEventListener('touchend', e => {
+    if (!g) return;
+    const t = e.changedTouches[0],
+      dx = t.clientX - g.x,
+      dy = t.clientY - g.y,
+      vite = Date.now() - g.at < 800;
+    g = null;
+    if (!vite || Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const n = dx < 0 ? 1 : -1;
+    if (S.pl.v === 'jour') A.coJour({ n });
+    else if (S.pl.v === 'mois') A.coMois({ n });
+    else A.coWeek({ n });
+  });
+  document.addEventListener('touchcancel', () => (g = null));
+})();
 /* téléphone : le même geste que /RAM JA (public/js/rail.js). Glisser du bord gauche vers la droite ouvre le volet,
    vers la gauche le ferme ; le volet suit le doigt, puis s'ouvre ou se referme au relâcher.
    Le geste du bord gauche ouvre uniquement le menu : on bloque le « retour à la page précédente » du navigateur (iPhone). */

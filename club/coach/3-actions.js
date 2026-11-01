@@ -77,6 +77,7 @@ Object.assign(A, {
   },
   coJour(d) {
     S.pl.j = isoIn(+d.n, S.pl.j || TODAY);
+    S.dir = +d.n;
     render();
   },
   coJourOpen(d) {
@@ -86,25 +87,12 @@ Object.assign(A, {
   },
   coMois(d) {
     S.pl.m = (S.pl.m || 0) + +d.n;
+    S.dir = +d.n;
     render();
   },
   coWeek(d) {
     S.pl.w += +d.n;
     S.pl.d = 0;
-    S.dir = +d.n;
-    render();
-  },
-  /* sur téléphone : un jour à la fois, la semaine change aux extrémités */
-  coDay(d) {
-    let i = coPlDay() + +d.n;
-    if (i < 0) {
-      S.pl.w--;
-      i = 6;
-    } else if (i > 6) {
-      S.pl.w++;
-      i = 0;
-    }
-    S.pl.d = i;
     S.dir = +d.n;
     render();
   },
