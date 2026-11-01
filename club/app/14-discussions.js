@@ -231,6 +231,93 @@ const chanCanDel = c => {
     !!(g && g.coach && (g.coach === ME() || (typeof coIsMe === 'function' && coIsMe(g.coach))))
   );
 };
+/* ---------- réglages d'une discussion : son nom, sa règle d'accès, ajouter ou retirer quelqu'un ----------
+   le bureau et l'enseignant du groupe. Ces réglages ne concernent que cette discussion ; le serveur fait respecter la règle. */
+const chanCanCfg = c => {
+  if (!c) return false;
+  const g = typeof grp === 'function' ? grp(c.id) : null;
+  return (
+    isBureau() ||
+    !!S.super ||
+    !!(g && g.coach && (g.coach === ME() || (typeof coIsMe === 'function' && coIsMe(g.coach))))
+  );
+};
+const chanCfgBtn = c =>
+  chanCanCfg(c)
+    ? `<button class="ib" data-a="chanCfg" data-id="${c.id}" aria-label="Réglages de la discussion ${esc(c.name)}">${ic('gear')}</button>`
+    : '';
+const CHAN_ACCES = [
+  ['tous', 'Tous les adhérents'],
+  ['groupe', 'Les membres du groupe'],
+  ['invite', 'Sur invitation']
+];
+const chanKeys = () =>
+  Object.keys(M)
+    .filter(k => k !== 'club')
+    .sort((a, b) => name(a).localeCompare(name(b)));
+const chanIn = (c, k) => REGLES.chanOuvert(c, grp(c.id), [k]);
+A.chanCfg = d => {
+  const c = chans.find(x => x.id === d.id);
+  if (!chanCanCfg(c)) return;
+  const g = grp(c.id);
+  sheet(
+    'Réglages de la discussion',
+    `<form class="body" id="chan-cfg" data-id="${c.id}"><div class="fld"><label for="cc-n">Nom</label><input id="cc-n" required maxlength="60" value="${esc(c.name)}"></div><div class="fld"><label for="cc-a">Qui y a accès</label><select id="cc-a">${CHAN_ACCES.filter(
+      x => g || x[0] !== 'groupe'
+    )
+      .map(x => `<option value="${x[0]}" ${(c.acces || 'tous') === x[0] ? 'selected' : ''}>${x[1]}</option>`)
+      .join(
+        ''
+      )}</select></div><span class="kicker">Participants</span><p class="muted small">Ajouter ou retirer quelqu'un prime sur la règle d'accès.</p><div class="fld"><input id="cc-q" type="search" placeholder="Rechercher" aria-label="Rechercher un adhérent"></div><div class="ccl">${chanKeys()
+      .map(
+        k =>
+          `<div class="ct" data-n="${esc(fold0(name(k)))}">${av(k, 'sm')}<span class="grow">${esc(name(k))}</span><button type="button" class="tg" role="switch" aria-checked="${chanIn(c, k)}" data-a="chanWho" data-id="${c.id}" data-k="${k}" aria-label="${esc(name(k))} dans la discussion"></button></div>`
+      )
+      .join(
+        ''
+      )}</div><button class="btn full">Enregistrer</button>${chanCanDel(c) ? `<button type="button" class="btn full ghost" data-a="chanDel" data-id="${c.id}">${ic('trash')}Supprimer la discussion</button>` : ''}</form>`
+  );
+};
+const chanPaint = c =>
+  document
+    .querySelectorAll('#chan-cfg [data-a="chanWho"]')
+    .forEach(b => b.setAttribute('aria-checked', String(chanIn(c, b.dataset.k))));
+A.chanWho = d => {
+  const c = chans.find(x => x.id === d.id);
+  if (!chanCanCfg(c)) return;
+  const on = chanIn(c, d.k);
+  c.plus = (c.plus || []).filter(k => k !== d.k);
+  c.moins = (c.moins || []).filter(k => k !== d.k);
+  // le choix à la main, s'il diffère de ce que donne la règle seule
+  const rule = chanIn(c, d.k);
+  if (on && rule) c.moins.push(d.k);
+  else if (!on && !rule) c.plus.push(d.k);
+  chanPaint(c);
+  render(true);
+};
+document.addEventListener('change', e => {
+  if (e.target.id !== 'cc-a') return;
+  const c = chans.find(x => x.id === $('chan-cfg').dataset.id);
+  if (!c) return;
+  c.acces = e.target.value;
+  chanPaint(c);
+});
+document.addEventListener('input', e => {
+  if (e.target.id !== 'cc-q') return;
+  const q = fold0(e.target.value);
+  document.querySelectorAll('.ccl .ct').forEach(r => (r.hidden = !!q && !r.dataset.n.includes(q)));
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'chan-cfg') return;
+  e.preventDefault();
+  const c = chans.find(x => x.id === e.target.dataset.id);
+  if (!chanCanCfg(c)) return;
+  c.name = $('cc-n').value.trim().slice(0, 60) || c.name;
+  c.acces = $('cc-a').value;
+  closeSheet();
+  render();
+  toast('Discussion réglée');
+});
 const chanDelBtn = c =>
   chanCanDel(c)
     ? `<button class="ib" data-a="chanDel" data-id="${c.id}" aria-label="Supprimer le groupe de discussion ${esc(c.name)}">${ic('trash')}</button>`

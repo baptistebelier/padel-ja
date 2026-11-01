@@ -48,37 +48,11 @@ function coGrpOffer(g) {
       : `data-a="${t === 'pack' ? 'coPkEdit' : t === 'abo' ? 'coAbEdit' : 'coFoEdit'}" data-id="${ref}"`;
   return `<button class="cotile cotile-go" ${act}>${ic('ball')}<b class="cotxt">${found ? esc(ofLabel(t, ref)) : 'À choisir'}</b><span>Formule · modifier</span></button>`;
 }
-/* le cycle : un segment par séance, comme une suite de stories. Faites : couleur d'accent ; aujourd'hui : orange ;
-   à venir : discrètes ; annulées : barrées. Une séance reportée suit sa nouvelle date. Un groupe sans fin de cycle
-   montre ses 8 dernières séances et les 8 suivantes. */
-function coCycleBar(g) {
-  const all = coDates(g, g.from || isoIn(-365), g.to || isoIn(180)),
-    l = g.to
-      ? all
-      : all
-          .filter(d => d < TODAY)
-          .slice(-8)
-          .concat(all.filter(d => d >= TODAY).slice(0, 9));
-  if (!l.length) return '';
-  const st = d => (isCx(g, d) ? 'cx' : d === TODAY ? 'now' : d < TODAY ? 'done' : 'next'),
-    n = k => all.filter(d => st(d) === k).length,
-    lab = { done: 'Faite', now: "Aujourd'hui", next: 'À venir', cx: 'Annulée' },
-    faites = n('done') + n('now'),
-    total = all.length - n('cx'),
-    pk = (g.offre || '').startsWith('pack:') ? OFFRES.packs.find(p => p.id === g.offre.slice(5)) : null;
-  return `<div class="cocycle"><div class="cocyct"><b>${g.to ? faites + ' sur ' + total : faites}</b><span class="muted small">${g.to ? 'séances faites' : faites > 1 ? 'séances faites' : 'séance faite'}${pk ? ' · pack de ' + pk.seances : ''}</span></div><div class="cocycb" role="img" aria-label="${faites} séances faites, ${n('next')} à venir">${l.map(d => `<i class="${st(d)}" title="${fmtD(d)} · ${lab[st(d)]}"></i>`).join('')}</div><div class="cocycl">${[
-    'done',
-    'now',
-    'next',
-    'cx'
-  ]
-    .filter(k => l.some(d => st(d) === k))
-    .map(
-      k =>
-        `<span><i class="${k}"></i>${lab[k] === 'Faite' ? 'Faites' : lab[k] === 'Annulée' ? 'Annulées' : lab[k]}</span>`
-    )
-    .join('')}</div></div>`;
-}
+/* la jauge du cycle (ui/7-ecole.js), avec la taille du pack */
+const coCycleBar = g => {
+  const pk = (g.offre || '').startsWith('pack:') ? OFFRES.packs.find(p => p.id === g.offre.slice(5)) : null;
+  return cycleBar(g, pk ? ' · pack de ' + pk.seances : '');
+};
 
 /* ---------- périodes sans cours (vacances scolaires, fermeture du club…) ----------
    g.off = [{ nom, du, au }] : le créneau du groupe ne donne pas de séance ces jours-là (data.js trainOn) ;

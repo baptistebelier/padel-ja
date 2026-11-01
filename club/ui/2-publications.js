@@ -288,4 +288,7 @@ const msgRow = (m, i, sport, ref, fresh) => {
 const muteBtn = c =>
   `<button class="ib ${c.mute ? 'off' : ''}" data-a="mute" data-id="${c.id}" aria-pressed="${!!c.mute}" aria-label="${c.mute ? 'Réactiver les notifications de ' + c.name : 'Mettre ' + c.name + ' en sourdine'}">${ic(c.mute ? 'mute' : 'sound')}</button>`;
 /* Un compte jeune ne voit que les annonces et les canaux de son groupe */
-const chanOk = c => S.role !== 'kid' || c.id === 'annonces' || c.kid;
+const chanOk = c =>
+  (S.role !== 'kid' || c.id === 'annonces' || c.kid) &&
+  // démonstration : le serveur ne garde déjà que les discussions ouvertes à chacun
+  (isAdmin() || !REGLES.chanRegle(c) || REGLES.chanOuvert(c, grp(c.id), [ME()].concat((M[ME()] || {}).kids || [])));

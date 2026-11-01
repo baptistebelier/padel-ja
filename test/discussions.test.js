@@ -56,3 +56,32 @@ test('discussions : en train d’écrire, lu par tous', async () => {
   assert.deepEqual(info.delivered, [{ key: keys.B, at: 4500 }], 'distribué à Hugo, pas encore lu');
   await assert.rejects(ram.msgInfo('C', club.id, 'mA'), /auteur/);
 });
+
+test('réglages d’une discussion : la règle et le choix à la main sont respectés par le serveur', async () => {
+  const club = await ram.create({ id: 'B2', name: 'Hugo Martin' }, { name: 'TC Réglages', short: 'TCR' });
+  const keys = { B2: (await ram.myClubs('B2')).find(c => c.id === club.id).key };
+  await ram.ops('B2', club.id, [{ coll: 'conf', id: 'main', op: 'put', data: { season: '2026' } }]);
+  for (const [id, name] of [['A2', 'Inès Faure'], ['C2', 'Paul Girard']]) {
+    await ram.join({ id, name }, club.code);
+    const k = (await ram.myClubs(id)).find(c => c.id === club.id).key;
+    keys[id] = k;
+    await ram.ops('B2', club.id, [{ coll: 'member', id: k, op: 'put', data: { n: name, valid: '2026' } }]);
+  }
+  await ram.ops('B2', club.id, [
+    { coll: 'chan', id: 'prive', op: 'put', data: { g: 'club', name: 'Privé', acces: 'invite', plus: [keys.A2] } },
+    { coll: 'msg', id: 'm1', op: 'put', data: { ref: 'c:prive', by: keys.B2, x: 'Secret', at: 1000 } },
+    { coll: 'chan', id: 'libre', op: 'put', data: { g: 'club', name: 'Libre' } }
+  ]);
+  const a = await ram.sync('A2', club.id, 0), c0 = await ram.sync('C2', club.id, 0);
+  assert.ok(item(a, 'chan', 'prive') && item(a, 'msg', 'm1'), 'invitée : elle la voit');
+  assert.ok(!item(c0, 'chan', 'prive') && !item(c0, 'msg', 'm1'), 'pas invité : ni la discussion ni ses messages');
+  assert.ok(item(c0, 'chan', 'libre'), 'une discussion sans réglage reste ouverte');
+  const refus = await ram.ops('C2', club.id, [{ coll: 'msg', id: 'm2', op: 'put', data: { ref: 'c:prive', by: keys.C2, x: 'Coucou', at: 1100 } }]);
+  assert.equal(refus.rejected.length, 1, 'il ne peut pas y écrire');
+  // retirée à la main : la discussion quitte son appareil ; lui, ajouté : il reçoit aussi les messages déjà écrits
+  await ram.ops('B2', club.id, [{ coll: 'chan', id: 'prive', op: 'put', data: { g: 'club', name: 'Privé', acces: 'invite', plus: [keys.C2], moins: [keys.A2] } }]);
+  const a2 = await ram.sync('A2', club.id, a.rev), c1 = await ram.sync('C2', club.id, c0.rev);
+  assert.ok(a2.items.some(i => i.coll === 'chan' && i.id === 'prive' && i.del), 'effacée chez elle');
+  assert.ok(item(c1, 'chan', 'prive') && item(c1, 'msg', 'm1'), 'il reçoit la discussion et ses messages');
+});
+

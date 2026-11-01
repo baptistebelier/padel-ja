@@ -180,7 +180,22 @@
     return { encaisse: r(encaisse), aEncaisser: r(aEncaisser), prepaye: r(prepaye), nonCouvertes, parMois };
   }
 
+  /* qui peut lire une discussion. ch.acces : tous, groupe (les membres du groupe) ou invite ; ch.plus et ch.moins : les
+     ajouts et retraits à la main, qui priment sur la règle. Une discussion sans réglage reste ouverte comme avant. */
+  const chanRegle = ch => !!ch && !!(ch.acces || (ch.plus || []).length || (ch.moins || []).length);
+  function chanOuvert(ch, g, keys) {
+    if (!ch) return false;
+    if ((ch.moins || []).some(k => keys.includes(k))) return false;
+    if ((ch.plus || []).some(k => keys.includes(k))) return true;
+    if (ch.acces === 'invite') return false;
+    if (ch.acces === 'groupe')
+      return !!g && [...(g.mem || []), ...(g.ext || []), g.coach, g.cap].some(k => k && keys.includes(k));
+    return true;
+  }
+
   return {
+    chanRegle,
+    chanOuvert,
     trainOn,
     durMin,
     fmt,

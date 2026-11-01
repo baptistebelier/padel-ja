@@ -586,3 +586,63 @@ test('Coach : le volet du menu suit le doigt, comme /RAM JA', async () => {
   await ctx.close();
 });
 
+test('Club : favoris avec du nouveau en tête, réglages d’une discussion, filtres de l’agenda, colonnes, Mes groupes', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof favIsNew === 'function' && typeof cycleBar === 'function');
+  // favoris : celui qui a du nouveau passe devant, avec le contour d'accent
+  const ordre = await page.evaluate(() => {
+    const [c1, c2] = chans.filter(c => chanOk(c)).slice(0, 2);
+    c1.un = 0; c2.un = 2; c2.mute = false; c2.msgs.push({ by: 'club', x: 'Nouveau', at: Date.now() });
+    S.favs = [{ v: 'chan', id: c1.id }, { v: 'chan', id: c2.id }];
+    S.tab = 'home'; S.stack = []; render();
+    const st = document.querySelectorAll('.stories .story[data-a="favGo"]');
+    return { first: st[0].dataset.k, want: 'chan|' + c2.id, calm: st[0].querySelector('.ring').classList.contains('calm'), calm2: st[1].querySelector('.ring').classList.contains('calm'), c2: c2.id };
+  });
+  assert.ok(ordre.first.includes(ordre.c2), 'la nouveauté à gauche');
+  assert.equal(ordre.calm, false, 'contour d’accent');
+  assert.equal(ordre.calm2, true);
+  // discussion : nom, règle, retrait à la main
+  await page.evaluate(() => { S.role = 'admin'; S.stack = [{ v: 'chan', id: 'general' }]; render(); });
+  await page.click('[data-a="chanCfg"]');
+  await page.fill('#cc-n', 'Le grand salon');
+  await page.selectOption('#cc-a', 'invite');
+  assert.equal(await page.locator('#chan-cfg [data-a="chanWho"][aria-checked="true"]').count(), 0, 'sur invitation : personne');
+  const k = await page.locator('#chan-cfg [data-a="chanWho"]').first().getAttribute('data-k');
+  await page.locator('#chan-cfg [data-a="chanWho"]').first().click();
+  assert.equal(await page.locator(`#chan-cfg [data-k="${k}"]`).getAttribute('aria-checked'), 'true', 'ajouté à la main');
+  await page.click('#chan-cfg .btn.full');
+  const r = await page.evaluate(k => { const c = chans.find(x => x.id === 'general'), o = chans.find(x => x.id === 'annonces'); return { name: c.name, acces: c.acces, plus: c.plus, autre: o.acces || '' }; }, k);
+  assert.deepEqual(r, { name: 'Le grand salon', acces: 'invite', plus: [k], autre: '' }, 'seule cette discussion change');
+  // agenda : les quatre vues occupent toute la largeur
+  await page.evaluate(() => { S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = 'week'; render(); });
+  await page.waitForSelector('#plan .pllegend');
+  const large = () => page.evaluate(() => { const m = document.getElementById('main').clientWidth, p = document.getElementById('plan').offsetWidth; return p >= m - 2; });
+  assert.ok(await large(), 'semaine sur toute la largeur');
+  assert.equal(await page.locator('.fbtn svg').evaluate(s => getComputedStyle(s).display !== 'none'), true, 'pictogramme des filtres');
+  await page.evaluate(() => { S.plan.mode = 'list'; render(); });
+  await page.waitForSelector('.plk .stack');
+  assert.ok(await large(), 'liste sur toute la largeur');
+  const col = await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).gridTemplateColumns.split(' ').length);
+  assert.ok(col >= 3, 'en colonnes');
+  // filtres : la couleur reste visible, l'état actif a sa coche
+  await page.click('[data-a="planFilters"]');
+  const f = page.locator('.chip.plf', { hasText: 'Cours' });
+  assert.equal(await f.getAttribute('aria-pressed'), 'true');
+  assert.ok(await f.locator('svg').count() >= 2, 'pictogramme et coche');
+  assert.notEqual(await f.evaluate(b => getComputedStyle(b).backgroundColor), await f.locator('.sq').evaluate(s => getComputedStyle(s).backgroundColor), 'le carré se distingue');
+  await page.click('[data-a="close"]');
+  // Mes groupes : plus de planning ni de création de stage
+  const html = await page.evaluate(() => ecoleBody('manage'));
+  assert.ok(!html.includes('Planning des cours'));
+  assert.ok(!html.includes('Créer un stage'));
+  assert.ok(html.includes('grpc') && html.includes('cocycb'), 'les groupes et leur jauge');
+  // sur 360 px : rien ne déborde
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.evaluate(() => { S.plan.mode = 'events'; render(); });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+

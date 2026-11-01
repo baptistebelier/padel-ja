@@ -82,6 +82,36 @@ function lockView(v) {
   const home = !v.id && v.v === 'home';
   return `<div class="pad"><div class="lockv"><span class="tile big">${ic('shield')}</span><h2 class="h3">${home ? 'Bienvenue au club' : 'Page pas encore accessible'}</h2><p>${home ? `Vous devez attendre que le club valide votre accès au club pour la saison sportive ${S.season}.` : `Ton compte doit être activé pour la saison sportive ${S.season} pour accéder à cette page. En attendant, tu as accès à ton profil.`}</p></div>${lockCard()}<button class="btn full ghost" data-a="tab" data-t="me">Voir mon profil</button></div>`;
 }
+/* le cycle d'un groupe : un segment par séance, comme une suite de stories. Faites : couleur d'accent ; aujourd'hui :
+   orange ; à venir : discrètes ; annulées : barrées. Une séance reportée suit sa nouvelle date. Un groupe sans fin de
+   cycle montre ses 8 dernières séances et les 8 suivantes. Commun au Club et au Coach. */
+function cycleBar(g, plus) {
+  const all = [],
+    end = g.to || isoIn(180);
+  for (let d = g.from || isoIn(-365); d <= end; d = isoIn(1, d)) if (trainOn(g, d)) all.push(d);
+  const l = g.to
+    ? all
+    : all
+        .filter(d => d < TODAY)
+        .slice(-8)
+        .concat(all.filter(d => d >= TODAY).slice(0, 9));
+  if (!l.length) return '';
+  const st = d => ((g.cancel || []).includes(d) ? 'cx' : d === TODAY ? 'now' : d < TODAY ? 'done' : 'next'),
+    n = k => all.filter(d => st(d) === k).length,
+    lab = { done: 'Faite', now: "Aujourd'hui", next: 'À venir', cx: 'Annulée' },
+    leg = { done: 'Faites', now: "Aujourd'hui", next: 'À venir', cx: 'Annulées' },
+    faites = n('done') + n('now'),
+    total = all.length - n('cx');
+  return `<div class="cocycle"><div class="cocyct"><b>${g.to ? faites + ' sur ' + total : faites}</b><span class="muted small">${faites > 1 || g.to ? 'séances faites' : 'séance faite'}${plus || ''}</span></div><div class="cocycb" role="img" aria-label="${faites} séances faites, ${n('next')} à venir">${l.map(d => `<i class="${st(d)}" title="${fmtD(d)} · ${lab[st(d)]}"></i>`).join('')}</div><div class="cocycl">${[
+    'done',
+    'now',
+    'next',
+    'cx'
+  ]
+    .filter(k => l.some(d => st(d) === k))
+    .map(k => `<span><i class="${k}"></i>${leg[k]}</span>`)
+    .join('')}</div></div>`;
+}
 /* Contenu de l'ancien onglet École, affiché par les filtres de l'Agenda */
 function ecoleBody(t) {
   const me = ME(),
@@ -125,21 +155,17 @@ function ecoleBody(t) {
         : empty('ball', 'Aucun stage prévu', '')) +
       (staff ? `<button class="btn full ghost" data-a="newPost" data-k="stage">Créer un stage</button>` : '');
   }
+  // Mes groupes : les groupes tout de suite ; les séances sont dans l'Agenda, la création de stage dans Stages
   if (t === 'manage') {
-    const all = GROUPS.filter(g => g.type === 'train' && (coach ? g.coach === me : true)),
-      gs = all.filter(grpLive);
+    const gs = GROUPS.filter(g => g.type === 'train' && (coach ? g.coach === me : true)).filter(grpLive);
     b =
-      `${coach ? `<div class="ctl"><button class="btn grow" data-a="newPost" data-k="train">Créer un groupe</button><button class="btn grow ghost" data-a="newPost" data-k="stage">Créer un stage</button></div>` : '<div class="note">Les groupes d\'entraînement sont créés par les enseignants.</div>'}<span class="kicker">Planning des cours · 2 semaines</span>` +
-      (all
-        .flatMap(g => sessions(g, 14).map(iso => ({ g, iso })))
-        .sort((a, b) => a.iso.localeCompare(b.iso) || hMin(a.g.h) - hMin(b.g.h))
-        .map(x => sessCard(x.g, x.iso, null, 1))
-        .join('') || empty('cal', 'Aucun cours', '')) +
-      `<span class="kicker">Groupes</span>` +
+      (coach
+        ? `<button class="btn full" data-a="newPost" data-k="train">${ic('plus')}Créer un groupe</button>`
+        : '<div class="note">Les groupes d\'entraînement sont créés par les enseignants.</div>') +
       gs
         .map(
           g =>
-            `<button class="item" data-a="open" data-v="grp" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${g.name}</span><br><span class="muted small">${g.coach && M[g.coach] ? esc(first(g.coach)) + ' · ' : ''}${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'En salle'}</span></span>${grpFull(g) ? '<span class="tag">Complet</span>' : ''}</button>`
+            `<button class="card grpc" data-a="open" data-v="grp" data-id="${g.id}"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${g.coach && M[g.coach] && !String(g.sub || '').includes(first(g.coach)) ? esc(first(g.coach)) + ' · ' : ''}${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'En salle'}</span>${cycleBar(g)}</button>`
         )
         .join('') +
       (gs.length

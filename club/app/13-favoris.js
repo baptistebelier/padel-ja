@@ -138,10 +138,42 @@ function favNew(f) {
   } catch (e) {}
   return false;
 }
+/* quand la nouveauté d'un favori est arrivée (pour mettre la plus récente d'abord) */
+function favNewAt(f) {
+  const last = l => (l || []).reduce((m, x) => Math.max(m, +x.at || 0), 0),
+    chanAt = c => last(c && c.msgs);
+  if (f.v === 'chan' || f.v === 'team' || f.v === 'grp') return chanAt(chans.find(x => x.id === f.id));
+  if (f.t === 'chans')
+    return Math.max(0, ...chans.filter(c => (!f.s || c.g === f.s) && !c.mute && c.un > 0).map(chanAt));
+  if (f.t === 'club' && f.s === 'actus') return last(arts);
+  return 0;
+}
+/* une catégorie : sa nouveauté est vue quand on l'ouvre (sur cet appareil) */
+function favSeen() {
+  if (!S.favSeen) {
+    try {
+      S.favSeen = JSON.parse(localStorage.getItem('club-favseen') || '{}');
+    } catch (e) {
+      S.favSeen = {};
+    }
+  }
+  return S.favSeen;
+}
+function favIsNew(f) {
+  if (!favNew(f)) return false;
+  if (f.v || f.t !== 'chans') return true; // discussion, équipe, direct, demandes : la page elle-même dit quand c'est vu
+  const seen = favSeen()[favKey(f)];
+  return !seen || favNewAt(f) > seen;
+}
 /* tuiles de la frise : mes favoris (ou les pages que j'ouvre le plus), puis « Modifier » */
 function favStrip(st) {
   const mine = S.favs.filter(f => favMeta(f)),
-    list = mine.length ? mine : favUsual(),
+    base = mine.length ? mine : favUsual(),
+    // ceux qui ont du nouveau d'abord, le plus récent en tête ; les autres gardent mon ordre
+    list = base
+      .filter(favIsNew)
+      .sort((a, b) => favNewAt(b) - favNewAt(a))
+      .concat(base.filter(f => !favIsNew(f))),
     tile = (f, i) => {
       const m = favMeta(f);
       return st(
@@ -149,7 +181,7 @@ function favStrip(st) {
         `data-k="${esc(favKey(f))}"`,
         m.a ? av(m.a, 'sm') : ic(m.i),
         esc(m.l),
-        favNew(f) ? '' : 'calm'
+        favIsNew(f) ? '' : 'calm'
       );
     };
   return {
@@ -183,6 +215,10 @@ Object.assign(A, {
   favGo(d) {
     const f = S.favs.concat(favUsual()).find(x => favKey(x) === d.k);
     if (!f) return;
+    favSeen()[favKey(f)] = Date.now();
+    try {
+      localStorage.setItem('club-favseen', JSON.stringify(S.favSeen));
+    } catch (e) {}
     if (f.v) {
       S.stack = [{ v: f.v, id: f.id || undefined }];
       render();

@@ -232,6 +232,27 @@ function agendaView() {
   return planView();
 }
 I.filter = '<path d="M4 6h16M7 12h10M10 18h4"/>';
+Object.assign(I, {
+  cCours: '<path d="M3 9l9-5 9 5-9 5z"/><path d="M7 12v5c3 2 7 2 10 0v-5"/>',
+  cTour: '<path d="M7 4h10v6a5 5 0 01-10 0zM7 6H4v2a3 3 0 003 3M17 6h3v2a3 3 0 01-3 3M12 15v4M8 20h8"/>',
+  cRepas: '<path d="M7 3v8M4 3v5a3 3 0 006 0V3M7 11v10M17 3c-2 2-3 5-3 8h3v10"/>'
+});
+/* les types de l'agenda : leur couleur (carré) et leur pictogramme */
+const PLAN_CATS = [
+  ['ens', 'Cours', 'cCours'],
+  ['jeu', 'Parties', 'ball'],
+  ['ani', 'Événements', 'cal'],
+  ['tour', 'Tournois', 'cTour'],
+  ['eq', 'Équipes', 'users'],
+  ['repas', 'Repas', 'cRepas']
+];
+/* rappel des couleurs, au-dessus de la semaine */
+const planLegend = () =>
+  `<div class="pllegend" aria-label="Couleurs de l'agenda">${PLAN_CATS.filter(
+    x => (x[0] !== 'repas' || S.plan.scope === 'me') && S.plan.cat[x[0]]
+  )
+    .map(x => `<span><i class="sq ${x[0]}"></i>${ic(x[2])}${x[1]}</span>`)
+    .join('')}</div>`;
 /* filtres de l'agenda : nombre de filtres actifs (types masqués, sport masqué, « seulement les miens ») */
 function planFilterCount() {
   const P = S.plan,
@@ -246,10 +267,13 @@ function planFilterCount() {
 function planFiltersBody() {
   const P = S.plan,
     me = P.scope === 'me',
-    chip = (g, k, l, c) =>
-      `<button class="chip" data-a="planF" data-g="${g}" data-k="${k}" aria-pressed="${!!P[g][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
+    // filtre actif : contour épais et coche, la couleur du type reste visible
+    chip = (g, k, l, c, i) =>
+      `<button class="chip plf" data-a="planF" data-g="${g}" data-k="${k}" aria-pressed="${!!P[g][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${i ? ic(i) : ''}${l}${P[g][k] ? ic('check') : ''}</button>`;
   return `<div class="body">${me ? '' : `<span class="kicker">Afficher</span><div class="chips wrap"><button class="chip" data-a="planMine" aria-pressed="${!!P.mine}">${ic('user')}Seulement les miens</button></div>`}
- <span class="kicker">Types</span><div class="chips wrap">${chip('cat', 'ens', 'Cours', 'ens')}${chip('cat', 'jeu', 'Parties', 'jeu')}${chip('cat', 'ani', 'Événements', 'ani')}${chip('cat', 'tour', 'Tournois', 'tour')}${chip('cat', 'eq', 'Équipes', 'eq')}${me ? chip('cat', 'repas', 'Repas', 'repas') : ''}</div>
+ <span class="kicker">Types</span><div class="chips wrap">${PLAN_CATS.filter(x => me || x[0] !== 'repas')
+   .map(x => chip('cat', x[0], x[1], x[0], x[2]))
+   .join('')}</div>
  <span class="kicker">Sports</span><div class="chips wrap">${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>
  <div class="ctl"><button class="btn ghost grow" data-a="planReset">Tout afficher</button><button class="btn grow" data-a="close">Voir l’agenda</button></div></div>`;
 }
@@ -282,7 +306,7 @@ function eventsView() {
   }
   return `<div class="pad">${
     days.length
-      ? days.map(([iso, l]) => l.map(i => planCard(i, iso)).join('')).join('')
+      ? `<div class="plk">${days.map(([iso, l]) => `<section class="plc"><span class="kicker plc-h">${fmtD(iso)}</span>${l.map(i => planCard(i, iso)).join('')}</section>`).join('')}</div>`
       : me
         ? empty(
             'cal',
@@ -336,7 +360,7 @@ function planView() {
     nf = planFilterCount(),
     modes =
       scopes +
-      `<div class="chips plan-modes">${views.map(mode).join('')}<button class="chip fbtn" data-a="planFilters" aria-pressed="${nf > 0}" aria-label="Filtres${nf ? ', ' + nf + ' actifs' : ''}">${ic('filter')}${nf ? `<span class="cnt">${nf}</span>` : ''}</button></div>`;
+      `<div class="chips plan-modes">${views.map(mode).join('')}<button class="chip fbtn" data-a="planFilters" aria-pressed="${nf > 0}" aria-label="Filtres${nf ? ', ' + nf + ' actifs' : ''}">${ic('filter')}<span class="fbl">Filtres</span>${nf ? `<span class="cnt">${nf}</span>` : ''}</button></div>`;
   if (P.mode === 'events') return eventsView().replace('<div class="pad">', '<div class="pad" id="plan">' + modes);
   const chip = (g2, k, l, c) =>
     `<button class="chip" data-a="planF" data-g="${g2}" data-k="${k}" aria-pressed="${!!P[g2][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
@@ -353,5 +377,5 @@ function planView() {
     })
     .join('')}</div>`;
   return `<div class="pad" id="plan">${modes}<div class="row" style="justify-content:space-between"><button class="ib rnd" data-a="planNav" data-n="-1" aria-label="${byDay ? 'Jour précédent' : 'Semaine précédente'}">${ic('back')}</button><span class="h3">${byDay ? fmtD(P.d) : 'Du ' + fmtD(days[0], 1) + ' au ' + fmtD(days[6], 1)}</span><button class="ib rnd" style="rotate:180deg" data-a="planNav" data-n="1" aria-label="${byDay ? 'Jour suivant' : 'Semaine suivante'}">${ic('back')}</button></div>
- ${P.mode === 'week' ? planGrid(days, false) + '<p class="muted small">Touche un bloc pour l\'ouvrir, un jour pour voir son détail. Glisse à gauche ou à droite pour changer de semaine.</p>' : byDay ? strip + planGrid([P.d], true) : strip + days.map(dayBlock).join('')}</div>`;
+ ${P.mode === 'week' ? planLegend() + planGrid(days, false) + '<p class="muted small">Touche un bloc pour l\'ouvrir, un jour pour voir son détail. Glisse à gauche ou à droite pour changer de semaine.</p>' : byDay ? strip + planGrid([P.d], true) : strip + `<div class="plk">${days.map(dayBlock).join('')}</div>`}</div>`;
 }
