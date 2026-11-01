@@ -21,7 +21,7 @@ AIDE.splice(
       ],
       [
         'Se déplacer',
-        "La barre de navigation mène à l'Accueil (ce qu'il y a à faire aujourd'hui), au Tableau de bord, au Planning, aux Élèves, aux Messages et à Mes clubs. Le Profil est en haut à droite sur téléphone, en bas du menu sur ordinateur. Toucher à nouveau l'onglet ouvert remonte en haut de la page."
+        "La barre de navigation mène au Tableau de bord (ce qu'il y a à faire aujourd'hui), aux Statistiques, au Planning, aux Élèves, aux Messages et à Mes clubs. Le Profil est en haut à droite sur téléphone, en bas du menu sur ordinateur. Toucher à nouveau l'onglet ouvert remonte en haut de la page."
       ],
       [
         'Mes premiers pas',
@@ -100,7 +100,7 @@ AIDE.splice(
       ],
       [
         'Filtrer par club',
-        'Planning, Élèves et Tableau de bord mélangent tous tes clubs ; les boutons en haut n’en gardent qu’un.'
+        'Planning, Élèves et Statistiques mélangent tous tes clubs ; les boutons en haut n’en gardent qu’un.'
       ],
       [
         'Tableau de bord',

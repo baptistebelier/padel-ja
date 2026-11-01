@@ -402,3 +402,29 @@ test('Administration : liste courte, filtre par offre, fiche du compte, essai et
   await ctx.close();
 });
 
+test('Coach : Tableau de bord et Statistiques, planning en colonnes, un jour sur téléphone, clubs en sous-menu', async () => {
+  for (const [w, cols] of [[1280, 7], [375, 1]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 800 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+    assert.deepEqual(await page.evaluate(() => TABBAR.slice(0, 2).map(t => t[2])), ['Tableau de bord', 'Statistiques']);
+    assert.equal(await page.locator('.cotile').count(), 4, 'quatre petits chiffres');
+    await page.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
+    await page.waitForSelector('.cocols');
+    const vues = await page.$$eval('.cocol', l => l.filter(x => getComputedStyle(x).display !== 'none').length);
+    assert.equal(vues, cols, 'colonnes visibles');
+    assert.ok(await page.locator('.cotopact [data-a="coNewSes"]').isVisible(), 'action en haut');
+    if (w < 500) {
+      const j0 = await page.textContent('.cowphone b');
+      await page.click('.cowphone [data-n="1"]');
+      assert.notEqual(await page.textContent('.cowphone b'), j0, 'flèche : jour suivant');
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'pas de débordement');
+    }
+    await page.evaluate(() => { S.tab = 'clubs'; render(); });
+    await page.waitForFunction(() => document.querySelector('.seg [data-k="coClubTab"]'));
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+

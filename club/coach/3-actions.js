@@ -2,12 +2,12 @@
    Chaque changement passe par les listes partagées (GROUPS, ELEVES, SEANCES, SUIVI) : la synchronisation
    du Club (ram-sync.js) l'envoie au serveur, et les élèves le retrouvent dans /RAM Club. */
 Object.assign(TITLES, {
-  today: () => ["Aujourd'hui", fmtD(TODAY)],
+  today: () => ['Tableau de bord', fmtD(TODAY)],
   planning: () => ['Planning', S.plScope === 'ecole' ? "Toute l'école" : 'Mes cours'],
   eleves: () => ['Élèves', 'Fiches et progression'],
   msgs: () => ['Messages', 'Élèves et groupes'],
   dash: () => [
-    'Tableau de bord',
+    'Statistiques',
     S.coClub && S.coClub !== 'all'
       ? (coClubList().find(c => c.id === S.coClub) || {}).name || ''
       : coMulti()
@@ -72,6 +72,21 @@ Object.assign(A, {
   },
   coWeek(d) {
     S.pl.w += +d.n;
+    S.pl.d = 0;
+    S.dir = +d.n;
+    render();
+  },
+  /* sur téléphone : un jour à la fois, la semaine change aux extrémités */
+  coDay(d) {
+    let i = coPlDay() + +d.n;
+    if (i < 0) {
+      S.pl.w--;
+      i = 6;
+    } else if (i > 6) {
+      S.pl.w++;
+      i = 0;
+    }
+    S.pl.d = i;
     S.dir = +d.n;
     render();
   },

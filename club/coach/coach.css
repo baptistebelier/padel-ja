@@ -1235,3 +1235,124 @@ button.copp:hover span:last-child {
   min-height: 56px;
   width: 56px;
 }
+
+/* Tableau de bord : petits chiffres, puis les cours d'un côté, ce qui reste à faire de l'autre */
+.cotiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cotile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: var(--r);
+  background: var(--card);
+}
+.cotile svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+.cotile b {
+  font-family: var(--f-display);
+  font-size: 26px;
+  line-height: 1.1;
+}
+.cotile span {
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 480px) {
+  .cotiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.cobento {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.cobmain,
+.cobside {
+  min-width: 0;
+}
+@media (min-width: 1000px) {
+  .cobento {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+/* Planning : les jours en colonnes ; sur téléphone, un seul jour ; les actions restent en haut */
+.cotopact {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cotopact .btn {
+  flex: 1 1 auto;
+  margin: 0;
+}
+.cocols {
+  display: grid;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  align-items: start;
+}
+.cocol {
+  min-width: 0;
+}
+.cocolh {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: var(--rb);
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.cocol.today .cocolh {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.cocol .coses {
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 8px;
+}
+.cocolv {
+  text-align: center;
+}
+.cowphone {
+  display: none;
+}
+@media (max-width: 767px) {
+  .cowdesk {
+    display: none;
+  }
+  .cowphone {
+    display: flex;
+  }
+  .cocols {
+    display: block;
+    overflow: visible;
+  }
+  .cocol {
+    display: none;
+  }
+  .cocol.on {
+    display: block;
+  }
+  .cocol .cocolh {
+    display: none;
+  }
+  .cocol .coses {
+    flex-direction: row;
+  }
+}

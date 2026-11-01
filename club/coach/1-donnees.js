@@ -9,8 +9,8 @@
 TABBAR.splice(
   0,
   TABBAR.length,
-  ['today', 'home', 'Accueil'],
-  ['dash', 'chart', 'Tableau de bord'],
+  ['today', 'dashboard', 'Tableau de bord'],
+  ['dash', 'chart', 'Statistiques'],
   ['planning', 'cal', 'Planning'],
   ['eleves', 'users', 'Élèves'],
   ['msgs', 'chat', 'Messages'],
@@ -43,6 +43,9 @@ Object.assign(I, {
   ladder: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>',
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   euro: '<path d="M18 6a7 7 0 100 12M4 10h10M4 14h10"/>',
+  // le même pictogramme que le tableau de bord de /RAM JA
+  dashboard:
+    '<rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/>',
   // un club / plusieurs clubs ; filtres de la liste d'élèves
   clubs: '<path d="M4 21V5h9l-2 3 2 3H4"/><path d="M13 8h7l-2 3 2 3h-8v-3"/><path d="M10 14v7"/>',
   funnel: '<path d="M3 5h18l-7 8v6l-4 2v-8z"/>',
