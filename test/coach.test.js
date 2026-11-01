@@ -129,3 +129,35 @@ test('cours particuliers rangés à part des groupes : migration, droits, séanc
   const r = await ram.ops(eleve.id, club.id, [{ coll: 'cours', id: 'gx', op: 'put', data: { type: 'train', name: 'Cours', coach: kE, once: '2026-11-04', mem: [kE] } }]);
   assert.equal(r.rejected.length, 1);
 });
+
+test('ouverture allégée de /RAM Coach : cours et séances anciens à la demande, jamais perdus', async () => {
+  const coach = { id: 'C4', name: 'Sarah Benali' }, eleve = { id: 'E4', name: 'Thomas Leroy' }, autre = { id: 'O4', name: 'Paul Martin' };
+  const club = await ram.create(coach, { name: 'TC Histo', short: 'tch' });
+  const kC = club.key, kE = (await ram.join(eleve, club.code)).key, kO = (await ram.join(autre, club.code)).key;
+  const season = item(await ram.sync(coach.id, club.id, 0), 'conf', 'main').season;
+  await ram.ops(coach.id, club.id, [kE, kO].map(k => ({ coll: 'member', id: k, op: 'patch', patch: [{ p: ['valid'], t: 'set', v: season }] })));
+  const iso = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10), vieux = iso(-200), recent = iso(-10), futur = iso(30);
+  const c = (id, d, tarif) => ({ coll: 'cours', id, op: 'put', data: { type: 'train', name: 'Cours', coach: kC, once: d, mem: [kE], ext: [], tarif: { mode: 'seance', prix: tarif } } });
+  await ram.ops(coach.id, club.id, [c('cv', vieux, 35), c('cr', recent, 35), c('cf', futur, 35),
+    { coll: 'seance', id: 'cv.' + vieux, op: 'put', data: { g: 'cv', d: vieux, pres: { [kE]: 'P' } } }, { coll: 'seance', id: 'cr.' + recent, op: 'put', data: { g: 'cr', d: recent, pres: { [kE]: 'P' } } }]);
+  const ids = (s, coll) => s.items.filter(i => i.coll === coll).map(i => i.id).sort();
+  // sans la demande : tout, comme avant (anciennes versions de l'appli, connecteur)
+  const plein = await ram.sync(coach.id, club.id, 0);
+  assert.deepEqual(ids(plein, 'cours'), ['cf', 'cr', 'cv']);
+  assert.equal(plein.histoAvant, undefined);
+  // avec la demande : le récent et l'à venir, et de quoi demander le reste
+  const leger = await ram.sync(coach.id, club.id, 0, { fenetre: true });
+  assert.deepEqual(ids(leger, 'cours'), ['cf', 'cr']);
+  assert.deepEqual(ids(leger, 'seance'), ['cr.' + recent]);
+  assert.ok(leger.histoAvant > vieux && leger.histoAvant < recent);
+  const h = await ram.history(coach.id, club.id, leger.histoAvant);
+  assert.deepEqual(h.items.map(i => i.coll + '/' + i.id), ['cours/cv', 'seance/cv.' + vieux], 'cours d’abord, puis séances');
+  // mêmes droits : l'élève voit son cours sans le tarif ; un autre adhérent, rien
+  const he = await ram.history(eleve.id, club.id, leger.histoAvant);
+  assert.equal(he.items[0].data.tarif, undefined);
+  assert.deepEqual((await ram.history(autre.id, club.id, leger.histoAvant)).items, []);
+  assert.equal(await ram.history('inconnu', club.id, leger.histoAvant), null);
+  // une modification d'un cours ancien arrive quand même par la synchro normale
+  await ram.ops(coach.id, club.id, [{ coll: 'cours', id: 'cv', op: 'patch', patch: [{ p: ['goal'], t: 'set', v: 'Bandeja' }] }]);
+  assert.equal(item(await ram.sync(coach.id, club.id, leger.rev), 'cours', 'cv').goal, 'Bandeja');
+});

@@ -1667,7 +1667,8 @@
     S.plan.d = TODAY;
   }
   async function start(id) {
-    const d = await api('/api/ram/c/' + id + '/sync?since=0');
+    // /RAM Coach : ouverture allégée, l'historique des cours et des séances arrive à la demande (loadHisto)
+    const d = await api('/api/ram/c/' + id + '/sync?since=0' + (window.RAM_APP === 'coach' ? '&fenetre=1' : ''));
     seenNow(); // le club que je quitte : vu jusqu'ici
     stop();
     wipe();
@@ -1683,6 +1684,8 @@
     R.scores = d.scores || {};
     R.reads = d.reads || {}; // coches : jusqu'où tous les autres membres de chaque groupe ont lu
     R.more = d.more || {}; // discussions qui ont des messages plus anciens que ceux reçus à l'ouverture
+    R.histoAvant = d.histoAvant || '';
+    R.histoOk = false;
     R.postsBefore = d.postsBefore || 0; // publications plus anciennes que celles reçues à l'ouverture (à partir de ce moment)
     R.counts = d.counts || {};
     R.jaTitles = d.jaTitles || {}; // titres de juge-arbitre /RAM JA des adhérents (badge)
@@ -1792,6 +1795,25 @@
         ramRender(true);
       })
       .catch(() => toast('Messages plus anciens indisponibles pour le moment'));
+  };
+  /* /RAM Coach : l'historique du club ouvert, une seule fois ; vrai si quelque chose est arrivé */
+  R.loadHisto = async () => {
+    if (!R.live || !R.histoAvant || R.histoOk) return false;
+    R.histoOk = true;
+    try {
+      const r = await api('/api/ram/c/' + R.club + '/histo?avant=' + R.histoAvant);
+      r.items.forEach(it => {
+        const k = it.coll + '/' + it.id;
+        if (R.base.has(k)) return;
+        R.base.set(k, { data: it.data });
+        applyItem(it, true);
+      });
+      derive();
+      return true;
+    } catch (x) {
+      R.histoOk = false;
+      return false;
+    }
   };
   /* publications plus anciennes du mur, 20 par 20, avec leurs derniers commentaires */
   A.ramOlderPosts = () => {

@@ -192,9 +192,12 @@ function coApply(cid, it) {
 }
 async function coPull(cid) {
   const c = CO_EXT[cid];
-  const r = await fetch('/api/ram/c/' + cid + '/sync?since=' + (c.rev || 0), { credentials: 'include' }),
+  const r = await fetch('/api/ram/c/' + cid + '/sync?since=' + (c.rev || 0) + (c.rev ? '' : '&fenetre=1'), {
+      credentials: 'include'
+    }),
     d = await r.json();
   if (!r.ok) throw new Error(d.error || 'club');
+  if (d.histoAvant) c.histoAvant = d.histoAvant;
   c.key = d.me.key;
   c.role = d.me.role;
   d.items
@@ -204,6 +207,35 @@ async function coPull(cid) {
 }
 /* mise à jour arrivée toute seule : jamais de redessin pendant une saisie (sinon le texte tapé disparaît) */
 const coRefresh = () => (window.ramSafeRender ? ramSafeRender() : render(true));
+/* ouverture allégée : l'historique des cours et des séances n'arrive que si l'écran en a besoin.
+   Ces écrans-là n'en ont pas besoin ; le planning, seulement pour une semaine ancienne. */
+const CO_LEGER = ['today', 'dash', 'msgs', 'chan', 'clubs', 'cclub', 'me', 'niveaux', 'formules'];
+function coHistoNeeded() {
+  const v = view().v;
+  if (v === 'planning') return !!(window.RAM && RAM.histoAvant) && monday(S.pl.w) < RAM.histoAvant;
+  return !CO_LEGER.includes(v);
+}
+let coHistoRun = false;
+async function coLoadHisto() {
+  if (coHistoRun || !(window.RAM && RAM.live && RAM.loadHisto)) return;
+  coHistoRun = true;
+  let got = await RAM.loadHisto();
+  for (const [cid, c] of Object.entries(CO_EXT)) {
+    if (!c.base || !c.histoAvant || c.histoOk) continue;
+    c.histoOk = true;
+    try {
+      const r = await fetch('/api/ram/c/' + cid + '/histo?avant=' + c.histoAvant, { credentials: 'include' }),
+        d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'club');
+      d.items.forEach(it => coApply(cid, it));
+      got = true;
+    } catch (e) {
+      c.histoOk = false;
+    }
+  }
+  coHistoRun = false;
+  if (got) coRefresh();
+}
 /* les autres clubs où j'enseigne : chargés une fois, puis tenus à jour */
 async function coLoadExt() {
   const others = RAM.clubs.filter(c => c.id !== RAM.club && coTeach(c));
@@ -293,6 +325,7 @@ const coRender0 = render;
 render = function () {
   coMerge();
   const r = coRender0.apply(this, arguments);
+  if (coHistoNeeded()) coLoadHisto();
   clearTimeout(coPushT);
   coPushT = setTimeout(coPush, 400);
   return r;

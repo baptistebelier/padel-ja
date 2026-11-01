@@ -574,6 +574,8 @@ function coDashServer(from) {
       })
       .catch(() => {
         c.err = 1;
+        // calcul sur place : il lui faut tout l'historique
+        if (typeof coLoadHisto === 'function') coLoadHisto();
         redraw();
       });
   }
@@ -612,7 +614,7 @@ function coDash() {
     done = histo.filter(x => x.d >= from),
     F = coFigures(done),
     C = fromServer ? srv.data.chiffres[0] : coChiffre(from, TODAY),
-    eleves = new Set(gs.flatMap(coStu)),
+    eleves = new Set(gs.flatMap(coStu).concat(histo.flatMap(x => coStu(x.g)))),
     act = gs.filter(g => coIsGrp(g) && !coOver(g)),
     fillG = act.filter(g => g.max),
     fill = fillG.length

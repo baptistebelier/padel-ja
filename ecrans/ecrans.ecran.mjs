@@ -220,6 +220,19 @@ test('Coach : la saisie du thème n’est jamais effacée quand un autre club ch
   await page.waitForSelector('.codash', { timeout: 8000 });
   assert.ok(urls.includes('/api/coach/tableau'), 'demandé au serveur');
   assert.match(await page.textContent('.codash'), /42\s*€/, 'encaissé calculé par le serveur');
+  // ouverture allégée : un cours ancien n'est pas là au départ, il arrive quand un écran a besoin de l'historique, et rien n'est perdu
+  const vieux = new Date(Date.now() - 200 * 864e5).toISOString().slice(0, 10);
+  await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'cours', id: 'gvieux', op: 'put', data: { type: 'train', name: 'Cours ancien', sport: 'Padel', coach: a.key, once: vieux, h: '9 h', dur: '1 h', mem: [], ext: ['e1'], day: 1 } }, { coll: 'seance', id: `gvieux.${vieux}`, op: 'put', data: { g: 'gvieux', d: vieux, pres: { e1: 'P' } } }] });
+  await page.goto(`${JA}/club/coach.html`);
+  await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
+  await page.waitForTimeout(800);
+  const has = () => page.evaluate(() => GROUPS.some(g => g.id === 'gvieux') && SEANCES.some(s => s.g === 'gvieux'));
+  assert.equal(await has(), false, 'pas d’historique à l’ouverture');
+  await page.evaluate(() => { S.tab = 'eleves'; render(); });
+  await page.waitForFunction(() => GROUPS.some(g => g.id === 'gvieux') && SEANCES.some(s => s.g === 'gvieux'), null, { timeout: 8000 });
+  await page.waitForTimeout(1200);   // la synchro repasse : elle ne doit rien supprimer ni renvoyer
+  const sync = await (await ctx.request.get(`${JA}/api/ram/c/${a.id}/sync?since=0`)).json();
+  assert.ok(sync.items.some(i => i.coll === 'cours' && i.id === 'gvieux'), 'le cours ancien est toujours sur le serveur');
   assert.deepEqual(errs, []);
   await ctx.close();
 });

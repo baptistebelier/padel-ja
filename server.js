@@ -1076,7 +1076,7 @@ const server = http.createServer(async (req, res) => {
         ka = setInterval(() => res.write(': ping\n\n'), 20000);
         return;
       }
-      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo|media|older|posts)$/);
+      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo|media|older|posts|histo)$/);
       // connexion en direct : l'appareil est prévenu dès qu'un élément du club change, puis il synchronise
       if (m && m[2] === 'events') {
         let ka = null, off = null, offT = null;
@@ -1100,6 +1100,11 @@ const server = http.createServer(async (req, res) => {
         const r = await ram.older(u.id, m[1], String(url.searchParams.get('ref') || ''), url.searchParams.get('before'), url.searchParams.get('n'));
         return r ? json(res, 200, r) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
       }
+      // /RAM Coach : l'historique des cours et des séances, à la demande (ouverture de l'appli allégée)
+      if (m && m[2] === 'histo' && req.method === 'GET') {
+        const r = await ram.history(u.id, m[1], url.searchParams.get('avant'));
+        return r ? json(res, 200, r) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
+      }
       // publications plus anciennes du mur (l'appli ne reçoit que les récentes et celles à venir à l'ouverture)
       if (m && m[2] === 'posts' && req.method === 'GET') {
         const r = await ram.olderPosts(u.id, m[1], url.searchParams.get('before'), url.searchParams.get('n'));
@@ -1110,7 +1115,7 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { ok: await ram.typing(u.id, m[1], String(b.ref || '')) });
       }
       if (m && m[2] === 'sync') {
-        const out = await ram.sync(u.id, m[1], url.searchParams.get('since'));
+        const out = await ram.sync(u.id, m[1], url.searchParams.get('since'), { fenetre: url.searchParams.get('fenetre') === '1' });
         // titres de juge-arbitre /RAM JA des adhérents (badge dans le club), au premier chargement
         if (out && !+url.searchParams.get('since')) out.jaTitles = await jaTitlesOf(m[1]).catch(() => ({}));
         return out ? json(res, 200, out) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
