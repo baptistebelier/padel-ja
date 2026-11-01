@@ -44,8 +44,8 @@ const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf:
 const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m) });   // notifications sur le téléphone
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
 // une notification passe par la file : un redémarrage du serveur ne la perd pas
-require('./lib/pushnotif.js').createNotifier({ ram, push: { send: (uid, msg) => taches.enqueue('push', { uid, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
-taches.on('push', p => push.send(p.uid, p.msg));
+require('./lib/pushnotif.js').createNotifier({ ram, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
+taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
@@ -475,6 +475,13 @@ async function ensureAllAccountPlayers(log) {
   if (n) log(`Base de joueurs : ${n} fiche(s) créée(s) ou rattachée(s) pour les comptes /RAM`);
 }
 
+async function weeklyReconcile() {
+  const last = (await store.getSetting('reconciliation')) || {};
+  if (Date.now() - (+last.at || 0) < 7 * 864e5) return;
+  await store.saveSetting('reconciliation', { at: Date.now() });   // noté d'abord : plusieurs serveurs ne la lancent pas ensemble
+  await ensureAllAccountPlayers(msg => console.log('  ' + msg)).catch(e => console.error('  Fiches joueurs des comptes :', e.message));
+  await ensureClubLinks(msg => console.log('  ' + msg)).catch(e => console.error('  Clubs :', e.message));
+}
 /* au démarrage : les données saisies avant le référentiel des clubs y sont rattachées (une seule fois :
    seul ce qui n'a pas encore de club_id est repris) */
 async function ensureClubLinks(log) {
@@ -1567,8 +1574,10 @@ server.listen(PORT, '0.0.0.0', () => {
   Backup.schedule(store, msg => console.log('  ' + msg));
   Retention.schedule(store, msg => console.log('  ' + msg));
   Mail.keepAlive(msg => console.log('  ' + msg));
-  ensureAllAccountPlayers(msg => console.log('  ' + msg)).catch(e => console.error('  Fiches joueurs des comptes :', e.message))
-    .then(() => ensureClubLinks(msg => console.log('  ' + msg))).catch(e => console.error('  Clubs :', e.message));
+  // remise à plat de tous les comptes et de tous les clubs : au plus une fois par semaine, jamais à chaque redémarrage
+  // (chaque changement est déjà suivi en continu : adhésions, progression, groupes, fiches)
+  setTimeout(() => weeklyReconcile().catch(e => console.error('  Remise à plat :', e.message)), 60000).unref();
+  const rec = setInterval(() => weeklyReconcile().catch(e => console.error('  Remise à plat :', e.message)), 6 * 3600e3); rec.unref();
   adhesions.watch(msg => console.error('  ' + msg));
   if (ONLINE && process.env.CALENDLY_TOKEN) Calendly.subscribe(process.env.CALENDLY_TOKEN, (process.env.APP_URL || 'https://ja.riseandmove.fr') + '/api/calendly/webhook')
     .then(r => console.log('  Calendly : webhook ' + (r.deja ? 'déjà inscrit' : 'inscrit'))).catch(e => console.error('  Calendly :', e.message));
