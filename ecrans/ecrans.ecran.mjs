@@ -236,3 +236,34 @@ test('Coach : la saisie du thème n’est jamais effacée quand un autre club ch
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+test('JA en direct : un écran TV qui reçoit des différences retrouve exactement l’état complet', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/demo');
+  await page.waitForTimeout(800);
+  const base = new URL(page.url()).pathname.replace('/t/', '/api/t/');
+  const seen = await page.evaluate(async b => {
+    const open = q => new Promise(ok => { const box = { msgs: [] }, es = new EventSource(b + '/events' + q); box.es = es; es.onmessage = ev => { box.msgs.push(JSON.parse(ev.data)); if (box.msgs.length === 1) ok(box); }; });
+    const [d, f] = await Promise.all([open('?diff=1'), open('')]);
+    const send = (type, payload) => fetch(b + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, payload }) });
+    for (const name of ['Essai 1', 'Essai 2', 'Essai 3']) await send('court/add', { name });
+    await send('tournament/update', { name: 'Tournoi diffusé' });
+    await new Promise(r => setTimeout(r, 500));
+    [d, f].forEach(x => x.es.close());
+    let s = d.msgs[0].state, rev = d.msgs[0].rev, suite = true;
+    d.msgs.slice(1).forEach(m => { if (m.patch) { if (m.base !== rev) suite = false; s = Engine.applyDiff(s, m.patch); } else s = m.state; rev = m.rev; });
+    return { patches: d.msgs.filter(m => m.patch).length, suite, same: JSON.stringify(s) === JSON.stringify(f.msgs[f.msgs.length - 1].state), last: rev, lastFull: f.msgs[f.msgs.length - 1].rev, tailleD: JSON.stringify(d.msgs.slice(1)).length, tailleF: JSON.stringify(f.msgs.slice(1)).length, nom: s.tournament.name };
+  }, base);
+  assert.ok(seen.patches >= 3, 'des différences reçues : ' + seen.patches);
+  assert.ok(seen.suite, 'aucune différence manquée');
+  assert.equal(seen.last, seen.lastFull);
+  assert.equal(seen.nom, 'Tournoi diffusé');
+  assert.ok(seen.same, 'même état que le flux complet');
+  assert.ok(seen.tailleD * 3 < seen.tailleF, `${seen.tailleD} contre ${seen.tailleF} octets`);
+  // l'éditeur lui-même reste à jour avec ce mode
+  await page.waitForFunction(() => window.App && App.connected && App.rev >= 5, null, { timeout: 5000 });
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+

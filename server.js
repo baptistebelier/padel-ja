@@ -268,12 +268,18 @@ function saveRoom(room) {
 /* images (logos du club, des partenaires) : envoyées une seule fois, à part.
    Dans l'état diffusé à chaque point, chaque image est remplacée par un lien court /api/img/<empreinte>
    que le navigateur garde en cache ; l'état enregistré conserve les images complètes. */
-const IMG = new Map();   // empreinte → data URL
+const IMG = new Map(), IMG_HASH = new Map();   // empreinte → data URL ; data URL → empreinte
 const IMG_RE = /^\/api\/img\/([a-f0-9]{20})$/;
 function stripImages(v) {
   if (typeof v === 'string') {
     if (v.length > 300 && v.startsWith('data:image/')) {
-      const h = crypto.createHash('sha1').update(v).digest('hex').slice(0, 20);
+      // empreinte gardée : une image n'est hachée qu'une fois, pas à chaque point marqué
+      let h = IMG_HASH.get(v);
+      if (!h) {
+        h = crypto.createHash('sha1').update(v).digest('hex').slice(0, 20);
+        if (IMG_HASH.size > 500) IMG_HASH.clear();
+        IMG_HASH.set(v, h);
+      }
       IMG.set(h, v); return '/api/img/' + h;
     }
     return v;
@@ -289,10 +295,27 @@ function restoreImages(v) {
   if (v && typeof v === 'object') { const o = {}; for (const k in v) o[k] = restoreImages(v[k]); return o; }
   return v;
 }
-const stateMsg = room => `data: ${JSON.stringify({ rev: room.rev, state: stripImages(room.row.state), canUndo: room.history.length > 0 })}\n\n`;
+/* direct : état complet à l'ouverture d'un écran, puis seulement ce qui change pour les écrans qui le savent lire (diff=1).
+   room.sent : dernier état diffusé, sans ses images, gardé pour calculer la différence suivante. */
+const sse = o => `data: ${JSON.stringify(o)}\n\n`;
+function fullMsg(room) {
+  if (!room.sent || room.sent.rev !== room.rev) room.sent = { rev: room.rev, state: stripImages(room.row.state), msg: null };
+  return room.sent.msg || (room.sent.msg = sse({ rev: room.rev, state: room.sent.state, canUndo: room.history.length > 0 }));
+}
+const stateMsg = fullMsg;
 function broadcast(room) {
-  const msg = stateMsg(room);
-  for (const c of room.clients) c.res.write(msg);
+  const prev = room.sent, canUndo = room.history.length > 0;
+  const hasDiff = [...room.clients].some(c => c.diff);
+  let patch = null;
+  if (hasDiff && prev && prev.rev === room.rev - 1) {
+    const next = stripImages(room.row.state), ops = Engine.diffState(prev.state, next);
+    room.sent = { rev: room.rev, state: next, msg: null };
+    patch = sse({ rev: room.rev, base: prev.rev, patch: ops, canUndo });
+  }
+  // l'état complet n'est mis en texte que si quelqu'un en a besoin : ancien écran, ou différence trop lourde
+  const full = !patch || patch.length > 20000 || [...room.clients].some(c => !c.diff) ? fullMsg(room) : null;
+  const forDiff = patch && (!full || patch.length < full.length * 0.6) ? patch : full;
+  for (const c of room.clients) c.res.write(c.diff ? forDiff : full);
 }
 // libère la mémoire des tournois inactifs
 setInterval(() => {
@@ -1468,7 +1491,7 @@ const server = http.createServer(async (req, res) => {
       if (what === 'events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
         res.write(stateMsg(room));
-        const c = { res, level };
+        const c = { res, level, diff: url.searchParams.get('diff') === '1' };
         room.clients.add(c);
         const ka = setInterval(() => res.write(': ping\n\n'), 20000);
         req.on('close', () => { clearInterval(ka); room.clients.delete(c); room.seen = Date.now(); });

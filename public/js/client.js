@@ -67,12 +67,19 @@
     const cached = lsGet(sKey, null);   // ouverture sans réseau : dernier état connu
     // affiché juste après l'initialisation de la page (jamais pendant), et seulement si le serveur n'a pas déjà répondu
     if (cached && cached.state) setTimeout(() => { if (!serverState) { serverState = Engine.migrate(cached.state); App.rev = cached.rev || 0; show(serverState); } }, 0);
+    let raw = null;   // dernier état reçu du serveur, tel quel : les prochains changements s'y appliquent
     const open = () => {
-      const es = new EventSource(App.base + '/events' + authQs());
+      // diff=1 : après le premier état complet, le serveur n'envoie que ce qui change
+      const qs = authQs(), es = new EventSource(App.base + '/events' + (qs ? qs + '&' : '?') + 'diff=1');
       es.onopen = flush;
       es.onmessage = ev => {
         const d = JSON.parse(ev.data);
-        d.state = Engine.migrate(d.state);
+        if (d.patch) {
+          // un message manqué : on repart d'un état complet
+          if (!raw || raw.rev !== d.base) { es.close(); raw = null; open(); return; }
+          raw = { rev: d.rev, state: Engine.applyDiff(raw.state, d.patch) };
+        } else raw = { rev: d.rev, state: d.state };
+        d.state = Engine.migrate(JSON.parse(JSON.stringify(raw.state)));
         serverState = d.state; App.rev = d.rev; App.canUndo = d.canUndo;
         lsSet(sKey, { rev: d.rev, state: d.state });
         App.connected = true; onStatus && onStatus(true);

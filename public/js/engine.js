@@ -1110,6 +1110,35 @@
     };
   }
 
+  /* direct : seulement ce qui a changé entre deux états. Une opération : [chemin, valeur] ; [chemin] seul = à retirer.
+     Une liste qui change de longueur est renvoyée entière. */
+  function diffState(a, b, path = [], out = []) {
+    if (a === b) return out;
+    const objs = a && b && typeof a === 'object' && typeof b === 'object';
+    if (objs && Array.isArray(a) === Array.isArray(b) && (!Array.isArray(a) || a.length === b.length)) {
+      if (Array.isArray(a)) a.forEach((v, i) => diffState(v, b[i], path.concat(i), out));
+      else {
+        Object.keys(a).forEach(k => { if (!(k in b) || b[k] === undefined) { if (a[k] !== undefined) out.push([path.concat(k)]); } else diffState(a[k], b[k], path.concat(k), out); });
+        Object.keys(b).forEach(k => { if (!(k in a) && b[k] !== undefined) out.push([path.concat(k), b[k]]); });
+      }
+      return out;
+    }
+    out.push([path, b === undefined ? null : b]);
+    return out;
+  }
+  function applyDiff(state, ops) {
+    let root = state;
+    for (const op of ops) {
+      const p = op[0];
+      if (!p.length) { root = op[1]; continue; }
+      let o = root;
+      for (let i = 0; i < p.length - 1; i++) o = o[p[i]];
+      if (op.length < 2) delete o[p[p.length - 1]];
+      else o[p[p.length - 1]] = op[1];
+    }
+    return root;
+  }
+
   function migrate(T) {
     const base = initialState();
     T.tournament = Object.assign({}, base.tournament, T.tournament || {});
@@ -1326,6 +1355,6 @@
     weightOf, rankOf, isPair, tokenLabel, selection, plan, pouleSizes, seedOrder, nextPow2, defaultSeeds,
     prepareDraw, currentPot, sessionSlots, posLabel, buildAll, matchLabel, formatOf,
     resolve, pouleStandings, standings, finalResults, matchKey, orderedMatches, orderIssues, previewStructure, timeline, autoSchedule, depsOf, pairsStatus, dayChecks, restMsAfter,
-    checkRules, initialState, migrate, reduce, localNow
+    checkRules, initialState, migrate, reduce, localNow, diffState, applyDiff
   };
 });
