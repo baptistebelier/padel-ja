@@ -61,7 +61,7 @@ test('source « tables » : même résultat que les éléments, requêtes filtr�
   const urls = [], realFetch = global.fetch;
   global.fetch = async u => { const t = new URL(u); urls.push(decodeURIComponent(t.search)); return { ok: true, json: async () => rows[t.pathname.split('/').pop()] }; };
   process.env.SUPABASE_URL = 'https://x.supabase.co'; process.env.SUPABASE_SERVICE_KEY = 'sb_secret_essai';
-  const online = createCoachTables({ ram });
+  const online = createCoachTables({ ram, tables: true });
   delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
   try {
     assert.equal(online.kind, 'tables');
