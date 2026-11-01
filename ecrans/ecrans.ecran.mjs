@@ -285,3 +285,33 @@ test('Club et Coach servis : un seul fichier de scripts, tout l’écran fonctio
   }
 });
 
+test('Cache sur l’appareil : deuxième ouverture sans tout retélécharger, nouveautés reçues, effacé à la déconnexion', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1100, height: 800 } }), page = await ctx.newPage(), errs = [], syncs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  page.on('request', r => { if (r.url().includes('/sync?')) syncs.push(new URL(r.url()).searchParams.get('since')); });
+  const post = async (url, data) => (await ctx.request.post(JA + url, { data })).json();
+  await post('/api/auth/signup', { email: `cache-${Date.now()}@exemple.test`, password: 'essai-' + Date.now(), first: 'Essai', last: 'Cache' });
+  const a = await post('/api/ram/clubs', { name: 'Club Cache' });
+  await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'post', id: 'p1', op: 'put', data: { by: a.key, kind: 'txt', body: 'avant', at: Date.now() } }] });
+  await page.goto(JA + '/club/');
+  await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
+  assert.ok(syncs.includes('0'), 'première ouverture : tout');
+  await page.waitForTimeout(5000);   // écriture du cache
+  const lire = () => page.evaluate(() => new Promise(ok => { const q = indexedDB.open('ram-cache', 1); q.onupgradeneeded = () => q.result.createObjectStore('clubs'); q.onsuccess = () => { const db = q.result, g = db.transaction('clubs').objectStore('clubs').getAll(); g.onsuccess = () => { db.close(); ok(g.result.length); }; }; }));
+  assert.equal(await lire(), 1, 'état gardé sur l’appareil');
+  // une nouveauté arrive pendant que l'appli est fermée
+  await page.goto('about:blank');
+  await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'post', id: 'p2', op: 'put', data: { by: a.key, kind: 'txt', body: 'pendant', at: Date.now() } }] });
+  syncs.length = 0;
+  await page.goto(JA + '/club/');
+  await page.waitForFunction(() => window.RAM && RAM.live && posts.some(p => p.id === 'p1') && posts.some(p => p.id === 'p2'), null, { timeout: 10000 });
+  assert.ok(syncs.length && !syncs.includes('0'), 'deuxième ouverture : seulement les nouveautés : ' + syncs.join(','));
+  // rien n'a été renvoyé ni effacé côté serveur
+  const s = await (await ctx.request.get(`${JA}/api/ram/c/${a.id}/sync?since=0`)).json();
+  assert.deepEqual(s.items.filter(i => i.coll === 'post').map(i => i.id).sort(), ['p1', 'p2']);
+  await page.evaluate(() => RAM.cacheClear());
+  assert.equal(await lire(), 0, 'effacé');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+

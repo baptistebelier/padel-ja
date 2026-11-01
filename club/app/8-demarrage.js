@@ -699,6 +699,7 @@ A.mode = d => {
 };
 /* sortir : on se déconnecte et on arrive sur la page de connexion de /RAM Club */
 A.logout = () => {
+  if (window.RAM && RAM.cacheClear) RAM.cacheClear(); // plus rien du club sur cet appareil
   fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     .catch(() => {})
     .then(() => {
