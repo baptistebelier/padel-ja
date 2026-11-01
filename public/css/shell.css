@@ -571,3 +571,17 @@ html, body { overscroll-behavior-x: none; } /* pas de retour arrière par glisse
 #nvName { width: 100%; min-height: 46px; padding: 0 12px; font: inherit; }
 .nvact { margin-top: 14px; justify-content: flex-end; }
 .nverr { margin: 10px 0 0; color: var(--ui-danger, #F5104C); }
+
+/* Administration : liste courte, puis fiche du compte */
+.ufilter { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; }
+.utable { display: grid; gap: 4px; }
+.urow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 44px; padding: 6px 10px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+button.urow { cursor: pointer; background: var(--ui-card, rgba(255,255,255,.04)); }
+button.urow:hover { outline: 2px solid var(--ui-accent, #E0F50A); }
+.uhead { min-height: 0; font-size: 12px; opacity: .7; text-transform: uppercase; }
+.umail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) { .urow { grid-template-columns: minmax(0, 1fr) auto; } .urow > :nth-child(2), .uhead { display: none; } .urow > .umail { grid-column: 1; grid-row: 2; } .urow > :nth-child(4) { grid-column: 2; grid-row: 1 / 3; } }
+#ufiche .acc-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+#ufiche label { display: block; margin: 10px 0; }
+.udel { margin-top: 16px; }
+.udel form { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -22,7 +22,9 @@
     <span class="eyebrow">Comptes juges-arbitres</span>
     <h2 class="h2s">Accès &amp; offres</h2>
     <p class="muted small">« Accès offert » et « Administrateur » ne paient jamais l'abonnement. Les e-mails administrateurs sont aussi réglables dans Render (variable ADMIN_EMAILS).</p>
+    <label class="ufilter">Offre<select id="ofilter"></select></label>
     <div id="users" class="ulist"><p class="muted">Chargement…</p></div>
+    <dialog id="ufiche" class="nvdlg" aria-label="Fiche du compte"></dialog>
   </section>
   <section class="card">
     <div class="card-h"><div><span class="eyebrow">Sécurité des données</span><h2 class="h2s">Sauvegardes</h2></div>
@@ -86,28 +88,57 @@
     if (d.error) { $('#users').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }
     $('#stats').innerHTML = `<div><b>${d.users.length}</b><span>comptes</span></div><div><b>${d.tournaments}</b><span>tournois</span></div>
       <div><b>${d.users.filter(u => u.free).length}</b><span>accès gratuits</span></div><div><b>${d.guests}</b><span>démos (24 h)</span></div>`;
-    $('#users').innerHTML = d.users.map(u => `<article class="ucard">
-      <div><b>${esc(u.name || '—')}</b> <span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(u.planLabel)}</span>
-        <p>${esc(u.email)}${u.club ? ' · ' + esc(u.club) : ''}</p>
-        <p class="muted small">Inscrit le ${u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '?'} · ${u.tournaments} tournoi(s)</p></div>
-      ${u.admin && u.rawPlan !== 'admin' ? '<p class="muted small">Administrateur via son e-mail (ADMIN_EMAILS) : accès gratuit permanent.</p>' : `<label>Offre<select data-u="${u.id}">${Object.keys(d.plans).map(k => `<option value="${k}" ${u.rawPlan === k ? 'selected' : ''}>${esc(d.plans[k])}</option>`).join('')}</select></label>`}
+    users = d.users; plans = d.plans;
+    drawList();
+    if (openId) sheet(openId);
+  }
+  /* la liste : nom, prénom, e-mail, offre ; le reste est dans la fiche */
+  let users = [], plans = {}, filtre = '', openId = null;
+  const offre = u => u.admin ? 'Administrateur' : u.free ? 'Accès offert' : ({ trial: 'Essai', paid: 'Abonné', pass: 'Pass tournoi', expired: 'Terminé', sans: 'Sans offre' }[u.access.state] || 'Sans offre');
+  function drawList() {
+    const kinds = ['Essai', 'Abonné', 'Pass tournoi', 'Accès offert', 'Administrateur', 'Terminé', 'Sans offre'];
+    $('#ofilter').innerHTML = '<option value="">Toutes les offres (' + users.length + ')</option>' + kinds.map(k => { const n = users.filter(u => offre(u) === k).length; return `<option value="${k}" ${filtre === k ? 'selected' : ''}>${k} (${n})</option>`; }).join('');
+    const l = users.filter(u => !filtre || offre(u) === filtre);
+    $('#users').innerHTML = l.length ? `<div class="utable" role="table"><div class="urow uhead" role="row"><span>Nom</span><span>Prénom</span><span>E-mail</span><span>Offre</span></div>${l.map(u => `<button class="urow" type="button" role="row" data-open="${u.id}"><span>${esc(u.last || u.name || '—')}</span><span>${esc(u.first || '')}</span><span class="umail">${esc(u.email)}</span><span><span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(offre(u))}</span></span></button>`).join('')}</div>` : '<p class="muted">Aucun compte.</p>';
+  }
+  $('#ofilter').onchange = e => { filtre = e.target.value; drawList(); };
+  $('#users').onclick = e => { const b = e.target.closest('[data-open]'); if (b) sheet(b.dataset.open); };
+  /* la fiche : les détails et les commandes d'une seule personne */
+  function sheet(id) {
+    const u = users.find(x => x.id === id), dlg = $('#ufiche');
+    if (!u) { openId = null; if (dlg.open) dlg.close(); return; }
+    openId = id;
+    dlg.innerHTML = `<div class="nvhead"><h2>${esc(u.name || u.email)}</h2><button class="btn sm ghost" type="button" data-close>Fermer</button></div>
+      <p>${esc(u.email)}${u.club ? ' · ' + esc(u.club) : ''}</p>
+      <p class="muted small">Inscrit le ${u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '?'} · ${u.tournaments} tournoi(s)</p>
+      <p><span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(offre(u))}</span></p>
+      ${u.admin && u.rawPlan !== 'admin' ? '<p class="muted small">Administrateur via son e-mail (ADMIN_EMAILS) : accès gratuit permanent.</p>' : `<label>Offre<select data-u="${u.id}">${Object.keys(plans).map(k => `<option value="${k}" ${u.rawPlan === k ? 'selected' : ''}>${esc(plans[k])}</option>`).join('')}</select></label>`}
       ${u.free ? '' : `<div class="acc"><p class="small acc-${u.access.state}">${accTxt(u.access)}</p>
         <label>Accès payé jusqu'au<input type="date" data-until="${u.id}" value="${u.billing && u.billing.until ? ymd(u.billing.until) : ''}"></label>
-        <div class="acc-btns"><button class="btn sm" type="button" data-add="${u.id}" data-m="1">+ 1 mois</button><button class="btn sm" type="button" data-add="${u.id}" data-m="12">+ 1 an</button>${u.billing && u.billing.until ? `<button class="btn sm danger" type="button" data-stop="${u.id}">Retirer</button>` : ''}</div></div>`}
-    </article>`).join('') || '<p class="muted">Aucun compte.</p>';
-    // date de fin d'accès : saisie directe, ou prolongation d'un mois / d'un an à partir d'aujourd'hui ou de la fin actuelle
-    const setUntil = async (id, until) => { const r = await api('/api/admin/users/' + id + '/access', { method: 'POST', body: JSON.stringify({ until }) }); if (r.error) alert(r.error); load(); };
-    document.querySelectorAll('[data-until]').forEach(i => i.onchange = () => setUntil(i.dataset.until, i.value));
-    document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
-      const cur = d.users.find(x => x.id === b.dataset.add).billing, base = new Date(Math.max(Date.now(), (cur && cur.until) || 0));
-      base.setMonth(base.getMonth() + +b.dataset.m); setUntil(b.dataset.add, ymd(base));
-    });
-    document.querySelectorAll('[data-stop]').forEach(b => b.onclick = () => confirm('Retirer l\'accès payé de ce compte ?') && setUntil(b.dataset.stop, ''));
-    document.querySelectorAll('[data-u]').forEach(s => s.onchange = async () => {
-      const r = await api('/api/admin/users/' + s.dataset.u, { method: 'POST', body: JSON.stringify({ plan: s.value }) });
-      if (r.error) alert(r.error); load();
-    });
+        <div class="acc-btns"><button class="btn sm" type="button" data-add="${u.id}" data-m="1">+ 1 mois</button><button class="btn sm" type="button" data-add="${u.id}" data-m="12">+ 1 an</button>${u.billing && u.billing.until ? `<button class="btn sm danger" type="button" data-stop="${u.id}">Retirer l'accès payé</button>` : ''}<button class="btn sm" type="button" data-essai="${u.id}">Accorder un essai</button>${u.access.state === 'trial' ? `<button class="btn sm danger" type="button" data-sans="${u.id}">Retirer l'essai</button>` : ''}</div></div>`}
+      ${u.admin ? '' : `<details class="udel"><summary>Supprimer ce compte</summary><p class="muted small">Le compte, ses tournois et ses réglages disparaissent définitivement. Ses fiches restent dans les clubs, sans compte. Tapez son e-mail pour confirmer.</p><form data-del="${u.id}"><input type="email" required placeholder="${esc(u.email)}" aria-label="E-mail du compte"><button class="btn sm danger">Supprimer définitivement</button></form></details>`}`;
+    if (!dlg.open) dlg.showModal();
   }
+  const setUntil = async (id, until) => { const r = await api('/api/admin/users/' + id + '/access', { method: 'POST', body: JSON.stringify({ until }) }); if (r.error) alert(r.error); load(); };
+  $('#ufiche').addEventListener('click', async e => {
+    const t = e.target;
+    if (t === e.currentTarget || t.closest('[data-close]')) { openId = null; return e.currentTarget.close(); }
+    const add = t.closest('[data-add]'), stop = t.closest('[data-stop]'), essai = t.closest('[data-essai]'), sans = t.closest('[data-sans]');
+    if (add) { const cur = users.find(x => x.id === add.dataset.add).billing, base = new Date(Math.max(Date.now(), (cur && cur.until) || 0)); base.setMonth(base.getMonth() + +add.dataset.m); setUntil(add.dataset.add, ymd(base)); }
+    if (stop && confirm('Retirer l\'accès payé de ce compte ?')) setUntil(stop.dataset.stop, '');
+    if (essai || (sans && confirm('Retirer l\'essai de ce compte ?'))) { const r = await api('/api/admin/users/' + (essai || sans).dataset[essai ? 'essai' : 'sans'] + '/access', { method: 'POST', body: JSON.stringify(essai ? { essai: true } : { sans: true }) }); if (r.error) alert(r.error); load(); }
+  });
+  $('#ufiche').addEventListener('change', async e => {
+    const t = e.target;
+    if (t.dataset.until) setUntil(t.dataset.until, t.value);
+    if (t.dataset.u) { const r = await api('/api/admin/users/' + t.dataset.u, { method: 'POST', body: JSON.stringify({ plan: t.value }) }); if (r.error) alert(r.error); load(); }
+  });
+  $('#ufiche').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, r = await api('/api/admin/users/' + f.dataset.del, { method: 'DELETE', body: JSON.stringify({ email: f.querySelector('input').value }) });
+    if (r.error) return alert(r.error);
+    openId = null; $('#ufiche').close(); load();
+  });
   load();
   let qt = null;
   const search = async () => {

@@ -712,6 +712,15 @@ function currentTournament(list) {
 }
 
 /* connecteur MCP /RAM (lib/mcp.js) : Claude lit les tournois, les clubs et le suivi d'un compte, avec son accord */
+/* première venue sur /RAM JA d'un compte créé ailleurs : son essai commence, avec le tournoi d'exemple */
+async function firstJaVisit(u) {
+  if (!u || u.guest) return;
+  const b = await store.getBilling(u.id).catch(() => null);
+  if (!Access.startsTrial(b, freeAccess(u))) return;
+  await store.saveBilling(u.id, Object.assign({}, b, { noTrial: false, trial: Date.now() }));
+  accessCache.delete(u.id);
+  await newTournament(u.id, { demo: true, example: true, name: 'Tournoi d\'exemple' }).catch(e => console.error('Tournoi d\'exemple :', e.message));
+}
 const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin });
 /* réservation ou annulation Calendly → planning de l'enseignant : le compte /RAM de l'hôte (même e-mail), sinon CALENDLY_COMPTE */
 taches.on('calendly', async b => {
@@ -781,10 +790,10 @@ const server = http.createServer(async (req, res) => {
       return sendFile(res, '/auth.html');
     }
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
-    if (p === '/app') { if (!(await currentUser(req))) return redirect(res, '/connexion'); return sendFile(res, '/app.html'); }
+    if (p === '/app') { const u0 = await currentUser(req); if (!u0) return redirect(res, '/connexion'); await firstJaVisit(u0); return sendFile(res, '/app.html'); }
     // espace du juge-arbitre : tableau de bord, calendrier, joueurs, profil
     const ACCOUNT_PAGES = { '/dashboard': 'dashboard.html', '/calendrier': 'calendrier.html', '/joueurs': 'joueurs.html', '/statistiques': 'statistiques.html', '/profil': 'profil.html' };
-    if (ACCOUNT_PAGES[p]) { if (!(await currentUser(req))) return redirect(res, '/connexion?retour=' + p); return sendFile(res, '/' + ACCOUNT_PAGES[p]); }
+    if (ACCOUNT_PAGES[p]) { const u0 = await currentUser(req); if (!u0) return redirect(res, '/connexion?retour=' + p); await firstJaVisit(u0); return sendFile(res, '/' + ACCOUNT_PAGES[p]); }
     if (p === '/en-cours') {   // raccourci vers le tournoi en cours le plus récent
       const u = await currentUser(req); if (!u) return redirect(res, '/connexion');
       const cur = currentTournament(await store.listTournaments(u.id));
@@ -829,8 +838,10 @@ const server = http.createServer(async (req, res) => {
       await store.saveUser(u);
       if (first || last) await store.saveIdentity(u.id, { first, last });
       await ensureAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // sa fiche joueur /RAM JA
-      // premier tournoi d'exemple pour bien démarrer
-      await newTournament(u.id, { demo: true, example: true, name:'Tournoi d\'exemple' });
+      // compte créé depuis /RAM Club ou /RAM Coach : ni offre ni essai /RAM JA tant qu'il n'y est pas venu
+      if (/^(club|coach)\./.test(host) || /\/club\//.test(String(req.headers.referer || ''))) await store.saveBilling(u.id, { noTrial: true });
+      // sur /RAM JA : l'essai commence, avec un premier tournoi d'exemple pour bien démarrer
+      else await newTournament(u.id, { demo: true, example: true, name:'Tournoi d\'exemple' });
       // e-mail de bienvenue (sans bloquer l'inscription si l'envoi échoue)
       taches.enqueue('mail', Object.assign({ to: email }, Mail.welcomeMail({ first, appUrl: appUrl(req) })));
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
@@ -936,9 +947,18 @@ const server = http.createServer(async (req, res) => {
       if (ac && req.method === 'POST') {
         const b = await readBody(req);
         const x = await store.getUser(ac[1]); if (!x) return json(res, 404, { error: 'Compte introuvable' });
+        const old = await store.getBilling(x.id).catch(() => null);
+        // attribution manuelle d'un essai, ou retrait : le compte repasse « sans offre »
+        if (b.essai === true || b.sans === true) {
+          await store.saveBilling(x.id, b.essai ? { trial: Date.now() } : { noTrial: true });
+          if (b.sans && x.plan === 'actif') { x.plan = 'essai'; await store.saveUser(x); }
+          accessCache.delete(x.id);
+          return json(res, 200, { ok: true, access: await accessFor(x) });
+        }
         const until = b.until ? Date.parse(String(b.until).slice(0, 10) + 'T23:59:59') : 0;
         if (b.until && !until) return json(res, 400, { error: 'Date invalide' });
-        await store.saveBilling(x.id, until ? { until, source: 'admin', at: Date.now() } : null);
+        const keep = old && (old.trial || old.noTrial) ? { trial: old.trial, noTrial: old.noTrial } : null;
+        await store.saveBilling(x.id, until ? Object.assign({}, keep, { until, source: 'admin', at: Date.now() }) : keep);
         if (until && (x.plan || 'essai') === 'essai') { x.plan = 'actif'; await store.saveUser(x); }
         if (!until && x.plan === 'actif') { x.plan = 'essai'; await store.saveUser(x); }
         accessCache.delete(x.id);
@@ -985,6 +1005,19 @@ const server = http.createServer(async (req, res) => {
         return res.end(text);
       }
       let am = p.match(/^\/api\/admin\/users\/([\w-]+)$/);
+      // supprimer un compte : son accès, ses tournois et ses réglages. Ses fiches restent dans les clubs, sans compte.
+      if (am && req.method === 'DELETE') {
+        const x = await store.getUser(am[1]); if (!x) return json(res, 404, { error: 'Compte introuvable' });
+        if (isAdmin(x)) return json(res, 400, { error: 'Un compte administrateur ne se supprime pas.' });
+        const b = await readBody(req);
+        if (String(b.email || '').trim().toLowerCase() !== String(x.email || '').toLowerCase()) return json(res, 400, { error: 'L’e-mail ne correspond pas.' });
+        try { await ram.detachUser(x.id); } catch (e) { return json(res, 400, { error: e.message }); }
+        for (const t of await store.listTournaments(x.id)) { const r = rooms.get(t.id); if (r) { clearTimeout(r.timer); rooms.delete(t.id); } await store.deleteTournament(t.id); }
+        await store.deleteAccount(x.id);
+        await store.deleteUser(x.id);
+        accessCache.delete(x.id);
+        return json(res, 200, { ok: true });
+      }
       if (am && req.method === 'POST') {
         const b = await readBody(req);
         if (!PLANS[b.plan]) return json(res, 400, { error: 'Offre inconnue' });

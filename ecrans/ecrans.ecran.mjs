@@ -346,3 +346,59 @@ test('JA : tournois par statut et création dans une fenêtre, la même depuis l
   await ctx.close();
 });
 
+test('Accès : compte créé depuis le Club, sans offre, puis essai à la première venue sur /RAM JA', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage();
+  await page.goto(JA + '/club/inscription');
+  const r = await page.evaluate(async m => { const x = await fetch('/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: m, password: 'essai-club-1', first: 'Esther', last: 'Essai' }) }); return x.status; }, `club-${Date.now()}@exemple.test`);
+  assert.equal(r, 200);
+  const acces = async () => { const d = await (await ctx.request.get(JA + '/api/tournaments')).json(); return [(d.tournaments || []).length, d.access && d.access.state]; };
+  const avant = await acces();
+  assert.equal(avant[0], 0, 'pas de tournoi d’exemple au Club');
+  await page.goto(JA + '/dashboard');
+  await page.waitForTimeout(400);
+  const apres = await acces();
+  assert.equal(apres[0], 1, 'tournoi d’exemple à la première venue');
+  await page.goto(JA + '/app');
+  await page.waitForTimeout(300);
+  assert.equal((await acces())[0], 1, 'une seule fois');
+  await ctx.close();
+});
+
+test('Administration : liste courte, filtre par offre, fiche du compte, essai et suppression confirmée', async () => {
+  const signup = async (ctx, email, first, last, referer) => { const r = await ctx.request.post(JA + '/api/auth/signup', { data: { email, password: 'essai-admin-1', first, last }, headers: referer ? { Referer: JA + '/club/inscription' } : {} }); assert.equal(r.status(), 200); };
+  const autre = await browser.newContext(), mail = `membre-${Date.now()}@exemple.test`;
+  await signup(autre, mail, 'Esther', 'Membre', true);
+  await autre.close();
+  // l'administrateur par défaut du serveur de test (données jetables)
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  page.on('dialog', d => d.accept());
+  await signup(ctx, 'baptiste.belier@gmail.com', 'Admin', 'Essai');
+  await page.goto(JA + '/admin');
+  const ligne = page.locator('button.urow', { hasText: mail });
+  await ligne.waitFor({ timeout: 8000 });
+  assert.equal((await ligne.locator('span').allTextContents()).filter(Boolean).slice(0, 4).join('|'), `Membre|Esther|${mail}|Sans offre`);
+  await page.selectOption('#ofilter', 'Sans offre');
+  assert.equal(await page.locator('button.urow').count(), 1, 'filtre par offre');
+  await ligne.click();
+  await page.waitForSelector('#ufiche[open]');
+  await page.click('#ufiche [data-essai]');
+  await page.waitForSelector('#ufiche [data-sans]');
+  await page.selectOption('#ofilter', 'Essai');
+  assert.equal(await page.locator('button.urow', { hasText: mail }).count(), 1, 'essai attribué à la main');
+  // suppression : refusée avec un mauvais e-mail, faite avec le bon
+  await page.click('#ufiche .udel summary');
+  await page.fill('#ufiche .udel input', 'faux@exemple.test');
+  await page.click('#ufiche .udel button');
+  await page.waitForTimeout(300);
+  assert.ok(await page.locator('#ufiche[open]').count(), 'refusée');
+  await page.fill('#ufiche .udel input', mail);
+  await page.click('#ufiche .udel button');
+  await page.waitForFunction(() => !document.querySelector('#ufiche').open);
+  await page.selectOption('#ofilter', '');
+  await page.waitForTimeout(300);
+  assert.equal(await page.locator('button.urow', { hasText: mail }).count(), 0, 'compte supprimé');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
