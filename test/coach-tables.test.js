@@ -74,5 +74,23 @@ test('source « tables » : même résultat que les éléments, requêtes filtr�
     assert.ok(urls[2].includes('session_date=gte.2026-11-01'), 'seulement les séances de la période');
   } finally { global.fetch = realFetch; }
 });
+test('tableau de bord : séances de la période et chiffre d’affaires réel, un pack acheté avant la période compris', async () => {
+  const { id, a } = await deuxClubs();
+  const offres = { formules: [{ id: 'f', joueurs: 2, duree: 90, prix: 30, par: 'personne' }], packs: [{ id: 'p', formule: 'f', seances: 5, prix: 100 }], abos: [] };
+  await ram.ops(id, a.id, [
+    { coll: 'eleve', id: 'k1', op: 'put', data: { n: 'Avec pack', achats: [{ id: 'h1', t: 'pack', ref: 'p', d: '2026-09-01', n: 5, prix: 100, nom: 'Pack' }] } },
+    { coll: 'eleve', id: 'e9', op: 'put', data: { n: 'Achat en novembre', achats: [{ id: 'h2', t: 'seance', ref: 'f', d: '2026-11-02', prix: 30, nom: 'Séance' }] } },
+    { coll: 'seance', id: 'gm.2026-11-03', op: 'put', data: { g: 'gm', d: '2026-11-03', pres: { k1: 'P', e1: 'P' } } }
+  ]);
+  const r = await tables.tableau(id, '2026-11-01', '2026-11-30', [['2026-11-01', '2026-11-30']], offres, a.id);
+  assert.deepEqual(r.seances.map(s => s.date), ['2026-11-03', '2026-11-05', '2026-11-17', '2026-11-24']);
+  const c = r.chiffres[0];
+  assert.equal(c.encaisse, 30, 'seul l’achat de novembre est encaissé sur la période');
+  assert.equal(c.aEncaisser, 30, 'e1 est venu sans achat ; k1 est couvert par son pack de septembre');
+  assert.equal(c.prepaye, 80, 'pack : 4 séances dues à 20 €');
+  assert.deepEqual(c.parMois, { '2026-11': 30 });
+  // connecteur : pas de période de chiffre d'affaires, pas d'achats lus
+  assert.deepEqual((await tables.tableauClubs([{ id: a.id, key: a.key, name: 'A' }], '2026-11-01', '2026-11-30', [], null)).chiffres, []);
+});
 if (saved.url) process.env.SUPABASE_URL = saved.url;
 if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;

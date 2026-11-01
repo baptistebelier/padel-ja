@@ -213,6 +213,13 @@ test('Coach : la saisie du thème n’est jamais effacée quand un autre club ch
   await page.evaluate(() => document.activeElement.blur());
   await page.waitForTimeout(600);
   assert.equal(await page.inputValue('#co-th'), 'Bandeja lente', 'le texte survit au redessin');
+  // tableau de bord : calculé par le serveur, un achat noté apparaît dans « Encaissé »
+  await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'eleve', id: 'e1', op: 'put', data: { n: 'Essai Élève', achats: [{ id: 'h1', t: 'seance', ref: 'f', d: today, prix: 42, nom: 'Séance' }] } }] });
+  await page.evaluate(() => { S.stack.length = 0; S.tab = 'dash'; render(); });
+  await page.waitForResponse(r => r.url().includes('/api/coach/tableau') && r.ok(), { timeout: 8000 }).catch(() => {});
+  await page.waitForSelector('.codash', { timeout: 8000 });
+  assert.ok(urls.includes('/api/coach/tableau'), 'demandé au serveur');
+  assert.match(await page.textContent('.codash'), /42\s*€/, 'encaissé calculé par le serveur');
   assert.deepEqual(errs, []);
   await ctx.close();
 });

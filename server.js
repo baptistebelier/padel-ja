@@ -1400,7 +1400,14 @@ const server = http.createServer(async (req, res) => {
     // planning de l'enseignant, tous ses clubs : lu dans les vraies tables, sans charger aucun club en mémoire
     if (p === '/api/coach/planning' && req.method === 'GET') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
-      try { return json(res, 200, await coachTables.planning(u.id, url.searchParams.get('du'), url.searchParams.get('au'), url.searchParams.get('club'))); }
+      try { return json(res, 200, await coachTables.planning(u.id, url.searchParams.get('du'), url.searchParams.get('au'), url.searchParams.get('club'), isAdmin(u))); }
+      catch (e) { if (/^Période/.test(e.message)) return json(res, 400, { error: e.message }); throw e; }
+    }
+    // tableau de bord de l'enseignant, calculé par le serveur : séances des 400 derniers jours et chiffre d'affaires réel
+    if (p === '/api/coach/tableau' && req.method === 'GET') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      const q = k => url.searchParams.get(k), du = q('du'), au = q('au');
+      try { return json(res, 200, await coachTables.tableau(u.id, du, au, [[q('de') || du, au], [du, au]], await Formules.get(store, u.id), q('club'), isAdmin(u))); }
       catch (e) { if (/^Période/.test(e.message)) return json(res, 400, { error: e.message }); throw e; }
     }
     if (p === '/api/coach/formules') {
