@@ -91,6 +91,8 @@ test('vacances de l’enseignant : plus rien de libre ; Mon espace : seulement m
 
 /* ---------- annuler, enfant, liste d'attente, rappels, collectifs ---------- */
 const pause = () => new Promise(r => setTimeout(r, 30));
+/* ce qui suit un changement part en arrière-plan : on attend le résultat (jusqu'à 5 s), quelle que soit la vitesse de la machine */
+const attend = async f => { for (let i = 0; i < 250; i++) { const v = await f(); if (v) return v; await new Promise(r => setTimeout(r, 20)); } return f(); };
 
 test('annuler : jusqu’à 24 h avant, seulement son cours, et la plage redevient libre', async () => {
   const { coach, club, key, d, a, b } = await monte(10);
@@ -126,12 +128,12 @@ test('liste d’attente : alerte quand la plage se libère, une seule fois, invi
   for (const u of [c, coach]) assert.ok(!(await ram.sync(u, club.id, 0)).items.some(i => i.coll === 'attente'), 'jamais envoyée');
   envois.length = 0;
   await resa.annuler(a, club.id, r.id);
-  await pause();
+  await attend(() => envois.some(e => e.msg.tag.includes('attente')));
   const m = envois.filter(e => e.msg.tag.includes('attente'));
   assert.equal(m.length, 1);
   assert.deepEqual(m[0].uids, [c]);
   assert.match(m[0].msg.url, new RegExp('#/resa/' + key));
-  assert.deepEqual((await resa.creneaux(c, club.id, key, d)).attente, [], 'l’alerte est partie : plus sur la liste');
+  assert.deepEqual(await attend(async () => { const l = (await resa.creneaux(c, club.id, key, d)).attente; return l.length ? null : l; }), [], 'l’alerte est partie : plus sur la liste');
   assert.deepEqual(await resa.attendre(c, club.id, key, { d, du: 540, au: 600 }), { attente: true });
   assert.deepEqual(await resa.attendre(c, club.id, key, { d, du: 540, au: 600 }), { attente: false }, 'le second appui l’en retire');
 });
@@ -158,20 +160,20 @@ test('rappels : la veille et 2 h avant ; rien ne part si le cours est annulé', 
 test('collectif : rien tant que le minimum n’est pas atteint, puis le cours suit les inscrits jusqu’au maximum', async () => {
   const { coach, club, key, d } = await monte(14);
   const post = ins => ({ by: key, kind: 'niveaux', at: Date.now(), nv: { mode: 'cours', sport: 'Padel', theme: 'Volée', time: '18 h', dur: '1 h 30', price: '15 €', dates: [d], tiers: [{ id: 't1', nom: 'Débutants', lo: 1, hi: 3, places: 2, max: 3 }, { id: 't2', lo: 4, hi: 6, places: 2 }], ins: { [d + '|t1']: ins, [d + '|t2']: ['z1'] }, at: {} } });
-  const pose = async ins => { await ram.ops(coach, club.id, [{ coll: 'post', id: 'pc', op: 'put', data: post(ins) }]); await pause(); await pause(); };
   const seance = async () => (await coachTables.planning(coach, d, d)).seances[0];
+  const pose = async (ins, pret) => { await ram.ops(coach, club.id, [{ coll: 'post', id: 'pc', op: 'put', data: post(ins) }]); if (pret) await attend(async () => { const x = await seance(); return x && pret(x); }); else { await pause(); await pause(); } };
   await pose(['a1']);
   assert.equal(await seance(), undefined, 'en attente : ni au planning, ni bloquant');
-  await pose(['a1', 'a2']);
+  await pose(['a1', 'a2'], x => x.eleves.length === 2);
   let s = await seance();
   assert.deepEqual(s.eleves, ['a1', 'a2']);
   assert.equal(s.nom, 'Volée');
   assert.equal(s.tarif.prix, 15);
-  await pose(['a1', 'a2', 'a3', 'a4']);
+  await pose(['a1', 'a2', 'a3', 'a4'], x => x.eleves.length === 3);
   assert.deepEqual((await seance()).eleves, ['a1', 'a2', 'a3'], 'le maximum');
-  await pose(['a1']);
+  await pose(['a1'], x => x.annule);
   assert.equal((await seance()).annule, true, 'sous le minimum : le cours saute');
-  await pose(['a1', 'a5']);
+  await pose(['a1', 'a5'], x => !x.annule && x.eleves.includes('a5'));
   s = await seance();
   assert.equal(s.annule, false, 'de nouveau atteint : il revient');
   assert.deepEqual(s.eleves, ['a1', 'a5']);
