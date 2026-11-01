@@ -204,7 +204,8 @@ function coPayTodo() {
   const out = [];
   ELEVES.filter(e => coInClub(e) && (e.achats || []).some(a => a.pay)).forEach(e =>
     coPacks(e.id).forEach(a => {
-      const due = (coPayEch(a) || []).filter(x => !x.ok && (a.used || 0) >= (+x.s || 0));
+      const faites = a.cycle ? coCycleUsed(a, e.id) : a.used || 0,
+        due = (coPayEch(a) || []).filter(x => !x.ok && faites >= (+x.s || 0));
       if (due.length)
         out.push({
           t: esc(svName(e.id)),
@@ -383,7 +384,7 @@ Object.assign(A, {
       f = foOf(p.formule);
     sheet(
       p.id ? 'Pack de séances' : 'Nouveau pack',
-      `<form class="body" id="co-pk" data-id="${p.id || 'new'}" data-f="${p.formule}"><p class="muted small">${f ? esc(f.nom) + ' · ' + foKind(f) + ' · ' + minTxt(f.duree) + ' · à l’unité : ' + foPrice(f) : ''}</p>${O('co-kn', 'Nom du pack (facultatif)', 'Pack Découverte, Perfectionnement…', p.nom)}${ofNum('co-ks', 'Nombre de séances', p.seances, 1)}${O('co-ke', 'En plusieurs fois : paiements attendus aux séances (facultatif)', '1, 3, 5', (p.ech || []).join(', '))}${ofNum('co-kp', 'Prix du pack en euros', p.prix)}<p class="muted small" id="co-kx"></p>${ofVente('co-kv', p)}<div class="cotools"><button class="btn">Enregistrer</button>${p.id ? ofDel('coPkDel', p.id) : ''}</div></form>`
+      `<form class="body" id="co-pk" data-id="${p.id || 'new'}" data-f="${p.formule}"><p class="muted small">${f ? esc(f.nom) + ' · ' + foKind(f) + ' · ' + minTxt(f.duree) + ' · à l’unité : ' + foPrice(f) : ''}</p>${O('co-kn', 'Nom du pack (facultatif)', 'Pack Découverte, Perfectionnement…', p.nom)}${ofNum('co-ks', 'Nombre de séances', p.seances, 1)}${O('co-ke', 'Paiement demandé aux séances n° (facultatif)', '4  ou 1, 4, 8', (p.ech || []).join(', '))}${ofNum('co-kp', 'Prix du pack en euros', p.prix)}<p class="muted small" id="co-kx"></p>${ofVente('co-kv', p)}<div class="cotools"><button class="btn">Enregistrer</button>${p.id ? ofDel('coPkDel', p.id) : ''}</div></form>`
     );
     const upd = () => {
       const n = +$('co-ks').value,
@@ -446,7 +447,7 @@ Object.assign(A, {
           ['plus', 'En plusieurs fois']
         ],
         'paye'
-      )}${O('co-apn', 'Nombre de paiements (en plusieurs fois)', '3')}${O('co-amo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify')}${O('co-an2', 'Note (facultatif)', 'Payé en 2 fois, offert…')}<button class="btn full">Enregistrer</button></form>`
+      )}${O('co-aps', 'Paiement demandé aux séances n° (facultatif)', '4  ou 1, 4, 8')}${O('co-apn', 'Nombre de paiements (en plusieurs fois)', '3')}${O('co-amo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify')}${O('co-an2', 'Note (facultatif)', 'Payé en 2 fois, offert…')}<button class="btn full">Enregistrer</button></form>`
     );
   },
   coAchatDel(d) {
@@ -547,8 +548,16 @@ document.addEventListener('submit', e => {
     if (v('co-an2')) a.note = v('co-an2').slice(0, 120);
     const reg = v('co-ast'),
       moy = v('co-amo').slice(0, 60);
-    if (reg === 'due') a.pay = { ech: [{ s: 0, m: a.prix || 0, ok: '' }] };
-    if (reg === 'plus') a.pay = { ech: coPaySplit(a, Math.max(2, Math.round(n('co-apn')) || 3)) };
+    // des numéros de séance : le paiement est demandé à ces séances-là ; sinon ceux prévus par le pack
+    const pk0 = t === 'pack' ? OFFRES.packs.find(p => p.id === ref) : null,
+      nums = coCycleNums(v('co-aps')),
+      prevus = nums.length ? nums : reg !== 'paye' && pk0 && (pk0.ech || []).length ? pk0.ech : [];
+    if (reg === 'due') a.pay = { ech: prevus.length ? coPayPlan(a.prix, prevus) : [{ s: 0, m: a.prix || 0, ok: '' }] };
+    if (reg === 'plus')
+      a.pay = {
+        ech: prevus.length > 1 ? coPayPlan(a.prix, prevus) : coPaySplit(a, Math.max(2, Math.round(n('co-apn')) || 3))
+      };
+    if (reg === 'paye' && nums.length) a.pay = { ech: coPayPlan(a.prix, nums) };
     if (moy) a.pay = Object.assign(a.pay || { ech: [{ s: 0, m: a.prix || 0, ok: d }] }, { moyen: moy });
     el.achats = (el.achats || []).concat(a);
     closeSheet();

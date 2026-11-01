@@ -85,7 +85,29 @@ function lockView(v) {
 /* le cycle d'un groupe : un segment par séance, comme une suite de stories. Faites : couleur d'accent ; aujourd'hui :
    orange ; à venir : discrètes ; annulées : barrées. Une séance reportée suit sa nouvelle date. Un groupe sans fin de
    cycle montre ses 8 dernières séances et les 8 suivantes. Commun au Club et au Coach. */
+/* la jauge d'un vrai cycle : ses séances, et elles seules */
+const cycleSes = g => d =>
+  typeof SEANCES === 'undefined'
+    ? null
+    : SEANCES.find(s => s.id === g.id + '.' + d && (s._club || '') === (g._club || ''));
+function cycleBarDe(g, c, plus) {
+  const E = REGLES.cycleEtat(g, c, cycleSes(g), TODAY),
+    lab = { done: 'Faite', vide: 'À vérifier : pas d’appel', now: "Aujourd'hui", next: 'À venir', cx: 'Annulée' },
+    leg = { done: 'Faites', vide: 'À vérifier', now: "Aujourd'hui", next: 'À venir', cx: 'Annulées' };
+  return `<div class="cocycle"><div class="cocyct"><b>${E.faites} sur ${E.prevues}</b><span class="muted small">séances faites${plus || ''}</span></div><div class="cocycb" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}, ${E.aVenir} à venir">${E.seances.map(x => `<i class="${x.etat}" title="${x.num ? 'Séance ' + x.num + ' · ' : ''}${fmtD(x.d)} · ${lab[x.etat]}"></i>`).join('')}</div><div class="cocycl">${[
+    'done',
+    'vide',
+    'now',
+    'next',
+    'cx'
+  ]
+    .filter(k => E.seances.some(x => x.etat === k))
+    .map(k => `<span><i class="${k}"></i>${leg[k]}</span>`)
+    .join('')}</div></div>`;
+}
 function cycleBar(g, plus) {
+  const cur = REGLES.cycleCourant(g, TODAY);
+  if (cur) return cycleBarDe(g, cur, plus);
   const all = [],
     end = g.to || isoIn(180);
   for (let d = g.from || isoIn(-365); d <= end; d = isoIn(1, d)) if (trainOn(g, d)) all.push(d);

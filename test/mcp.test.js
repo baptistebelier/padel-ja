@@ -147,6 +147,21 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const col = await w('coach_ouvrir_collectif', { mode: 'cours', sport: 'Padel', theme: 'Bandeja', date: '2030-03-01', heure: '18 h', groupes: [{ nom: 'Débutants', de: '1', a: '3', minimum: 2, maximum: 4 }] });
   const pc = (await ram.itemsOf(club.id, 'post')).find(x => x.id === col.publication).data;
   assert.deepEqual([pc.nv.tiers[0].nom, pc.nv.tiers[0].lo, pc.nv.tiers[0].places, pc.nv.tiers[0].max], ['Débutants', 1, 2, 4]);
+  // un cycle : les séances déjà passées s'y rattachent, le compte ne dépend plus de la date de fin
+  await w('coach_seance', { groupe_id: gr.groupe_id, date: '2030-01-08', presents: ['kid1'] });
+  const cy = await w('coach_cycle', { groupe_id: gr.groupe_id, nom: 'Hiver', produit: 'Pack 4', ajouter_dates: ['2030-01-01', '2030-01-08', '2030-01-11', '2030-01-15'], seances_paiement: [2] });
+  assert.equal(cy.cycles[0].taille_du_pack, 4);
+  assert.deepEqual(cy.cycles[0].paiements_aux_seances, [2]);
+  assert.deepEqual(cy.cycles[0].etat.seances.map(x => x.d), ['2030-01-01', '2030-01-08', '2030-01-11', '2030-01-15']);
+  const gc = (await ram.itemsOf(club.id, 'group')).find(x => x.id === gr.groupe_id).data;
+  assert.ok(gc.extra.includes('2030-01-11'), 'hors créneau : devient une séance du groupe');
+  const cy2 = await w('coach_cycle', { groupe_id: gr.groupe_id, nom: 'Printemps', ajouter_dates: ['2030-01-15'] });
+  assert.deepEqual(cy2.cycles.map(x => x.etat.seances.length), [3, 1], 'une séance n’est que dans un cycle');
+  assert.equal((await w('coach_cycle', { groupe_id: gr.groupe_id })).cycles.length, 2);
+  await assert.rejects(w('coach_cycle', { groupe_id: gr.groupe_id, cycle_id: 'rien', nom: 'x' }), /introuvable/);
+  const parN = await w('coach_attribuer_formule', { produit: 'Pack 4', eleves: ['Ana Roy'], date: '2030-01-05', seances_paiement: [4], reglement: 'a_payer' });
+  assert.equal(parN.attribue.length, 1);
+  assert.deepEqual((await w('coach_paiements', {})).a_regulariser.find(x => x.eleve === 'Ana Roy').echeances.map(x => [x.a_la_seance, x.montant]), [[4, 120]], 'à la séance 4');
   await ram.ops('U1', club.id, [{ coll: 'eleve', id: 'kid1', op: 'put', data: { n: 'Léo Martin', lvl: 3, sport: 'Tennis', note: 'timide' } }]);   // la suite repart de sa fiche d'origine
   const md = await w('coach_modifier_groupe', { groupe_id: ec.groupe_id, fin: '2030-01-23', retirer_dates: ['2030-01-09'], ajouter_dates: ['2030-01-11'] });
   assert.deepEqual([md.debut, md.fin, md.prochaines_seances], ['2030-01-02', '2030-01-23', ['2030-01-02', '2030-01-11', '2030-01-16', '2030-01-23']]);

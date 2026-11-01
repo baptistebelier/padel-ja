@@ -755,6 +755,57 @@ test('Coach : chaque formulaire de tarif et d’achat s’ouvre, avec la référ
   await ctx.close();
 });
 
+test('Coach : un cycle reprend les séances déjà faites, le bon compte, et le paiement à un numéro de séance', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  // un groupe à qui il reste un créneau en plus : 13 dates pour un pack de 10
+  const r = await page.evaluate(() => {
+    const g = GROUPS.find(x => x.type === 'train' && !x.once);
+    for (let i = SEANCES.length - 1; i >= 0; i--) if (SEANCES[i].g === g.id) SEANCES.splice(i, 1);
+    g.from = isoIn(-28); g.to = isoIn(56); delete g.cycles; g.skip = []; g.extra = []; g.off = []; g.cancel = []; g.every = 1;
+    g.day = coDow(isoIn(-28));
+    S.stack = [{ v: 'cgroupe', id: g.id }]; render();
+    return { id: g.id, passees: coDates(g, g.from, TODAY).length, total: coDates(g, g.from, g.to).length };
+  });
+  await page.waitForSelector('[data-a="coPlan"][data-c="new"]');
+  await page.click('[data-a="coPlan"][data-c="new"]');
+  await page.waitForSelector('#co-plan #co-pl-pay');
+  assert.ok(await page.evaluate(() => [...document.querySelectorAll('#co-pl-dates .co-pd')].some(x => x.value <= TODAY)), 'les séances déjà passées sont proposées');
+  await page.evaluate(() => { $('co-pl-n').value = 4; A.coPlanGen(); });
+  await page.fill('#co-pl-nom', 'Hiver');
+  await page.fill('#co-pl-pay', '2');
+  await page.click('#co-plan > button:not([type=button])');
+  await page.waitForFunction(() => !document.querySelector('#co-plan'));
+  const g1 = await page.evaluate(id => { const g = grp(id), c = g.cycles[0]; return { nom: c.nom, n: c.dates.length, pay: c.pay, past: c.dates.filter(d => d <= TODAY).length }; }, r.id);
+  assert.deepEqual([g1.nom, g1.n, g1.pay], ['Hiver', 4, [2]]);
+  assert.ok(g1.past >= 1);
+  // la jauge dit 0 sur 4, pas le total du créneau ; un appel fait passer la séance en faite
+  await page.waitForFunction(() => /0 sur 4/.test(document.querySelector('.cocyct b').textContent), null, { timeout: 5000 });
+  const faite = await page.evaluate(id => { const g = grp(id), d = g.cycles[0].dates[0], s = sesGet(g.id + '.' + d); s.pres = { x: 'P' }; render(true); return d; }, r.id);
+  await page.waitForFunction(() => /1 sur 4/.test(document.querySelector('.cocyct b').textContent), null, { timeout: 5000 });
+  // a posteriori : une séance se retire et se rattache depuis sa fiche
+  await page.evaluate(([id, d]) => { S.stack = [{ v: 'seance', id: id + '.' + d }]; render(); }, [r.id, faite]);
+  await page.waitForSelector('#co-s-cy');
+  assert.match(await page.textContent('.card:has(#co-s-cy)'), /Séance 1 du cycle/);
+  await page.selectOption('#co-s-cy', '');
+  await page.waitForFunction(([id, d]) => !grp(id).cycles[0].dates.includes(d), [r.id, faite]);
+  // le formulaire des séances du cycle la propose de nouveau
+  await page.evaluate(id => { const g = grp(id); A.coCycleSeances({ id, c: g.cycles[0].id }); }, r.id);
+  await page.waitForSelector('#co-cy-ses');
+  await page.check('#cs-' + faite);
+  await page.click('#co-cy-ses .btn.full');
+  await page.waitForFunction(([id, d]) => grp(id).cycles[0].dates.includes(d), [r.id, faite]);
+  // l'achat : le paiement à une seule séance précise
+  await page.evaluate(() => A.coAchat({ id: ELEVES[0].id }));
+  await page.waitForSelector('#co-ac #co-aps');
+  assert.deepEqual(await page.evaluate(() => coPayPlan(100, [4])), [{ s: 4, m: 100, ok: '' }]);
+  assert.deepEqual(await page.evaluate(() => coPayPlan(100, [1, 4, 8]).map(x => x.m)), [33.33, 33.33, 33.34]);
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
 test('Coach : mes outils de réservation ; élève : chercher des partenaires ; page publique sans compte', async () => {
   const cc = await browser.newContext({ viewport: { width: 1280, height: 900 } }), sc = await browser.newContext({ viewport: { width: 360, height: 780 } }), pub = await browser.newContext({ viewport: { width: 360, height: 780 } }), errs = [];
   const coachP = await cc.newPage(), page = await sc.newPage(), pp = await pub.newPage();

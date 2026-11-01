@@ -438,7 +438,7 @@ ${coActs(g, d, loc, cx)}</div>
 ${
   cx
     ? '<div class="card"><p>Les élèves et leurs parents sont prévenus dans /RAM Club.</p></div>'
-    : `${hd(`Appel · ${nP} présent${nP > 1 ? 's' : ''} sur ${st.length}`)}<div class="card">${roll || empty('users', 'Aucun élève', '')}<div class="ctl" style="flex-wrap:wrap"><button class="btn sm ghost grow" data-a="coAllP" data-id="${id}">${ic('check')}Tout le monde présent</button>${coIsGrp(g) ? `<button class="btn sm ghost grow" data-a="coPlus" data-id="${id}">${ic('plus')}Élève pour cette séance</button>` : ''}</div></div>
+    : `${typeof coSesCycle === 'function' ? coSesCycle(g, d) : ''}${hd(`Appel · ${nP} présent${nP > 1 ? 's' : ''} sur ${st.length}`)}<div class="card">${roll || empty('users', 'Aucun élève', '')}<div class="ctl" style="flex-wrap:wrap"><button class="btn sm ghost grow" data-a="coAllP" data-id="${id}">${ic('check')}Tout le monde présent</button>${coIsGrp(g) ? `<button class="btn sm ghost grow" data-a="coPlus" data-id="${id}">${ic('plus')}Élève pour cette séance</button>` : ''}</div></div>
 ${coIsGrp(g) ? '' : coSesPay(g, d, id, st, s)}${hd('Bilan de la séance')}${dr ? `<div class="card codraft"><span class="kicker">Brouillon à relire</span><p>Ce bilan a été préparé${dr.src === 'claude' ? ' par Claude' : ''} et n'est pas encore envoyé : relis-le, corrige-le si besoin, puis publie-le.</p></div>` : ''}<form id="co-bilan" data-id="${id}" class="card"><div class="fld"><label for="co-recap">Pour tout le groupe</label><textarea id="co-recap" placeholder="Ce qui a été travaillé, ce qu'on garde pour la prochaine fois">${esc(dr && dr.recap != null ? dr.recap : s.recap || '')}</textarea></div>${st
         .filter(k => !s.pres || s.pres[k] !== 'A')
         .map(
@@ -1072,7 +1072,7 @@ function coGroupe(id) {
     recaps = past.map(d => ({ d, s: sesFind(g, d) })).filter(x => x.s && x.s.recap);
   return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages</button></div></div>
 <div class="cotiles">${coTile('user', g.coach && M[g.coach] ? first(g.coach) : 'À choisir', 'Enseignant', 1)}<div class="cotile">${ic('users')}<b>${st.length}${g.max ? '<small>/' + g.max + '</small>' : ''}</b><span>${g.max ? 'Places occupées' : plural(st.length, 'élève')}</span>${g.max ? `<span class="cobarre" aria-hidden="true"><i style="width:${Math.min(100, Math.round((st.length * 100) / g.max))}%"></i></span>` : ''}</div>${coTile('euro', t.prix ? t.prix + ' €' : '–', t.prix ? TARIF_MODES[t.mode] : 'Tarif à renseigner')}${coGrpOffer(g)}</div>
-<div class="card">${coCycleBar(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div>${coLocTg(g)}</div>
+<div class="card">${coCycleBar(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div>${coLocTg(g)}${typeof coCyclesHtml === 'function' ? coCyclesHtml(g) : ''}</div>
 ${hd(ic('chat') + 'Discussion du groupe')}${
     c
       ? list(

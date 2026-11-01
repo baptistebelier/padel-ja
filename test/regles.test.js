@@ -95,3 +95,18 @@ test('disponibilités : gardées sur le compte, jamais montrées aux adhérents'
   assert.equal(p.conges, undefined);
 });
 
+
+test('cycle : ses séances et elles seules, faite seulement avec quelqu’un de présent', () => {
+  const g = { day: 2, cancel: ['2030-01-15'], cycles: [{ id: 'a', nom: 'Pack', n: 10, dates: ['2030-01-08', '2030-01-01', '2030-01-15', '2030-01-22', '2030-01-29'] }] };
+  const ses = { '2030-01-01': { pres: { x: 'P', y: 'A' } }, '2030-01-08': { pres: { y: 'A' } } };
+  const E = R.cycleEtat(g, g.cycles[0], d => ses[d], '2030-01-22');
+  assert.deepEqual(E.seances.map(x => [x.etat, x.num]), [['done', 1], ['vide', 2], ['cx', 0], ['now', 3], ['next', 4]]);
+  assert.deepEqual([E.prevues, E.faites, E.aVerifier, E.aVenir], [4, 1, 1, 2]);
+  assert.equal(R.cycleDe(g, '2030-01-08').id, 'a');
+  assert.equal(R.cycleDe(g, '2030-02-05'), null);
+  const deux = { cycles: [{ id: 'b', dates: ['2030-03-01'] }, { id: 'a', dates: ['2030-01-01'] }] };
+  assert.equal(R.cycleCourant(deux, '2029-12-01').id, 'a', 'le premier qui a encore une séance à venir');
+  assert.equal(R.cycleCourant(deux, '2030-02-01').id, 'b');
+  assert.equal(R.cycleCourant(deux, '2031-01-01').id, 'b', 'tout est passé : le dernier');
+  assert.equal(R.cycleCourant({}, '2030-01-01'), null);
+});

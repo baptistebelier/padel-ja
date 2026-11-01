@@ -50,9 +50,150 @@ function coGrpOffer(g) {
 }
 /* la jauge du cycle (ui/7-ecole.js), avec la taille du pack */
 const coCycleBar = g => {
-  const pk = (g.offre || '').startsWith('pack:') ? OFFRES.packs.find(p => p.id === g.offre.slice(5)) : null;
+  const cur = REGLES.cycleCourant(g, TODAY),
+    of = (cur && cur.offre) || g.offre || '',
+    pk = of.startsWith('pack:') ? OFFRES.packs.find(p => p.id === of.slice(5)) : null;
   return cycleBar(g, pk ? ' · pack de ' + pk.seances : '');
 };
+/* ---------- les cycles d'un groupe : chaque séance rattachée à un cycle, même après coup ----------
+   g.cycles (regles.js). Un cycle se crée depuis Programmer des séances, qui reprend les séances déjà faites. */
+const coCycleSes = g => d => sesFind(g, d);
+const coCycleNums = v =>
+  String(v || '')
+    .split(/[^\d]+/)
+    .filter(Boolean)
+    .map(Number)
+    .filter(n => n > 0);
+/* les séances du groupe qui ne sont dans aucun cycle */
+function coHorsCycle(g) {
+  const from = g.from || isoIn(-365);
+  return coDates(g, from, g.to && g.to > isoIn(180) ? g.to : isoIn(180)).filter(
+    d => !isCx(g, d) && !REGLES.cycleDe(g, d)
+  );
+}
+function coCyclesHtml(g) {
+  if (g.once) return '';
+  const l = g.cycles || [],
+    hors = coHorsCycle(g).filter(d => d <= TODAY).length,
+    ligne = c => {
+      const E = REGLES.cycleEtat(g, c, coCycleSes(g), TODAY),
+        trop = c.n && c.n !== E.prevues;
+      return `<div class="cokv"><span class="grow"><b>${esc(c.nom)}</b><br><span class="muted small">${E.faites} faites sur ${E.prevues}${E.aVerifier ? ' · ' + E.aVerifier + ' à vérifier' : ''}${(c.pay || []).length ? ' · paiement aux séances ' + c.pay.join(', ') : ''}</span>${trop ? `<br><span class="small" style="color:var(--hot)">${E.prevues} séances rattachées pour un pack de ${c.n}</span>` : ''}</span><button class="btn sm ghost" data-a="coCycleSeances" data-id="${g.id}" data-c="${c.id}">Séances</button><button class="ib" data-a="coPlan" data-id="${g.id}" data-c="${c.id}" aria-label="Modifier ${esc(c.nom)}">${ic('edit')}</button></div>`;
+    };
+  return `<span class="kicker" style="margin-top:12px">Cycles</span>${l.map(ligne).join('')}${hors && l.length ? `<p class="muted small">${plural(hors, 'séance passée', 'séances passées')} dans aucun cycle : rattache-les avec « Séances ».</p>` : ''}<button class="btn sm ghost full" data-a="coPlan" data-id="${g.id}" data-c="new">${ic('plus')}${l.length ? 'Nouveau cycle' : hors ? 'Créer le cycle avec les séances déjà faites' : 'Créer un cycle'}</button>`;
+}
+/* rattacher une date à un cycle : elle quitte l'autre cycle, et devient une séance du groupe si besoin */
+function coCycleSet(g, c, list) {
+  (g.cycles || []).forEach(x => x !== c && (x.dates = (x.dates || []).filter(d => !list.includes(d))));
+  c.dates = [...new Set(list)].sort();
+  c.dates.forEach(d => coDates(g, d, d).length || coDateOn(g, d));
+}
+/* un paiement par numéro de séance, parts égales */
+function coPayPlan(prix, nums) {
+  const part = Math.floor(((+prix || 0) * 100) / nums.length) / 100;
+  return nums.map((s, i) => ({
+    s,
+    m: i === nums.length - 1 ? Math.round(((+prix || 0) - part * (nums.length - 1)) * 100) / 100 : part,
+    ok: ''
+  }));
+}
+/* la formule du cycle notée pour les élèves du groupe, avec ses numéros de séance ; un élève déjà noté ne change pas */
+function coCycleAchats(g, c) {
+  const [t, ref] = String(c.offre || '').split(':');
+  if (t !== 'pack' && t !== 'abo') return 0;
+  const o = (t === 'pack' ? OFFRES.packs : OFFRES.abos).find(x => x.id === ref);
+  if (!o) return 0;
+  const cle = g.id + ':' + c.id,
+    d0 = (c.dates || [])[0] || TODAY,
+    nums = (c.pay || []).length ? c.pay : (o.ech || []).length ? o.ech : [1];
+  let n = 0;
+  coStu(g).forEach(k => {
+    const e = coElGet(k);
+    if ((e.achats || []).some(a => a.cycle === cle)) return;
+    const a = {
+      id: 'h' + Date.now().toString(36) + n,
+      t,
+      ref,
+      d: d0,
+      nom: ofLabel(t, ref),
+      prix: +o.prix || 0,
+      cycle: cle,
+      pay: { ech: coPayPlan(o.prix, nums) }
+    };
+    if (t === 'pack') a.n = o.seances;
+    e.achats = (e.achats || []).concat(a);
+    n++;
+  });
+  return n;
+}
+/* séances d'un cycle où cet élève a été présent : c'est elles qui déclenchent ses paiements */
+function coCycleUsed(a, k) {
+  const [gid, cid] = String(a.cycle || '').split(':'),
+    g = grp(gid),
+    c = g && (g.cycles || []).find(x => x.id === cid);
+  return c ? c.dates.filter(d => !isCx(g, d) && ((sesFind(g, d) || {}).pres || {})[k] === 'P').length : 0;
+}
+/* sur la fiche d'une séance : son cycle, à tout moment */
+function coSesCycle(g, d) {
+  if (g.once || !(g.cycles || []).length) return '';
+  const c = REGLES.cycleDe(g, d),
+    x = c && REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).seances.find(s => s.d === d);
+  return `<div class="card"><div class="fld" style="margin:0"><label for="co-s-cy">Cycle de cette séance</label><select id="co-s-cy" data-g="${g.id}" data-d="${d}"><option value="">Aucun</option>${g.cycles.map(k => `<option value="${k.id}" ${c === k ? 'selected' : ''}>${esc(k.nom)}</option>`).join('')}</select></div>${x && x.num ? `<p class="muted small">Séance ${x.num} du cycle${(c.pay || []).includes(x.num) ? ' · paiement demandé à cette séance' : ''}</p>` : ''}</div>`;
+}
+document.addEventListener('change', e => {
+  if (e.target.id !== 'co-s-cy') return;
+  const g = grp(e.target.dataset.g),
+    d = e.target.dataset.d,
+    c = (g.cycles || []).find(x => x.id === e.target.value);
+  if (c) coCycleSet(g, c, (c.dates || []).concat(d));
+  else (g.cycles || []).forEach(x => (x.dates = (x.dates || []).filter(y => y !== d)));
+  coSave(c ? 'Séance rattachée à ' + c.nom : 'Séance retirée du cycle');
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-cy-ses') return;
+  e.preventDefault();
+  const g = grp(e.target.dataset.id),
+    c = g && (g.cycles || []).find(x => x.id === e.target.dataset.c);
+  if (!c) return;
+  coCycleSet(
+    g,
+    c,
+    [...e.target.querySelectorAll('input:checked')].map(x => x.value)
+  );
+  closeSheet();
+  coSave(plural(c.dates.length, 'séance') + ' dans ' + c.nom);
+});
+Object.assign(A, {
+  coCycleSeances(d) {
+    const g = grp(d.id),
+      c = g && (g.cycles || []).find(x => x.id === d.c);
+    if (!c) return;
+    const E = REGLES.cycleEtat(g, c, coCycleSes(g), TODAY),
+      lab = { done: 'Faite', vide: 'Pas d’appel', now: "Aujourd'hui", next: 'À venir', cx: 'Annulée' },
+      etat = x => {
+        const y = E.seances.find(s => s.d === x);
+        if (y) return lab[y.etat];
+        return x > TODAY
+          ? 'À venir'
+          : Object.values((sesFind(g, x) || {}).pres || {}).some(v => v === 'P')
+            ? 'Faite'
+            : 'Pas d’appel';
+      },
+      autre = x => {
+        const k = REGLES.cycleDe(g, x);
+        return k && k !== c ? ' · dans ' + esc(k.nom) : '';
+      },
+      dates = [
+        ...new Set(
+          coDates(g, g.from || isoIn(-365), g.to && g.to > isoIn(180) ? g.to : isoIn(180)).concat(c.dates || [])
+        )
+      ].sort();
+    sheet(
+      c.nom,
+      `<form class="body" id="co-cy-ses" data-id="${g.id}" data-c="${c.id}"><p class="muted small">Coche les séances de ce cycle, même celles qui sont déjà passées.</p><div class="list">${dates.map(x => `<label class="chk" for="cs-${x}"><input type="checkbox" id="cs-${x}" value="${x}" ${(c.dates || []).includes(x) ? 'checked' : ''}>${fmtD(x)}<span class="muted small"> · ${etat(x)}${autre(x)}</span></label>`).join('')}</div><button class="btn full">Enregistrer</button></form>`
+    );
+  }
+});
 
 /* ---------- périodes sans cours (vacances scolaires, fermeture du club…) ----------
    g.off = [{ nom, du, au }] : le créneau du groupe ne donne pas de séance ces jours-là (data.js trainOn) ;
@@ -376,6 +517,7 @@ function coNextOcc(g, after) {
 }
 /* une séance (thème, appel, bilan) passe d'une date à une autre */
 function coSesMove(g, from, to) {
+  (g.cycles || []).forEach(c => (c.dates = [...new Set((c.dates || []).map(x => (x === from ? to : x)))].sort()));
   const s = SEANCES.find(x => x.id === g.id + '.' + from && (x._club || '') === (g._club || ''));
   if (!s) return;
   const t = sesGet(g.id + '.' + to);
@@ -384,6 +526,7 @@ function coSesMove(g, from, to) {
 }
 /* une date du groupe disparaît, une autre apparaît (séance déplacée : skip et extra, comme data.js trainOn) */
 function coDateOff(g, d) {
+  (g.cycles || []).forEach(c => (c.dates = (c.dates || []).filter(x => x !== d)));
   if ((g.extra || []).includes(d)) g.extra = g.extra.filter(x => x !== d);
   if (trainOn(g, d)) g.skip = (g.skip || []).concat(d);
 }
@@ -400,6 +543,16 @@ function coPlanDates(start, n, step, off) {
   for (let d = start, k = 0; out.length < Math.min(n, 60) && k < 200; d = isoIn(step, d), k++)
     if (!shut(d)) out.push(d);
   return out;
+}
+/* les dates d'un cycle : les séances du groupe à partir de cette date (faites ou non), puis celles à proposer */
+function coPlanDetect(g, start, n, step) {
+  const deja = coDates(g, start, g.to && g.to > isoIn(180) ? g.to : isoIn(180)).filter(
+    d => !isCx(g, d) && !REGLES.cycleDe(g, d)
+  );
+  const out = deja.slice(0, n);
+  if (out.length >= n) return out;
+  const suite = out.length ? isoIn(step || 7, out[out.length - 1]) : start;
+  return out.concat(coPlanDates(suite, n - out.length, step || 7, coVacOff(g)));
 }
 /* première date utile : la prochaine séance du créneau du groupe */
 function coPlanStart(g) {
@@ -594,17 +747,33 @@ Object.assign(A, {
   coPlan(d) {
     const g = grp(d.id);
     if (!g) return;
-    const cur = coDates(g, isoIn(1), g.to && g.to > isoIn(1) ? g.to : isoIn(120)),
+    const courant =
+        d.c === 'new' ? null : d.c ? (g.cycles || []).find(x => x.id === d.c) : REGLES.cycleCourant(g, TODAY),
+      debutNew = (() => {
+        const hors = coHorsCycle(g);
+        return hors[0] || coPlanStart(g);
+      })(),
+      cur = courant
+        ? courant.dates.slice().sort()
+        : d.c === 'new'
+          ? coPlanDetect(
+              g,
+              debutNew,
+              (g.offre || '').startsWith('pack:')
+                ? (OFFRES.packs.find(p => p.id === g.offre.slice(5)) || {}).seances || 10
+                : 10
+            )
+          : coDates(g, isoIn(1), g.to && g.to > isoIn(1) ? g.to : isoIn(120)),
       opts = [['', 'Aucune en particulier']]
         .concat(
           OFFRES.packs.map(p => ['pack:' + p.id, 'Pack · ' + ofLabel('pack', p.id) + ' · ' + p.seances + ' séances'])
         )
         .concat(OFFRES.formules.map(f => ['f:' + f.id, 'À la séance · ' + ofLabel('f', f.id)]))
         .concat(OFFRES.abos.map(a => ['abo:' + a.id, 'Abonnement · ' + a.nom])),
-      cyc = !!g.to || (g.offre || '').startsWith('pack:');
+      cyc = !!g.to || !!d.c || !!courant || (g.offre || '').startsWith('pack:');
     sheet(
       'Séances de ' + g.name,
-      `<form class="body" id="co-plan" data-id="${g.id}"><p class="muted small">Choisis une formule : un pack donne le nombre de séances et le tarif. Règle ensuite chaque date ; tu pourras donner un thème à chaque séance.</p>${ofSel('co-pl-o', 'Formule suivie par le groupe', opts, g.offre || '')}<div class="row" style="gap:8px"><div class="fld grow"><label for="co-pl-s">À partir du</label><input id="co-pl-s" type="date" value="${coPlanStart(g)}"></div><div class="fld" style="width:96px"><label for="co-pl-n">Séances</label><input id="co-pl-n" type="number" inputmode="numeric" min="1" max="60" value="${cur.length || 10}"></div></div>${ofSel(
+      `<form class="body" id="co-plan" data-id="${g.id}" data-c="${courant ? courant.id : d.c === 'new' ? 'new' : ''}"><p class="muted small">Choisis une formule : un pack donne le nombre de séances et le tarif. Les séances déjà faites à partir de cette date sont reprises dans le cycle.</p>${O('co-pl-nom', 'Nom du cycle', 'Cycle automne, Pack 10 séances…', courant ? courant.nom : '')}${ofSel('co-pl-o', 'Formule suivie par le groupe', opts, (courant && courant.offre) || g.offre || '')}${O('co-pl-pay', 'Paiement demandé aux séances n° (facultatif)', '4  ou 1, 4, 8', ((courant && courant.pay) || []).join(', '))}<div class="fld"><label class="chk" for="co-pl-att"><input type="checkbox" id="co-pl-att">Noter ce pack ou cet abonnement pour les élèves du groupe</label></div><div class="row" style="gap:8px"><div class="fld grow"><label for="co-pl-s">À partir du</label><input id="co-pl-s" type="date" value="${cur[0] || coPlanStart(g)}"></div><div class="fld" style="width:96px"><label for="co-pl-n">Séances</label><input id="co-pl-n" type="number" inputmode="numeric" min="1" max="60" value="${cur.length || 10}"></div></div>${ofSel(
         'co-pl-r',
         'Rythme',
         [
@@ -620,7 +789,7 @@ Object.assign(A, {
     const o = coPlanOf($('co-pl-o').value),
       n = parseInt($('co-pl-n').value, 10) || o.n || 10,
       s = $('co-pl-s').value || TODAY;
-    coPlanPaint(coPlanDates(s, n, +$('co-pl-r').value || 7, coVacOff(grp($('co-plan').dataset.id) || {})));
+    coPlanPaint(coPlanDetect(grp($('co-plan').dataset.id), s, n, +$('co-pl-r').value || 7));
   },
   coPlanAdd() {
     const l = coPlanRead(),
@@ -728,7 +897,29 @@ document.addEventListener('submit', e => {
   if (o) g.offre = o;
   else delete g.offre;
   if (p.tarif) g.tarif = p.tarif;
-  coPlanApply(g, list, $('co-pl-c').checked);
+  const cid = e.target.dataset.c,
+    garder = $('co-pl-c').checked || !!cid,
+    // les séances des autres cycles restent
+    autres = (g.cycles || []).filter(x => x.id !== cid).flatMap(x => x.dates || []);
+  coPlanApply(g, [...new Set(list.concat(autres))].sort(), $('co-pl-c').checked);
+  let note = '';
+  if (garder) {
+    g.cycles = g.cycles || [];
+    let c = g.cycles.find(x => x.id === cid);
+    if (!c) g.cycles.push((c = { id: 'c' + Date.now().toString(36), dates: [] }));
+    const pk = o.startsWith('pack:') ? OFFRES.packs.find(x => x.id === o.slice(5)) : null;
+    c.nom = $('co-pl-nom').value.trim().slice(0, 60) || (pk ? ofLabel('pack', pk.id) : 'Cycle ' + g.cycles.length);
+    if (o) c.offre = o;
+    else delete c.offre;
+    if (pk) c.n = pk.seances;
+    else delete c.n;
+    c.pay = coCycleNums($('co-pl-pay').value);
+    coCycleSet(g, c, list);
+    if ($('co-pl-att').checked) {
+      const n = coCycleAchats(g, c);
+      note = n ? ' · noté pour ' + plural(n, 'élève') : '';
+    }
+  }
   closeSheet();
-  coSave(plural(list.length, 'séance programmée', 'séances programmées') + ' pour ' + g.name);
+  coSave(plural(list.length, 'séance programmée', 'séances programmées') + ' pour ' + g.name + note);
 });

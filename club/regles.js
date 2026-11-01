@@ -225,6 +225,36 @@
     return out.filter(p => p.au - p.du >= (mini || 0)).sort((a, b) => a.du - b.du);
   }
 
+  /* cycles d'un groupe : g.cycles = [{ id, nom, offre, n, pay: [numéros de séance], dates: [AAAA-MM-JJ] }]. Une séance
+     appartient à un cycle par sa date : le compte ne dépend plus du créneau ni de la date de fin du groupe.
+     Une séance passée n'est « faite » que si quelqu'un a été noté présent ; sans appel, elle est « à vérifier ».
+     sesOf(date) : la séance de cette date (appel, thème) ou rien */
+  const cycleDe = (g, iso) => (g.cycles || []).find(c => (c.dates || []).includes(iso)) || null;
+  function cycleEtat(g, c, sesOf, today) {
+    let num = 0;
+    const seances = (c.dates || [])
+      .slice()
+      .sort()
+      .map(d => {
+        const cx = (g.cancel || []).includes(d),
+          present = Object.values(((sesOf && sesOf(d)) || {}).pres || {}).some(v => v === 'P');
+        return {
+          d,
+          etat: cx ? 'cx' : d > today ? 'next' : present ? 'done' : d === today ? 'now' : 'vide',
+          num: cx ? 0 : ++num
+        };
+      });
+    const n = e => seances.filter(x => x.etat === e).length;
+    return { seances, prevues: num, faites: n('done'), aVerifier: n('vide'), aVenir: n('next') + n('now') };
+  }
+  /* le cycle en cours : le premier qui a encore une séance à venir, sinon le dernier */
+  function cycleCourant(g, today) {
+    const l = (g.cycles || [])
+      .filter(c => (c.dates || []).length)
+      .sort((a, b) => [...a.dates].sort()[0].localeCompare([...b.dates].sort()[0]));
+    return l.find(c => c.dates.some(d => d >= today && !(g.cancel || []).includes(d))) || l[l.length - 1] || null;
+  }
+
   /* classements tennis, du plus bas au plus haut */
   const RANKS = [
     'NC',
@@ -250,6 +280,9 @@
   ];
 
   return {
+    cycleDe,
+    cycleEtat,
+    cycleCourant,
     RANKS,
     plagesLibres,
     hhmmMin,
