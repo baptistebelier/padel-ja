@@ -42,7 +42,11 @@ const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // 
 const coachTables = require('./lib/coach-tables.js').createCoachTables({ ram, store });   // planning de l'enseignant lu dans les vraies tables
 const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
 const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m) });   // notifications sur le téléphone
-require('./lib/pushnotif.js').createNotifier({ ram, push, log: m => console.warn('/RAM Club : ' + m) });   // qui prévenir à chaque changement d'un club
+const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
+// une notification passe par la file : un redémarrage du serveur ne la perd pas
+require('./lib/pushnotif.js').createNotifier({ ram, push: { send: (uid, msg) => taches.enqueue('push', { uid, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
+taches.on('push', p => push.send(p.uid, p.msg));
+taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
 async function jaTitlesOf(spaceId) {
@@ -697,6 +701,13 @@ function currentTournament(list) {
 
 /* connecteur MCP /RAM (lib/mcp.js) : Claude lit les tournois, les clubs et le suivi d'un compte, avec son accord */
 const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin });
+/* réservation ou annulation Calendly → planning de l'enseignant : le compte /RAM de l'hôte (même e-mail), sinon CALENDLY_COMPTE */
+taches.on('calendly', async b => {
+  const coach = (b.hote && await store.getUserByEmail(b.hote)) || (process.env.CALENDLY_COMPTE && await store.getUserByEmail(String(process.env.CALENDLY_COMPTE).trim().toLowerCase()));
+  if (!coach) throw new Error('Calendly : aucun compte /RAM pour ' + b.hote + ' (renseigner CALENDLY_COMPTE dans Render)');
+  const r = b.type === 'reservation' ? await mcp.calendly.book(coach, b) : await mcp.calendly.cancel(coach, b);
+  console.log(`  Calendly : ${b.type} du ${b.date} à ${b.heure} → ${r.club || 'séance introuvable'}`);
+});
 const server = http.createServer(async (req, res) => {
   res._req = req;   // pour la compression des réponses (json, fichiers)
   Mesures.track(req, res, m => console.warn('Mesures : ' + m));   // temps et taille de chaque route (/api/admin/mesures)
@@ -809,7 +820,7 @@ const server = http.createServer(async (req, res) => {
       // premier tournoi d'exemple pour bien démarrer
       await newTournament(u.id, { demo: true, example: true, name:'Tournoi d\'exemple' });
       // e-mail de bienvenue (sans bloquer l'inscription si l'envoi échoue)
-      Mail.send(Object.assign({ to: email }, Mail.welcomeMail({ first, appUrl: appUrl(req) }))).catch(e => console.error('E-mail de bienvenue :', e.message));
+      taches.enqueue('mail', Object.assign({ to: email }, Mail.welcomeMail({ first, appUrl: appUrl(req) })));
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
     }
     if (p === '/api/auth/login' && req.method === 'POST') {
@@ -826,14 +837,10 @@ const server = http.createServer(async (req, res) => {
       if (!Calendly.verify(raw, req.headers['calendly-webhook-signature'])) return json(res, 401, { error: 'Signature invalide' });
       let b; try { b = Calendly.booking(JSON.parse(raw)); } catch (e) { return json(res, 400, { error: 'JSON invalide' }); }
       if (!b.type) return json(res, 200, { ignored: true });
-      // l'enseignant : le compte /RAM de l'hôte Calendly (même e-mail), sinon celui de CALENDLY_COMPTE
-      const coach = (b.hote && await store.getUserByEmail(b.hote)) || (process.env.CALENDLY_COMPTE && await store.getUserByEmail(String(process.env.CALENDLY_COMPTE).trim().toLowerCase()));
-      if (!coach) { console.error('Calendly : aucun compte /RAM pour ' + b.hote + ' (renseigner CALENDLY_COMPTE dans Render)'); return json(res, 200, { ok: false }); }
-      try {
-        const r = b.type === 'reservation' ? await mcp.calendly.book(coach, b) : await mcp.calendly.cancel(coach, b);
-        console.log(`  Calendly : ${b.type} du ${b.date} à ${b.heure} → ${r.club || 'séance introuvable'}`);
-        return json(res, 200, { ok: true });
-      } catch (e) { console.error('Calendly :', e.message); return json(res, 200, { ok: false }); }
+      // notée dans la file avant de répondre : un échec est retenté, un webhook renvoyé n'entre qu'une fois
+      const inv = (JSON.parse(raw).payload || {}).uri || b.cal + ':' + b.email;
+      await taches.enqueue('calendly', b, { key: `calendly:${b.type}:${inv}` });
+      return json(res, 200, { ok: true });
     }
     /* ---------- boutique Shopify : commande payée → accès activé ou prolongé (création du compte si besoin) ---------- */
     if (p === '/api/shopify/webhook' && req.method === 'POST') {
@@ -864,8 +871,7 @@ const server = http.createServer(async (req, res) => {
       accessCache.delete(u.id);
       console.log(`  Shopify : commande ${order.name || order.id} payée (${r.items.join(', ')}) → ${email}, accès jusqu'au ${new Date(r.billing.until).toISOString().slice(0, 10)}`);
       const id = await store.getIdentity(u.id).catch(() => null);
-      Mail.send(Object.assign({ to: email }, Mail.accessMail({ first: (id && id.first) || first, items: r.items, until: r.billing.until, link, appUrl: appUrl(req) })))
-        .catch(e => console.error('E-mail d\'activation :', e.message));
+      taches.enqueue('mail', Object.assign({ to: email }, Mail.accessMail({ first: (id && id.first) || first, items: r.items, until: r.billing.until, link, appUrl: appUrl(req) })));
       return json(res, 200, { ok: true });
     }
 
@@ -899,7 +905,7 @@ const server = http.createServer(async (req, res) => {
       if (!isAdmin(u)) return json(res, 403, { error: 'Réservé aux administrateurs' });
       // mesures du serveur (?zero pour repartir de zéro)
       if (p === '/api/admin/mesures') {
-        const r = Mesures.report({ clubs_en_memoire: ram.loaded(), tournois_en_memoire: rooms.size });
+        const r = Mesures.report({ clubs_en_memoire: ram.loaded(), tournois_en_memoire: rooms.size, taches: await taches.stats().catch(() => null) });
         if (url.searchParams.has('zero')) Mesures.reset();
         return json(res, 200, r);
       }
@@ -1552,6 +1558,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   Ouvrir   : http://localhost:${PORT}/`);
   if (!ONLINE) lanAddresses().forEach(ip => console.log(`   Réseau   : http://${ip}:${PORT}/`));
   console.log('\n   Laissez cette fenêtre ouverte pendant le tournoi.\n');
+  taches.start();
   Backup.schedule(store, msg => console.log('  ' + msg));
   Retention.schedule(store, msg => console.log('  ' + msg));
   Mail.keepAlive(msg => console.log('  ' + msg));
