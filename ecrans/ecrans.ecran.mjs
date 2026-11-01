@@ -546,3 +546,43 @@ test('Coach : statistiques sans chiffre d’affaires, paiements à régulariser,
   await ctx.close();
 });
 
+test('Coach : le volet du menu suit le doigt, comme /RAM JA', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 }, hasTouch: true }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('.cobar', { state: 'attached', timeout: 8000 });
+  const touch = (type, x) => page.evaluate(([type, x]) => {
+    const target = document.getElementById('main') || document.body, t = new Touch({ identifier: 1, target, clientX: x, clientY: 300 }), end = type === 'touchend';
+    target.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: end ? [] : [t], changedTouches: [t] }));
+  }, [type, x]);
+  const pos = () => page.evaluate(() => new DOMMatrix(getComputedStyle(document.getElementById('codrawer')).transform).m41);
+  const ouvert = () => page.evaluate(() => document.getElementById('phone').classList.contains('drawer-open'));
+  const w = await page.evaluate(() => { coDrawer(false); return document.getElementById('codrawer').offsetWidth; });
+  // ouvrir : pendant le geste, le volet est exactement sous le doigt
+  await touch('touchstart', 10);
+  await touch('touchmove', 110);
+  assert.equal(Math.round(await pos()), Math.round(-w + 100), 'suit le doigt');
+  await touch('touchmove', 40);
+  assert.equal(Math.round(await pos()), Math.round(-w + 30), 'revient avec le doigt');
+  assert.equal(await ouvert(), false, 'pas encore ouvert');
+  // un petit geste ne l'ouvre pas
+  await touch('touchend', 40);
+  assert.equal(await ouvert(), false);
+  // un geste franc l'ouvre au relâcher
+  await touch('touchstart', 10);
+  await touch('touchmove', 200);
+  await touch('touchend', 200);
+  assert.equal(await ouvert(), true);
+  // fermer : il suit aussi le doigt vers la gauche
+  await touch('touchstart', 250);
+  await touch('touchmove', 150);
+  assert.equal(Math.round(await pos()), -100);
+  await touch('touchend', 150);
+  assert.equal(await ouvert(), false);
+  // le bouton du menu fonctionne toujours
+  await page.click('.cobar-btn');
+  assert.equal(await ouvert(), true);
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+

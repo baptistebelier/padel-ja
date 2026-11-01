@@ -466,40 +466,67 @@ render = function () {
   if ($('codrawer') && $('phone').classList.contains('drawer-open')) $('codrawer').innerHTML = coDrawerHTML();
   return r;
 };
-/* téléphone : glisser depuis le bord gauche ouvre le menu (comme /RAM JA) ; le glisser vers la gauche le referme */
+/* téléphone : le même geste que /RAM JA (public/js/rail.js). Glisser du bord gauche vers la droite ouvre le volet,
+   vers la gauche le ferme ; le volet suit le doigt, puis s'ouvre ou se referme au relâcher.
+   Le geste du bord gauche ouvre uniquement le menu : on bloque le « retour à la page précédente » du navigateur (iPhone). */
 (function () {
-  let x0 = 0,
-    y0 = 0,
-    from = '';
+  let sx = null,
+    sy = 0,
+    dx = 0,
+    mode = '';
+  const panel = () => $('codrawer');
+  const stop = () => {
+    const d = panel();
+    if (d) {
+      d.style.transition = '';
+      d.style.transform = '';
+    }
+    sx = null;
+    mode = '';
+  };
   document.addEventListener(
     'touchstart',
     e => {
-      from = '';
       if (!coMobile() || e.touches.length !== 1 || $('sheet')) return;
       const t = e.touches[0],
-        open = $('phone').classList.contains('drawer-open');
-      if (open || t.clientX < 28) {
-        from = open ? 'ouvert' : 'bord';
-        x0 = t.clientX;
-        y0 = t.clientY;
-      }
+        isOpen = $('phone').classList.contains('drawer-open');
+      if (!isOpen && t.clientX < 24) {
+        mode = 'open';
+        // le volet doit être prêt avant que le doigt bouge ; le bouton du menu garde son toucher
+        coDrawer(false);
+        if (e.cancelable && !e.target.closest('[data-a="coDrawer"]')) e.preventDefault();
+      } else if (isOpen) mode = 'close';
+      else return;
+      sx = t.clientX;
+      sy = t.clientY;
+      dx = 0;
     },
-    { passive: true }
+    { passive: false }
   );
   document.addEventListener(
-    'touchend',
+    'touchmove',
     e => {
-      if (!from) return;
-      const t = e.changedTouches[0],
-        dx = t.clientX - x0,
-        dy = Math.abs(t.clientY - y0);
-      if (dy > Math.abs(dx)) return;
-      if (from === 'bord' && dx > 50) coDrawer(true);
-      if (from === 'ouvert' && dx < -50) coDrawer(false);
-      from = '';
+      if (sx == null) return;
+      const t = e.touches[0];
+      dx = t.clientX - sx;
+      if (Math.abs(t.clientY - sy) > Math.abs(dx) && Math.abs(dx) < 12) return;
+      const d = panel(),
+        w = d.offsetWidth,
+        x = mode === 'open' ? Math.min(0, -w + Math.max(0, dx)) : Math.min(0, dx);
+      d.style.transition = 'none';
+      d.style.transform = `translateX(${x}px)`;
     },
     { passive: true }
   );
+  document.addEventListener('touchend', () => {
+    if (sx == null) return;
+    const m = mode,
+      moved = dx;
+    stop();
+    if (m === 'open' && moved > 60) coDrawer(true);
+    else if (m === 'close' && moved < -60) coDrawer(false);
+  });
+  document.addEventListener('touchcancel', () => sx != null && stop());
 })();
 
 /* échelles de niveaux : celles du compte /RAM de l'enseignant (les mêmes dans tous ses clubs) */
