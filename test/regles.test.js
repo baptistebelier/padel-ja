@@ -69,3 +69,12 @@ test('chiffre d’affaires réel : encaissé, à encaisser, packs pas encore uti
   assert.equal(r.prepaye, 60, 'pack de 3 : 2 séances dues à 30 €');
   assert.deepEqual(r.parMois, { '2026-10': 170 });
 });
+
+test('paiements : un achat sans échéances est réglé ; avec, seul ce qui est payé est encaissé, le reste à encaisser', () => {
+  const eleves = { a: { achats: [{ id: 'h', t: 'pack', ref: 'p', d: '2026-10-01', n: 5, prix: 100, pay: { ech: [{ s: 1, m: 40, ok: '2026-10-02' }, { s: 3, m: 60, ok: '' }] } }, { id: 'i', t: 'pack', ref: 'p', d: '2026-10-05', n: 5, prix: 50 }] } };
+  const r = R.chiffre({ eleves, seances: [], offres: { formules: [], packs: [], abos: [] }, from: '2026-10-01', to: '2026-10-31' });
+  assert.equal(r.encaisse, 90);
+  assert.equal(r.aEncaisser, 60);
+  assert.equal(r.parMois['2026-10'], 90);
+});
+

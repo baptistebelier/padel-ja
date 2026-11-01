@@ -1533,3 +1533,135 @@ button.copp:hover span:last-child {
   height: 12px;
   border-radius: 3px;
 }
+/* C02 : statistiques d'activité */
+.cocurve {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.cocurve text {
+  fill: var(--muted);
+  font-size: 12px;
+}
+.cocurve .cogrid {
+  stroke: var(--line);
+}
+.cocurve .conow {
+  stroke: var(--muted);
+  stroke-dasharray: 2 4;
+}
+.cocurve polyline {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.cocurve .cocur {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.cocurve .coprev {
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  opacity: 0.7;
+}
+.cocycl i.cocur {
+  background: var(--accent);
+}
+.cocycl i.coprev {
+  background: var(--muted);
+  opacity: 0.7;
+}
+.coact2 {
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.coact2:last-child {
+  border-bottom: 0;
+}
+.cokv2 {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+.cokv2 b {
+  flex: none;
+  font-size: 13px;
+}
+.coact2 .cobarre {
+  display: block;
+}
+/* C03 : paiements */
+.tag.copay.paye {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.tag.copay.due {
+  background: var(--hot);
+  color: var(--on-hot);
+}
+.tag.copay.partiel {
+  background: #ff8a00;
+  color: #1a0a00;
+}
+.copayb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-height: 36px;
+  text-align: left;
+  color: inherit;
+  margin-top: 6px;
+}
+.copayr {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+.copech {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+.copok {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 44px;
+}
+.copok input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+/* C16 : un ensemble d'abonnements */
+.coens summary {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+.coens summary::-webkit-details-marker {
+  display: none;
+}
+.coens .chev {
+  transition: transform 0.15s;
+  transform: rotate(-90deg);
+}
+.coens[open] .chev {
+  transform: rotate(90deg);
+}
+.coens .list {
+  margin: 8px 0;
+}

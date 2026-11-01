@@ -230,8 +230,19 @@ function proOffersHtml(o) {
       );
     })
     .join('');
-  const abos = o.abos
+  const seen = {},
+    abRows = o.abos.filter(a => !a.ens || (seen[a.ens] ? false : (seen[a.ens] = 1)));
+  const abos = abRows
     .map(a => {
+      if (a.ens) {
+        const l = o.abos.filter(x => x.ens === a.ens),
+          min = Math.min(...l.map(x => +x.prix || 0));
+        return line(
+          esc(a.ens),
+          (l.length > 1 ? 'dès ' : '') + e(min),
+          l.map(x => `${esc(x.nom)} : ${e(x.prix)} ${abPer(x)}`).join('<br>')
+        );
+      }
       const f = o.formules.find(x => x.id === a.formule),
         eng = abEng(a),
         det = [

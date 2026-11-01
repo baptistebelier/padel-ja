@@ -719,6 +719,7 @@ async function firstJaVisit(u) {
   if (!Access.startsTrial(b, freeAccess(u))) return;
   await store.saveBilling(u.id, Object.assign({}, b, { noTrial: false, trial: Date.now() }));
   accessCache.delete(u.id);
+  if ((await store.listTournaments(u.id).catch(() => [])).some(Access.isExample)) return;   // déjà un tournoi d'exemple (compte créé avant cette règle)
   await newTournament(u.id, { demo: true, example: true, name: 'Tournoi d\'exemple' }).catch(e => console.error('Tournoi d\'exemple :', e.message));
 }
 const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin });
@@ -1497,7 +1498,7 @@ const server = http.createServer(async (req, res) => {
     // les tarifs d'un enseignant d'un club, pour sa fiche dans /RAM Club (des prix publics : ni nom ni coordonnées)
     if (p === '/api/coach/formules/public') {
       const m = await ram.memberByKey(url.searchParams.get('c') || '', url.searchParams.get('k') || '').catch(() => null);
-      return json(res, 200, { formules: m && m.user_id ? await Formules.get(store, m.user_id) : null });
+      return json(res, 200, { formules: m && m.user_id ? Formules.publicOf(await Formules.get(store, m.user_id)) : null });
     }
     /* ---------- /RAM Coach : échelles de niveaux de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
     if (p === '/api/coach/echelles') {

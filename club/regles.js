@@ -149,11 +149,16 @@
     keys.forEach(k => {
       const achats = ((eleves || {})[k] || {}).achats || [];
       achats.forEach(a => {
-        if (!(a.d >= from && a.d <= to)) return;
-        const p = prixAchat(a, offres);
-        encaisse += p;
-        const m = String(a.d).slice(0, 7);
-        parMois[m] = (parMois[m] || 0) + p;
+        // un achat sans échéances est réglé le jour de l'achat ; avec : chaque paiement à sa date, le reste à encaisser
+        const ech = a.pay && Array.isArray(a.pay.ech) ? a.pay.ech : null,
+          regle = ech ? ech.filter(x => x.ok).map(x => [x.ok, +x.m || 0]) : [[a.d, prixAchat(a, offres)]];
+        regle.forEach(([d, p]) => {
+          if (!(d >= from && d <= to)) return;
+          encaisse += p;
+          const m = String(d).slice(0, 7);
+          parMois[m] = (parMois[m] || 0) + p;
+        });
+        if (ech && a.d <= to) ech.forEach(x => !x.ok && (aEncaisser += +x.m || 0));
       });
       const cov = couverture(
         achats.filter(a => a.d <= to),

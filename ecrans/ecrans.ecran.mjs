@@ -213,13 +213,13 @@ test('Coach : la saisie du thème n’est jamais effacée quand un autre club ch
   await page.evaluate(() => document.activeElement.blur());
   await page.waitForTimeout(600);
   assert.equal(await page.inputValue('#co-th'), 'Bandeja lente', 'le texte survit au redessin');
-  // tableau de bord : calculé par le serveur, un achat noté apparaît dans « Encaissé »
+  // statistiques : calculées par le serveur, un achat noté apparaît dans « Encaissé » (onglet Paiements)
   await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'eleve', id: 'e1', op: 'put', data: { n: 'Essai Élève', achats: [{ id: 'h1', t: 'seance', ref: 'f', d: today, prix: 42, nom: 'Séance' }] } }] });
-  await page.evaluate(() => { S.stack.length = 0; S.tab = 'dash'; render(); });
+  await page.evaluate(() => { S.stack.length = 0; S.tab = 'dash'; S.dashTab = 'pay'; render(); });
   await page.waitForResponse(r => r.url().includes('/api/coach/tableau') && r.ok(), { timeout: 8000 }).catch(() => {});
-  await page.waitForSelector('.codash', { timeout: 8000 });
+  await page.waitForSelector('.cotile b', { timeout: 8000 });
+  await page.locator('.cotile', { hasText: 'Encaissé' }).filter({ hasText: '42 €' }).waitFor({ timeout: 8000 });
   assert.ok(urls.includes('/api/coach/tableau'), 'demandé au serveur');
-  assert.match(await page.textContent('.codash'), /42\s*€/, 'encaissé calculé par le serveur');
   // ouverture allégée : un cours ancien n'est pas là au départ, il arrive quand un écran a besoin de l'historique, et rien n'est perdu
   const vieux = new Date(Date.now() - 200 * 864e5).toISOString().slice(0, 10);
   await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'cours', id: 'gvieux', op: 'put', data: { type: 'train', name: 'Cours ancien', sport: 'Padel', coach: a.key, once: vieux, h: '9 h', dur: '1 h', mem: [], ext: ['e1'], day: 1 } }, { coll: 'seance', id: `gvieux.${vieux}`, op: 'put', data: { g: 'gvieux', d: vieux, pres: { e1: 'P' } } }] });
@@ -482,6 +482,66 @@ test('Coach : fiche élève en blocs, notes de 1 à 10 et toile, jauge du cycle,
   await page.click('[data-a="proGroups"]');
   await page.click('[data-a="proGroupGo"]');
   await page.waitForSelector('.cocycb');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('Coach : statistiques sans chiffre d’affaires, paiements à régulariser, ensemble d’abonnements, vacances', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  page.on('dialog', d => d.accept());
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof coPayTodo === 'function');
+  const large = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+  // statistiques : courbe du mois, autres périodes, aucun euro
+  await page.evaluate(() => { S.dashP = 'mois'; S.dashTab = 'act'; A.tab({ t: 'dash' }); });
+  await page.waitForSelector('.cocurve .cocur');
+  const jours = await page.evaluate(() => { const [y, m] = TODAY.split('-').map(Number); return new Date(y, m, 0).getDate(); });
+  assert.ok(await page.locator('.cocurve text', { hasText: String(jours) }).count(), 'l’axe montre tout le mois');
+  assert.ok(!(await page.locator('#view, main, body').first().innerText()).includes('€'), 'aucun euro dans l’activité');
+  assert.ok(await large());
+  await page.click('[data-a="coDashP"][data-v="saison"]');
+  await page.waitForSelector('.comonths');
+  await page.locator('[data-a="coDashP"][data-v^="q:"]').first().click();
+  await page.waitForSelector('.comonths');
+  assert.ok(await large());
+  // paiement : un pack en deux fois, échéance modifiable, rappel au tableau de bord, puis réglé
+  const k = 'ines';
+  await page.evaluate(k => { const e = coElGet(k); e.achats = [{ id: 'hx', t: 'pack', ref: 'p1', d: TODAY, nom: 'Pack essai', n: 3, prix: 90, pay: { ech: [{ s: 0, m: 30, ok: '' }, { s: 2, m: 60, ok: '' }] } }]; S.elTab = 'fiche'; A.open({ v: 'eleve', id: k }); }, k);
+  await page.waitForSelector('.tag.copay.due');
+  await page.click('.copayb');
+  await page.waitForSelector('#co-pay');
+  assert.equal(await page.locator('#co-pay .copech').count(), 2);
+  await page.locator('#co-pay .co-es').nth(1).fill('3');
+  await page.locator('#co-pay .co-eo').nth(0).check();
+  await page.click('#co-pay .btn.full');
+  await page.waitForSelector('.tag.copay.partiel');
+  assert.equal(await page.evaluate(k => coEl(k).achats[0].pay.ech[1].s, k), 3);
+  await page.evaluate(k => { coEl(k).achats[0].pay.ech[0].ok = ''; S.dashTab = 'pay'; A.tab({ t: 'dash' }); }, k);
+  await page.waitForSelector('.tag.copay');
+  assert.ok((await page.evaluate(() => coPayTodo().length)) >= 1, 'à régulariser');
+  assert.ok(await large(), 'paiements : pas de débordement');
+  await page.evaluate(() => A.tab({ t: 'today' }));
+  await page.waitForFunction(() => document.body.innerText.includes('à régulariser'));
+  // ensemble d'abonnements : une ligne, ses variantes à la demande
+  await page.evaluate(() => { OFFRES.abos = [{ id: 'a1', nom: '1 fois par semaine', ens: 'Academy', periode: 'mois', duree: 6, prix: 120, parSemaine: 1 }, { id: 'a2', nom: '2 fois par semaine', ens: 'Academy', periode: 'mois', duree: 6, prix: 200, parSemaine: 2 }]; A.open({ v: 'formules' }); });
+  await page.waitForSelector('.coens');
+  assert.equal(await page.locator('.coens').count(), 1);
+  assert.equal(await page.locator('.coens summary').innerText().then(t => /2 variantes/.test(t)), true);
+  // vacances : une séance programmée est signalée, jamais retirée d'office ; le groupe choisit de suivre ou non
+  const r = await page.evaluate(() => { const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x)), d = coDates(g, isoIn(1), isoIn(40))[0]; OFFRES.vacClubs = { [coClubOf(g)]: [{ nom: 'Noël', du: d, au: d }] }; OFFRES.conges = []; delete g.vacClub; A.open({ v: 'cgroupe', id: g.id }); return { id: g.id, d }; });
+  await page.waitForSelector('[data-a="coVacFollow"]');
+  assert.equal(await page.locator('[data-a="coVacClear"]').count(), 0, 'le groupe continue');
+  await page.click('[data-a="coVacFollow"]');
+  await page.waitForSelector('[data-a="coVacClear"]');
+  assert.equal(await page.evaluate(r => coDates(grp(r.id), r.d, r.d).length, r), 1, 'pas retirée d’office');
+  await page.click('[data-a="coVacClear"]');
+  await page.waitForFunction(r => coDates(grp(r.id), r.d, r.d).length === 0, r);
+  await page.evaluate(() => A.open({ v: 'me' }));
+  await page.waitForSelector('[data-a="coVacCopy"]');
+  await page.click('[data-a="coVacCopy"]');
+  await page.waitForFunction(() => (OFFRES.conges || []).length === 1);
+  assert.ok(await large(), 'profil : pas de débordement');
   assert.deepEqual(errs, []);
   await ctx.close();
 });

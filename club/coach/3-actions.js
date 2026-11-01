@@ -635,6 +635,10 @@ Object.assign(A, {
     S.coClub = d.c;
     render(true);
   },
+  coPayGo() {
+    S.dashTab = 'pay';
+    A.tab({ t: 'dash' });
+  },
   coDashP(d) {
     S.dashP = d.v;
     render(true);
