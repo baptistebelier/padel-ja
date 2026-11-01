@@ -737,6 +737,24 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
   }
 });
 
+test('Coach : chaque formulaire de tarif et d’achat s’ouvre, avec la référence Shopify au bon endroit', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  for (const [f, form, sku] of [[() => A.coFoEdit({ id: OFFRES.formules[0].id }), '#co-fo', '#co-fv-sku'], [() => A.coPkEdit({ id: OFFRES.packs[0].id }), '#co-pk', '#co-kv-sku'], [() => A.coAbEdit({ id: OFFRES.abos[0].id }), '#co-ab', '#co-av-sku']]) {
+    await page.evaluate(f);
+    await page.waitForSelector(form + ' ' + sku);
+    await page.evaluate(() => closeSheet());
+  }
+  const eleve = await page.evaluate(() => ELEVES[0].id);
+  await page.evaluate(id => A.coAchat({ id }), eleve);
+  await page.waitForSelector('#co-ac #co-ast');
+  assert.equal(await page.locator('#co-ac [id$="-sku"]').count(), 0);
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
 test('Coach : mes outils de réservation ; élève : chercher des partenaires ; page publique sans compte', async () => {
   const cc = await browser.newContext({ viewport: { width: 1280, height: 900 } }), sc = await browser.newContext({ viewport: { width: 360, height: 780 } }), pub = await browser.newContext({ viewport: { width: 360, height: 780 } }), errs = [];
   const coachP = await cc.newPage(), page = await sc.newPage(), pp = await pub.newPage();

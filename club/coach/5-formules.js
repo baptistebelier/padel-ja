@@ -368,7 +368,7 @@ Object.assign(A, {
           ['personne', 'Par personne']
         ],
         f.par
-      )}<div class="cotools"><button class="btn">Enregistrer</button>${d.id === 'new' ? '' : ofDel('coFoDel', d.id)}</div></form>`
+      )}${ofVente('co-fv', f)}<div class="cotools"><button class="btn">Enregistrer</button>${d.id === 'new' ? '' : ofDel('coFoDel', d.id)}</div></form>`
     );
   },
   coFoDel(d) {
@@ -383,7 +383,7 @@ Object.assign(A, {
       f = foOf(p.formule);
     sheet(
       p.id ? 'Pack de séances' : 'Nouveau pack',
-      `<form class="body" id="co-pk" data-id="${p.id || 'new'}" data-f="${p.formule}"><p class="muted small">${f ? esc(f.nom) + ' · ' + foKind(f) + ' · ' + minTxt(f.duree) + ' · à l’unité : ' + foPrice(f) : ''}</p>${O('co-kn', 'Nom du pack (facultatif)', 'Pack Découverte, Perfectionnement…', p.nom)}${ofNum('co-ks', 'Nombre de séances', p.seances, 1)}${O('co-ke', 'En plusieurs fois : paiements attendus aux séances (facultatif)', '1, 3, 5', (p.ech || []).join(', '))}${ofNum('co-kp', 'Prix du pack en euros', p.prix)}<p class="muted small" id="co-kx"></p><div class="cotools"><button class="btn">Enregistrer</button>${p.id ? ofDel('coPkDel', p.id) : ''}</div></form>`
+      `<form class="body" id="co-pk" data-id="${p.id || 'new'}" data-f="${p.formule}"><p class="muted small">${f ? esc(f.nom) + ' · ' + foKind(f) + ' · ' + minTxt(f.duree) + ' · à l’unité : ' + foPrice(f) : ''}</p>${O('co-kn', 'Nom du pack (facultatif)', 'Pack Découverte, Perfectionnement…', p.nom)}${ofNum('co-ks', 'Nombre de séances', p.seances, 1)}${O('co-ke', 'En plusieurs fois : paiements attendus aux séances (facultatif)', '1, 3, 5', (p.ech || []).join(', '))}${ofNum('co-kp', 'Prix du pack en euros', p.prix)}<p class="muted small" id="co-kx"></p>${ofVente('co-kv', p)}<div class="cotools"><button class="btn">Enregistrer</button>${p.id ? ofDel('coPkDel', p.id) : ''}</div></form>`
     );
     const upd = () => {
       const n = +$('co-ks').value,
@@ -418,7 +418,7 @@ Object.assign(A, {
         'Par',
         PERIODES.map(x => [x, x]),
         a.periode
-      )}${ofNum('co-ad', 'Engagement (nombre de périodes)', a.duree, 1)}<div class="cotools"><button class="btn">Enregistrer</button>${d.id === 'new' ? '' : ofDel('coAbDel', d.id)}</div></form>`
+      )}${ofNum('co-ad', 'Engagement (nombre de périodes)', a.duree, 1)}${ofVente('co-av', a)}<div class="cotools"><button class="btn">Enregistrer</button>${d.id === 'new' ? '' : ofDel('coAbDel', d.id)}</div></form>`
     );
   },
   coAbDel(d) {
@@ -446,7 +446,7 @@ Object.assign(A, {
           ['plus', 'En plusieurs fois']
         ],
         'paye'
-      )}${O('co-apn', 'Nombre de paiements (en plusieurs fois)', '3')}${O('co-amo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify')}${O('co-an2', 'Note (facultatif)', 'Payé en 2 fois, offert…')}${ofVente('co-fv', f)}${ofVente('co-kv', p)}${ofVente('co-av', a)}<button class="btn full">Enregistrer</button></form>`
+      )}${O('co-apn', 'Nombre de paiements (en plusieurs fois)', '3')}${O('co-amo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify')}${O('co-an2', 'Note (facultatif)', 'Payé en 2 fois, offert…')}<button class="btn full">Enregistrer</button></form>`
     );
   },
   coAchatDel(d) {
