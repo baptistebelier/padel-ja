@@ -225,7 +225,32 @@
     return out.filter(p => p.au - p.du >= (mini || 0)).sort((a, b) => a.du - b.du);
   }
 
+  /* classements tennis, du plus bas au plus haut */
+  const RANKS = [
+    'NC',
+    '40',
+    '30/5',
+    '30/4',
+    '30/3',
+    '30/2',
+    '30/1',
+    '30',
+    '15/5',
+    '15/4',
+    '15/3',
+    '15/2',
+    '15/1',
+    '15',
+    '5/6',
+    '4/6',
+    '3/6',
+    '2/6',
+    '1/6',
+    '0'
+  ];
+
   return {
+    RANKS,
     plagesLibres,
     hhmmMin,
     chanRegle,

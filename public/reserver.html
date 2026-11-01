@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Réserver un cours — /RAM</title>
+<link rel="icon" href="/img/favicon.png">
+<style>
+  :root{--bg:#120A0C;--card:#1C1013;--card2:#2A1A1E;--line:#3A2228;--tx:#F4EFEF;--muted:#B8A6A9;--accent:#E0F50A;--on:#120A0C;--hot:#FF3B5C}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 Arial,Helvetica,sans-serif}
+  main{max-width:960px;margin:0 auto;padding:16px}
+  h1{margin:0 0 2px;font-size:26px;font-style:italic;text-transform:uppercase}
+  h2{margin:0 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
+  .muted{color:var(--muted);font-size:14px}
+  label{display:block;margin-top:10px;font-size:14px;font-weight:700}
+  input,select,textarea{width:100%;min-height:44px;margin-top:4px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card2);color:var(--tx);font:inherit}
+  button{min-height:44px;padding:0 14px;border:0;border-radius:8px;background:var(--card2);color:var(--tx);font:inherit;font-weight:700;cursor:pointer}
+  button.go{width:100%;margin-top:14px;background:var(--accent);color:var(--on)}
+  button:disabled{opacity:.4;cursor:default}
+  .nav{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .nav b{flex:1;text-align:center}
+  .jours{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .slots{display:flex;flex-wrap:wrap;gap:6px}
+  .slots button[aria-pressed=true]{background:var(--accent);color:var(--on)}
+  .chk{display:flex;gap:8px;align-items:flex-start;font-weight:400}
+  .chk input{width:20px;min-height:20px;margin:2px 0 0;flex:none}
+  .pot{position:absolute;left:-9999px}
+  .err{color:var(--hot);margin-top:10px}
+  .ok{border-color:var(--accent)}
+  @media (min-width:900px){.jours{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:start}.slots button{width:100%}}
+</style>
+</head>
+<body>
+<main id="m"><p class="muted">Chargement…</p></main>
+<script>
+/* /RAM Réservation : la page publique, sans compte. Tout ce qui vient du serveur passe par e() avant d'être affiché. */
+(function () {
+  var m = document.getElementById('m'), parts = location.pathname.split('/').filter(Boolean), q = new URLSearchParams(location.search);
+  var e = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var post = function (url, b) { return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Action impossible'); return d; }); }); };
+  var H = function (n) { return Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).padStart(2, '0') : ''); };
+  var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  var jour = function (s, o) { return new Date(s + 'T12:00:00').toLocaleDateString('fr-FR', o || { weekday: 'long', day: 'numeric', month: 'long' }); };
+
+  if (parts[1] === 'annuler') {
+    m.innerHTML = '<h1>Annuler mon cours</h1><div class="card"><p>Tu peux annuler jusqu’à 24 h avant le cours. L’enseignant est prévenu.</p><button class="go" id="a">Annuler ce cours</button><p class="err" id="er" role="alert"></p></div>';
+    document.getElementById('a').onclick = function () {
+      post('/api/public/resa/annuler', { c: q.get('c'), id: q.get('id'), t: q.get('t') })
+        .then(function () { m.innerHTML = '<h1>Cours annulé</h1><div class="card ok"><p>C’est fait : l’enseignant est prévenu.</p></div>'; })
+        .catch(function (x) { document.getElementById('er').textContent = x.message; });
+    };
+    return;
+  }
+  var c = parts[1], k = parts[2], S = { w: 0, data: null, f: null, pick: null };
+  var lundi = function (w) { var d = new Date(); d.setDate(d.getDate() - (d.getDay() + 6) % 7 + 7 * w); return iso(d); };
+  function charge() {
+    fetch('/api/public/resa/creneaux?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) + '&de=' + lundi(S.w))
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
+      .then(function (d) { S.data = d; S.f = S.f || (d.formules[0] && d.formules[0].id); S.pick = null; dessine(); })
+      .catch(function (x) { m.innerHTML = '<h1>Réserver un cours</h1><div class="card"><p>' + e(x.message || 'Page indisponible') + '</p></div>'; });
+  }
+  function dessine() {
+    var d = S.data, f = d.formules.filter(function (x) { return x.id === S.f; })[0];
+    if (!f) { m.innerHTML = '<h1>' + e(d.coach) + '</h1><div class="card"><p>Aucun cours n’est réservable pour l’instant.</p></div>'; return; }
+    var jours = d.jours.map(function (j) {
+      var l = [];
+      j.libres.forEach(function (p) { for (var t = p.du; t + f.duree <= p.au; t += 30) l.push('<button type="button" data-d="' + j.d + '" data-t="' + t + '" aria-pressed="' + (S.pick && S.pick.d === j.d && S.pick.t === t) + '">' + H(t) + '</button>'); });
+      return '<section class="card" style="margin:0"><h2>' + e(jour(j.d, { weekday: 'short', day: 'numeric', month: 'short' })) + '</h2><div class="slots">' + (l.join('') || '<span class="muted">Rien de libre</span>') + '</div></section>';
+    }).join('');
+    var form = S.pick ? '<form class="card" id="f"><h2>' + e(jour(S.pick.d)) + ' à ' + H(S.pick.t) + '</h2>' +
+      '<label for="p">Prénom</label><input id="p" required autocomplete="given-name" value="' + e(S.v.p) + '"><label for="n">Nom</label><input id="n" required autocomplete="family-name" value="' + e(S.v.n) + '">' +
+      '<label for="t">Téléphone</label><input id="t" required type="tel" autocomplete="tel" value="' + e(S.v.t) + '"><label for="em">E-mail</label><input id="em" required type="email" autocomplete="email" value="' + e(S.v.em) + '">' +
+      '<label for="sx">Sexe (facultatif)</label><select id="sx"><option value="">Non précisé</option><option value="F">Femme</option><option value="H">Homme</option></select>' +
+      '<label for="o">Objectif de la séance</label><textarea id="o" required rows="2" placeholder="Ce que tu veux travailler">' + e(S.v.o) + '</textarea>' +
+      '<div class="pot" aria-hidden="true"><label for="site">Site</label><input id="site" tabindex="-1" autocomplete="off"></div>' +
+      '<label class="chk"><input type="checkbox" id="ac" required><span>J’accepte que ' + e(d.coach) + ' garde ces informations pour organiser mes cours.</span></label>' +
+      '<button class="go">Réserver</button><p class="err" id="er" role="alert"></p><p class="muted">Confirmé tout de suite. Tu reçois un e-mail avec un lien pour annuler jusqu’à 24 h avant.</p></form>' : '';
+    m.innerHTML = '<h1>' + e(d.coach) + '</h1><p class="muted">' + e(d.club) + ' · réserver un cours</p>' +
+      '<div class="card"><label for="fo" style="margin:0">Formule</label><select id="fo">' + d.formules.map(function (x) { return '<option value="' + e(x.id) + '"' + (x.id === S.f ? ' selected' : '') + '>' + e(x.nom) + ' · ' + x.duree + ' min · ' + e(x.prix) + ' €</option>'; }).join('') + '</select></div>' +
+      '<div class="nav"><button id="pv" aria-label="Semaine précédente"' + (S.w ? '' : ' disabled') + '>‹</button><b>Semaine du ' + e(jour(lundi(S.w), { day: 'numeric', month: 'long' })) + '</b><button id="nx" aria-label="Semaine suivante"' + (S.w < 8 ? '' : ' disabled') + '>›</button></div>' +
+      '<div class="jours">' + jours + '</div>' + form;
+    document.getElementById('fo').onchange = function (x) { S.f = x.target.value; S.pick = null; dessine(); };
+    document.getElementById('pv').onclick = function () { S.w--; charge(); };
+    document.getElementById('nx').onclick = function () { S.w++; charge(); };
+    m.querySelectorAll('.slots button').forEach(function (b) { b.onclick = function () { garde(); S.pick = { d: b.dataset.d, t: +b.dataset.t }; dessine(); document.getElementById('f').scrollIntoView({ behavior: 'smooth' }); }; });
+    var fm = document.getElementById('f');
+    if (fm) fm.onsubmit = function (x) {
+      x.preventDefault();
+      garde();
+      var bt = fm.querySelector('.go'), val = function (i) { return document.getElementById(i).value; };
+      bt.disabled = true;
+      post('/api/public/resa/reserver', { c: c, k: k, d: S.pick.d, t: S.pick.t, formule: S.f, prenom: val('p'), nom: val('n'), tel: val('t'), email: val('em'), sexe: val('sx'), objectif: val('o'), site: val('site'), accord: document.getElementById('ac').checked })
+        .then(function (r) { m.innerHTML = '<h1>C’est réservé</h1><div class="card ok"><p><b>' + e(r.nom) + '</b> avec ' + e(r.coach) + '<br>' + e(jour(r.d)) + ' à ' + e(r.h) + ' · ' + e(r.dur) + '</p><p class="muted">Tu reçois un e-mail avec un lien pour annuler jusqu’à 24 h avant.</p></div>'; })
+        .catch(function (z) { bt.disabled = false; document.getElementById('er').textContent = z.message; });
+    };
+  }
+  S.v = { p: '', n: '', t: '', em: '', o: '' };
+  function garde() { ['p', 'n', 't', 'em', 'o'].forEach(function (i) { var x = document.getElementById(i); if (x) S.v[i] = x.value; }); }
+  charge();
+})();
+</script>
+</body>
+</html>

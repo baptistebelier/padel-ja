@@ -184,8 +184,15 @@ function proBody(k) {
             .map(x => `<li>${esc(x)}</li>`)
             .join('')}</ul>`
         : ''
-  }<div class="ctl" style="flex-wrap:wrap">${off && off.resa && k !== ME() ? `<button class="btn grow" data-a="open" data-v="resa" data-id="${k}">${ic('cal')}Réserver un cours</button>` : book ? `<a class="btn grow" href="${esc(book)}" target="_blank" rel="noopener">${ic('cal')}Réserver une séance</a>` : ''}${tel ? `<a class="btn grow ghost" href="tel:${tel}">${ic('phone')}Appeler</a>` : ''}${p.mail ? `<a class="btn grow ghost" href="mailto:${esc(p.mail)}">${ic('mail')}Écrire</a>` : ''}${k !== ME() ? `<button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button>` : ''}</div></div>`;
+  }<div class="ctl" style="flex-wrap:wrap">${off && off.resa && k !== ME() ? `<button class="btn grow" data-a="open" data-v="resa" data-id="${k}">${ic('cal')}Réserver un cours</button>` : ''}${book ? `<a class="btn grow${off && off.resa && k !== ME() ? ' ghost' : ''}" href="${esc(book)}" target="_blank" rel="noopener">${ic('cal')}${proBookTxt(book)}</a>` : ''}${tel ? `<a class="btn grow ghost" href="tel:${tel}">${ic('phone')}Appeler</a>` : ''}${p.mail ? `<a class="btn grow ghost" href="mailto:${esc(p.mail)}">${ic('mail')}Écrire</a>` : ''}${k !== ME() ? `<button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button>` : ''}</div></div>`;
 }
+/* le lien de son outil de réservation (Calendly, Google…) : il reste proposé à côté de la réservation dans l'appli */
+const proBookTxt = u =>
+  /calendly\.com/i.test(u)
+    ? 'Réserver sur Calendly'
+    : /google\./i.test(u)
+      ? 'Réserver sur Google'
+      : 'Réserver une séance';
 /* formules et tarifs d'un enseignant (rangés sur son compte /RAM), lus une fois par enseignant */
 const PRO_OFF = {};
 function proOffers(k) {
@@ -219,14 +226,19 @@ function proOffersHtml(o) {
     mn = n => (n % 60 ? (n >= 60 ? Math.floor(n / 60) + ' h ' + (n % 60) : n + ' min') : n / 60 + ' h'),
     kind = f => (f.joueurs === 1 ? 'individuel' : f.joueurs === 2 ? 'duo' : 'collectif à ' + f.joueurs),
     line = (t, p, sub) =>
-      `<li><span class="ptl"><b>${t}</b><span class="ptp">${p}</span></span>${sub ? `<span class="muted small">${sub}</span>` : ''}</li>`;
+      `<li><span class="ptl"><b>${t}</b><span class="ptp">${p}</span></span>${sub ? `<span class="muted small">${sub}</span>` : ''}</li>`,
+    // vendu sur la boutique : le lien d'achat
+    achat = x =>
+      x.url && svLink(toUrlP(x.url))
+        ? ` · <a href="${esc(svLink(toUrlP(x.url)))}" target="_blank" rel="noopener">Acheter</a>`
+        : '';
   const seance = o.formules
     .map(f => {
       const pk = o.packs.filter(p => p.formule === f.id);
       return line(
         `${esc(f.nom)} · ${mn(f.duree)}`,
         e(f.prix) + (f.par === 'personne' && f.joueurs > 1 ? ' / pers.' : ''),
-        pk.map(p => `${esc(p.nom || 'Pack')} : ${p.seances} séances, ${e(p.prix)}`).join('<br>')
+        pk.map(p => `${esc(p.nom || 'Pack')} : ${p.seances} séances, ${e(p.prix)}${achat(p)}`).join('<br>')
       );
     })
     .join('');
@@ -240,7 +252,7 @@ function proOffersHtml(o) {
         return line(
           esc(a.ens),
           (l.length > 1 ? 'dès ' : '') + e(min),
-          l.map(x => `${esc(x.nom)} : ${e(x.prix)} ${abPer(x)}`).join('<br>')
+          l.map(x => `${esc(x.nom)} : ${e(x.prix)} ${abPer(x)}${achat(x)}`).join('<br>')
         );
       }
       const f = o.formules.find(x => x.id === a.formule),
@@ -251,7 +263,7 @@ function proOffersHtml(o) {
           /* le nom dit souvent déjà l'engagement : « Academy Training (6 mois) » */
           eng && !new RegExp('\\b' + (+a.duree || 0) + '\\s*(mois|ans?)\\b', 'i').test(a.nom) ? eng : ''
         ].filter(Boolean);
-      return line(esc(a.nom), `${e(a.prix)} ${abPer(a)}`, det.join(' · '));
+      return line(esc(a.nom), `${e(a.prix)} ${abPer(a)}`, det.join(' · ') + achat(a));
     })
     .join('');
   return `<span class="kicker">Tarifs</span>${seance ? `<span class="ptt">À la séance et en pack</span><ul class="ptar">${seance}</ul>` : ''}${abos ? `<span class="ptt">Abonnements</span><ul class="ptar">${abos}</ul>` : ''}`;

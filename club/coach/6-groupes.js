@@ -167,6 +167,94 @@ function coDispoCard() {
     }<button class="btn sm ghost full" data-a="coDispoAdd">${ic('plus')}Ajouter une période</button><p class="muted small">Les élèves réservent sur ces plages depuis ta fiche dans /RAM Club : il faut aussi une formule individuelle dans tes tarifs.</p>`
   );
 }
+/* page publique, agendas reliés, Calendly : chacun réserve par l'outil qu'il a, le temps de passer à l'appli */
+const coResaUrl = () => location.origin + '/r/' + encodeURIComponent(RAM.club) + '/' + encodeURIComponent(ME());
+const coCopie = (t, msg) =>
+  navigator.clipboard
+    ? navigator.clipboard.writeText(t).then(
+        () => toast(msg),
+        () => toast(t)
+      )
+    : toast(t);
+function coOutilsCard() {
+  const live = !!(window.RAM && RAM.live),
+    ouverte = live && OFFRES.page === RAM.club,
+    cals = OFFRES.icals || [];
+  return coPCard(
+    'Réservation',
+    'Mes outils de réservation',
+    `<span class="kicker">Page publique, sans compte</span>${
+      ouverte
+        ? `<p class="muted small">Ta page est ouverte. Pour le site ou la boutique Shopify, colle le bloc dans une section « Liquid personnalisé ».</p><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coResaLien">${ic('cal')}Copier le lien</button><button class="btn sm ghost grow" data-a="coResaBloc">${ic('edit')}Copier le bloc</button><button class="btn sm ghost grow" data-a="coResaPage" data-v="0">${ic('x')}Fermer la page</button></div>`
+        : `<p class="muted small">Quelqu’un sans compte réserve un cours individuel sur tes plages libres : questionnaire, confirmation par e-mail, annulation jusqu’à 24 h avant.</p><button class="btn sm ghost full" data-a="coResaPage" data-v="1">${ic('cal')}Ouvrir ma page dans ce club</button>`
+    }<span class="kicker" style="margin-top:12px">Google Agenda et autres</span><p class="muted small">Tes cours confirmés arrivent dans ton agenda : copie le lien, puis dans Google Agenda : Autres agendas, À partir de l’URL.</p><button class="btn sm ghost full" data-a="coAgendaLien">${ic('cal')}Copier le lien de mes cours</button><p class="muted small">Dans l’autre sens, ce qui est posé dans ton agenda n’est plus réservable dans l’appli : ajoute son adresse secrète au format iCal.</p>${cals.map((u, i) => `<div class="cokv"><span class="muted small">Agenda ${i + 1} relié</span><button class="ib" data-a="coIcalDel" data-i="${i}" aria-label="Retirer l’agenda ${i + 1}">${ic('x')}</button></div>`).join('')}${cals.length < 5 ? `<button class="btn sm ghost full" data-a="coIcalAdd">${ic('plus')}Relier un agenda</button>` : ''}<span class="kicker" style="margin-top:12px">Calendly</span><p class="muted small">Il reste en service : ton lien (« Lien de réservation » de ta fiche) est proposé à côté de la réservation dans l’appli, et chaque réservation Calendly arrive à ton planning.</p><button class="btn sm ghost full" data-a="coCalendly">${ic('plus')}Relier mon compte Calendly</button>`
+  );
+}
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (f.id === 'co-ical') {
+    e.preventDefault();
+    OFFRES.icals = (OFFRES.icals || []).concat($('co-ic').value.trim());
+    closeSheet();
+    ofSave('Agenda relié');
+  }
+  if (f.id === 'co-cal') {
+    e.preventDefault();
+    if (!(window.RAM && RAM.live)) return toast('Démonstration : rien n’est relié');
+    fetch('/api/coach/calendly', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: $('co-ct').value })
+    })
+      .then(r => r.json().then(x => (r.ok ? x : Promise.reject(new Error(x.error)))))
+      .then(x => {
+        closeSheet();
+        toast('Calendly relié' + (x.email ? ' : ' + x.email : ''));
+      })
+      .catch(x => toast(x.message || 'Calendly indisponible'));
+  }
+});
+Object.assign(A, {
+  coResaPage(d) {
+    if (!(window.RAM && RAM.live)) return toast('Démonstration : la page s’ouvre depuis ton compte');
+    if (d.v === '1') OFFRES.page = RAM.club;
+    else delete OFFRES.page;
+    ofSave(d.v === '1' ? 'Page ouverte' : 'Page fermée');
+  },
+  coResaLien() {
+    coCopie(coResaUrl(), 'Lien copié');
+  },
+  coResaBloc() {
+    coCopie(
+      `<iframe src="${coResaUrl()}" title="Réserver un cours" style="width:100%;height:1100px;border:0" loading="lazy"></iframe>`,
+      'Bloc copié'
+    );
+  },
+  coAgendaLien() {
+    if (!(window.RAM && RAM.live)) return toast('Démonstration : le lien vient de ton compte');
+    fetch('/api/coach/agenda-lien', { credentials: 'include' })
+      .then(r => r.json())
+      .then(x => coCopie(x.lien, 'Lien copié : il est privé, ne le partage pas'))
+      .catch(() => toast('Lien indisponible'));
+  },
+  coIcalAdd() {
+    sheet(
+      'Relier un agenda',
+      `<form class="body" id="co-ical"><div class="fld"><label for="co-ic">Adresse secrète au format iCal</label><input id="co-ic" required autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…"></div><button class="btn full">Relier</button><p class="muted small">Dans Google Agenda : Paramètres, ton agenda, Adresse secrète au format iCal. Seules les heures sont lues, jamais les titres. Les journées entières ne bloquent rien. Google, Outlook et iCloud seulement.</p></form>`
+    );
+  },
+  coIcalDel(d) {
+    OFFRES.icals = (OFFRES.icals || []).filter((x, i) => i !== +d.i);
+    ofSave('Agenda retiré');
+  },
+  coCalendly() {
+    sheet(
+      'Relier mon compte Calendly',
+      `<form class="body" id="co-cal"><div class="fld"><label for="co-ct">Jeton personnel Calendly</label><input id="co-ct" type="password" required autocomplete="off"></div><button class="btn full">Relier</button><p class="muted small">Dans Calendly : Intégrations, API et webhooks. Le jeton sert une seule fois, à inscrire /RAM auprès de Calendly : il n’est pas gardé.</p></form>`
+    );
+  }
+});
 Object.assign(A, {
   coDispoAdd() {
     sheet(

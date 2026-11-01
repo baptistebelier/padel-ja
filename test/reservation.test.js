@@ -186,3 +186,93 @@ test('fourchette : la première au minimum gagne, le maximum est lu partout', ()
   assert.deepEqual(nvValidated(nv), ['x', 'y', 'z']);
   assert.deepEqual(nvValidatedOn(nv, '2031-01-01'), []);
 });
+
+/* ---------- demandes d'élèves, boutique, page publique, agendas ---------- */
+const Agenda = require('../lib/agenda');
+test('demande d’élève : son niveau prévenu, aucun cours avant le minimum, puis au planning', async () => {
+  const { coach, club, key, d, a, ka } = await monte(20);
+  const v = 'V20';
+  await ram.join({ id: v, name: 'Élève V' }, club.code);
+  const kv = (await ram.myClubs(v)).find(x => x.id === club.id).key;
+  await ram.ops(coach, club.id, [{ coll: 'member', id: kv, op: 'put', data: { n: 'Élève V', valid: 'S', pl: 5 } }]);
+  await assert.rejects(resa.demander(a, club.id, key, { d, t: 540, formule: 'f3' }), /niveau/);
+  await ram.ops(coach, club.id, [{ coll: 'member', id: ka, op: 'put', data: { n: 'Élève', valid: 'S', pl: 4 } }]);
+  await assert.rejects(resa.demander(a, club.id, key, { d, t: 540, formule: 'f1' }), /proposable/);
+  envois.length = 0;
+  const r = await resa.demander(a, club.id, key, { d, t: 540, formule: 'f3', mode: 'partie', theme: 'Volée' });
+  const m = envois.find(e => /de ton niveau/.test(e.msg.body));
+  assert.deepEqual(m.uids, [v]);
+  assert.ok(envois.some(e => e.msg.app === 'coach' && /Demande d'élève/.test(e.msg.body)));
+  await pause();
+  assert.deepEqual((await coachTables.planning(coach, d, d)).seances, [], 'pas au planning tant que le groupe n’est pas complet');
+  assert.equal((await resa.creneaux(a, club.id, key, d)).jours[0].libres[0].du, 540, 'rien de bloqué');
+  const p = (await ram.itemsOf(club.id, 'post')).find(x => x.id === r.id).data;
+  assert.equal(p.by, key);
+  assert.deepEqual([p.nv.tiers[0].lo, p.nv.tiers[0].hi], [3, 5]);
+  p.nv.ins[d + '|t1'].push(kv);
+  await ram.ops(coach, club.id, [{ coll: 'post', id: r.id, op: 'put', data: p }]);
+  const s = await attend(async () => (await coachTables.planning(coach, d, d)).seances[0]);
+  assert.deepEqual(s.eleves, [ka, kv]);
+});
+
+test('boutique : la commande payée note l’achat une seule fois, élève connu ou nouvelle fiche', async () => {
+  const { coach, club, key } = await monte(21);
+  store.getSetting = async k => (settings.__ || {})[k] || null;
+  store.saveSetting = async (k, v) => { (settings.__ = settings.__ || {})[k] = v; };
+  store.getUserByEmail = async () => null;
+  const o = await Formules.get(store, coach);
+  await Formules.save(store, coach, Object.assign(o, { packs: [{ id: 'p21', formule: 'f1', nom: 'Pack 5', seances: 5, prix: 160, sku: 'pack-21' }] }));
+  assert.equal(Formules.publicOf(await Formules.get(store, coach)).packs[0].sku, undefined, 'la référence reste privée');
+  const cmd = { id: 'o21', email: 'lea@exemple.test', first: 'Léa', last: 'Roy', d: '2026-11-02', lignes: [{ sku: 'PACK-21', qty: 1, prix: 150 }, { sku: 'RIEN', qty: 1 }] };
+  envois.length = 0;
+  assert.deepEqual((await resa.achatShopify(cmd)).map(x => x.notes), [1]);
+  assert.deepEqual(await resa.achatShopify(cmd), [], 'renvoyée par Shopify : rien de plus');
+  const f = (await ram.itemsOf(club.id, 'eleve')).find(x => x.data.mail === 'lea@exemple.test');
+  assert.equal(f.data.achats.length, 1);
+  assert.equal(f.data.achats[0].n, 5);
+  assert.equal(f.data.achats[0].prix, 150);
+  assert.equal(f.data.achats[0].pay.ech[0].ok, '2026-11-02', 'payé');
+  assert.ok(envois.some(e => e.msg.app === 'coach' && /Léa Roy a acheté Pack 5/.test(e.msg.body)));
+  assert.ok(key);
+  delete store.getSetting; delete store.saveSetting; delete store.getUserByEmail;
+});
+
+test('page publique : fermée par défaut, questionnaire, cours confirmé, annulation par le lien', async () => {
+  const { coach, club, key, d } = await monte(22);
+  await assert.rejects(resa.pubCreneaux(club.id, key, d), /pas ouverte/);
+  await Formules.save(store, coach, Object.assign(await Formules.get(store, coach), { page: club.id }));
+  const c = await resa.pubCreneaux(club.id, key, d);
+  assert.deepEqual(c.formules.map(f => f.id), ['f1']);
+  assert.equal(JSON.stringify(c).includes('pris'), false);
+  const b = { d, t: 540, formule: 'f1', prenom: 'Léa', nom: 'Roy', email: 'lea22@exemple.test', tel: '06 00 00 00 00', objectif: 'Volée', accord: true };
+  await assert.rejects(resa.pubReserver(club.id, key, Object.assign({}, b, { site: 'x' })), /refusée/);
+  await assert.rejects(resa.pubReserver(club.id, key, Object.assign({}, b, { accord: false })), /accepter/);
+  await assert.rejects(resa.pubReserver(club.id, key, Object.assign({}, b, { email: 'non' })), /e-mail/);
+  const r = await resa.pubReserver(club.id, key, b);
+  const s = (await coachTables.planning(coach, d, d)).seances[0];
+  assert.equal(s.eleves.length, 1);
+  assert.equal((await ram.itemsOf(club.id, 'eleve')).find(x => x.id === s.eleves[0]).data.tel, b.tel);
+  await assert.rejects(resa.pubReserver(club.id, key, b), /pris/);
+  const q = new URL('http://x' + r.annuler).searchParams;
+  await assert.rejects(resa.pubAnnuler(club.id, r.id, 'faux'), /valable/);
+  await resa.pubAnnuler(q.get('c'), q.get('id'), q.get('t'));
+  assert.equal((await coachTables.planning(coach, d, d)).seances[0].annule, true);
+});
+
+test('agenda : les cours confirmés vers Google, et ce qui est posé chez Google n’est plus réservable', async () => {
+  const ics = Agenda.toIcs([{ club: 'c', groupe: 'g', date: '2026-07-01', heure: '9 h 30', minutes: 60, nom: 'Cours, duo' }, { club: 'c', groupe: 'g2', date: '2026-07-02', heure: '9 h', minutes: 60, nom: 'Annulé', annule: true }]);
+  assert.match(ics, /DTSTART:20260701T073000Z/, 'été : Paris à UTC+2');
+  assert.ok(ics.includes('SUMMARY:Cours\\, duo'));
+  assert.ok(!ics.includes('Annulé'));
+  const src = ['BEGIN:VCALENDAR', 'BEGIN:VEVENT', 'DTSTART:20260701T073000Z', 'DTEND:20260701T083000Z', 'SUMMARY:Secret', 'END:VEVENT', 'BEGIN:VEVENT', 'DTSTART;TZID=Europe/Paris:20260706T180000', 'DTEND;TZID=Europe/Paris:20260706T190000', 'RRULE:FREQ=WEEKLY;COUNT=2', 'EXDATE;TZID=Europe/Paris:20260713T180000', 'END:VEVENT', 'BEGIN:VEVENT', 'DTSTART;VALUE=DATE:20260702', 'DTEND;VALUE=DATE:20260703', 'END:VEVENT', 'BEGIN:VEVENT', 'DTSTART:20260703T100000Z', 'DTEND:20260703T110000Z', 'STATUS:CANCELLED', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  assert.deepEqual(Agenda.parseIcs(src, '2026-07-01', '2026-07-31'), [{ d: '2026-07-01', du: 570, au: 630 }, { d: '2026-07-06', du: 1080, au: 1140 }]);
+  assert.equal(Agenda.okIcal('http://calendar.google.com/x'), null);
+  assert.equal(Agenda.okIcal('https://169.254.169.254/x'), null);
+  assert.ok(Agenda.okIcal('webcal://calendar.google.com/calendar/ical/x/basic.ics'));
+  assert.equal(Agenda.lireLien(Agenda.lienIcs('U1').slice(8)), 'U1');
+  assert.equal(Agenda.lireLien('U1-' + 'a'.repeat(24) + '.ics'), null);
+  const a = Agenda.createAgenda({ fetchFn: async () => ({ ok: true, text: async () => src }) });
+  assert.equal((await a.occupe(['https://calendar.google.com/a'], '2026-07-01', '2026-07-01')).length, 1);
+  const panne = Agenda.createAgenda({ fetchFn: async () => { throw new Error('panne'); } });
+  assert.deepEqual(await panne.occupe(['https://calendar.google.com/a'], '2026-07-01', '2026-07-31'), [], 'injoignable : la réservation continue');
+});

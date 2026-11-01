@@ -13,6 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
 const Ani = require('./public/js/animation.js');
+const Agenda = require('./lib/agenda.js');   // /RAM Réservation : lien vers Google Agenda et agendas reliés
 const Formules = require('./lib/formules.js');   // /RAM Coach : formules, packs et abonnements de chaque enseignant
 const Echelles = require('./lib/echelles.js');   // /RAM Coach : échelles de niveaux de chaque enseignant   // animations : americano, mexicano, par équipes, montée-descente
 const reducerOf = T => (Ani.isAnimation(T) ? Ani : Engine);
@@ -46,8 +47,9 @@ const taches = require('./lib/taches.js').createTaches({ store, log: m => consol
 // une notification passe par la file : un redémarrage du serveur ne la perd pas
 require('./lib/pushnotif.js').createNotifier({ ram, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
 taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
+taches.on('shopify-achat', o => reservation.achatShopify(o));
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
-const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
+const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, agenda: Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) }), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
 async function jaTitlesOf(spaceId) {
@@ -726,7 +728,8 @@ async function firstJaVisit(u) {
 const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin });
 /* réservation ou annulation Calendly → planning de l'enseignant : le compte /RAM de l'hôte (même e-mail), sinon CALENDLY_COMPTE */
 taches.on('calendly', async b => {
-  const coach = (b.hote && await store.getUserByEmail(b.hote)) || (process.env.CALENDLY_COMPTE && await store.getUserByEmail(String(process.env.CALENDLY_COMPTE).trim().toLowerCase()));
+  const relie = b.hote && ((await store.getSetting('calendly-hotes').catch(() => null)) || {})[b.hote];   // l'enseignant a relié ce Calendly depuis /RAM Coach
+  const coach = (relie && await store.getUser(relie)) || (b.hote && await store.getUserByEmail(b.hote)) || (process.env.CALENDLY_COMPTE && await store.getUserByEmail(String(process.env.CALENDLY_COMPTE).trim().toLowerCase()));
   if (!coach) throw new Error('Calendly : aucun compte /RAM pour ' + b.hote + ' (renseigner CALENDLY_COMPTE dans Render)');
   const r = b.type === 'reservation' ? await mcp.calendly.book(coach, b) : await mcp.calendly.cancel(coach, b);
   console.log(`  Calendly : ${b.type} du ${b.date} à ${b.heure} → ${r.club || 'séance introuvable'}`);
@@ -752,6 +755,15 @@ const server = http.createServer(async (req, res) => {
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
+    /* ---------- /RAM Réservation : page publique et lien d'agenda, sur tous les domaines ---------- */
+    if (/^\/r\/[^/]+(\/[^/]+)?$/.test(p)) return sendFile(res, '/reserver.html');
+    if (p.startsWith('/agenda/') && req.method === 'GET') {
+      const uid = Agenda.lireLien(p.slice(8));
+      if (!uid) { res.writeHead(404); return res.end(); }
+      const de = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10), a = new Date(Date.now() + 240 * 864e5).toISOString().slice(0, 10);
+      res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(Agenda.toIcs((await coachTables.planning(uid, de, a)).seances));
+    }
     // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html, sur coach.riseandmove.fr :
     // l'appli pour un compte connecté, sinon la présentation ; /presentation, /demo, /connexion, /inscription
     if (/^coach\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) {
@@ -876,6 +888,9 @@ const server = http.createServer(async (req, res) => {
       if (req.headers['x-shopify-topic'] !== 'orders/paid') return json(res, 200, { ignored: true });
       let order; try { order = JSON.parse(raw.toString('utf8')); } catch (e) { return json(res, 400, { error: 'JSON invalide' }); }
       const email = Shopify.orderEmail(order);
+      // les produits des enseignants (packs, abonnements, séances) : notés dans la fiche de l'élève, retentés en cas d'échec
+      const lignes = (order.line_items || []).filter(li => li.sku).map(li => ({ sku: li.sku, qty: li.quantity, prix: +li.price || 0 }));
+      if (email && lignes.length) await taches.enqueue('shopify-achat', { id: String(order.id || order.name), email, first: (order.customer || {}).first_name || '', last: (order.customer || {}).last_name || '', d: new Date(order.processed_at || order.created_at || Date.now()).toLocaleDateString('sv-SE', { timeZone: 'Europe/Paris' }), lignes }, { key: 'shopify-achat:' + (order.id || order.name) });
       if (!email) { console.error(`Shopify : commande ${order.name || order.id} sans e-mail, accès non activé`); return json(res, 200, { ok: false }); }
       let u = await store.getUserByEmail(email);
       const r = Shopify.applyOrder(u ? await store.getBilling(u.id) : null, order);
@@ -1501,6 +1516,37 @@ const server = http.createServer(async (req, res) => {
       const m = await ram.memberByKey(url.searchParams.get('c') || '', url.searchParams.get('k') || '').catch(() => null);
       return json(res, 200, { formules: m && m.user_id ? Formules.publicOf(await Formules.get(store, m.user_id)) : null });
     }
+    /* ---------- /RAM Réservation : la page publique, sans compte ---------- */
+    if (p.startsWith('/api/public/resa/')) {
+      const q = k => url.searchParams.get(k) || '', refus = e => { if (e instanceof reservation.Refus) return json(res, 400, { error: e.message }); throw e; };
+      try {
+        if (p === '/api/public/resa/creneaux' && req.method === 'GET') return json(res, 200, await reservation.pubCreneaux(q('c'), q('k'), q('de')));
+        if (p === '/api/public/resa/reserver' && req.method === 'POST') {
+          if (Auth.tooManyAttempts('resa-pub|' + clientIp(req))) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
+          const b = await readBody(req), r = await reservation.pubReserver(String(b.c || ''), String(b.k || ''), b), lien = appUrl(req) + r.annuler;
+          taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, coach: r.coach, lien })));
+          return json(res, 200, { d: r.d, h: r.h, dur: r.dur, nom: r.nom, coach: r.coach, annuler: r.annuler });
+        }
+        if (p === '/api/public/resa/annuler' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.pubAnnuler(String(b.c || ''), String(b.id || ''), String(b.t || ''))); }
+      } catch (e) { return refus(e); }
+      return json(res, 404, { error: 'Introuvable' });
+    }
+    /* ---------- /RAM Coach : relier ses outils de réservation ---------- */
+    if (p === '/api/coach/agenda-lien' && req.method === 'GET') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      return json(res, 200, { lien: appUrl(req) + Agenda.lienIcs(u.id) });
+    }
+    if (p === '/api/coach/calendly' && req.method === 'POST') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      const token = String((await readBody(req)).token || '').trim();
+      if (!token) return json(res, 400, { error: 'Colle ton jeton personnel Calendly.' });
+      // le jeton ne sert qu'à cet appel : il n'est ni gardé ni écrit au journal
+      try {
+        const r = await Calendly.subscribe(token, (process.env.APP_URL || appUrl(req)) + '/api/calendly/webhook');
+        if (r.email) { const h = (await store.getSetting('calendly-hotes').catch(() => null)) || {}; h[r.email] = u.id; await store.saveSetting('calendly-hotes', h); }
+        return json(res, 200, { ok: true, email: r.email });
+      } catch (e) { return json(res, 400, { error: 'Calendly refuse ce jeton.' }); }
+    }
     /* ---------- /RAM Réservation : réserver un cours depuis /RAM Club (lib/reservation.js) ---------- */
     if (p.startsWith('/api/reservation/')) {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
@@ -1510,6 +1556,7 @@ const server = http.createServer(async (req, res) => {
         if (p === '/api/reservation/enseignants' && req.method === 'GET') return json(res, 200, { enseignants: await reservation.enseignants(u.id, q('c')) });
         if (p === '/api/reservation/mes' && req.method === 'GET') return json(res, 200, { cours: await reservation.mes(u.id, q('c')) });
         if (p === '/api/reservation/reserver' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.reserver(u.id, String(b.c || ''), String(b.k || ''), b)); }
+        if (p === '/api/reservation/demander' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.demander(u.id, String(b.c || ''), String(b.k || ''), b)); }
         if (p === '/api/reservation/annuler' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.annuler(u.id, String(b.c || ''), String(b.id || ''))); }
         if (p === '/api/reservation/attendre' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.attendre(u.id, String(b.c || ''), String(b.k || ''), b)); }
       } catch (e) { return refus(e); }

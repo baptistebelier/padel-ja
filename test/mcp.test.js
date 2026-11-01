@@ -108,6 +108,46 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(once.creneau, '20/11/2026 10 h · 1 h');
   // un groupe commence à sa première séance (jamais d'historique imaginaire) ; ses dates se règlent ensuite
   const ec = await w('coach_creer_groupe', { nom: 'École débutants', sport: 'Padel', jour: 'mercredi', heure: '14 h', debut: '2030-01-02' });
+  // ---------- formules, groupes, séances et paiements ----------
+  await w('coach_disponibilites', { periodes: [{ jour: 'lundi', du: '09:00', au: '12:00', lieu: 'Club' }], conges: [{ nom: 'Noël', du: '2030-12-24', au: '2030-12-31' }] });
+  await w('coach_modifier_formules', { formules: [{ id: 'f1', nom: 'Individuel', joueurs: 1, duree: 60, prix: 35 }], packs: [{ id: 'p1', formule: 'f1', nom: 'Pack 4', seances: 4, prix: 120 }] });
+  const dispo = await w('coach_disponibilites', {});
+  assert.deepEqual([dispo.periodes[0].jour, dispo.conges[0].nom], ['lundi', 'Noël'], 'changer ses tarifs n’efface ni disponibilités ni vacances');
+  const gr = await w('coach_creer_groupe', { nom: 'Pack du mardi', sport: 'Padel', jour: 'mardi', heure: '18 h', debut: '2030-01-01', eleves: ['kid1'] });
+  const at = await w('coach_attribuer_formule', { produit: 'Pack 4', groupe_id: gr.groupe_id, date: '2030-01-01', reglement: 'plusieurs_fois', versements: 2, moyen: 'Virement' });
+  assert.deepEqual([at.produit, at.attribue], ['Pack 4', ['Léo Martin']]);
+  assert.deepEqual((await w('coach_attribuer_formule', { produit: 'Pack 4', eleves: ['Léo Martin'], date: '2030-01-01' })).deja, ['Léo Martin'], 'pas deux fois');
+  await assert.rejects(w('coach_attribuer_formule', { produit: 'Inconnu', eleves: ['kid1'] }), /Produit inconnu/);
+  const dus = (await w('coach_paiements', {})).a_regulariser.find(x => x.eleve_id === 'kid1');
+  assert.deepEqual(dus.echeances.map(x => [x.numero, x.montant, x.regle_le]), [[1, 60, null], [2, 60, null]]);
+  await w('coach_marquer_paye', { eleve: 'kid1', achat_id: dus.achat_id, echeance: 1, date: '2030-01-02' });
+  assert.deepEqual((await w('coach_paiements', {})).a_regulariser.find(x => x.eleve_id === 'kid1').echeances[0].regle_le, '2030-01-02');
+  await w('coach_marquer_paye', { eleve: 'kid1', achat_id: dus.achat_id });
+  assert.equal((await w('coach_paiements', {})).a_regulariser.some(x => x.achat_id === dus.achat_id), false, 'tout est réglé');
+  await w('coach_marquer_paye', { eleve: 'kid1', achat_id: dus.achat_id, echeance: 2, paye: false });
+  assert.equal((await w('coach_paiements', {})).a_regulariser.some(x => x.achat_id === dus.achat_id), true, 'retour en arrière');
+  assert.equal((await w('coach_marquer_paye', { eleve: 'kid1', groupe_id: gr.groupe_id, date: '2030-01-01' })).paye, true);
+  // une séance : un élève en plus pour cette date, un autre noté absent, thème et appel
+  const fiche = await w('coach_ajouter_eleve', { prenom: 'Ana', nom: 'Roy', email: 'ana@exemple.test' });
+  const se = await w('coach_seance', { groupe_id: gr.groupe_id, date: '2030-01-01', ajouter: ['Ana Roy'], retirer: ['kid1'], theme: 'Volée', presents: ['Ana Roy'] });
+  assert.deepEqual([se.theme, se.ajoutes, se.retires], ['Volée', ['Ana Roy'], ['Léo Martin']]);
+  assert.equal(Object.values(se.appel).filter(v => v === 'A').length, 1);
+  await assert.rejects(w('coach_seance', { groupe_id: gr.groupe_id, date: '2030-01-02' }), /Pas de séance/);
+  // un cours : ses élèves changent vraiment
+  const co = await w('coach_creer_groupe', { nom: 'Cours seul', sport: 'Padel', date: '2030-02-01', heure: '10 h', eleves: ['kid1'] });
+  await w('coach_seance', { groupe_id: co.groupe_id, date: '2030-02-01', ajouter: ['Ana Roy'], retirer: ['kid1'] });
+  const cs = (await ram.itemsOf(club.id, 'cours')).find(x => x.id === co.groupe_id).data;
+  assert.deepEqual([cs.mem, cs.ext.length], [[], 1]);
+  assert.ok(fiche);
+  assert.equal((await w('coach_annuler_seance', { groupe_id: co.groupe_id, date: '2030-02-01' })).annulee, true);
+  assert.equal((await w('coach_annuler_seance', { groupe_id: co.groupe_id, date: '2030-02-01', retablir: true })).annulee, false);
+  await w('coach_ajouter_au_groupe', { eleve_id: 'kid1', groupe_id: ec.groupe_id });
+  assert.equal((await w('coach_retirer_du_groupe', { eleve_id: 'kid1', groupe_id: ec.groupe_id })).retire, true);
+  await assert.rejects(w('coach_retirer_du_groupe', { eleve_id: 'kid1', groupe_id: ec.groupe_id }), /pas dans ce groupe/);
+  const col = await w('coach_ouvrir_collectif', { mode: 'cours', sport: 'Padel', theme: 'Bandeja', date: '2030-03-01', heure: '18 h', groupes: [{ nom: 'Débutants', de: '1', a: '3', minimum: 2, maximum: 4 }] });
+  const pc = (await ram.itemsOf(club.id, 'post')).find(x => x.id === col.publication).data;
+  assert.deepEqual([pc.nv.tiers[0].nom, pc.nv.tiers[0].lo, pc.nv.tiers[0].places, pc.nv.tiers[0].max], ['Débutants', 1, 2, 4]);
+  await ram.ops('U1', club.id, [{ coll: 'eleve', id: 'kid1', op: 'put', data: { n: 'Léo Martin', lvl: 3, sport: 'Tennis', note: 'timide' } }]);   // la suite repart de sa fiche d'origine
   const md = await w('coach_modifier_groupe', { groupe_id: ec.groupe_id, fin: '2030-01-23', retirer_dates: ['2030-01-09'], ajouter_dates: ['2030-01-11'] });
   assert.deepEqual([md.debut, md.fin, md.prochaines_seances], ['2030-01-02', '2030-01-23', ['2030-01-02', '2030-01-11', '2030-01-16', '2030-01-23']]);
   await assert.rejects(w('coach_modifier_groupe', { groupe_id: ec.groupe_id }), /Rien à modifier/);

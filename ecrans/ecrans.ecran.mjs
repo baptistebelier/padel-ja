@@ -737,6 +737,67 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
   }
 });
 
+test('Coach : mes outils de réservation ; élève : chercher des partenaires ; page publique sans compte', async () => {
+  const cc = await browser.newContext({ viewport: { width: 1280, height: 900 } }), sc = await browser.newContext({ viewport: { width: 360, height: 780 } }), pub = await browser.newContext({ viewport: { width: 360, height: 780 } }), errs = [];
+  const coachP = await cc.newPage(), page = await sc.newPage(), pp = await pub.newPage();
+  for (const x of [coachP, page, pp]) x.on('pageerror', e => errs.push(e.message));
+  const post = async (c, url, data) => (await c.request.post(JA + url, { data })).json(), t = Date.now();
+  await post(cc, '/api/auth/signup', { email: `out-c-${t}@exemple.test`, password: 'essai-' + t, first: 'Sarah', last: 'Coach' });
+  const club = await post(cc, '/api/ram/clubs', { name: 'Club Outils' });
+  const now = new Date(), y = now.getFullYear(), saison = now.getMonth() >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
+  await post(cc, '/api/coach/formules', { formules: { formules: [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35 }, { id: 'f3', nom: 'Duo', sport: 'Padel', joueurs: 2, duree: 60, prix: 30, par: 'personne' }], packs: [{ id: 'p1', formule: 'f1', nom: 'Pack 5', seances: 5, prix: 160, url: 'https://boutique.exemple.test/pack' }], dispos: [0, 1, 2, 3, 4, 5, 6].map(jour => ({ jour, du: '09:00', au: '11:00' })) } });
+  const code = club.code || (await (await cc.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.id === club.id).code;
+  await post(sc, '/api/auth/signup', { email: `out-e-${t}@exemple.test`, password: 'essai-' + t, first: 'Ines', last: 'Eleve' });
+  await post(sc, '/api/ram/join', { code });
+  const mine = (await (await sc.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.id === club.id);
+  await post(cc, `/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'member', id: mine.key, op: 'put', data: { n: 'Ines Eleve', valid: saison, pl: 5 } }, { coll: 'member', id: club.key, op: 'put', data: { n: 'Sarah Coach', pro: { book: 'https://calendly.com/sarah/cours' } } }] });
+
+  // le coach ouvre sa page publique
+  await coachP.goto(JA + '/club/coach.html');
+  await coachP.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
+  await coachP.evaluate(() => { S.stack = []; A.tab({ t: 'me' }); });
+  await coachP.waitForSelector('[data-a="coResaPage"]', { timeout: 8000 });
+  assert.ok(await coachP.locator('[data-a="coAgendaLien"]').count());
+  await coachP.click('[data-a="coResaPage"]');
+  await coachP.waitForSelector('[data-a="coResaBloc"]', { timeout: 8000 });
+  await coachP.waitForFunction(() => OFFRES.page === RAM.club);
+
+  // l'élève : les deux façons de réserver, l'achat du pack, puis une demande
+  await page.goto(JA + '/club/index.html');
+  await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
+  await page.waitForTimeout(800);
+  const pro = await page.evaluate(k => { M[k].pro = { book: 'https://calendly.com/sarah/cours' }; PRO_OFF[k] = undefined; delete PRO_OFF[k]; return proBody(k); }, club.key);
+  assert.match(pro, /Réserver sur Calendly/, 'le lien Calendly reste');
+  await page.waitForFunction(k => proBody(k).includes('Réserver un cours'), club.key, { timeout: 8000 });
+  const pro2 = await page.evaluate(k => proBody(k), club.key);
+  assert.ok(/Réserver un cours/.test(pro2) && /Réserver sur Calendly/.test(pro2), 'les deux à côté');
+  assert.match(pro2, /boutique\.exemple\.test\/pack/, 'acheter le pack');
+  await page.evaluate(k => { S.resaW = 2; A.open({ v: 'resa', id: k }); }, club.key);
+  await page.waitForSelector('.rsl', { timeout: 8000 });
+  await page.locator('.rsl').first().click();
+  await page.click('[data-a="resaAsk"]');
+  await page.waitForSelector('#rs-ask');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
+  await page.fill('#rs-at', 'Volée');
+  await page.click('#rs-ask .btn.full');
+  await page.waitForFunction(() => !document.querySelector('#rs-ask'), null, { timeout: 8000 });
+  await page.waitForSelector('.rsdem', { timeout: 8000 });
+
+  // sans compte : la page publique
+  await pp.goto(JA + '/r/' + club.id + '/' + club.key);
+  await pp.waitForSelector('#nx', { timeout: 8000 });
+  await pp.click('#nx');   // la semaine suivante : forcément à venir
+  await pp.waitForSelector('.slots button', { timeout: 8000 });
+  assert.ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'page publique sans débordement');
+  await pp.locator('.slots button').first().click();
+  await pp.fill('#p', 'Léa'); await pp.fill('#n', 'Roy'); await pp.fill('#t', '0600000000'); await pp.fill('#em', `lea-${t}@exemple.test`); await pp.fill('#o', 'Volée');
+  await pp.check('#ac');
+  await pp.click('#f .go');
+  await pp.waitForFunction(() => /réservé/i.test(document.querySelector('h1').textContent), null, { timeout: 8000 });
+  assert.deepEqual(errs, []);
+  await cc.close(); await sc.close(); await pub.close();
+});
+
 test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et la plage n’est plus libre', async () => {
   const cc = await browser.newContext(), sc = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await sc.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));

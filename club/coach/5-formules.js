@@ -18,6 +18,11 @@ const OFFRES = {
   abos: [{ id: 'a1', nom: 'Academy Training', formule: 'f1', periode: 'mois', duree: 6, prix: 120, parSemaine: 1 }]
 };
 const PERIODES = ['mois', 'trimestre', '6 mois', 'an'];
+/* vendu sur Shopify : la référence (SKU) reconnue à la commande payée, et le lien d'achat montré aux élèves */
+const ofVente = (id, x) =>
+  O(id + '-sku', 'Référence Shopify (SKU, facultatif)', 'PACK-5', (x && x.sku) || '') +
+  O(id + '-url', 'Lien d’achat Shopify (facultatif)', 'https://…', (x && x.url) || '');
+const ofVenteLue = id => ({ sku: ($(id + '-sku') || {}).value || '', url: ($(id + '-url') || {}).value || '' });
 const eur = n => (Math.round(n * 100) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €';
 const minTxt = n => (n % 60 ? (n >= 60 ? Math.floor(n / 60) + ' h ' + (n % 60) : n + ' min') : n / 60 + ' h');
 const foOf = id => OFFRES.formules.find(f => f.id === id);
@@ -441,7 +446,7 @@ Object.assign(A, {
           ['plus', 'En plusieurs fois']
         ],
         'paye'
-      )}${O('co-apn', 'Nombre de paiements (en plusieurs fois)', '3')}${O('co-amo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify')}${O('co-an2', 'Note (facultatif)', 'Payé en 2 fois, offert…')}<button class="btn full">Enregistrer</button></form>`
+      )}${O('co-apn', 'Nombre de paiements (en plusieurs fois)', '3')}${O('co-amo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify')}${O('co-an2', 'Note (facultatif)', 'Payé en 2 fois, offert…')}${ofVente('co-fv', f)}${ofVente('co-kv', p)}${ofVente('co-av', a)}<button class="btn full">Enregistrer</button></form>`
     );
   },
   coAchatDel(d) {
@@ -464,7 +469,8 @@ document.addEventListener('submit', e => {
       joueurs: Math.max(1, Math.round(n('co-fj'))),
       duree: +v('co-fd'),
       prix: n('co-fp'),
-      par: v('co-fpp')
+      par: v('co-fpp'),
+      ...ofVenteLue('co-fv')
     };
     if (f.dataset.id === 'new') OFFRES.formules.push(Object.assign({ id: nid('f') }, x));
     else Object.assign(foOf(f.dataset.id), x);
@@ -473,7 +479,13 @@ document.addEventListener('submit', e => {
   }
   if (f.id === 'co-pk') {
     e.preventDefault();
-    const x = { formule: f.dataset.f, nom: v('co-kn'), seances: Math.max(2, Math.round(n('co-ks'))), prix: n('co-kp') },
+    const x = {
+        formule: f.dataset.f,
+        nom: v('co-kn'),
+        seances: Math.max(2, Math.round(n('co-ks'))),
+        prix: n('co-kp'),
+        ...ofVenteLue('co-kv')
+      },
       ech = v('co-ke')
         .split(/[^\d]+/)
         .filter(Boolean)
@@ -498,7 +510,8 @@ document.addEventListener('submit', e => {
       periode: v('co-ae'),
       duree: Math.max(1, Math.round(n('co-ad'))),
       ens: v('co-ag'),
-      moyen: v('co-amy')
+      moyen: v('co-amy'),
+      ...ofVenteLue('co-av')
     };
     if (f.dataset.id === 'new') OFFRES.abos.push(Object.assign({ id: nid('a') }, x));
     else

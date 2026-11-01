@@ -99,7 +99,7 @@ const resaCollectifs = (k, de, fin) =>
     .map(({ p, d }) => {
       const t = nvMyTier(p.nv, ME()),
         n = t ? nvState(p.nv, d).lists[t.id].length : 0;
-      return `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(p.nv.theme || NV_MODE[p.nv.mode])}</span><br><span class="muted small">${fmtD(d)} à ${esc(p.nv.time)}${t ? ` · ${n} inscrit${n > 1 ? 's' : ''}${nvCapTxt(t) || ' sur ' + nvCap(t)}` : ''}</span></span></button>`;
+      return `<button class="item${p.nv.demande ? ' rsdem' : ''}" data-a="open" data-v="post" data-id="${p.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${p.nv.demande ? 'Demande d’un élève · ' : ''}${esc(p.nv.theme || NV_MODE[p.nv.mode])}</span><br><span class="muted small">${fmtD(d)} à ${esc(p.nv.time)}${t ? (p.nv.demande ? ` · ${(x => `${x} place${x > 1 ? 's' : ''} restante${x > 1 ? 's' : ''}`)(Math.max(0, nvCap(t) - n))}` : ` · ${n} inscrit${n > 1 ? 's' : ''}${nvCapTxt(t) || ' sur ' + nvCap(t)}`) : ''}</span></span></button>`;
     })
     .join('');
 const resaHeure = n => Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).padStart(2, '0') : '');
@@ -165,7 +165,7 @@ Object.assign(A, {
       kids = ((M[ME()] && M[ME()].kids) || []).filter(k => M[k]);
     sheet(
       'Confirmer le cours',
-      `<form class="body" id="rs-go" data-k="${d.k}" data-d="${d.d}" data-t="${d.t}" data-f="${esc(f.id)}"><p><b>${fmtD(d.d)} à ${resaHeure(+d.t)}</b><br>${esc(f.nom)} avec ${esc(name(d.k))} · ${f.prix} €${d.l ? ' · ' + esc(d.l) : ''}</p>${kids.length ? Who('rs-p', 'Pour', [ME(), ...kids]) : ''}${T('rs-o', 'Objectif de la séance', 'Ce que tu veux travailler', '')}<button class="btn full">Réserver</button><p class="muted small">Confirmé tout de suite : l’enseignant reçoit une notification et le cours arrive dans ton agenda. Tu peux annuler jusqu’à 24 h avant.</p></form>`
+      `<form class="body" id="rs-go" data-k="${d.k}" data-d="${d.d}" data-t="${d.t}" data-f="${esc(f.id)}"><p><b>${fmtD(d.d)} à ${resaHeure(+d.t)}</b><br>${esc(f.nom)} avec ${esc(name(d.k))} · ${f.prix} €${d.l ? ' · ' + esc(d.l) : ''}</p>${kids.length ? Who('rs-p', 'Pour', [ME(), ...kids]) : ''}${T('rs-o', 'Objectif de la séance', 'Ce que tu veux travailler', '')}<button class="btn full">Réserver</button><p class="muted small">Confirmé tout de suite : l’enseignant reçoit une notification et le cours arrive dans ton agenda. Tu peux annuler jusqu’à 24 h avant.</p>${f.url ? `<a class="btn sm ghost full" href="${esc(f.url)}" target="_blank" rel="noopener">${ic('euro')}Payer cette séance sur la boutique</a>` : ''}${(c.demandes || []).length ? `<button type="button" class="btn sm ghost full" data-a="resaAsk" data-k="${d.k}" data-d="${d.d}" data-t="${d.t}">${ic('users')}Chercher des partenaires sur ce créneau</button>` : ''}</form>`
     );
   }
 });
@@ -217,7 +217,50 @@ const resaPost = (route, corps) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(Object.assign({ c: RAM.club }, corps))
   }).then(r => r.json().then(x => (r.ok ? x : Promise.reject(new Error(x.error || 'Action impossible')))));
+/* proposer un collectif ou une partie dirigée : les élèves de mon niveau sont prévenus */
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (f.id !== 'rs-ask') return;
+  e.preventDefault();
+  f.querySelector('.btn.full').disabled = true;
+  resaPost('demander', {
+    k: f.dataset.k,
+    d: f.dataset.d,
+    t: +f.dataset.t,
+    formule: $('rs-af').value,
+    mode: $('rs-am').value,
+    theme: $('rs-at').value,
+    pour: $('rs-ap') ? $('rs-ap').value : undefined
+  })
+    .then(() => {
+      resaOublie();
+      closeSheet();
+      render(true);
+      toast('Demande envoyée : les élèves de ton niveau sont prévenus');
+    })
+    .catch(x => {
+      f.querySelector('.btn.full').disabled = false;
+      toast(x.message);
+    });
+});
 Object.assign(A, {
+  resaAsk(d) {
+    const c = RESA[view().id + '|' + resaLundi(Math.max(0, S.resaW || 0))],
+      kids = ((M[ME()] && M[ME()].kids) || []).filter(k => M[k]);
+    sheet(
+      'Chercher des partenaires',
+      `<form class="body" id="rs-ask" data-k="${d.k}" data-d="${d.d}" data-t="${d.t}"><p><b>${fmtD(d.d)} à ${resaHeure(+d.t)}</b> avec ${esc(name(d.k))}</p><div class="fld"><label for="rs-af">Formule</label><select id="rs-af">${c.demandes.map(x => `<option value="${esc(x.id)}">${esc(x.nom)} · ${x.joueurs} joueurs · ${x.prix} €${x.par === 'personne' ? ' par personne' : ''}</option>`).join('')}</select></div>${Sel(
+        'rs-am',
+        'Type',
+        [
+          ['partie', 'Partie dirigée'],
+          ['cours', 'Séance collective']
+        ].map(x => x[1])
+      )}${kids.length ? Who('rs-ap', 'Pour', [ME(), ...kids]) : ''}${O('rs-at', 'Thème (facultatif)', 'Volée, jeu au filet…')}<button class="btn full">Envoyer la demande</button><p class="muted small">Les élèves de ton niveau sont prévenus. La demande entre au planning de l’enseignant quand le groupe est complet ; d’ici là, le créneau reste réservable par d’autres.</p></form>`
+    );
+    const m = $('rs-am');
+    if (m) [...m.options].forEach((o, i) => (o.value = i ? 'cours' : 'partie'));
+  },
   resaWait(d) {
     resaPost('attendre', { k: d.k, d: d.d, du: +d.du, au: +d.au })
       .then(x => {

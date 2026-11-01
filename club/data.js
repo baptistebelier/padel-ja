@@ -46,28 +46,7 @@ const ic = n =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n] || ''}</svg>`;
 
 let TODAY = '2026-10-13';
-const RANKS = [
-  'NC',
-  '40',
-  '30/5',
-  '30/4',
-  '30/3',
-  '30/2',
-  '30/1',
-  '30',
-  '15/5',
-  '15/4',
-  '15/3',
-  '15/2',
-  '15/1',
-  '15',
-  '5/6',
-  '4/6',
-  '3/6',
-  '2/6',
-  '1/6',
-  '0'
-];
+const RANKS = REGLES.RANKS;
 const LV = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => 'Niveau ' + n);
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'],
   DA = ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'],
