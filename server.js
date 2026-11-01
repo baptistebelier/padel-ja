@@ -39,6 +39,7 @@ withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le 
 const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, onUsers: ids => Promise.all(ids.map(id => followRamClub(id).catch(() => {}))) });   // qui appartient à quel club, rôle et saison
 const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
+const coachTables = require('./lib/coach-tables.js').createCoachTables({ ram, store });   // planning de l'enseignant lu dans les vraies tables
 const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
 const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m) });   // notifications sur le téléphone
 require('./lib/pushnotif.js').createNotifier({ ram, push, log: m => console.warn('/RAM Club : ' + m) });   // qui prévenir à chaque changement d'un club
@@ -1396,6 +1397,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     /* ---------- /RAM Coach : formules et tarifs de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
+    // planning de l'enseignant, tous ses clubs : lu dans les vraies tables, sans charger aucun club en mémoire
+    if (p === '/api/coach/planning' && req.method === 'GET') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      try { return json(res, 200, await coachTables.planning(u.id, url.searchParams.get('du'), url.searchParams.get('au'), url.searchParams.get('club'))); }
+      catch (e) { if (/^Période/.test(e.message)) return json(res, 400, { error: e.message }); throw e; }
+    }
     if (p === '/api/coach/formules') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       if (req.method === 'POST') return json(res, 200, { formules: await Formules.save(store, u.id, (await readBody(req)).formules) });
@@ -1530,6 +1537,8 @@ server.listen(PORT, '0.0.0.0', () => {
       await store.saveSetting('medias', { v: 1, at: Date.now() });
     } catch (e) { console.error('  Images :', e.message); }
   }, 15000).unref();
+  // /RAM Coach : les vraies tables donnent-elles le même planning que les éléments des clubs ? (résultat : server_settings, « coach-verif »)
+  setTimeout(() => coachTables.verify(new Date().toISOString().slice(0, 10), msg => console.log('  ' + msg)).catch(e => console.error('  Coach, comparaison :', e.message)), 30000).unref();
   // autres migrations des données (lib/migrations.js), une seule fois chacune
   setTimeout(() => Migrations.run(store, [
     ['cours-hors-des-groupes', () => Migrations.coursHorsDesGroupes(ram, msg => console.log('  ' + msg))]
