@@ -1924,12 +1924,13 @@
   };
   A.ramRole = d =>
     api('/api/ram/c/' + R.club + '/role', { key: d.id, role: d.r }).then(
-      () => {
-        R.roles[d.id] = d.r;
+      x => {
+        R.roles[d.id] = x.role;
         const m = M[d.id];
-        if (m && d.r !== 'mem' && VALID[d.id] !== S.season) VALID[d.id] = S.season;
+        if (m) m.role = x.fonction;
+        if (m && x.role !== 'mem' && VALID[d.id] !== S.season) VALID[d.id] = S.season;
         render(true);
-        toast(`${first(d.id)} : ${{ bureau: 'membre du bureau', coach: 'enseignant', mem: 'adhérent' }[d.r]}`);
+        toast(`${first(d.id)} : ${(x.fonction || 'adhérent').toLowerCase()}`);
       },
       x => toast(x.message)
     );
@@ -2331,12 +2332,32 @@
       );
     if (id !== ME() && isBureau() && !isMinor(id) && R.roles[id]) {
       const r = R.roles[id],
+        f = (M[id] || {}).role,
+        cur =
+          r === 'mem'
+            ? 'mem'
+            : r === 'coach'
+              ? 'coach'
+              : { Président: 'president', Gérant: 'gerant', Trésorier: 'tresorier', Secrétaire: 'secretaire' }[f] ||
+                'bureau',
         chip = (v, l) =>
-          `<button class="chip" data-a="ramRole" data-id="${id}" data-r="${v}" aria-pressed="${r === v}">${l}</button>`;
-      h = h.replace(
-        /<\/div>$/,
-        `<div class="card"><span class="kicker">Accès à l'appli</span><div class="chips">${chip('mem', 'Adhérent')}${chip('coach', 'Enseignant')}${chip('bureau', 'Bureau')}</div><p class="muted small">Le bureau gère tout le club. Un enseignant gère les groupes, les stages et publie au nom du club. Le capitaine d'une équipe se choisit dans l'équipe.</p><button class="btn sm ghost" style="color:var(--hot-tx)" data-a="ramRemove" data-id="${id}">Retirer du club</button></div></div>`
-      );
+          `<button class="chip" data-a="ramRole" data-id="${id}" data-r="${v}" aria-pressed="${cur === v}">${l}</button>`;
+      // juste sous l'en-tête du profil : c'est ce que le bureau vient y chercher
+      const carte = `<div class="card"><span class="kicker">Rôle dans le club</span><div class="chips">${chip('mem', 'Adhérent')}${chip('coach', 'Enseignant')}${chip('bureau', 'Membre du bureau')}${chip('president', 'Président')}${chip('gerant', 'Gérant')}${chip('tresorier', 'Trésorier')}${chip('secretaire', 'Secrétaire')}</div><p class="muted small">Bureau, président, gérant, trésorier et secrétaire gèrent tout le club. Un enseignant gère les groupes, les stages et publie au nom du club. Le capitaine d'une équipe se choisit dans l'équipe.</p><button class="btn sm ghost" style="color:var(--hot-tx)" data-a="ramRemove" data-id="${id}">Retirer du club</button></div>`;
+      const i = h.indexOf('<div class="phero">'),
+        balise = /<(\/?)div\b[^>]*>/g;
+      let n = 0,
+        b,
+        pose = false;
+      balise.lastIndex = Math.max(0, i);
+      while (i >= 0 && !pose && (b = balise.exec(h))) {
+        n += b[1] ? -1 : 1;
+        if (!n) {
+          h = h.slice(0, balise.lastIndex) + carte + h.slice(balise.lastIndex);
+          pose = true;
+        }
+      }
+      if (!pose) h = h.replace(/<\/div>$/, () => carte + '</div>');
     }
     return h;
   };

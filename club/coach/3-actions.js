@@ -174,15 +174,23 @@ Object.assign(A, {
   /* élève sans compte : rattaché à l'adhérent qui vient de créer le sien ; il retrouve tout */
   coLink(d) {
     const cid = coClubOf(coEl(d.id)),
-      cands = Object.keys(M).filter(k => k !== 'club' && !coEl(k) && coClubOf(M[k]) === cid);
-    if (!cands.length) return toast('Aucun adhérent du club à relier');
+      cands = Object.keys(M).filter(k => k !== 'club' && k !== d.id && !isMinor(k) && coClubOf(M[k]) === cid),
+      el = coEl(d.id),
+      mots = fold(el.n || '')
+        .split(/\s+/)
+        .filter(x => x.length > 2),
+      proche = k =>
+        (M[k].mail && el.mail && fold(M[k].mail) === fold(el.mail) ? 9 : 0) +
+        mots.filter(x => fold(name(k)).includes(x)).length;
+    if (!cands.length)
+      return toast('Aucun compte dans ce club : l’élève doit d’abord rejoindre le club dans /RAM Club');
     sheet(
       'Relier ' + svFirst(d.id),
       `<form class="body" id="co-link" data-id="${d.id}">${Who(
         'co-who',
         'Son compte /RAM Club',
-        cands.sort((a, b) => name(a).localeCompare(name(b)))
-      )}<p class="muted small">Sa fiche, ses séances, ses bilans et ses messages passent sur son compte.</p><button class="btn full">Relier</button></form>`
+        cands.sort((a, b) => proche(b) - proche(a) || name(a).localeCompare(name(b)))
+      )}<p class="muted small">Sa fiche, ses séances, ses bilans et ses messages passent sur son compte. S’il a déjà une fiche, les deux sont réunies.</p><button class="btn full">Relier</button></form>`
     );
   },
   coContent(d) {
@@ -392,8 +400,18 @@ document.addEventListener('submit', e => {
       old = coEl(id);
     if (!k || !old) return;
     // la fiche, les groupes, les séances et le suivi passent sur le compte de l'adhérent
+    const deja = coEl(k);
     ELEVES.splice(ELEVES.indexOf(old), 1);
-    ELEVES.push(Object.assign({}, old, { id: k, n: name(k) }));
+    if (deja) ELEVES.splice(ELEVES.indexOf(deja), 1);
+    ELEVES.push(
+      Object.assign({}, old, deja, {
+        id: k,
+        n: name(k),
+        ...(old.achats || (deja && deja.achats)
+          ? { achats: [...((deja && deja.achats) || []), ...(old.achats || [])] }
+          : {})
+      })
+    );
     GROUPS.forEach(g => {
       if ((g.ext || []).includes(id)) {
         g.ext = g.ext.filter(x => x !== id);

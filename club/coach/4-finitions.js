@@ -469,7 +469,13 @@ render = function () {
     );
     if (coMobile() && typeof topPad === 'function') topPad();
   }
-  if (top && S.tab === 'planning' && !S.stack.length && top.querySelector('h1') && !top.querySelector('.cotopclub'))
+  if (
+    top &&
+    ['planning', 'eleves', 'dash', 'histo'].includes(S.tab) &&
+    !S.stack.length &&
+    top.querySelector('h1') &&
+    !top.querySelector('.cotopclub')
+  )
     top.querySelector('h1').insertAdjacentHTML('afterend', coTopClub());
   if ($('codrawer') && $('phone').classList.contains('drawer-open')) $('codrawer').innerHTML = coDrawerHTML();
   return r;
@@ -479,6 +485,62 @@ document.addEventListener('change', e => {
   S.coClub = e.target.value;
   render(true);
 });
+/* la courbe du mois : le chiffre du jour sous le curseur ou le doigt */
+(function () {
+  const montre = e => {
+    const w = e.target.closest && e.target.closest('.cocurvew');
+    if (!w) return;
+    const svg = w.querySelector('svg'),
+      r = svg.getBoundingClientRect(),
+      [W, H, L, R, T, B] = w.dataset.g.split(',').map(Number),
+      nD = +w.dataset.n,
+      max = +w.dataset.max,
+      cur = w.dataset.c.split(',').map(Number),
+      prev = w.dataset.p.split(',').map(Number),
+      px = ((e.clientX - r.left) * W) / r.width,
+      j = Math.max(1, Math.min(nD, Math.round(((px - L) * (nD - 1)) / (W - L - R)) + 1)),
+      X = +(L + ((j - 1) * (W - L - R)) / (nD - 1)).toFixed(1),
+      Y = v => +(H - B - (v * (H - T - B)) / max).toFixed(1),
+      g = svg.querySelector('.coscrub'),
+      tip = w.querySelector('.cotip'),
+      vu = v => (v === undefined ? '–' : v),
+      a = cur[j - 1],
+      b = prev[j - 1];
+    g.removeAttribute('hidden');
+    g.querySelector('line').setAttribute('x1', X);
+    g.querySelector('line').setAttribute('x2', X);
+    [
+      ['.cocur', a],
+      ['.coprev', b]
+    ].forEach(([c, v]) => {
+      const o = g.querySelector(c);
+      o.style.display = v === undefined ? 'none' : '';
+      if (v !== undefined) {
+        o.setAttribute('cx', X);
+        o.setAttribute('cy', Y(v));
+      }
+    });
+    tip.hidden = false;
+    tip.innerHTML = `<b>Le ${j}</b><span><i class="cocur"></i>Ce mois : ${vu(a)}</span><span><i class="coprev"></i>Mois dernier : ${vu(b)}</span>`;
+    const lt = (X / W) * r.width,
+      tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(r.width - tw, lt - tw / 2)) + 'px';
+  };
+  const cache = w => {
+    w.querySelector('.coscrub').setAttribute('hidden', '');
+    w.querySelector('.cotip').hidden = true;
+  };
+  document.addEventListener('pointerdown', montre);
+  document.addEventListener('pointermove', montre);
+  document.addEventListener('pointerout', e => {
+    const w = e.target.closest && e.target.closest('.cocurvew');
+    if (w && !(e.relatedTarget && w.contains(e.relatedTarget))) cache(w);
+  });
+  document.addEventListener('pointercancel', e => {
+    const w = e.target.closest && e.target.closest('.cocurvew');
+    if (w) cache(w);
+  });
+})();
 /* planning : glisser le doigt passe au jour, à la semaine ou au mois suivant (le bord gauche reste au menu) */
 (function () {
   let g = null;

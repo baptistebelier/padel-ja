@@ -711,6 +711,39 @@ test('Club : Gérer le club sans cours individuels, cartes vides, en-tête de di
   await page.close();
 });
 
+test('Coach : toute la largeur sur ordinateur, club dans l’en-tête, chiffres sur la courbe', async () => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
+  for (const t of ['eleves', 'clubs', 'dash']) {
+    await page.evaluate(x => { S.stack = []; A.tab({ t: x }); }, t);
+    await page.waitForFunction(() => document.querySelector('#main > .pad'));
+    const larg = await page.evaluate(() => [document.querySelector('#main > .pad').getBoundingClientRect().width, document.querySelector('#main').getBoundingClientRect().width]);
+    assert.ok(larg[0] >= larg[1] - 2, t + ' : toute la largeur');
+  }
+  // plusieurs clubs : le choix est dans l'en-tête, plus de pastilles
+  await page.evaluate(() => { CO_EXT.zz = { id: 'zz', name: 'Autre club' }; });
+  for (const t of ['eleves', 'dash', 'planning']) {
+    await page.evaluate(x => { S.stack = []; A.tab({ t: x }); }, t);
+    await page.waitForSelector('#top .cotopclub select', { timeout: 5000 });
+    assert.equal(await page.locator('#main [data-a="coClub"]').count(), 0, t);
+  }
+  await page.evaluate(() => { delete CO_EXT.zz; S.stack = []; A.tab({ t: 'dash' }); S.dashP = 'mois'; render(true); });
+  await page.evaluate(() => document.querySelectorAll('.ram-splash').forEach(x => x.remove()));   // non connecté : l'écran de connexion
+  const w = page.locator('.cocurvew');
+  await w.waitFor({ timeout: 8000 });
+  await w.scrollIntoViewIfNeeded();
+  const b = await w.locator('svg').boundingBox();
+  await page.mouse.move(b.x + b.width * 0.6, b.y + b.height / 2);
+  assert.equal(await page.locator('.cotip').isVisible(), true);
+  assert.match(await page.locator('.cotip').innerText(), /Le \d+[\s\S]*Ce mois[\s\S]*Mois dernier/);
+  await page.mouse.move(5, 5);
+  assert.equal(await page.locator('.cotip').isVisible(), false);
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
 test('Coach : relier Google Agenda, les trois états du réglage', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
@@ -986,6 +1019,19 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await page.click('#rs-ask .btn.full');
   await page.waitForFunction(() => !document.querySelector('#rs-ask'), null, { timeout: 8000 });
   await page.waitForSelector('.rsdem', { timeout: 8000 });
+
+  // le bureau change le rôle d'un adhérent depuis son profil, tout en haut
+  await coachP.goto(JA + '/club/index.html');
+  await coachP.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
+  await coachP.waitForFunction(k => M[k], mine.key, { timeout: 8000 });
+  await coachP.evaluate(k => A.member({ id: k }), mine.key);
+  await coachP.waitForSelector('[data-a="ramRole"][data-r="gerant"]', { timeout: 8000 });
+  assert.ok(await coachP.evaluate(() => { const c = document.querySelector('[data-a="ramRole"]').closest('.card'); return c.previousElementSibling && c.previousElementSibling.classList.contains('phero'); }), 'juste sous l’en-tête');
+  await coachP.click('[data-a="ramRole"][data-r="gerant"]');
+  await coachP.waitForFunction(k => RAM.roles[k] === 'bureau' && M[k].role === 'Gérant', mine.key, { timeout: 8000 });
+  await coachP.waitForFunction(() => document.querySelector('[data-a="ramRole"][data-r="gerant"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 8000 });
+  await coachP.click('[data-a="ramRole"][data-r="mem"]');
+  await coachP.waitForFunction(k => RAM.roles[k] === 'mem' && !M[k].role, mine.key, { timeout: 8000 });
 
   // sans compte : la page publique
   await pp.goto(JA + '/r/' + club.id + '/' + club.key);

@@ -363,7 +363,7 @@ const coPlanTools = () =>
         `<button class="btn${i ? ' ghost' : ''}" data-a="${a}" ${x} aria-label="${tout}">${ic(icn)}<span>${l}</span></button>`
     )
     .join('')}</div>${coVueTabs()}`;
-/* la sélection du club, à droite du bandeau « Planning » (quand j'enseigne dans plusieurs clubs) */
+/* la sélection du club, dans l'en-tête de Planning, Élèves, Statistiques et Historique (quand j'enseigne dans plusieurs clubs) */
 const coTopClub = () =>
   coMulti()
     ? `<label class="cotopclub"><span class="sr">Club affiché</span><select id="co-topclub"><option value="all"${!S.coClub || S.coClub === 'all' ? ' selected' : ''}>Tous mes clubs</option>${coClubList()
@@ -563,16 +563,8 @@ ${coIsGrp(g) ? '' : coSesPay(g, d, id, st, s)}${hd('Bilan de la séance')}${dr ?
         )}<button class="btn full" name="go" value="pub">${ic('send')}${past ? 'Publier le bilan aux élèves' : 'Enregistrer'}</button><button class="btn full ghost" name="go" value="draft">${ic('edit')}Garder en brouillon</button><p class="muted small">Le bilan arrive dans /RAM Club, École, Mon espace : celui du groupe pour tous, le commentaire personnel pour l'élève (et ses parents) seulement.</p></form>`
 }</div>`;
 }
-/* filtre par club (quand j'enseigne dans plusieurs clubs) : Planning, Élèves, Tableau de bord */
-const coClubChips = () =>
-  coMulti()
-    ? `<div class="card"><div class="chips"><button class="chip" data-a="coClub" data-c="all" aria-pressed="${!S.coClub || S.coClub === 'all'}">${ic('clubs')}Tous mes clubs</button>${coClubList()
-        .map(
-          c =>
-            `<button class="chip" data-a="coClub" data-c="${c.id}" aria-pressed="${S.coClub === c.id}">${ic('club')}${esc(c.name)}</button>`
-        )
-        .join('')}</div></div>`
-    : '';
+/* le filtre par club est dans l'en-tête (coTopClub) */
+const coClubChips = () => '';
 const coClubBar = () => '';
 /* ---------- Élèves ---------- */
 function coEleves() {
@@ -913,7 +905,7 @@ function coMonthCurve(histo) {
     Y = v => +(H - B - (v * (H - T - B)) / max).toFixed(1),
     line = (l, n) => Array.from({ length: n }, (_, i) => X(i + 1) + ',' + Y(l[i + 1])).join(' '),
     ticks = [1, 8, 15, 22, nD];
-  return `<svg class="cocurve" viewBox="0 0 ${W} ${H}" role="img" aria-label="${cur[now]} séances ce mois à ce jour, ${prev[Math.min(now, pD)]} à la même date le mois dernier">${[
+  return `<div class="cocurvew" data-c="${cur.slice(1, now + 1).join()}" data-p="${prev.slice(1, last + 1).join()}" data-n="${nD}" data-max="${max}" data-g="${[W, H, L, R, T, B].join()}"><svg class="cocurve" viewBox="0 0 ${W} ${H}" role="img" aria-label="${cur[now]} séances ce mois à ce jour, ${prev[Math.min(now, pD)]} à la même date le mois dernier">${[
     0,
     Math.round(max / 2),
     max
@@ -924,7 +916,7 @@ function coMonthCurve(histo) {
     )
     .join(
       ''
-    )}${ticks.map(d => `<text x="${X(d)}" y="${H - 8}" text-anchor="middle">${d}</text>`).join('')}<line class="conow" x1="${X(now)}" x2="${X(now)}" y1="${T}" y2="${H - B}"/><polyline class="coprev" points="${line(prev, last)}"/><polyline class="cocur" points="${line(cur, now)}"/></svg><div class="cocycl"><span><i class="cocur"></i>Ce mois : ${plural(cur[now], 'séance')}</span><span><i class="coprev"></i>Le mois dernier à la même date : ${prev[Math.min(now, pD)]}</span></div>`;
+    )}${ticks.map(d => `<text x="${X(d)}" y="${H - 8}" text-anchor="middle">${d}</text>`).join('')}<line class="conow" x1="${X(now)}" x2="${X(now)}" y1="${T}" y2="${H - B}"/><polyline class="coprev" points="${line(prev, last)}"/><polyline class="cocur" points="${line(cur, now)}"/><g class="coscrub" hidden><line y1="${T}" y2="${H - B}"/><circle class="coprev" r="4"/><circle class="cocur" r="5"/></g></svg><div class="cotip" hidden></div></div><div class="cocycl"><span><i class="cocur"></i>Ce mois : ${plural(cur[now], 'séance')}</span><span><i class="coprev"></i>Le mois dernier à la même date : ${prev[Math.min(now, pD)]}</span></div>`;
 }
 /* une ligne d'activité avec sa barre : le graphique dit la part de chacun */
 const coActRows = (rows, sort) => {

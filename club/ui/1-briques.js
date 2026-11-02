@@ -28,7 +28,14 @@ const kidOk = k =>
   seesMinors() ||
   (M[ME()].kids || []).includes(k) ||
   GROUPS.some(g => g.type === 'train' && g.mem.includes(k) && g.mem.includes(ME()));
-const RC = { Club: 'club', Enseignante: 'coach', Enseignant: 'coach', Président: 'pres', Capitaine: 'cap' };
+const RC = {
+  Club: 'club',
+  Enseignante: 'coach',
+  Enseignant: 'coach',
+  Président: 'pres',
+  Gérant: 'pres',
+  Capitaine: 'cap'
+};
 /* Un seul classement par personne, choisi selon le sport de l'écran */
 const rk = (id, sport) => {
   const m = M[id],

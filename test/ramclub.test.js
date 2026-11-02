@@ -106,6 +106,10 @@ test('réglages personnels privés, abonnés comptés', async () => {
 
 test('rôles : seul le bureau les donne, le club garde toujours un bureau', async () => {
   await assert.rejects(ram.setRole(adh.id, club.id, kA, 'bureau'), /bureau/);
+  const gerant = await ram.setRole(bureau.id, club.id, kA, 'gerant');
+  assert.deepEqual(gerant, { key: kA, role: 'bureau', fonction: 'Gérant' });
+  assert.equal((await ram.itemsOf(club.id, 'member')).find(x => x.id === kA).data.role, 'Gérant');
+  await assert.rejects(ram.setRole(bureau.id, club.id, kA, 'inconnu'), /Rôle inconnu/);
   await ram.setRole(bureau.id, club.id, kA, 'coach');
   const r = await ram.ops(adh.id, club.id, [{ coll: 'art', id: 'a1', op: 'put', data: { title: 'Actu' } }]);
   assert.deepEqual(r.rejected, [], 'un enseignant publie des actus');
