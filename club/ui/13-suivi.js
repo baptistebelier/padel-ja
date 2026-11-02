@@ -174,19 +174,52 @@ function proBody(k) {
     yrs = p.since ? +TODAY.slice(0, 4) - +p.since : 0,
     tile = (i, v, l) => (v ? `<div class="ptile">${ic(i)}<b>${v}</b><span>${l}</span></div>` : ''),
     web = svLink(toUrlP(p.web)),
-    book = svLink(toUrlP(p.book)),
-    tel = String(p.tel || '').replace(/[^+\d]/g, '');
-  return `<div class="pbody">${p.bio ? `<p>${esc(p.bio)}</p>` : ''}<div class="ptiles">${tile('diploma', esc(p.dip || ''), 'Diplôme')}${tile('cal', p.since ? (yrs > 0 ? yrs + ' an' + (yrs > 1 ? 's' : '') : esc(p.since)) : '', p.since ? 'Enseigne depuis ' + esc(p.since) : '')}${tile('ball', esc(p.sports || [...new Set(gs.map(g => g.sport))].join(', ')), 'Sports')}${tile('user', p.age && M[k].bd ? age(k) + ' ans' : '', 'Âge')}</div><div class="pcontact">${p.tel ? `<a href="tel:${tel}">${ic('phone')}${esc(p.tel)}</a>` : ''}${p.mail ? `<a href="mailto:${esc(p.mail)}">${ic('mail')}${esc(p.mail)}</a>` : ''}${web ? `<a href="${esc(web)}" target="_blank" rel="noopener">${ic('link')}${esc(String(p.web).replace(/^https?:\/\//, ''))}</a>` : ''}</div>${gs.length ? `<button class="item" data-a="proGroups" data-id="${k}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">Ses groupes</span><br><span class="muted small">${gs.length} groupe${gs.length > 1 ? 's' : ''}</span></span></button>` : ''}${
-    off && off.formules.length
-      ? proOffersHtml(off)
-      : proLines(p.tarifs).length
-        ? `<span class="kicker">Tarifs</span><ul class="ptar">${proLines(p.tarifs)
-            .map(x => `<li>${esc(x)}</li>`)
-            .join('')}</ul>`
+    tel = String(p.tel || '').replace(/[^+\d]/g, ''),
+    bouton = (cl, href, i, t, v, ext) =>
+      `<a class="pbtn ${cl}" href="${esc(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}><span class="pbi">${ic(i)}</span><span class="pbt"><b>${t}</b><span class="small">${esc(v)}</span></span></a>`,
+    contacts = [
+      tel ? bouton('pb-tel', 'tel:' + tel, 'phone', 'Appeler', p.tel) : '',
+      p.mail ? bouton('pb-mail', 'mailto:' + p.mail, 'mail', 'Écrire un mail', p.mail) : '',
+      web
+        ? bouton(
+            'pb-web',
+            web,
+            'globe',
+            'Site internet',
+            String(p.web)
+              .replace(/^https?:\/\//, '')
+              .replace(/\/$/, ''),
+            1
+          )
         : ''
-  }<div class="ctl" style="flex-wrap:wrap">${off && off.resa && k !== ME() ? `<button class="btn grow" data-a="open" data-v="resa" data-id="${k}">${ic('cal')}Réserver un cours</button>` : ''}${book ? `<a class="btn grow${off && off.resa && k !== ME() ? ' ghost' : ''}" href="${esc(book)}" target="_blank" rel="noopener">${ic('cal')}${proBookTxt(book)}</a>` : ''}${tel ? `<a class="btn grow ghost" href="tel:${tel}">${ic('phone')}Appeler</a>` : ''}${p.mail ? `<a class="btn grow ghost" href="mailto:${esc(p.mail)}">${ic('mail')}Écrire</a>` : ''}${k !== ME() ? `<button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button>` : ''}</div></div>`;
+    ].join(''),
+    tarifs =
+      off && off.formules.length
+        ? proOffersHtml(off)
+        : proLines(p.tarifs).length
+          ? `<ul class="ptar">${proLines(p.tarifs)
+              .map(x => `<li>${esc(x)}</li>`)
+              .join('')}</ul>`
+          : '';
+  return `<div class="pbody">${p.bio ? `<p>${esc(p.bio)}</p>` : ''}<div class="ptiles">${tile('diploma', esc(p.dip || ''), 'Diplôme')}${tile('cal', p.since ? (yrs > 0 ? yrs + ' an' + (yrs > 1 ? 's' : '') : esc(p.since)) : '', p.since ? 'Enseigne depuis ' + esc(p.since) : '')}${tile('ball', esc(p.sports || [...new Set(gs.map(g => g.sport))].join(', ')), 'Sports')}${tile('user', p.age && M[k].bd ? age(k) + ' ans' : '', 'Âge')}</div>${contacts ? `<div class="pbtns">${contacts}</div>` : ''}${gs.length ? `<button class="item" data-a="proGroups" data-id="${k}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">Ses groupes</span><br><span class="muted small">${gs.length} groupe${gs.length > 1 ? 's' : ''}</span></span></button>` : ''}${
+    tarifs
+      ? `<details class="ptarifs"><summary><span class="tile">${ic('euro')}</span><span class="grow nm">Tarifs</span><span class="chev" aria-hidden="true">${ic('back')}</span></summary>${tarifs}</details>`
+      : ''
+  }${k !== ME() ? `<div class="ctl"><button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button></div>` : ''}</div>`;
 }
-/* le lien de son outil de réservation (Calendly, Google…) : il reste proposé à côté de la réservation dans l'appli */
+/* le raccourci en haut de la carte, même repliée : la réservation de l'appli dès que l'enseignant a des disponibilités ;
+   sinon son outil (Calendly…), pour qu'on puisse toujours réserver */
+function proBook(k) {
+  if (k === ME()) return '';
+  const off = proOffers(k),
+    book = svLink(toUrlP(proOf(k).book));
+  if (off && off.resa)
+    return `<button type="button" class="btn sm pres" data-a="open" data-v="resa" data-id="${k}" aria-label="Réserver un cours avec ${esc(name(k))}">${ic('cal')}Réserver</button>`;
+  return book
+    ? `<a class="btn sm pres" href="${esc(book)}" target="_blank" rel="noopener" aria-label="${proBookTxt(book)}">${ic('cal')}Réserver</a>`
+    : '';
+}
+/* le lien de son outil de réservation (Calendly, Google…) : tant que la réservation de l'appli n'est pas ouverte */
 const proBookTxt = u =>
   /calendly\.com/i.test(u)
     ? 'Réserver sur Calendly'
@@ -266,14 +299,14 @@ function proOffersHtml(o) {
       return line(esc(a.nom), `${e(a.prix)} ${abPer(a)}`, det.join(' · ') + achat(a));
     })
     .join('');
-  return `<span class="kicker">Tarifs</span>${seance ? `<span class="ptt">À la séance et en pack</span><ul class="ptar">${seance}</ul>` : ''}${abos ? `<span class="ptt">Abonnements</span><ul class="ptar">${abos}</ul>` : ''}`;
+  return `${seance ? `<span class="ptt">À la séance et en pack</span><ul class="ptar">${seance}</ul>` : ''}${abos ? `<span class="ptt">Abonnements</span><ul class="ptar">${abos}</ul>` : ''}`;
 }
 const toUrlP = u => (u ? (/^https?:\/\//i.test(u) ? u : 'https://' + u) : '');
 /* une ligne par enseignant, qui s'ouvre comme un menu déroulant */
 function profCard(k, open) {
   const p = proOf(k),
     gs = GROUPS.filter(g => g.type === 'train' && g.coach === k && !g.once && !(g.to && g.to < TODAY));
-  return `<details class="card prof"${open ? ' open' : ''}><summary>${av(k, 'sm')}<span class="grow"><span class="nm">${esc(name(k))}</span><br><span class="muted small">${esc(p.dip || (gs.length ? gs.length + ' groupe' + (gs.length > 1 ? 's' : '') : 'Enseignant'))}${p.since ? ' · depuis ' + esc(p.since) : ''}</span></span><span class="chev" aria-hidden="true">${ic('back')}</span></summary>${proBody(k)}</details>`;
+  return `<details class="card prof"${open ? ' open' : ''}><summary>${av(k, 'sm')}<span class="grow"><span class="nm">${esc(name(k))}</span><br><span class="muted small">${esc(p.dip || (gs.length ? gs.length + ' groupe' + (gs.length > 1 ? 's' : '') : 'Enseignant'))}${p.since ? ' · depuis ' + esc(p.since) : ''}</span></span>${proBook(k)}<span class="chev" aria-hidden="true">${ic('back')}</span></summary>${proBody(k)}</details>`;
 }
 function profsBody() {
   const ks = proKeys();

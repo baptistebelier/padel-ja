@@ -815,6 +815,19 @@ details.aide .aq p{margin:0;line-height:1.5}
 .ptp{flex:none;font-weight:700;text-align:right}
 .ptt{font-weight:700;font-size:13px;margin-top:6px;color:var(--muted)}
 .prof .ctl a.btn{text-decoration:none}
+/* la fiche d'un enseignant : réserver en haut de la carte, contacts en boutons, tarifs repliés */
+.prof .pres{flex:none;text-decoration:none}
+.pbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.pbtn{display:flex;align-items:center;gap:10px;min-width:0;min-height:56px;padding:8px 10px;border-radius:var(--r);background:var(--card2);color:inherit;text-decoration:none}
+.pbi{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;color:#fff}
+.pbi svg{width:24px;height:24px}
+.pb-tel .pbi{background:#16875A}
+.pb-mail .pbi{background:#2467D6}
+.pb-web .pbi{background:#7A3FD6}
+.pbt{display:flex;flex-direction:column;min-width:0}
+.pbt .small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prof .ptarifs .chev svg{transform:rotate(-90deg)}
+.prof .ptarifs[open] .chev svg{transform:rotate(90deg)}
 .prof .ctl .btn{flex:1 1 30%}
 .prof .ctl .btn:not(.ghost){flex-basis:100%}
 .chip svg{width:16px;height:16px;flex:none}
