@@ -118,3 +118,28 @@ test('cycle : ses séances et elles seules, faite seulement avec quelqu’un de 
   assert.equal(R.cycleCourant(deux, '2031-01-01').id, 'b', 'tout est passé : le dernier');
   assert.equal(R.cycleCourant({}, '2030-01-01'), null);
 });
+
+test('planPaiement : les montants du pack s’ils font le prix, sinon à parts égales', () => {
+  const { planPaiement } = require('../club/regles.js');
+  assert.deepEqual(planPaiement(250, [1, 4, 7], [85, 85, 80]).map(x => x.m), [85, 85, 80]);
+  assert.deepEqual(planPaiement(100, [1, 3], [85, 85]).map(x => x.m), [50, 50]);
+  assert.deepEqual(planPaiement(100, [1, 4, 7]).map(x => x.s), [1, 4, 7]);
+  const Formules = require('../lib/formules.js');
+  const c = Formules.clean({ formules: [{ id: 'f', nom: 'F', joueurs: 1, duree: 60, prix: 30 }], packs: [{ id: 'p', formule: 'f', seances: 10, prix: 250, ech: [1, 4, 7], echm: [85, 85, 80] }, { id: 'q', formule: 'f', seances: 5, prix: 100, ech: [1, 3], echm: [50] }] });
+  assert.deepEqual(c.packs[0].echm, [85, 85, 80]);
+  assert.equal(c.packs[1].echm, undefined, 'pas autant de montants que de paiements');
+  assert.equal(Formules.publicOf(c).packs[0].echm, undefined, 'pas sur la fiche publique');
+});
+
+test('replanAchat : recale ce qui reste à payer, jamais ce qui est réglé', () => {
+  const { replanAchat } = require('../club/regles.js');
+  const pk = { ech: [1, 4, 7], echm: [85, 85, 80] };
+  assert.deepEqual(replanAchat({ prix: 250, pay: { ech: [{ s: 0, m: 250, ok: '' }] } }, pk).map(x => [x.s, x.m]), [[1, 85], [4, 85], [7, 80]]);
+  const r = replanAchat({ prix: 250, pay: { ech: [{ s: 1, m: 85, ok: '2026-10-01' }, { s: 5, m: 165, ok: '' }] } }, pk);
+  assert.deepEqual(r.map(x => [x.s, x.m, x.ok]), [[1, 85, '2026-10-01'], [4, 85, ''], [7, 80, '']]);
+  const autre = replanAchat({ prix: 250, pay: { ech: [{ s: 1, m: 100, ok: '2026-10-01' }, { s: 5, m: 150, ok: '' }] } }, pk);
+  assert.deepEqual(autre.map(x => [x.s, x.m]), [[1, 100], [4, 75], [7, 75]], 'réglé autrement : le reste est partagé');
+  assert.equal(replanAchat({ prix: 250, pay: { ech: [{ s: 1, m: 250, ok: '2026-10-01' }] } }, pk), null, 'tout réglé');
+  assert.equal(replanAchat({ prix: 250, pay: { ech: [{ s: 1, m: 85, ok: '' }, { s: 4, m: 85, ok: '' }, { s: 7, m: 80, ok: '' }] } }, pk), null, 'déjà bon');
+  assert.equal(replanAchat({ prix: 250 }, pk), null, 'payé en une fois, sans calendrier');
+});

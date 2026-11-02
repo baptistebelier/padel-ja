@@ -744,6 +744,35 @@ test('Coach : toute la largeur sur ordinateur, club dans l’en-tête, chiffres 
   await page.close();
 });
 
+test('Coach : le calendrier de paiement d’un pack, et les filtres du Suivi', async () => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
+  await page.evaluate(() => document.querySelectorAll('.ram-splash').forEach(x => x.remove()));
+  // le plan du pack : ses séances et ses montants
+  assert.deepEqual(await page.evaluate(() => REGLES.planPaiement(250, [1, 4, 7], [85, 85, 80]).map(x => [x.s, x.m])), [[1, 85], [4, 85], [7, 80]]);
+  assert.deepEqual(await page.evaluate(() => REGLES.planPaiement(100, [1, 3], [85, 85]).map(x => x.m)), [50, 50], 'des montants faux : à parts égales');
+  await page.evaluate(() => { const p = OFFRES.packs[0]; p.ech = [1, 4]; p.echm = [p.prix - 10, 10]; });
+  const form = await page.evaluate(() => coKeRow(4, 10));
+  assert.match(form, /value="4"/);
+  assert.match(form, /value="10"/);
+  // Suivi : les filtres des bilans et le filtre des paiements
+  await page.evaluate(() => { S.stack = []; A.tab({ t: 'asuivi' }); });
+  await page.waitForSelector('[data-a="coSuiviB"][data-v="tout"]');
+  const n = async () => page.locator('#main .colist').first().locator('.item').count();
+  const a = await n();
+  await page.click('[data-a="coSuiviB"][data-v="tout"]');
+  await page.waitForSelector('[data-a="coSuiviB"][data-v="tout"][aria-pressed="true"]');
+  assert.ok((await n()) >= a, 'tout confondu : au moins autant');
+  assert.equal(await page.locator('[data-a="coSuiviP"]').count(), 0, 'filtres des paiements repliés');
+  await page.click('[data-a="coSuiviPO"]');
+  await page.click('[data-a="coSuiviP"][data-v="mois"]');
+  await page.waitForSelector('[data-a="coSuiviP"][data-v="mois"][aria-pressed="true"]');
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
 test('Coach : relier Google Agenda, les trois états du réglage', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
@@ -1022,16 +1051,16 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
 
   // le bureau change le rôle d'un adhérent depuis son profil, tout en haut
   await coachP.goto(JA + '/club/index.html');
-  await coachP.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
-  await coachP.waitForFunction(k => M[k], mine.key, { timeout: 8000 });
-  await coachP.evaluate(k => A.member({ id: k }), mine.key);
-  await coachP.waitForSelector('[data-a="ramRole"][data-r="gerant"]', { timeout: 8000 });
-  assert.ok(await coachP.evaluate(() => { const c = document.querySelector('[data-a="ramRole"]').closest('.card'); return c.previousElementSibling && c.previousElementSibling.classList.contains('phero'); }), 'juste sous l’en-tête');
+  await coachP.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000, polling: 300 });
+  await coachP.waitForFunction(k => M[k], mine.key, { timeout: 8000, polling: 300 });
+  // (le premier chargement du club peut ramener à l'accueil : on rouvre le profil tant qu'il n'est pas affiché)
+  await coachP.waitForFunction(k => { if (!document.querySelector('[data-a="ramRole"][data-r="gerant"]') && RAM.roles && RAM.roles[k]) A.member({ id: k }); return !!document.querySelector('[data-a="ramRole"][data-r="gerant"]'); }, mine.key, { timeout: 8000, polling: 300 });
+  await coachP.waitForFunction(() => { const c = document.querySelector('[data-a="ramRole"]'), p = c && c.closest('.card').previousElementSibling; return p && p.classList.contains('phero'); }, null, { timeout: 8000, polling: 300 });   // juste sous l’en-tête
   await coachP.click('[data-a="ramRole"][data-r="gerant"]');
-  await coachP.waitForFunction(k => RAM.roles[k] === 'bureau' && M[k].role === 'Gérant', mine.key, { timeout: 8000 });
-  await coachP.waitForFunction(() => document.querySelector('[data-a="ramRole"][data-r="gerant"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 8000 });
+  await coachP.waitForFunction(k => RAM.roles[k] === 'bureau' && M[k].role === 'Gérant', mine.key, { timeout: 8000, polling: 300 });
+  await coachP.waitForFunction(() => document.querySelector('[data-a="ramRole"][data-r="gerant"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 8000, polling: 300 });
   await coachP.click('[data-a="ramRole"][data-r="mem"]');
-  await coachP.waitForFunction(k => RAM.roles[k] === 'mem' && !M[k].role, mine.key, { timeout: 8000 });
+  await coachP.waitForFunction(k => RAM.roles[k] === 'mem' && !M[k].role, mine.key, { timeout: 8000, polling: 300 });
 
   // sans compte : la page publique
   await pp.goto(JA + '/r/' + club.id + '/' + club.key);

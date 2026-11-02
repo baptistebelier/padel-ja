@@ -686,6 +686,19 @@ svFrom = to => {
   return c !== coMainId() && CO_EXT[c] ? { by: coKeyIn(c), _club: c } : { by: ME() };
 };
 Object.assign(A, {
+  coSuiviB(d) {
+    S.suiviB = d.v;
+    S.coPick = [];
+    render(true);
+  },
+  coSuiviP(d) {
+    S.suiviP = d.v;
+    render(true);
+  },
+  coSuiviPO() {
+    S.suiviPO = !S.suiviPO;
+    render(true);
+  },
   coClub(d) {
     S.coClub = d.c;
     render(true);

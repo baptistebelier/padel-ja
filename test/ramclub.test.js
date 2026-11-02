@@ -106,7 +106,11 @@ test('réglages personnels privés, abonnés comptés', async () => {
 
 test('rôles : seul le bureau les donne, le club garde toujours un bureau', async () => {
   await assert.rejects(ram.setRole(adh.id, club.id, kA, 'bureau'), /bureau/);
+  // la synchronisation suivante donne les rôles à jour (un adhérent arrivé après le chargement n'en avait pas)
+  const avant = (await ram.sync(bureau.id, club.id, 0)).rev;
+  assert.equal((await ram.sync(bureau.id, club.id, avant)).roles, undefined, 'rien de changé : rien d’envoyé');
   const gerant = await ram.setRole(bureau.id, club.id, kA, 'gerant');
+  assert.equal((await ram.sync(bureau.id, club.id, avant)).roles[kA], 'bureau');
   assert.deepEqual(gerant, { key: kA, role: 'bureau', fonction: 'Gérant' });
   assert.equal((await ram.itemsOf(club.id, 'member')).find(x => x.id === kA).data.role, 'Gérant');
   await assert.rejects(ram.setRole(bureau.id, club.id, kA, 'inconnu'), /Rôle inconnu/);

@@ -1998,6 +1998,10 @@ button.copp:hover span:last-child {
   white-space: nowrap;
   pointer-events: none;
 }
+.cohd .cofil {
+  margin-left: auto;
+  justify-content: flex-end;
+}
 .cotip[hidden] {
   display: none;
 }

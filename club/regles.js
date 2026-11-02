@@ -130,6 +130,44 @@
        correspondante (sans formule correspondante — un groupe payé par le club — rien n'est compté) ;
      - prepaye : la part des packs pas encore utilisée à la date « to » (séances dues aux élèves) ;
      - parMois : encaissé mois par mois (« 2026-10 »). */
+  /* un paiement en plusieurs fois : à ces séances, avec les montants du pack s'ils font bien le prix ; sinon à parts égales */
+  function planPaiement(prix, nums, montants) {
+    const total = +prix || 0,
+      somme = (montants || []).reduce((a, x) => a + (+x || 0), 0),
+      bons = (montants || []).length === nums.length && Math.abs(somme - total) < 0.01,
+      part = Math.floor((total * 100) / nums.length) / 100;
+    return nums.map((s, i) => ({
+      s,
+      m: bons
+        ? +montants[i]
+        : i === nums.length - 1
+          ? Math.round((total - part * (nums.length - 1)) * 100) / 100
+          : part,
+      ok: ''
+    }));
+  }
+  /* un achat déjà noté, recalé sur le calendrier de son pack : ce qui est réglé ne bouge pas ; null s'il n'y a rien à changer */
+  function replanAchat(a, pk) {
+    const ech = a && a.pay && Array.isArray(a.pay.ech) ? a.pay.ech : null;
+    if (!ech || !pk || !(pk.ech || []).length || !(+a.prix > 0) || ech.every(x => x.ok)) return null;
+    const regle = ech.filter(x => x.ok),
+      paye = regle.reduce((s, x) => s + (+x.m || 0), 0),
+      reste = Math.round((+a.prix - paye) * 100) / 100,
+      plan = planPaiement(a.prix, pk.ech, pk.echm),
+      suite = plan.slice(regle.length);
+    if (reste <= 0) return null;
+    const fin = !suite.length
+      ? [{ s: pk.ech[pk.ech.length - 1], m: reste, ok: '' }]
+      : Math.abs(suite.reduce((s, x) => s + x.m, 0) - reste) < 0.01
+        ? suite
+        : planPaiement(
+            reste,
+            suite.map(x => x.s)
+          );
+    const out = regle.concat(fin),
+      sign = l => JSON.stringify(l.map(x => [+x.s || 0, +x.m || 0, x.ok || '']));
+    return sign(out) === sign(ech) ? null : out;
+  }
   function chiffre({ eleves, seances, offres, from, to }) {
     const venues = {};
     (seances || []).forEach(x => {
@@ -331,6 +369,8 @@
     prixAchat,
     couverture,
     chiffre,
+    planPaiement,
+    replanAchat,
     isoOfAt,
     addDays,
     dowOf

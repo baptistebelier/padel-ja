@@ -204,9 +204,9 @@ function coNoClub() {
     return `<div class="card"><span class="kicker">Rôle à demander</span><p>Dans ${esc(club().name)}, ton compte est celui d'un adhérent. Demande au bureau de te donner le rôle <b>Enseignant</b> (Profil de l'adhérent, Accès à l'appli) pour retrouver tes groupes ici.</p></div>`;
   return '';
 }
-/* les bilans à écrire : séances faites depuis tant de jours, sans bilan ni brouillon */
+/* les bilans à écrire : séances faites depuis tant de jours (ou depuis cette date), sans bilan ni brouillon */
 const coBilansTodo = jours =>
-  coSessions(isoIn(-jours), TODAY, 'me').filter(
+  coSessions(typeof jours === 'string' ? jours : isoIn(-jours), TODAY, 'me').filter(
     x =>
       !isCx(x.g, x.d) &&
       !(x.s && (x.s.recap || x.s.noRecap)) &&
@@ -215,12 +215,33 @@ const coBilansTodo = jours =>
   );
 /* ---------- Suivi : ce qu'il reste à écrire et à encaisser ---------- */
 const CO_SUIVI_J = 30;
+/* le début d'une période de filtre ; « tout confondu » : la plus ancienne séance connue, deux ans au moins */
+function coDepuis(p) {
+  const y = TODAY.slice(0, 4),
+    m = +TODAY.slice(5, 7);
+  if (p === 'j30') return isoIn(-CO_SUIVI_J);
+  if (p === 'mois') return TODAY.slice(0, 8) + '01';
+  if (p === 'tri') return y + '-' + String(Math.floor((m - 1) / 3) * 3 + 1).padStart(2, '0') + '-01';
+  if (p === 'saison') return coSeasonStart();
+  if (p === 'an') return y + '-01-01';
+  return GROUPS.reduce((d, g) => {
+    const x = g.once || g.from || '';
+    return x && x < d ? x : d;
+  }, isoIn(-730));
+}
+const coFiltre = (a, cur, l) =>
+  l
+    .map(([v, t]) => `<button class="chip" data-a="${a}" data-v="${v}" aria-pressed="${cur === v}">${t}</button>`)
+    .join('');
 const coSuiviN = () =>
   coBilansTodo(CO_SUIVI_J).length + BROUILLONS.length + (typeof coPayTodo === 'function' ? coPayTodo().length : 0);
 function coSuivi() {
   const sel = !!S.coSel,
     pick = S.coPick || [],
-    dues = coPayTodo(),
+    perB = S.suiviB || 'j30',
+    perP = S.suiviP || 'saison',
+    depP = coDepuis(perP),
+    dues = coPayTodo(depP).filter(p => !p.d || p.d >= depP),
     total = dues.reduce((a, p) => a + (+p.m || 0), 0),
     l = [],
     ids = [],
@@ -242,14 +263,32 @@ function coSuivi() {
         `${fmtD(b.d)} · brouillon à publier${b.src === 'claude' ? ' · préparé par Claude' : ''}`
       );
   });
-  coBilansTodo(CO_SUIVI_J)
+  coBilansTodo(coDepuis(perB))
     .sort((a, b) => b.d.localeCompare(a.d))
     .forEach(x => bil(sesKey(x.g, x.d), 'doc', esc(x.g.name), fmtD(x.d)));
   S.coBil = ids;
   const tile = (i, n, t) => `<div class="cotile">${ic(i)}<b>${n}</b><span>${t}</span></div>`;
   return `<div class="pad cowide"><div class="cotiles cosuivit">${tile('doc', ids.length, ids.length > 1 ? 'Bilans à écrire' : 'Bilan à écrire')}${tile('euro', dues.length, dues.length > 1 ? 'Paiements à régulariser' : 'Paiement à régulariser')}${tile('euro', eur(total), 'À encaisser')}</div>
-${hd('Bilans à écrire', ids.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : '')}${sel ? coSelBar() : ''}${l.length ? list(l.join('')) : none('check', 'Tous les bilans sont écrits', 'Séances des ' + CO_SUIVI_J + ' derniers jours.')}${l.length ? `<p class="muted small">Séances des ${CO_SUIVI_J} derniers jours. Les plus anciennes restent dans l’Historique.</p>` : ''}
-${hd('Paiements à régulariser')}${dues.length ? list(dues.map(p => `<button class="item" ${p.go}><span class="tile">${ic('euro')}</span><span class="grow"><span class="nm">${p.t}</span><br><span class="muted small">${p.sub}</span></span>${p.m ? `<span class="tag cost todo">${eur(p.m)}</span>` : ''}</button>`).join('')) : none('check', 'Tout est réglé', 'Aucun paiement en attente.')}</div>`;
+${hd(
+  'Bilans à écrire',
+  `<span class="cofil chips">${coFiltre('coSuiviB', perB, [
+    ['j30', '30 derniers jours'],
+    ['tri', 'Ce trimestre'],
+    ['saison', 'Cette saison'],
+    ['tout', 'Tout confondu']
+  ])}${ids.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : ''}</span>`
+)}${sel ? coSelBar() : ''}${l.length ? list(l.join('')) : none('check', 'Tous les bilans sont écrits', 'Sur la période choisie.')}
+${hd('Paiements à régulariser', `<button class="btn ghost cofbtn" data-a="coSuiviPO" aria-expanded="${!!S.suiviPO}" aria-label="Filtrer par période">${ic('funnel')}${perP !== 'saison' ? '<i class="codot"></i>' : ''}</button>`)}${
+    S.suiviPO
+      ? `<div class="chips">${coFiltre('coSuiviP', perP, [
+          ['mois', 'Ce mois-ci'],
+          ['tri', 'Ce trimestre'],
+          ['saison', 'Cette saison'],
+          ['an', 'Cette année'],
+          ['tout', 'Tout confondu']
+        ])}</div>`
+      : ''
+  }${dues.length ? list(dues.map(p => `<button class="item" ${p.go}><span class="tile">${ic('euro')}</span><span class="grow"><span class="nm">${p.t}</span><br><span class="muted small">${p.sub}</span></span>${p.m ? `<span class="tag cost todo">${eur(p.m)}</span>` : ''}</button>`).join('')) : none('check', 'Tout est réglé', 'Aucun paiement en attente sur cette période.')}</div>`;
 }
 function coToday() {
   coExtCheck();

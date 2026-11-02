@@ -96,13 +96,8 @@ function coCycleSet(g, c, list) {
   c.dates.forEach(d => coDates(g, d, d).length || coDateOn(g, d));
 }
 /* un paiement par numéro de séance, parts égales */
-function coPayPlan(prix, nums) {
-  const part = Math.floor(((+prix || 0) * 100) / nums.length) / 100;
-  return nums.map((s, i) => ({
-    s,
-    m: i === nums.length - 1 ? Math.round(((+prix || 0) - part * (nums.length - 1)) * 100) / 100 : part,
-    ok: ''
-  }));
+function coPayPlan(prix, nums, montants) {
+  return REGLES.planPaiement(prix, nums, montants);
 }
 /* la formule du cycle notée pour les élèves du groupe, avec ses numéros de séance ; un élève déjà noté ne change pas */
 function coCycleAchats(g, c) {
@@ -125,7 +120,7 @@ function coCycleAchats(g, c) {
       nom: ofLabel(t, ref),
       prix: +o.prix || 0,
       cycle: cle,
-      pay: { ech: coPayPlan(o.prix, nums) }
+      pay: { ech: coPayPlan(o.prix, nums, nums === o.ech ? o.echm : null) }
     };
     if (t === 'pack') a.n = o.seances;
     e.achats = (e.achats || []).concat(a);

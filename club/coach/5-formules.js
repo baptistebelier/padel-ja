@@ -193,14 +193,30 @@ function coPaySplit(a, n, paid) {
     const r = i + kept.length;
     out.push({
       s: preset ? preset[r] : Math.round((r * span) / n) + 1,
-      m: i === k - 1 ? Math.round((rest - part * (k - 1)) * 100) / 100 : part,
+      m:
+        preset && (pk.echm || []).length === n && !kept.length && pk.prix === total
+          ? pk.echm[r]
+          : i === k - 1
+            ? Math.round((rest - part * (k - 1)) * 100) / 100
+            : part,
       ok: ''
     });
   }
   return kept.concat(out);
 }
 /* ce qu'il faut régulariser : les échéances atteintes, les séances individuelles faites sans achat qui les couvre */
-function coPayTodo() {
+/* une ligne du calendrier de paiement d'un pack */
+const coKeRow = (s, m) =>
+  `<div class="copech co-ker"><div class="fld"><label>Séance n°</label><input class="co-kes" type="number" min="1" inputmode="numeric" value="${s || ''}"></div><div class="fld"><label>Montant en euros</label><input class="co-kem" type="number" min="0" step="0.01" inputmode="decimal" value="${m != null ? m : ''}"></div><button type="button" class="ib" data-a="coKeDel" aria-label="Retirer ce paiement">${ic('x')}</button></div>`;
+Object.assign(A, {
+  coKeAdd() {
+    $('co-kr').insertAdjacentHTML('beforeend', coKeRow());
+  },
+  coKeDel(d, el) {
+    el.closest('.co-ker').remove();
+  }
+});
+function coPayTodo(depuis) {
   const out = [];
   ELEVES.filter(e => coInClub(e) && (e.achats || []).some(a => a.pay)).forEach(e =>
     coPacks(e.id).forEach(a => {
@@ -209,13 +225,14 @@ function coPayTodo() {
       if (due.length)
         out.push({
           t: esc(svName(e.id)),
+          d: a.d,
           sub: esc(a.nom || ofLabel(a.t, a.ref)) + ' · ' + plural(due.length, 'paiement attendu', 'paiements attendus'),
           m: due.reduce((s, x) => s + (+x.m || 0), 0),
           go: `data-a="coPay" data-id="${e.id}" data-x="${a.id}"`
         });
     })
   );
-  coSessions(isoIn(-90), TODAY, 'me', 1)
+  coSessions(depuis || isoIn(-90), TODAY, 'me', 1)
     .filter(x => !coIsGrp(x.g) && !isCx(x.g, x.d) && x.s && x.s.pres)
     .forEach(x =>
       Object.keys(x.s.pres)
@@ -224,6 +241,7 @@ function coPayTodo() {
           const f = REGLES.formuleDe(OFFRES, Math.max(1, coStu(x.g).length), durMin(x.g.dur), x.g.sport);
           out.push({
             t: esc(svName(k)),
+            d: x.d,
             sub: 'Séance du ' + fmtD(x.d),
             m: f ? REGLES.prixEleve(f, Math.max(1, coStu(x.g).length)) : 0,
             go: `data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}"`
@@ -384,7 +402,7 @@ Object.assign(A, {
       f = foOf(p.formule);
     sheet(
       p.id ? 'Pack de séances' : 'Nouveau pack',
-      `<form class="body" id="co-pk" data-id="${p.id || 'new'}" data-f="${p.formule}"><p class="muted small">${f ? esc(f.nom) + ' · ' + foKind(f) + ' · ' + minTxt(f.duree) + ' · à l’unité : ' + foPrice(f) : ''}</p>${O('co-kn', 'Nom du pack (facultatif)', 'Pack Découverte, Perfectionnement…', p.nom)}${ofNum('co-ks', 'Nombre de séances', p.seances, 1)}${O('co-ke', 'Paiement demandé aux séances n° (facultatif)', '4  ou 1, 4, 8', (p.ech || []).join(', '))}${ofNum('co-kp', 'Prix du pack en euros', p.prix)}<p class="muted small" id="co-kx"></p>${ofVente('co-kv', p)}<div class="cotools"><button class="btn">Enregistrer</button>${p.id ? ofDel('coPkDel', p.id) : ''}</div></form>`
+      `<form class="body" id="co-pk" data-id="${p.id || 'new'}" data-f="${p.formule}"><p class="muted small">${f ? esc(f.nom) + ' · ' + foKind(f) + ' · ' + minTxt(f.duree) + ' · à l’unité : ' + foPrice(f) : ''}</p>${O('co-kn', 'Nom du pack (facultatif)', 'Pack Découverte, Perfectionnement…', p.nom)}${ofNum('co-ks', 'Nombre de séances', p.seances, 1)}${ofNum('co-kp', 'Prix du pack en euros', p.prix)}<p class="muted small" id="co-kx"></p><span class="kicker">Paiement en plusieurs fois</span><div id="co-kr" class="stack">${(p.ech || []).map((s, i) => coKeRow(s, (p.echm || [])[i])).join('')}</div><button type="button" class="btn sm ghost full" data-a="coKeAdd">${ic('plus')}Ajouter un paiement</button><p class="muted small">À quelle séance chaque paiement est dû, et son montant. Vaut pour tous les élèves qui prennent ce pack. Sans montant : à parts égales. Sans ligne : tout d’un coup.</p>${ofVente('co-kv', p)}<div class="cotools"><button class="btn">Enregistrer</button>${p.id ? ofDel('coPkDel', p.id) : ''}</div></form>`
     );
     const upd = () => {
       const n = +$('co-ks').value,
@@ -487,11 +505,15 @@ document.addEventListener('submit', e => {
         prix: n('co-kp'),
         ...ofVenteLue('co-kv')
       },
-      ech = v('co-ke')
-        .split(/[^\d]+/)
-        .filter(Boolean)
-        .map(Number);
-    x.ech = ech;
+      lignes = [...document.querySelectorAll('#co-kr .co-ker')]
+        .map(l => [Math.round(+l.querySelector('.co-kes').value), l.querySelector('.co-kem').value])
+        .filter(l => l[0] > 0)
+        .sort((a, b) => a[0] - b[0]),
+      montants = lignes.every(l => l[1] !== '') ? lignes.map(l => +l[1]) : [];
+    if (montants.length && Math.abs(montants.reduce((a, b) => a + b, 0) - x.prix) >= 0.01)
+      return toast('Les paiements doivent faire ' + eur(x.prix) + ' au total');
+    x.ech = lignes.map(l => l[0]);
+    x.echm = montants;
     if (f.dataset.id === 'new') OFFRES.packs.push(Object.assign({ id: nid('p') }, x));
     else
       Object.assign(
@@ -552,10 +574,13 @@ document.addEventListener('submit', e => {
     const pk0 = t === 'pack' ? OFFRES.packs.find(p => p.id === ref) : null,
       nums = coCycleNums(v('co-aps')),
       prevus = nums.length ? nums : reg !== 'paye' && pk0 && (pk0.ech || []).length ? pk0.ech : [];
-    if (reg === 'due') a.pay = { ech: prevus.length ? coPayPlan(a.prix, prevus) : [{ s: 0, m: a.prix || 0, ok: '' }] };
+    const mont = pk0 && prevus === pk0.ech ? pk0.echm : null;
+    if (reg === 'due')
+      a.pay = { ech: prevus.length ? coPayPlan(a.prix, prevus, mont) : [{ s: 0, m: a.prix || 0, ok: '' }] };
     if (reg === 'plus')
       a.pay = {
-        ech: prevus.length > 1 ? coPayPlan(a.prix, prevus) : coPaySplit(a, Math.max(2, Math.round(n('co-apn')) || 3))
+        ech:
+          prevus.length > 1 ? coPayPlan(a.prix, prevus, mont) : coPaySplit(a, Math.max(2, Math.round(n('co-apn')) || 3))
       };
     if (reg === 'paye' && nums.length) a.pay = { ech: coPayPlan(a.prix, nums) };
     if (moy) a.pay = Object.assign(a.pay || { ech: [{ s: 0, m: a.prix || 0, ok: d }] }, { moyen: moy });
