@@ -50,6 +50,7 @@ taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid,
 taches.on('shopify-achat', o => reservation.achatShopify(o));
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
 const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, agenda: Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) }), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
+const googleAgenda = require('./lib/google-agenda.js').createGoogleAgenda({ ram, store, coachTables, taches, log: m => console.warn('/RAM Coach : ' + m) });   // les séances écrites dans Google Agenda, en temps réel
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
 async function jaTitlesOf(spaceId) {
@@ -762,7 +763,7 @@ const server = http.createServer(async (req, res) => {
       if (!uid) { res.writeHead(404); return res.end(); }
       const de = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10), a = new Date(Date.now() + 240 * 864e5).toISOString().slice(0, 10);
       res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'no-store' });
-      return res.end(Agenda.toIcs((await coachTables.planning(uid, de, a)).seances));
+      return res.end(Agenda.toIcs((await coachTables.pourAgenda(uid, de, a)).seances));
     }
     // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html, sur coach.riseandmove.fr :
     // l'appli pour un compte connecté, sinon la présentation ; /presentation, /demo, /connexion, /inscription
@@ -1536,6 +1537,15 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       return json(res, 200, { lien: appUrl(req) + Agenda.lienIcs(u.id) });
     }
+    if (p === '/api/coach/google-agenda') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      if (req.method === 'GET') return json(res, 200, await googleAgenda.etat(u.id));
+      if (req.method === 'DELETE') return json(res, 200, await googleAgenda.delier(u.id));
+      if (req.method === 'POST') {
+        try { return json(res, 200, await googleAgenda.relier(u.id, (await readBody(req)).cal)); }
+        catch (e) { return json(res, 400, { error: e.message }); }
+      }
+    }
     if (p === '/api/coach/calendly' && req.method === 'POST') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       const token = String((await readBody(req)).token || '').trim();
@@ -1674,6 +1684,8 @@ server.listen(PORT, '0.0.0.0', () => {
   // (chaque changement est déjà suivi en continu : adhésions, progression, groupes, fiches)
   setTimeout(() => weeklyReconcile().catch(e => console.error('  Remise à plat :', e.message)), 60000).unref();
   const rec = setInterval(() => weeklyReconcile().catch(e => console.error('  Remise à plat :', e.message)), 6 * 3600e3); rec.unref();
+  setTimeout(() => googleAgenda.tous().catch(e => console.error('  Google Agenda :', e.message)), 90000).unref();
+  const gag = setInterval(() => googleAgenda.tous().catch(e => console.error('  Google Agenda :', e.message)), 6 * 3600e3); gag.unref();
   adhesions.watch(msg => console.error('  ' + msg));
   if (ONLINE && process.env.CALENDLY_TOKEN) Calendly.subscribe(process.env.CALENDLY_TOKEN, (process.env.APP_URL || 'https://ja.riseandmove.fr') + '/api/calendly/webhook')
     .then(r => console.log('  Calendly : webhook ' + (r.deja ? 'déjà inscrit' : 'inscrit'))).catch(e => console.error('  Calendly :', e.message));

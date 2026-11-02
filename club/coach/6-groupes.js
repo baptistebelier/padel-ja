@@ -396,6 +396,24 @@ const coCopie = (t, msg) =>
         () => toast(t)
       )
     : toast(t);
+/* Google Agenda en temps réel : l'enseignant partage un agenda avec le compte de /RAM, et colle son identifiant */
+function coGoogleSheet(x) {
+  const titre = 'Google Agenda en temps réel';
+  if (!x.dispo)
+    return sheet(
+      titre,
+      `<div class="body"><p class="muted small">Cet envoi n’est pas encore activé sur /RAM. Le lien de tes cours reste disponible.</p></div>`
+    );
+  if (x.cal)
+    return sheet(
+      titre,
+      `<div class="body"><p><b>Agenda relié</b></p><p class="muted small">${esc(x.cal)}</p><p class="muted small">${x.seances} séance${x.seances > 1 ? 's' : ''} à venir dans l’agenda. Chaque changement y arrive en quelques secondes.</p>${x.erreur ? `<p class="small" style="color:var(--danger,#c0392b)">Dernier envoi en échec, il sera retenté : ${esc(x.erreur)}</p>` : ''}<p class="muted small">Si tu as aussi ajouté le lien de tes cours dans Google Agenda, retire-le, sinon chaque séance apparaît deux fois.</p><button type="button" class="btn full ghost" data-a="coGoogleDel">${ic('x')}Retirer cet agenda</button></div>`
+    );
+  sheet(
+    titre,
+    `<form class="body" id="co-gag"><p class="muted small">1. Dans Google Agenda sur ordinateur : Autres agendas, Créer un agenda. Sa couleur sera celle de tes séances.</p><p class="muted small">2. Dans les paramètres de cet agenda, Partager avec des personnes : ajoute l’adresse ci-dessous, droit « Apporter des modifications aux événements ».</p><p class="small" style="word-break:break-all">${esc(x.compte)}</p><button type="button" class="btn sm ghost full" data-a="coGoogleCopie" data-v="${esc(x.compte)}">${ic('edit')}Copier cette adresse</button><p class="muted small">3. Plus bas dans les mêmes paramètres, Intégrer l’agenda : copie l’ID de l’agenda et colle-le ici.</p><div class="fld"><label for="co-gc">ID de l’agenda</label><input id="co-gc" required autocomplete="off" placeholder="…@group.calendar.google.com"></div><button class="btn full">Relier</button></form>`
+  );
+}
 function coOutilsCard() {
   const live = !!(window.RAM && RAM.live),
     ouverte = live && OFFRES.page === RAM.club,
@@ -407,11 +425,27 @@ function coOutilsCard() {
       ouverte
         ? `<p class="muted small">Ta page est ouverte. Pour le site ou la boutique Shopify, colle le bloc dans une section « Liquid personnalisé ».</p><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coResaLien">${ic('cal')}Copier le lien</button><button class="btn sm ghost grow" data-a="coResaBloc">${ic('edit')}Copier le bloc</button><button class="btn sm ghost grow" data-a="coResaPage" data-v="0">${ic('x')}Fermer la page</button></div>`
         : `<p class="muted small">Quelqu’un sans compte réserve un cours individuel sur tes plages libres : questionnaire, confirmation par e-mail, annulation jusqu’à 24 h avant.</p><button class="btn sm ghost full" data-a="coResaPage" data-v="1">${ic('cal')}Ouvrir ma page dans ce club</button>`
-    }<span class="kicker" style="margin-top:12px">Google Agenda et autres</span><p class="muted small">Tes cours confirmés arrivent dans ton agenda : copie le lien, puis dans Google Agenda : Autres agendas, À partir de l’URL.</p><button class="btn sm ghost full" data-a="coAgendaLien">${ic('cal')}Copier le lien de mes cours</button><p class="muted small">Dans l’autre sens, ce qui est posé dans ton agenda n’est plus réservable dans l’appli : ajoute son adresse secrète au format iCal.</p>${cals.map((u, i) => `<div class="cokv"><span class="muted small">Agenda ${i + 1} relié</span><button class="ib" data-a="coIcalDel" data-i="${i}" aria-label="Retirer l’agenda ${i + 1}">${ic('x')}</button></div>`).join('')}${cals.length < 5 ? `<button class="btn sm ghost full" data-a="coIcalAdd">${ic('plus')}Relier un agenda</button>` : ''}<span class="kicker" style="margin-top:12px">Calendly</span><p class="muted small">Il reste en service : ton lien (« Lien de réservation » de ta fiche) est proposé à côté de la réservation dans l’appli, et chaque réservation Calendly arrive à ton planning.</p><button class="btn sm ghost full" data-a="coCalendly">${ic('plus')}Relier mon compte Calendly</button>`
+    }<span class="kicker" style="margin-top:12px">Google Agenda</span><p class="muted small">Tes séances arrivent dans Google Agenda dès qu’elles sont posées ou réservées, avec le nom de l’élève.</p><button class="btn sm full" data-a="coGoogle">${ic('cal')}Envoyer en temps réel</button><p class="muted small">Pour Outlook ou iCloud, ou sans cet envoi : le lien de tes cours. Google ne le relit qu’environ toutes les 12 h.</p><button class="btn sm ghost full" data-a="coAgendaLien">${ic('cal')}Copier le lien de mes cours</button><p class="muted small">Dans l’autre sens, ce qui est posé dans ton agenda n’est plus réservable dans l’appli : ajoute son adresse secrète au format iCal.</p>${cals.map((u, i) => `<div class="cokv"><span class="muted small">Agenda ${i + 1} relié</span><button class="ib" data-a="coIcalDel" data-i="${i}" aria-label="Retirer l’agenda ${i + 1}">${ic('x')}</button></div>`).join('')}${cals.length < 5 ? `<button class="btn sm ghost full" data-a="coIcalAdd">${ic('plus')}Relier un agenda</button>` : ''}<span class="kicker" style="margin-top:12px">Calendly</span><p class="muted small">Il reste en service : ton lien (« Lien de réservation » de ta fiche) est proposé à côté de la réservation dans l’appli, et chaque réservation Calendly arrive à ton planning. Elle n’est pas renvoyée vers ton agenda : Calendly l’y pose déjà.</p><button class="btn sm ghost full" data-a="coCalendly">${ic('plus')}Relier mon compte Calendly</button>`
   );
 }
 document.addEventListener('submit', e => {
   const f = e.target;
+  if (f.id === 'co-gag') {
+    e.preventDefault();
+    fetch('/api/coach/google-agenda', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cal: $('co-gc').value.trim() })
+    })
+      .then(r => r.json())
+      .then(x => {
+        if (x.error) return toast(x.error);
+        closeSheet();
+        toast('Agenda relié : tes séances arrivent');
+      })
+      .catch(() => toast('Connexion impossible'));
+  }
   if (f.id === 'co-ical') {
     e.preventDefault();
     OFFRES.icals = (OFFRES.icals || []).concat($('co-ic').value.trim());
@@ -457,6 +491,25 @@ Object.assign(A, {
       .then(r => r.json())
       .then(x => coCopie(x.lien, 'Lien copié : il est privé, ne le partage pas'))
       .catch(() => toast('Lien indisponible'));
+  },
+  coGoogle() {
+    if (!(window.RAM && RAM.live)) return toast('Démonstration : rien n’est relié');
+    fetch('/api/coach/google-agenda', { credentials: 'include' })
+      .then(r => r.json())
+      .then(coGoogleSheet)
+      .catch(() => toast('Réglage indisponible'));
+  },
+  coGoogleCopie(d) {
+    coCopie(d.v, 'Adresse copiée');
+  },
+  coGoogleDel() {
+    fetch('/api/coach/google-agenda', { method: 'DELETE', credentials: 'include' })
+      .then(r => r.json())
+      .then(() => {
+        closeSheet();
+        toast('Agenda retiré, ses séances à venir sont effacées');
+      })
+      .catch(() => toast('Connexion impossible'));
   },
   coIcalAdd() {
     sheet(

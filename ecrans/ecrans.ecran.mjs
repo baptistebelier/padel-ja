@@ -711,6 +711,24 @@ test('Club : Gérer le club sans cours individuels, cartes vides, en-tête de di
   await page.close();
 });
 
+test('Coach : relier Google Agenda, les trois états du réglage', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
+  assert.ok(await page.evaluate(() => coOutilsCard().includes('data-a="coGoogle"')));
+  const texte = x => page.evaluate(v => { coGoogleSheet(v); const t = document.querySelector('#sheet').innerText; const larg = document.querySelector('#sheet').scrollWidth <= window.innerWidth; closeSheet(); return { t, larg }; }, x);
+  assert.match((await texte({ dispo: false })).t, /pas encore activé/);
+  const a = await texte({ dispo: true, compte: 'ram@projet.iam.gserviceaccount.com', cal: '' });
+  assert.match(a.t, /ram@projet/);
+  assert.ok(a.larg, 'rien ne dépasse à 360 px');
+  const b = await texte({ dispo: true, compte: 'x', cal: 'a@group.calendar.google.com', seances: 2, erreur: 'Google Agenda répond 503' });
+  assert.match(b.t, /2 séances/);
+  assert.match(b.t, /503/);
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
 test('Coach : participants d’une séance, Mes groupes, Suivi, formule d’un groupe, cycle sans dates, périodes en une fois', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
