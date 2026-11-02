@@ -125,42 +125,39 @@ function teamsBody() {
 function clubView() {
   const I2 = CLUBINFO,
     tl = [
-      // Équipes d'abord (la page la plus utilisée), puis Bar, Actus, Commissions et les infos du club
+      // Équipes d'abord (la page la plus utilisée), puis les adhérents, le Bar et le club ; Actus, Commissions,
+      // Partenaires et Archives s'ouvrent depuis « Le club »
       ['teams', 'Équipes', 'score'],
+      S.role !== 'kid' && ['adh', 'Adhérents', 'users'],
       I2.mods.bar && ['bar', 'Bar', 'cup'],
-      I2.mods.actus && ['actus', 'Actus', 'news'],
-      I2.mods.comm && ['comm', 'Commissions', 'users'],
       ['club', 'Le club', 'club']
     ].filter(Boolean);
   if (!tl.some(x => x[0] === S.clubTab)) S.clubTab = tl[0][0];
   const tabs = segs('clubTab', tl),
     t = S.clubTab;
   if (t === 'teams') return tabs + teamsBody();
-  if (t === 'comm') return tabs + commList();
+  if (t === 'adh') return tabs + listView();
   if (t === 'bar') return tabs + barView();
-  if (t === 'actus') {
-    const l = arts.filter(a => !a.arch);
-    return (
-      tabs +
-      `<div class="pad">${l.length ? l.map(artCard).join('') : empty('news', "Pas encore d'actu cette saison", 'Les actus du club apparaîtront ici.')}</div>`
-    );
-  }
+  const acces = (i, l, a) =>
+      `<button class="caccb" ${a}><span class="tile">${ic(i)}</span><span class="nm">${l}</span></button>`,
+    info = (i, l, v, cl) =>
+      v
+        ? `<div class="cinfo${cl ? ' ' + cl : ''}"><span class="tile">${ic(i)}</span><span class="grow"><span class="muted small">${l}</span><br>${v}</span></div>`
+        : '',
+    stat = (i, n, l) => `<div>${ic(i)}<b>${n}</b><span>${l}</span></div>`;
   const lk = (u, l) =>
     u ? `<a class="btn ghost grow" href="${u}" target="_blank" rel="noopener">${l} ${ic('link')}</a>` : '';
   return (
     tabs +
     `<div class="pad"><div class="poster"><span class="kicker" style="color:var(--fg)">Tennis · Padel · saison ${S.season}</span><span class="big">${club().name.replace(' ', '<br>')}</span></div>
- <div class="stats"><div><b>${I2.courts}</b><span>Courts</span></div><div><b>${I2.pistes}</b><span>Pistes padel</span></div><div><b>${I2.members}</b><span>Adhérents</span></div><div><b>${GROUPS.filter(g => g.type === 'team').length}</b><span>Équipes</span></div></div>
+ <div class="stats">${stat('ball', I2.courts, 'Courts de tennis')}${stat('racket', I2.pistes, 'Pistes de padel')}${stat('users', I2.members, 'Adhérents')}${stat('shield', GROUPS.filter(g => g.type === 'team').length, 'Équipes')}</div>
+ <div class="cacc">${I2.mods.actus ? acces('news', 'Actus', 'data-a="open" data-v="actusl"') : ''}${I2.mods.comm ? acces('users', 'Commissions', 'data-a="open" data-v="comml"') : ''}${acces('heart', 'Partenaires', 'data-a="open" data-v="partners"')}${acces('folder', 'Archives', 'data-a="open" data-v="archive"')}${acces('trophy', 'Classement des clubs', 'data-a="ranks"')}</div>
  <div class="note">${I2.joined} adhérents sur ${I2.members} ont rejoint l'appli.${isAdmin() ? ` <button class="nm" data-a="open" data-v="join" style="color:var(--accent)">Inviter les autres</button>` : ''}</div>
  ${typeof leagueCard === 'function' ? leagueCard() : ''}
- <button class="btn ghost full" data-a="ranks">${ic('trophy')}Classement des clubs</button>
- <div class="ctl">${S.role === 'kid' ? '' : `<button class="btn grow" data-a="open" data-v="list">${ic('users')}Les adhérents</button>`}<button class="btn ghost grow" data-a="open" data-v="partners">Partenaires</button></div>
  ${I2.book || I2.pay || I2.shop ? `<div class="ctl" style="flex-wrap:wrap">${lk(I2.book, 'Réserver un court')}${lk(I2.pay, 'Payer ma cotisation')}${lk(I2.shop, 'Boutique')}</div>` : ''}
  <div><h2 class="tilt sm">Formules <em>et tarifs</em><i class="dd"></i></h2><div class="card" style="margin-top:10px;gap:0">${FORM.map(f => `<div class="price"><span><span class="nm">${f[0]}</span><br><span class="muted small">${f[1]}</span></span><b>${f[2]}</b></div>`).join('')}</div></div>
- <button class="btn full" data-a="toast" data-msg="Demande envoyée au secrétariat du club">Demander une inscription</button>
- <div class="card" style="gap:0"><div class="price"><span class="nm">Club-house</span><span class="muted">${I2.house}</span></div><div class="price"><span class="nm">Secrétariat</span><span class="muted">${I2.secr}</span></div><div class="price"><span class="nm">Adresse</span><span class="muted">${I2.addr}</span></div></div>
- <div><span class="kicker">L'équipe du club</span>${(window.ramTeam ? ramTeam() : ['hugo', 'sarah', 'mehdi', 'marc']).map(p => `<div class="item">${av(p, 'sm')}<span class="grow">${who(p)} ${teamRoles(p)}</span></div>`).join('')}</div>
- <button class="btn full ghost" data-a="open" data-v="archive">${ic('folder')}Archives des saisons</button></div>`
+ <div class="cinfos">${info('home', 'Club-house', I2.house)}${info('clock', 'Secrétariat', I2.secr)}${info('pin', 'Adresse', I2.addr, 'large')}</div>
+ <div><span class="kicker">L'équipe du club</span>${(window.ramTeam ? ramTeam() : ['hugo', 'sarah', 'mehdi', 'marc']).map(p => `<div class="item">${av(p, 'sm')}<span class="grow">${who(p)} ${teamRoles(p)}</span></div>`).join('')}</div></div>`
   );
 }
 function listView() {

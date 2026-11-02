@@ -14,13 +14,14 @@ const FAV_TABS = {
     'school',
     { mine: 'Mes cours', perso: 'Mon espace', profs: 'Enseignants', stages: 'Stages', manage: 'Gestion des cours' }
   ],
-  club: ['Le club', 'club', { teams: 'Équipes', club: 'Le club', comm: 'Commissions', bar: 'Bar', actus: 'Actus' }],
+  club: ['Le club', 'club', { teams: 'Équipes', adh: 'Adhérents', club: 'Le club', bar: 'Bar' }],
   me: ['Mon profil', 'user', {}]
 };
 const FAV_TAB_ICONS = {
   teams: 'score',
   bar: 'cup',
   actus: 'news',
+  adh: 'users',
   comm: 'users',
   stages: 'ball',
   mine: 'cal',

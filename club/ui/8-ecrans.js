@@ -4,7 +4,7 @@
 const V = {
   home() {
     const v = M[ME()],
-      feed = posts.filter(canSee).sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0));
+      feed = posts.filter(p => canSee(p) && p.mur !== false).sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0));
     const st = (a, attrs, inner, l, cls) =>
       `<button class="story" data-a="${a}" ${attrs}><span class="ring ${cls || ''}"><span>${inner}</span></span><span class="sl">${l}</span></button>`;
     return `<div class="stories">${recs
@@ -119,6 +119,11 @@ const V = {
   },
   club: clubView,
   list: listView,
+  actusl() {
+    const l = arts.filter(a => !a.arch);
+    return `<div class="pad">${l.length ? l.map(artCard).join('') : empty('news', "Pas encore d'actu cette saison", 'Les actus du club apparaîtront ici.')}</div>`;
+  },
+  comml: () => commList(),
   art(id) {
     const a = arts.find(a => a.id === id);
     return `<div class="pad"><div class="row" style="gap:8px"><span class="kicker">${a.cat} · ${a.date}</span>${sportTag(a.sport)}</div><h2 class="tilt">${a.title}</h2>${a.img ? `<button class="ph wide" style="background-image:url(${a.img})" data-a="photo" aria-label="Photo de l'article"></button>` : ''}<div class="prose"><p><b>${a.lead}</b></p>${a.body.map(p => `<p>${p}</p>`).join('')}</div>${isAdmin() && !a.arch ? `<button class="btn full ghost" data-a="delArt" data-id="${a.id}">Supprimer l'article</button>` : ''}</div>`;

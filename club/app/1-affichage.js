@@ -38,6 +38,8 @@ const TITLES = {
   me: () => ['Mon profil', S.super ? 'Administrateur' : ROLE[S.role]],
   admin: () => [isAdmin() ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Mon équipe', 'Édition'],
   list: () => ['Adhérents', club().name],
+  actusl: () => ['Actus', club().name],
+  comml: () => ['Commissions', club().name],
   reports: () => ['Signalements', 'Modération'],
   legal: () => ['Mentions', club().name],
   aide: () => ['Aide', 'Guide de l’appli'],

@@ -107,7 +107,7 @@ function coCycleAchats(g, c) {
   if (!o) return 0;
   const cle = g.id + ':' + c.id,
     d0 = (c.dates || [])[0] || TODAY,
-    nums = (c.pay || []).length ? c.pay : (o.ech || []).length ? o.ech : [1];
+    nums = (o.ech || []).length ? o.ech : (c.pay || []).length ? c.pay : [1];
   let n = 0;
   coStu(g).forEach(k => {
     const e = coElGet(k);

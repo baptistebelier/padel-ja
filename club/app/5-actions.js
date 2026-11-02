@@ -54,8 +54,10 @@ const A = {
   goClub(d) {
     S.dir = 1;
     S.tab = 'club';
-    S.clubTab = d.t;
-    S.stack = [];
+    // Actus et Commissions s'ouvrent depuis « Le club »
+    const page = { actus: 'actusl', comm: 'comml' }[d.t];
+    S.clubTab = page ? 'club' : d.t;
+    S.stack = page ? [{ v: page }] : [];
     render();
   },
   member(d) {
@@ -354,6 +356,16 @@ const A = {
     showAtt();
     const i = $('msg-input');
     if (i) i.focus();
+  },
+  promo(d) {
+    const p = posts.find(p => p.id === d.id);
+    if (!p) return;
+    p.mur = true;
+    p.at = Date.now();
+    posts.splice(posts.indexOf(p), 1);
+    posts.unshift(p);
+    render(true);
+    toast('Sur le mur : les adhérents sont prévenus');
   },
   pin(d) {
     const p = posts.find(p => p.id === d.id);

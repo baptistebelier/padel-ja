@@ -8,6 +8,12 @@ document.addEventListener('submit', e => {
       return x ? x.value.trim() : '';
     },
     g = id => esc(val(id)),
+    // un stage, un événement ou un tournoi va dans sa section (Agenda, Stages), pas sur le mur : sa page propose de le promouvoir
+    versPage = (id, msg) => {
+      closeSheet();
+      A.open({ v: 'post', id });
+      toast(msg);
+    },
     home = msg => {
       closeSheet();
       S.tab = 'home';
@@ -553,6 +559,7 @@ document.addEventListener('submit', e => {
       posts.unshift({
         ...base,
         ...(k === 'stage' ? { stage: true, by: S.role === 'coach' ? ME() : 'club' } : {}),
+        mur: false,
         kind: 'event',
         reg,
         title: g('a-title'),
@@ -573,10 +580,9 @@ document.addEventListener('submit', e => {
         pay: esc(toUrl(val('a-pay')))
       });
       S.img = null;
-      home(
-        reg === 'int'
-          ? "Événement publié · inscriptions ouvertes dans l'appli"
-          : "Événement publié · inscription sur Ten'Up"
+      versPage(
+        base.id,
+        (k === 'stage' ? 'Stage créé' : 'Événement créé') + ' · il est à l’Agenda, à toi de le promouvoir sur le mur'
       );
       return;
     }
@@ -692,6 +698,7 @@ document.addEventListener('submit', e => {
       posts.unshift({
         ...base,
         sport: sp,
+        mur: false,
         kind: 'event',
         reg: 'ext',
         trn,
@@ -707,7 +714,7 @@ document.addEventListener('submit', e => {
         img
       });
       S.img = null;
-      home("Tournoi publié · inscriptions sur Ten'Up");
+      versPage(base.id, 'Tournoi créé · il est à l’Agenda, à toi de le promouvoir sur le mur');
       return;
     }
     if (k === 'cta') {

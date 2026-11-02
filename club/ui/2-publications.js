@@ -92,7 +92,11 @@ function evBox(p) {
     int && !p.comm
       ? `<div class="volu"><span class="grow small">${(p.vol || []).length ? `<b>${p.vol.length} bénévole${p.vol.length > 1 ? 's' : ''}</b> · ` : ''}Tu veux aider à l'organisation ?</span><button class="btn sm ${(p.vol || []).includes(ME()) ? 'on' : 'ghost'}" data-a="volu" data-id="${p.id}">${(p.vol || []).includes(ME()) ? 'Je suis bénévole' : "Je m'inscris comme bénévole"}</button></div>`
       : '';
-  return `<div class="ev">${meta}${reg}${vol}${p.pay ? `<a class="btn ghost full" href="${p.pay}" target="_blank" rel="noopener">Payer en ligne ${ic('link')}</a>` : ''}<button class="btn sm ghost" data-a="ics" data-id="${p.id}">${ic('cal')}Ajouter à mon agenda</button></div>`;
+  const promo =
+    p.mur === false && (isAdmin() || p.by === ME())
+      ? `<button class="btn full" data-a="promo" data-id="${p.id}">${ic('send')}Promouvoir sur le mur</button>`
+      : '';
+  return `<div class="ev">${promo}${meta}${reg}${vol}${p.pay ? `<a class="btn ghost full" href="${p.pay}" target="_blank" rel="noopener">Payer en ligne ${ic('link')}</a>` : ''}<button class="btn sm ghost" data-a="ics" data-id="${p.id}">${ic('cal')}Ajouter à mon agenda</button></div>`;
 }
 
 /* Fiche d'un tournoi : tableau, catégorie, classements, limite de participants, fin des inscriptions

@@ -299,7 +299,15 @@ button.nm{padding-block:4px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .stats div{background:var(--card);border-radius:var(--rb);padding:12px 4px;text-align:center}
 .stats b{display:block;font-family:var(--f-display);font-weight:400;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.1}
-.stats span{font-size:12px;color:var(--muted)}
+.stats span{font-size:12px;color:var(--muted);display:block;line-height:1.2}
+.stats svg{display:block;width:22px;height:22px;margin:0 auto 4px;color:var(--accent)}
+/* page Le club : accès aux autres pages, et infos pratiques en cases */
+.cacc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.caccb{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 10px;border-radius:var(--r);background:var(--card);color:inherit;text-align:left;min-width:0}
+.caccb:last-child:nth-child(odd){grid-column:1/-1}
+.cinfos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cinfo{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:var(--r);background:var(--card);min-width:0;overflow-wrap:anywhere}
+.cinfo.large{grid-column:1/-1;flex-direction:row;align-items:center}
 .res{display:flex;gap:10px;align-items:center;min-height:56px;padding:8px 0;border-bottom:1px solid var(--line);width:100%}
 .wl{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-family:var(--f-display);font-size:16px;background:var(--hot);color:var(--on-hot);flex:none}
 .wl.w{background:var(--accent);color:var(--on-accent)}

@@ -773,6 +773,35 @@ test('Coach : le calendrier de paiement d’un pack, et les filtres du Suivi', a
   await page.close();
 });
 
+test('Club : onglet Adhérents, accès depuis Le club, événement hors du mur puis promu', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/index.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  await page.evaluate(() => document.querySelectorAll('.ram-splash').forEach(x => x.remove()));
+  await page.evaluate(() => { S.role = 'admin'; A.goClub({ t: 'club' }); });
+  const h = await page.textContent('#main');
+  for (const x of ['Courts de tennis', 'Pistes de padel', 'Partenaires', 'Archives', 'Club-house']) assert.ok(h.includes(x), x);
+  assert.ok(!h.includes('Demander une inscription'));
+  assert.equal(await page.locator('#main [data-a="seg"][data-val="actus"]').count(), 0);
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
+  await page.click('[data-a="open"][data-v="actusl"]');
+  await page.waitForFunction(() => view().v === 'actusl');
+  await page.evaluate(() => { A.goClub({ t: 'comm' }); });
+  await page.waitForFunction(() => view().v === 'comml');
+  await page.evaluate(() => { S.stack = []; A.goClub({ t: 'adh' }); });
+  await page.waitForSelector('#main .item');
+  // créer un événement : il va à sa page, pas sur le mur ; Promouvoir le met sur le mur
+  const id = await page.evaluate(() => { const p = { id: 'pzz', by: 'club', t: '', kind: 'event', mur: false, reg: 'int', title: 'Stage zz', d: isoIn(5), d2: '', h1: '9 h', h2: '12 h', date: 'x', place: 'y', body: 'z', likes: 0, com: [], yes: 0, maybe: 0, my: null, ins: [] }; posts.unshift(p); return p.id; });
+  assert.ok(!(await page.evaluate(() => { S.tab = 'home'; S.stack = []; render(); return document.querySelector('#main').textContent; })).includes('Stage zz'), 'pas sur le mur');
+  await page.evaluate(x => A.open({ v: 'post', id: x }), id);
+  await page.waitForSelector('[data-a="promo"]');
+  await page.click('[data-a="promo"]');
+  assert.ok((await page.evaluate(() => { S.stack = []; S.tab = 'home'; render(); return document.querySelector('#main').textContent; })).includes('Stage zz'), 'promu sur le mur');
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
 test('Coach : relier Google Agenda, les trois états du réglage', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
@@ -1009,6 +1038,14 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await coachP.click('[data-a="coResaPage"]');
   await coachP.waitForSelector('[data-a="coResaBloc"]', { timeout: 8000 });
   await coachP.waitForFunction(() => OFFRES.page === RAM.club);
+  // créer un stage depuis /RAM Coach
+  await coachP.evaluate(() => A.newPost({ k: 'stage' }));
+  await coachP.waitForSelector('#adm-form[data-k="stage"]', { timeout: 8000 });
+  await coachP.evaluate(() => { const v = (i, x) => { const e = document.getElementById(i); if (e) e.value = x; }; v('a-title', 'Stage de Noël'); v('a-d1', isoIn(10)); v('a-h1', '9 h'); v('a-h2', '12 h'); v('a-place', 'Club'); v('a-body', 'Pour tous'); document.getElementById('a-same') && (document.getElementById('a-same').checked = true); document.querySelector('#adm-form').requestSubmit(); });
+  await coachP.waitForFunction(() => posts.some(p => p.title === 'Stage de Noël' && p.stage && p.mur === false) && view().v === 'post', null, { timeout: 8000, polling: 300 });
+  await coachP.waitForSelector('[data-a="promo"]', { timeout: 8000 });
+  assert.deepEqual(errs, [], 'stage créé sans erreur');
+  await coachP.evaluate(() => { S.stack = []; A.tab({ t: 'me' }); });
 
   // l'élève : les deux façons de réserver, l'achat du pack, puis une demande
   await page.goto(JA + '/club/index.html');
