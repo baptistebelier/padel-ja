@@ -284,7 +284,7 @@ const planCard = (i, iso) => {
     pre = (String(i.sub).match(/^(Stage|Tournoi) · /) || [])[1],
     sub = pre ? String(i.sub).slice(pre.length + 3) : i.sub,
     when = i.t && !String(sub).includes(i.t) ? i.t + ' · ' : '';
-  return `<button class="card evc ${i.cat}${i.cx ? ' cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><span class="dblk"><b>${d}</b>${MO[m - 1]}</span><span class="grow"><span class="kicker">${pre || PLAN_KIND[i.cat] || ''}${iso === TODAY ? " · aujourd'hui" : ''}</span><span class="nm">${i.title}</span><span class="muted small">${when}${sub}</span>${i.sport ? sportTag(i.sport) : ''}</span>${ic('back')}</button>`;
+  return `<button class="card evc ${i.cat}${i.cx ? ' cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><span class="dblk"><b>${d}</b>${MO[m - 1]}</span><span class="evp">${ic((PLAN_CATS.find(x => x[0] === i.cat) || [])[2] || 'cal')}</span><span class="grow"><span class="kicker">${pre || PLAN_KIND[i.cat] || ''}${iso === TODAY ? " · aujourd'hui" : ''}</span><span class="nm">${i.title}</span><span class="muted small">${when}${sub}</span>${i.sport ? sportTag(i.sport) : ''}</span>${ic('back')}</button>`;
 };
 /* une ligne d'agenda (vues Liste, Jour) */
 const planRow = i =>
@@ -304,9 +304,14 @@ function eventsView() {
     l.forEach(i => seen.add(me ? i.v + i.id + iso : i.id));
     if (l.length) days.push([iso, l]);
   }
+  // une colonne par jour : les jours sans rien restent, au moins une semaine et jusqu'au dernier événement
+  const fin = days.length ? days[days.length - 1][0] : TODAY,
+    cols = [];
+  for (let n = 0, iso = TODAY; n < 7 || iso <= fin; n++, iso = isoIn(n, TODAY))
+    cols.push([iso, (days.find(x => x[0] === iso) || [iso, []])[1]]);
   return `<div class="pad">${
     days.length
-      ? `<div class="plk">${days.map(([iso, l]) => `<section class="plc"><span class="kicker plc-h">${fmtD(iso)}</span>${l.map(i => planCard(i, iso)).join('')}</section>`).join('')}</div>`
+      ? `<div class="plk">${cols.map(([iso, l]) => `<section class="plc${l.length ? '' : ' vide'}${iso === TODAY ? ' today' : ''}"><span class="kicker plc-h">${fmtD(iso)}</span>${l.map(i => planCard(i, iso)).join('') || '<span class="muted small plc-v">Rien de prévu</span>'}</section>`).join('')}</div>`
       : me
         ? empty(
             'cal',

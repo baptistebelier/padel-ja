@@ -243,9 +243,10 @@ const chanCanCfg = c => {
   );
 };
 const chanCfgBtn = c =>
-  chanCanCfg(c)
-    ? `<button class="ib" data-a="chanCfg" data-id="${c.id}" aria-label="Réglages de la discussion ${esc(c.name)}">${ic('gear')}</button>`
-    : '';
+  `<button class="ib" data-a="chanCfg" data-id="${c.id}" aria-label="Réglages de la discussion ${esc(c.name)}">${ic('gear')}</button>`;
+/* la sourdine : pour chacun, dans les réglages de la discussion */
+const chanMuteRow = c =>
+  `<div class="ct"><span class="grow">Sourdine<br><span class="muted small">Plus de notifications pour cette discussion</span></span><button type="button" class="tg" role="switch" aria-checked="${!!c.mute}" data-a="mute" data-id="${c.id}" aria-label="Sourdine de ${esc(c.name)}"></button></div>`;
 const CHAN_ACCES = [
   ['tous', 'Tous les adhérents'],
   ['groupe', 'Les membres du groupe'],
@@ -258,11 +259,16 @@ const chanKeys = () =>
 const chanIn = (c, k) => REGLES.chanOuvert(c, grp(c.id), [k]);
 A.chanCfg = d => {
   const c = chans.find(x => x.id === d.id);
-  if (!chanCanCfg(c)) return;
+  if (!c) return;
+  if (!chanCanCfg(c))
+    return sheet(
+      'Réglages de la discussion',
+      `<div class="body">${chanMuteRow(c)}${chanCanDel(c) ? `<button type="button" class="btn full ghost" data-a="chanDel" data-id="${c.id}">${ic('trash')}Supprimer la discussion</button>` : ''}</div>`
+    );
   const g = grp(c.id);
   sheet(
     'Réglages de la discussion',
-    `<form class="body" id="chan-cfg" data-id="${c.id}"><div class="fld"><label for="cc-n">Nom</label><input id="cc-n" required maxlength="60" value="${esc(c.name)}"></div><div class="fld"><label for="cc-a">Qui y a accès</label><select id="cc-a">${CHAN_ACCES.filter(
+    `<form class="body" id="chan-cfg" data-id="${c.id}">${chanMuteRow(c)}<div class="fld"><label for="cc-n">Nom</label><input id="cc-n" required maxlength="60" value="${esc(c.name)}"></div><div class="fld"><label for="cc-a">Qui y a accès</label><select id="cc-a">${CHAN_ACCES.filter(
       x => g || x[0] !== 'groupe'
     )
       .map(

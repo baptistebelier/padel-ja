@@ -21,7 +21,7 @@ AIDE.splice(
       ],
       [
         'Se déplacer',
-        "La barre de navigation mène au Tableau de bord (ce qu'il y a à faire aujourd'hui), aux Statistiques, au Planning, aux Élèves, aux Messages et à Mes clubs. Le Profil est en haut à droite sur téléphone, en bas du menu sur ordinateur. Toucher à nouveau l'onglet ouvert remonte en haut de la page."
+        "La barre de navigation mène au Tableau de bord (ce qu'il y a à faire aujourd'hui), aux Statistiques, au Planning, aux Élèves, aux Messages, au Suivi (bilans à écrire, paiements à régulariser) et à Mes groupes. Le Profil est en haut à droite sur téléphone, en bas du menu sur ordinateur. Toucher à nouveau l'onglet ouvert remonte en haut de la page."
       ],
       [
         'Mes premiers pas',
@@ -91,12 +91,12 @@ AIDE.splice(
   },
   {
     id: 'ecole',
-    t: 'Mes clubs et tableau de bord',
+    t: 'Mes groupes et tableau de bord',
     i: 'club',
     q: [
       [
-        'Mes clubs',
-        'Les clubs où tu enseignes. Dans chacun : tes groupes, « Créer un groupe dans ce club » et tes élèves de ce club. Pour en ajouter un : « J’enseigne dans un autre club », avec le code donné par son bureau.'
+        'Mes groupes',
+        'Un onglet par club où tu enseignes. Dans chacun : tes groupes, « Créer un groupe dans ce club » et tes élèves de ce club. Pour en ajouter un : « J’enseigne dans un autre club », avec le code donné par son bureau.'
       ],
       [
         'Filtrer par club',
@@ -329,6 +329,7 @@ async function coPush() {
 const coRender0 = render;
 render = function () {
   coMerge();
+  if (typeof coCyclesAuto === 'function') coCyclesAuto();
   const r = coRender0.apply(this, arguments);
   if (coHistoNeeded()) coLoadHisto();
   clearTimeout(coPushT);
@@ -401,14 +402,14 @@ if (
    un bandeau en haut (menu à gauche, logo /RAM COACH au centre, notifications à droite), toujours visible,
    et un volet qui glisse depuis la gauche : les pages, puis en bas le profil, le mode jour / nuit et la sortie.
    La barre d'onglets du bas n'existe plus sur téléphone ; l'ordinateur garde son menu latéral. */
-Object.assign(I, { menu: '<path d="M3 6h18M3 12h18M3 18h12"/>' });
+Object.assign(I, { menu: '<path d="M3 6h18M3 12h18M3 18h12"/>', actif: '<path d="M13 2 4 14h7l-1 8 10-13h-7z"/>' });
 const coMobile = () => !matchMedia('(min-width: 1024px)').matches;
 function coDrawerHTML() {
   const cur = S.stack.length ? '' : S.tab,
     me = ME(),
     dk = effDark(),
     it = (a, attrs, icon, label, on) =>
-      `<button class="cdr-it${on ? ' on' : ''}" data-a="${a}" ${attrs} ${on ? 'aria-current="page"' : ''}>${icon}<span>${label}</span>${a === 'coNav' && attrs.includes('"msgs"') && coUnread() ? `<span class="cnt">${coUnread()}</span>` : ''}</button>`;
+      `<button class="cdr-it${on ? ' on' : ''}" data-a="${a}" ${attrs} ${on ? 'aria-current="page"' : ''}>${icon}<span>${label}</span>${a === 'coNav' && attrs.includes('"msgs"') && coUnread() ? `<span class="cnt">${coUnread()}</span>` : ''}${a === 'coNav' && attrs.includes('"asuivi"') && coSuiviN() ? `<span class="cnt">${coSuiviN()}</span>` : ''}</button>`;
   return `<div class="cdr-logo"><img src="img/coach-v2-logo-blanc.png" alt="/RAM Coach"></div><nav class="cdr-group" aria-label="Pages">${TABBAR.filter(
     t => t[0] !== 'me'
   )

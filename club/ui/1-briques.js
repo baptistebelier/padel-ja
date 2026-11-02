@@ -76,6 +76,7 @@ const stPill = r =>
       : '<span class="bd">À venir</span>';
 const empty = (icn, t, s) =>
   `<div class="empty">${ic(icn)}<span class="nm" style="color:var(--fg)">${t}</span><span class="small">${s || ''}</span></div>`;
+const emptyCard = (icn, t, s) => `<div class="card">${empty(icn, t, s)}</div>`;
 const gallery = ph =>
   ph && ph.length
     ? `<div class="gal ${ph.length === 1 ? 'one' : ''}">${ph.map((u, i) => `<button class="ph" style="background-image:url(${u})" data-a="photo" aria-label="Photo ${i + 1} sur ${ph.length}"></button>`).join('')}</div>`

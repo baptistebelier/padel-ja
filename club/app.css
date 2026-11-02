@@ -483,6 +483,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .fld .radio input{width:22px;height:22px;min-height:0;flex:none;padding:0;accent-color:var(--accent)}
 details.more{background:var(--card2);border-radius:var(--rb);padding:0 12px}
 details.more summary{min-height:48px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;list-style:none}
+details.more summary svg{width:20px;height:20px;flex:none;color:var(--accent)}
 details.more summary::-webkit-details-marker{display:none}
 details.more summary::after{content:"+";margin-left:auto;font-family:var(--f-display);font-size:20px;color:var(--accent)}
 details.more[open] summary::after{content:"–"}
@@ -495,7 +496,8 @@ details.more .fld input,details.more .fld select{background:var(--card)}
 .empty svg{width:34px;height:34px;color:var(--accent)}
 /* aucun texte directement sur le fond : un état vide a toujours sa surface pleine */
 .empty{background:var(--card);border-radius:var(--r)}
-.chat>.empty{margin:12px}
+.chat>.empty,.chat>.card{margin:12px}
+.top .ib.nochan{display:none}
 .bds.wrap{flex-wrap:wrap;display:inline-flex;gap:4px}
 
 /* planning */
@@ -715,7 +717,7 @@ body{touch-action:manipulation}
 .ja-direct summary svg{width:20px;height:20px;flex:none}
 .note.ok svg{width:20px;height:20px;flex:none}
 /* agenda : parties (libres, dirigées), tournois /RAM JA, repas au bar */
-.jeu{--c:var(--padel);--oc:#fff}.tour{--c:var(--accent2,var(--hot));--oc:#fff}.repas{--c:var(--muted);--oc:var(--bg)}
+.jeu{--c:var(--padel);--oc:#fff}.tour{--c:#F2A93B;--oc:#1A1A1A}.repas{--c:var(--muted);--oc:var(--bg)}
 .plan-scope{margin-bottom:4px}
 .bd.ja{background:var(--fg);color:var(--bg)}
 /* frise des partenaires : logos à la hauteur maximale du bandeau (transparence des PNG respectée) */
@@ -829,16 +831,30 @@ details.aide .aq p{margin:0;line-height:1.5}
 /* sur téléphone rien ne change : les colonnes s'effacent */
 .plk,.plc{display:contents}
 .plc-h{display:none}
+.evp,.plc-v{display:none}
+.plc.vide{display:none}
 @media (min-width:1024px){
-  #main>#plan{max-width:none!important}
   .fbl{display:inline}
-  .plk{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;align-items:start}
-  .plc{display:flex;flex-direction:column;gap:8px;min-width:0}
+}
+/* une colonne par jour, qui défile sur les côtés (doigt, ou souris : voir app/6-gestes.js) */
+@media (min-width:600px){
+  #main>#plan{max-width:none!important}
+  .plk{display:grid;grid-auto-flow:column;grid-auto-columns:230px;gap:12px;align-items:start;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity;cursor:grab;touch-action:pan-x pan-y}
+  .plk.drag{cursor:grabbing;scroll-snap-type:none;user-select:none}
+  .plk.drag *{pointer-events:none}
+  .plc,.plc.vide{display:flex;flex-direction:column;gap:8px;min-width:0;scroll-snap-align:start}
   .plc-h{display:block}
+  .plc-v{display:block;padding:8px 2px}
+  .plc.today .plc-h{color:var(--accent-tx,var(--accent))}
   .plk .stack{min-width:0}
   .plk .pit{flex-wrap:wrap}
   .plk .pit .grow{flex-basis:100%}
-  .plk .evc{min-width:0}
+  .plk .evc{min-width:0;gap:10px;margin-bottom:0;align-items:flex-start}
+  /* dans une colonne, le jour est déjà en haut : un picto à la couleur du type à la place de la date */
+  .plk .evc .dblk,.plk .evc>svg{display:none}
+  .plk .evp{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:8px;background:var(--c);color:var(--oc)}
+  .plk .evp svg{width:19px;height:19px}
+  .plk .evc .nm{font-size:15px}
 }
 /* réglages d'une discussion */
 .ccl{max-height:44vh;overflow-y:auto}
@@ -883,6 +899,11 @@ details.aide .aq p{margin:0;line-height:1.5}
 .cocycb i.next,
 .cocycl i.next {
   background: var(--card2);
+}
+.cocycb i.pose,
+.cocycl i.pose {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 .cocycb i.cx,
 .cocycl i.cx {

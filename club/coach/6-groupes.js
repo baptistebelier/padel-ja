@@ -34,19 +34,23 @@ function coSelBar() {
 }
 
 /* ---------- formule d'un groupe : ce qu'il suit et où il en est ---------- */
+const coOfferOf = g => (REGLES.cycleCourant(g, TODAY) || {}).offre || g.offre || '';
+const coOfferOpts = () =>
+  [['', 'Aucune en particulier']]
+    .concat(OFFRES.packs.map(p => ['pack:' + p.id, 'Pack · ' + ofLabel('pack', p.id) + ' · ' + p.seances + ' séances']))
+    .concat(OFFRES.formules.map(f => ['f:' + f.id, 'À la séance · ' + ofLabel('f', f.id)]))
+    .concat(OFFRES.abos.map(a => ['abo:' + a.id, 'Abonnement · ' + a.nom]));
 function coGrpOffer(g) {
-  const [t, ref] = (g.offre || '').split(':'),
-    found = !g.offre
+  const of = coOfferOf(g),
+    [t, ref] = of.split(':'),
+    found = !of
       ? null
       : t === 'pack'
         ? OFFRES.packs.find(p => p.id === ref)
         : t === 'abo'
           ? OFFRES.abos.find(a => a.id === ref)
-          : foOf(ref),
-    act = !found
-      ? 'data-a="open" data-v="formules"'
-      : `data-a="${t === 'pack' ? 'coPkEdit' : t === 'abo' ? 'coAbEdit' : 'coFoEdit'}" data-id="${ref}"`;
-  return `<button class="cotile cotile-go" ${act}>${ic('ball')}<b class="cotxt">${found ? esc(ofLabel(t, ref)) : 'À choisir'}</b><span>Formule · modifier</span></button>`;
+          : foOf(ref);
+  return `<button class="cotile cotile-go" data-a="coGrpOf" data-id="${g.id}">${ic('ball')}<b class="cotxt">${found ? esc(ofLabel(t, ref)) : 'À choisir'}</b><span>Formule · modifier</span></button>`;
 }
 /* la jauge du cycle (ui/7-ecole.js), avec la taille du pack */
 const coCycleBar = g => {
@@ -77,14 +81,17 @@ function coCyclesHtml(g) {
     hors = coHorsCycle(g).filter(d => d <= TODAY).length,
     ligne = c => {
       const E = REGLES.cycleEtat(g, c, coCycleSes(g), TODAY),
-        trop = c.n && c.n !== E.prevues;
-      return `<div class="cokv"><span class="grow"><b>${esc(c.nom)}</b><br><span class="muted small">${E.faites} faites sur ${E.prevues}${E.aVerifier ? ' · ' + E.aVerifier + ' à vérifier' : ''}${(c.pay || []).length ? ' · paiement aux séances ' + c.pay.join(', ') : ''}</span>${trop ? `<br><span class="small" style="color:var(--hot)">${E.prevues} séances rattachées pour un pack de ${c.n}</span>` : ''}</span><button class="btn sm ghost" data-a="coCycleSeances" data-id="${g.id}" data-c="${c.id}">Séances</button><button class="ib" data-a="coPlan" data-id="${g.id}" data-c="${c.id}" aria-label="Modifier ${esc(c.nom)}">${ic('edit')}</button></div>`;
+        trop = c.n && E.posees > c.n;
+      return `<div class="cokv"><span class="grow"><b>${esc(c.nom)}</b><br><span class="muted small">${E.faites} faites sur ${E.prevues}${E.sansDate ? ' · ' + plural(E.sansDate, 'date', 'dates') + ' à poser' : ''}${E.aVerifier ? ' · ' + E.aVerifier + ' à vérifier' : ''}${(c.pay || []).length ? ' · paiement aux séances ' + c.pay.join(', ') : ''}</span>${trop ? `<br><span class="small" style="color:var(--hot)">${E.posees} séances rattachées pour un pack de ${c.n}</span>` : ''}</span><button class="btn sm ghost" data-a="coCycleSeances" data-id="${g.id}" data-c="${c.id}">Séances</button><button class="ib" data-a="coPlan" data-id="${g.id}" data-c="${c.id}" aria-label="Modifier ${esc(c.nom)}">${ic('edit')}</button></div>`;
     };
   return `<span class="kicker" style="margin-top:12px">Cycles</span>${l.map(ligne).join('')}${hors && l.length ? `<p class="muted small">${plural(hors, 'séance passée', 'séances passées')} dans aucun cycle : rattache-les avec « Séances ».</p>` : ''}<button class="btn sm ghost full" data-a="coPlan" data-id="${g.id}" data-c="new">${ic('plus')}${l.length ? 'Nouveau cycle' : hors ? 'Créer le cycle avec les séances déjà faites' : 'Créer un cycle'}</button>`;
 }
 /* rattacher une date à un cycle : elle quitte l'autre cycle, et devient une séance du groupe si besoin */
 function coCycleSet(g, c, list) {
   (g.cycles || []).forEach(x => x !== c && (x.dates = (x.dates || []).filter(d => !list.includes(d))));
+  const sans = (c.sans || []).concat((c.dates || []).filter(d => !list.includes(d))).filter(d => !list.includes(d));
+  if (sans.length) c.sans = [...new Set(sans)];
+  else delete c.sans;
   c.dates = [...new Set(list)].sort();
   c.dates.forEach(d => coDates(g, d, d).length || coDateOn(g, d));
 }
@@ -135,18 +142,54 @@ function coCycleUsed(a, k) {
 }
 /* sur la fiche d'une séance : son cycle, à tout moment */
 function coSesCycle(g, d) {
-  if (g.once || !(g.cycles || []).length) return '';
+  if (g.once) {
+    const l = coGroups('', true).filter(x => !x.once && coClubOf(x) === coClubOf(g) && (x.cycles || []).length);
+    return l.length
+      ? `<form class="card" id="co-s-att" data-id="${g.id}" data-d="${d}"><div class="fld"><label for="co-s-ac">Rattacher ce cours à un cycle</label><select id="co-s-ac" required><option value="">Choisir un cycle</option>${l.flatMap(x => x.cycles.map(k => `<option value="${x.id}|${k.id}">${esc(x.name)} · ${esc(k.nom)}</option>`)).join('')}</select></div><button class="btn sm ghost full">Rattacher</button><p class="muted small">Le cours devient une séance du groupe, à l’horaire du groupe, avec ses élèves et son appel.</p></form>`
+      : '';
+  }
+  if (!(g.cycles || []).length) return '';
   const c = REGLES.cycleDe(g, d),
     x = c && REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).seances.find(s => s.d === d);
   return `<div class="card"><div class="fld" style="margin:0"><label for="co-s-cy">Cycle de cette séance</label><select id="co-s-cy" data-g="${g.id}" data-d="${d}"><option value="">Aucun</option>${g.cycles.map(k => `<option value="${k.id}" ${c === k ? 'selected' : ''}>${esc(k.nom)}</option>`).join('')}</select></div>${x && x.num ? `<p class="muted small">Séance ${x.num} du cycle${(c.pay || []).includes(x.num) ? ' · paiement demandé à cette séance' : ''}</p>` : ''}</div>`;
 }
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-s-att') return;
+  e.preventDefault();
+  const o = grp(e.target.dataset.id),
+    d = e.target.dataset.d,
+    [gid, cid] = $('co-s-ac').value.split('|'),
+    g = grp(gid),
+    c = g && (g.cycles || []).find(x => x.id === cid);
+  if (!o || !c) return;
+  const v = sesFind(o, d),
+    t = sesGet(g.id + '.' + d),
+    dans = coStu(g);
+  if (v) Object.keys(v).forEach(k => !['id', 'g', 'd', '_club'].includes(k) && (t[k] = v[k]));
+  t.plus = [...new Set((t.plus || []).concat(coStu(o).filter(k => !dans.includes(k))))];
+  if (!t.plus.length) delete t.plus;
+  if (v) SEANCES.splice(SEANCES.indexOf(v), 1);
+  GROUPS.splice(GROUPS.indexOf(o), 1);
+  coCycleSet(g, c, (c.dates || []).concat(d));
+  S.stack[S.stack.length - 1] = { v: 'seance', id: g.id + '.' + d };
+  coSave('Séance rattachée à ' + c.nom);
+});
 document.addEventListener('change', e => {
   if (e.target.id !== 'co-s-cy') return;
   const g = grp(e.target.dataset.g),
     d = e.target.dataset.d,
     c = (g.cycles || []).find(x => x.id === e.target.value);
   if (c) coCycleSet(g, c, (c.dates || []).concat(d));
-  else (g.cycles || []).forEach(x => (x.dates = (x.dates || []).filter(y => y !== d)));
+  else
+    (g.cycles || []).forEach(x => {
+      if ((x.dates || []).includes(d))
+        coCycleSet(
+          g,
+          x,
+          x.dates.filter(y => y !== d)
+        );
+      x.sans = [...new Set((x.sans || []).concat(d))]; // « Aucun » : elle ne se rattache plus toute seule
+    });
   coSave(c ? 'Séance rattachée à ' + c.nom : 'Séance retirée du cycle');
 });
 document.addEventListener('submit', e => {
@@ -163,7 +206,48 @@ document.addEventListener('submit', e => {
   closeSheet();
   coSave(plural(c.dates.length, 'séance') + ' dans ' + c.nom);
 });
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-gof') return;
+  e.preventDefault();
+  const g = grp(e.target.dataset.id);
+  if (!g) return;
+  const o = $('co-gof-o').value,
+    p = coPlanOf(o),
+    c = REGLES.cycleCourant(g, TODAY);
+  if (o) g.offre = o;
+  else delete g.offre;
+  if (p.tarif) g.tarif = p.tarif;
+  if (c) {
+    if (o) c.offre = o;
+    else delete c.offre;
+    if (p.n) c.n = p.n;
+    else delete c.n;
+  }
+  closeSheet();
+  coSave(o ? 'Formule du groupe enregistrée' : 'Le groupe ne suit plus de formule');
+});
+/* un cycle pas encore complet prend les séances posées ensuite pour ce groupe */
+function coCyclesAuto() {
+  coGroups('', true)
+    .filter(g => !g.once && coIsMe(g.coach) && (g.cycles || []).some(c => c.n))
+    .forEach(g => {
+      const c = REGLES.cycleOuvert(g);
+      if (!c) return;
+      const add = REGLES.cycleAjouts(g, c, coHorsCycle(g), TODAY);
+      if (add.length) c.dates = [...(c.dates || []), ...add].sort();
+    });
+}
 Object.assign(A, {
+  coGrpOf(d) {
+    const g = grp(d.id);
+    if (!g) return;
+    const of = coOfferOf(g),
+      [t, ref] = of.split(':');
+    sheet(
+      'Formule de ' + g.name,
+      `<form class="body" id="co-gof" data-id="${g.id}"><p class="muted small">Un pack donne le nombre de séances du cycle et le tarif du groupe.</p>${ofSel('co-gof-o', 'Formule suivie par le groupe', coOfferOpts(), of)}<button class="btn full">Enregistrer</button>${of ? `<button type="button" class="btn ghost full" data-a="${t === 'pack' ? 'coPkEdit' : t === 'abo' ? 'coAbEdit' : 'coFoEdit'}" data-id="${ref}">${ic('edit')}Modifier le tarif de cette formule</button>` : `<button type="button" class="btn ghost full" data-a="open" data-v="formules">${ic('ball')}Formules et tarifs</button>`}</form>`
+    );
+  },
   coCycleSeances(d) {
     const g = grp(d.id),
       c = g && (g.cycles || []).find(x => x.id === d.c);
@@ -261,7 +345,7 @@ function coVacCard() {
     `${coVacList('me', OFFRES.conges || [])}<div class="cotools"><button class="btn sm ghost" data-a="coVacAdd" data-k="me">${ic('plus')}Ajouter</button>${clubs.length ? `<button class="btn sm ghost" data-a="coVacCopy">${ic('calmove')}Calquer sur les vacances du club</button>` : ''}</div>${clubs
       .map(
         c =>
-          `<span class="kicker" style="margin-top:12px">Vacances du club · ${esc(c.name)}</span>${coVacList(c.id, coVacClub(c.id))}<button class="btn sm ghost full" data-a="coVacAdd" data-k="${c.id}">${ic('plus')}Ajouter une période</button>`
+          `<span class="kicker" style="margin-top:12px">Vacances du club · ${esc(c.name)}</span>${coVacList(c.id, coVacClub(c.id))}<button class="btn sm ghost full" data-a="coVacAdd" data-k="${c.id}">${ic('plus')}Ajouter des périodes</button>`
       )
       .join(
         ''
@@ -278,6 +362,8 @@ const coOccupe = d =>
     .map(x => [hMin(x.g.h), hMin(x.g.h) + durMin(x.g.dur)]);
 /* ce qui reste libre un jour donné (au moins une heure) ; rien pour un jour passé */
 const coLibre = d => (d < TODAY ? [] : REGLES.plagesLibres(OFFRES.dispos, d, coOccupe(d), OFFRES.conges, 60));
+const coDiCren = (du, au) =>
+  `<div class="row codic" style="gap:8px;align-items:flex-end"><div class="fld grow"><label>De<input class="codid" type="time" required value="${du}"></label></div><div class="fld grow"><label>À<input class="codia" type="time" required value="${au}"></label></div><button type="button" class="ib" data-a="coDiMoins" aria-label="Retirer ce créneau">${ic('x')}</button></div>`;
 function coDispoCard() {
   const l = OFFRES.dispos || [];
   return coPCard(
@@ -392,9 +478,16 @@ Object.assign(A, {
 Object.assign(A, {
   coDispoAdd() {
     sheet(
-      'Période de travail',
-      `<form class="body" id="co-dispo"><div class="fld"><label for="co-di-j">Jour</label><select id="co-di-j">${COJOURS.map(j => `<option value="${j}">${DAYS[j]}</option>`).join('')}</select></div><div class="row" style="gap:8px"><div class="fld grow"><label for="co-di-d">De</label><input id="co-di-d" type="time" required value="09:00"></div><div class="fld grow"><label for="co-di-a">À</label><input id="co-di-a" type="time" required value="12:00"></div></div>${O('co-di-l', 'Lieu (facultatif)', 'Le club, le nom d’un site…')}<button class="btn full">Enregistrer</button></form>`
+      'Périodes de travail',
+      `<form class="body" id="co-dispo"><div class="fld"><span class="lbl">Jours</span><div class="chips codij" role="group" aria-label="Jours">${COJOURS.map(j => `<label class="chip codi"><input type="checkbox" value="${j}"${j >= 1 && j <= 5 ? ' checked' : ''}><span>${DAYS[j].slice(0, 3)}</span></label>`).join('')}</div></div><div class="fld"><span class="lbl">Créneaux</span><div id="co-di-cr">${coDiCren('09:00', '12:00')}${coDiCren('14:00', '18:00')}</div><button type="button" class="btn sm ghost full" data-a="coDiPlus">${ic('plus')}Ajouter un créneau</button></div>${O('co-di-l', 'Lieu (facultatif)', 'Le club, le nom d’un site…')}<button class="btn full">Enregistrer</button></form>`
     );
+  },
+  coDiPlus() {
+    $('co-di-cr').insertAdjacentHTML('beforeend', coDiCren('18:00', '20:00'));
+  },
+  coDiMoins(d, el) {
+    const l = document.querySelectorAll('#co-di-cr .codic');
+    if (l.length > 1 && el) el.closest('.codic').remove();
   },
   coDispoDel(d) {
     OFFRES.dispos = (OFFRES.dispos || []).filter((x, i) => i !== +d.i);
@@ -453,15 +546,22 @@ Object.assign(A, {
 document.addEventListener('submit', e => {
   if (e.target.id !== 'co-dispo') return;
   e.preventDefault();
-  const du = $('co-di-d').value,
-    au = $('co-di-a').value;
-  if (!du || !au || au <= du) return toast('La fin doit suivre le début');
-  const o = { jour: +$('co-di-j').value, du, au },
+  const jours = [...e.target.querySelectorAll('.codij input:checked')].map(x => +x.value),
+    cren = [...e.target.querySelectorAll('.codic')].map(r => ({
+      du: r.querySelector('.codid').value,
+      au: r.querySelector('.codia').value
+    })),
     lieu = $('co-di-l').value.trim().slice(0, 60);
-  if (lieu) o.lieu = lieu;
-  OFFRES.dispos = (OFFRES.dispos || []).concat(o);
+  if (!jours.length) return toast('Choisis au moins un jour');
+  if (cren.some(x => !x.du || !x.au || x.au <= x.du)) return toast('La fin de chaque créneau doit suivre son début');
+  const l = OFFRES.dispos || [],
+    neufs = jours
+      .flatMap(jour => cren.map(x => Object.assign({ jour, du: x.du, au: x.au }, lieu ? { lieu } : {})))
+      .filter(n => !l.some(x => +x.jour === n.jour && x.du === n.du && x.au === n.au));
+  if (!neufs.length) return (closeSheet(), toast('Ces créneaux sont déjà enregistrés'));
+  OFFRES.dispos = l.concat(neufs);
   closeSheet();
-  ofSave('Période enregistrée');
+  ofSave(plural(neufs.length, 'période enregistrée', 'périodes enregistrées'));
 });
 document.addEventListener('submit', e => {
   if (e.target.id !== 'co-vac') return;

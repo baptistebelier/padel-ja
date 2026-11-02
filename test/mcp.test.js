@@ -133,7 +133,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const fiche = await w('coach_ajouter_eleve', { prenom: 'Ana', nom: 'Roy', email: 'ana@exemple.test' });
   const se = await w('coach_seance', { groupe_id: gr.groupe_id, date: '2030-01-01', ajouter: ['Ana Roy'], retirer: ['kid1'], theme: 'Volée', presents: ['Ana Roy'] });
   assert.deepEqual([se.theme, se.ajoutes, se.retires], ['Volée', ['Ana Roy'], ['Léo Martin']]);
-  assert.equal(Object.values(se.appel).filter(v => v === 'A').length, 1);
+  assert.equal(Object.values(se.appel).filter(v => v === 'E').length, 1, 'retiré de cette seule séance');
   await assert.rejects(w('coach_seance', { groupe_id: gr.groupe_id, date: '2030-01-02' }), /Pas de séance/);
   // un cours : ses élèves changent vraiment
   const co = await w('coach_creer_groupe', { nom: 'Cours seul', sport: 'Padel', date: '2030-02-01', heure: '10 h', eleves: ['kid1'] });

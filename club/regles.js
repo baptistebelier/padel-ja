@@ -245,14 +245,46 @@
         };
       });
     const n = e => seances.filter(x => x.etat === e).length;
-    return { seances, prevues: num, faites: n('done'), aVerifier: n('vide'), aVenir: n('next') + n('now') };
+    // prevues : le pack entier, même sans date pour les prochaines séances ; posees : celles qui ont une date
+    const prevues = Math.max(num, +c.n || 0);
+    return {
+      seances,
+      prevues,
+      posees: num,
+      sansDate: prevues - num,
+      faites: n('done'),
+      aVerifier: n('vide'),
+      aVenir: n('next') + n('now')
+    };
   }
   /* le cycle en cours : le premier qui a encore une séance à venir, sinon le dernier */
   function cycleCourant(g, today) {
-    const l = (g.cycles || [])
-      .filter(c => (c.dates || []).length)
-      .sort((a, b) => [...a.dates].sort()[0].localeCompare([...b.dates].sort()[0]));
-    return l.find(c => c.dates.some(d => d >= today && !(g.cancel || []).includes(d))) || l[l.length - 1] || null;
+    const prem = c => [...(c.dates || [])].sort()[0] || '9999',
+      l = (g.cycles || []).filter(c => (c.dates || []).length || c.n).sort((a, b) => prem(a).localeCompare(prem(b)));
+    return (
+      l.find(c => (c.dates || []).some(d => d >= today && !(g.cancel || []).includes(d)) || restant(g, c) > 0) ||
+      l[l.length - 1] ||
+      null
+    );
+  }
+  /* séances d'un pack encore sans date */
+  function restant(g, c) {
+    return (+c.n || 0) - (c.dates || []).filter(d => !(g.cancel || []).includes(d)).length;
+  }
+  /* le cycle qui prend les prochaines séances posées : le plus récent, s'il reste de la place */
+  function cycleOuvert(g) {
+    const prem = c => [...(c.dates || [])].sort()[0] || '9999';
+    const l = (g.cycles || []).filter(c => c.n).sort((a, b) => prem(b).localeCompare(prem(a)));
+    return l.length && restant(g, l[0]) > 0 ? l[0] : null;
+  }
+  /* parmi les séances hors cycle du groupe : celles qui entrent dans ce cycle (jamais avant son début, jamais une
+     séance retirée à la main) */
+  function cycleAjouts(g, c, hors, today) {
+    const d0 = [...(c.dates || [])].sort()[0] || today;
+    return [...hors]
+      .sort()
+      .filter(d => d >= d0 && !(c.sans || []).includes(d))
+      .slice(0, Math.max(0, restant(g, c)));
   }
 
   /* classements tennis, du plus bas au plus haut */
@@ -283,6 +315,8 @@
     cycleDe,
     cycleEtat,
     cycleCourant,
+    cycleOuvert,
+    cycleAjouts,
     RANKS,
     plagesLibres,
     hhmmMin,

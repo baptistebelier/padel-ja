@@ -101,7 +101,15 @@ test('cycle : ses séances et elles seules, faite seulement avec quelqu’un de 
   const ses = { '2030-01-01': { pres: { x: 'P', y: 'A' } }, '2030-01-08': { pres: { y: 'A' } } };
   const E = R.cycleEtat(g, g.cycles[0], d => ses[d], '2030-01-22');
   assert.deepEqual(E.seances.map(x => [x.etat, x.num]), [['done', 1], ['vide', 2], ['cx', 0], ['now', 3], ['next', 4]]);
-  assert.deepEqual([E.prevues, E.faites, E.aVerifier, E.aVenir], [4, 1, 1, 2]);
+  assert.deepEqual([E.prevues, E.posees, E.sansDate, E.faites, E.aVerifier, E.aVenir], [10, 4, 6, 1, 1, 2], 'un pack de 10 compte 10 séances, datées ou non');
+  // les séances posées ensuite entrent dans le cycle, jamais avant son début, jamais une séance retirée à la main
+  const ou = R.cycleOuvert(g);
+  assert.equal(ou.id, 'a');
+  assert.deepEqual(R.cycleAjouts(g, ou, ['2030-02-05', '2029-12-01', '2030-02-12'], '2030-01-22'), ['2030-02-05', '2030-02-12']);
+  assert.deepEqual(R.cycleAjouts(Object.assign({}, g), Object.assign({}, ou, { sans: ['2030-02-05'] }), ['2030-02-05', '2030-02-12'], '2030-01-22'), ['2030-02-12']);
+  assert.equal(R.cycleAjouts(g, Object.assign({}, ou, { n: 4 }), ['2030-02-05'], '2030-01-22').length, 0, 'pack complet');
+  assert.equal(R.cycleOuvert({ cycles: [{ id: 'z', n: 2, dates: ['2030-01-01', '2030-01-08'] }] }), null);
+  assert.equal(R.cycleCourant({ cycles: [{ id: 'v', n: 10 }] }, '2030-01-01').id, 'v', 'un cycle sans aucune date existe déjà');
   assert.equal(R.cycleDe(g, '2030-01-08').id, 'a');
   assert.equal(R.cycleDe(g, '2030-02-05'), null);
   const deux = { cycles: [{ id: 'b', dates: ['2030-03-01'] }, { id: 'a', dates: ['2030-01-01'] }] };

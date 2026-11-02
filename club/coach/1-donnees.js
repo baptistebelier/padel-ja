@@ -14,7 +14,8 @@ TABBAR.splice(
   ['planning', 'cal', 'Planning'],
   ['eleves', 'users', 'Élèves'],
   ['msgs', 'chat', 'Messages'],
-  ['clubs', 'club', 'Mes clubs'],
+  ['asuivi', 'check', 'Suivi'],
+  ['clubs', 'club', 'Mes groupes'],
   ['me', 'user', 'Profil']
 );
 S.tab = 'today';

@@ -94,7 +94,7 @@ function cycleBarDe(g, c, plus) {
   const E = REGLES.cycleEtat(g, c, cycleSes(g), TODAY),
     lab = { done: 'Faite', vide: 'À vérifier : pas d’appel', now: "Aujourd'hui", next: 'À venir', cx: 'Annulée' },
     leg = { done: 'Faites', vide: 'À vérifier', now: "Aujourd'hui", next: 'À venir', cx: 'Annulées' };
-  return `<div class="cocycle"><div class="cocyct"><b>${E.faites} sur ${E.prevues}</b><span class="muted small">séances faites${plus || ''}</span></div><div class="cocycb" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}, ${E.aVenir} à venir">${E.seances.map(x => `<i class="${x.etat}" title="${x.num ? 'Séance ' + x.num + ' · ' : ''}${fmtD(x.d)} · ${lab[x.etat]}"></i>`).join('')}</div><div class="cocycl">${[
+  return `<div class="cocycle"><div class="cocyct"><b>${E.faites} sur ${E.prevues}</b><span class="muted small">séances faites${plus || ''}</span></div><div class="cocycb" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}, ${E.aVenir} à venir${E.sansDate ? ', ' + E.sansDate + ' sans date' : ''}">${E.seances.map(x => `<i class="${x.etat}" title="${x.num ? 'Séance ' + x.num + ' · ' : ''}${fmtD(x.d)} · ${lab[x.etat]}"></i>`).join('')}${'<i class="pose" title="Date à poser"></i>'.repeat(E.sansDate)}</div><div class="cocycl">${[
     'done',
     'vide',
     'now',
@@ -103,7 +103,7 @@ function cycleBarDe(g, c, plus) {
   ]
     .filter(k => E.seances.some(x => x.etat === k))
     .map(k => `<span><i class="${k}"></i>${leg[k]}</span>`)
-    .join('')}</div></div>`;
+    .join('')}${E.sansDate ? '<span><i class="pose"></i>Date à poser</span>' : ''}</div></div>`;
 }
 function cycleBar(g, plus) {
   const cur = REGLES.cycleCourant(g, TODAY);

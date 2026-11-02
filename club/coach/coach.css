@@ -1017,6 +1017,62 @@
   color: var(--muted);
   flex: none;
 }
+/* groupe actif : le picto s'allume, plein et jaune */
+.cogon {
+  flex: none;
+  color: var(--muted);
+}
+.cogon[aria-pressed='true'] {
+  color: var(--co-lime, var(--accent));
+}
+.cogon[aria-pressed='true'] svg {
+  fill: currentColor;
+}
+.cosuivit .cotile b {
+  font-size: 20px;
+}
+/* périodes de travail : plusieurs jours et plusieurs créneaux d'un coup */
+.codij {
+  flex-wrap: wrap;
+}
+.codi {
+  cursor: pointer;
+}
+.codi input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.codi:has(input:checked) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.codi:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.codic .fld {
+  margin: 0 0 8px;
+}
+.codic .ib {
+  margin-bottom: 8px;
+}
+/* planning : au glissement, seul le planning défile ; les boutons et les onglets de vue ne bougent pas */
+#main.sg-r > .pad:has(> .cotopact),
+#main.sg-l > .pad:has(> .cotopact),
+#main.pg-r > .pad:has(> .cotopact),
+#main.pg-l > .pad:has(> .cotopact) {
+  animation: none;
+}
+#main.sg-r > .pad:has(> .cotopact) > :not(.cotopact, .covue),
+#main.pg-r > .pad:has(> .cotopact) > :not(.cotopact, .covue) {
+  animation: slR 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#main.sg-l > .pad:has(> .cotopact) > :not(.cotopact, .covue),
+#main.pg-l > .pad:has(> .cotopact) > :not(.cotopact, .covue) {
+  animation: slL 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 .costar[aria-pressed='true'] {
   color: var(--accent);
 }
@@ -1882,5 +1938,18 @@ button.copp:hover span:last-child {
   }
   .comn {
     display: none;
+  }
+}
+
+/* /RAM Coach garde sa cloche dans sa barre, y compris dans une discussion */
+.top .ib.nochan {
+  display: grid;
+}
+
+/* Tableau de bord, Statistiques, Suivi : toute la largeur sur iPad et ordinateur */
+@media (min-width: 481px) {
+  #main > .pad.cowide,
+  #main > .seg:has(+ .pad.cowide) {
+    max-width: none !important;
   }
 }

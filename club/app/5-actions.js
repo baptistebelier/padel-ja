@@ -916,9 +916,10 @@ const A = {
     );
   },
   /* canaux */
-  mute(d) {
+  mute(d, el) {
     const c = chans.find(c => c.id === d.id);
     c.mute = !c.mute;
+    if (el && el.getAttribute('role') === 'switch') el.setAttribute('aria-checked', String(c.mute));
     render(true);
     toast(c.mute ? `${c.name} en sourdine : plus de notifications` : `Notifications réactivées pour ${c.name}`);
   },

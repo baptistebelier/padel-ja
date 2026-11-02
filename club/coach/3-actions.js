@@ -14,7 +14,8 @@ Object.assign(TITLES, {
         ? 'Tous mes clubs'
         : 'Mes statistiques'
   ],
-  clubs: () => ['Mes clubs', 'Groupes et élèves de chaque club'],
+  clubs: () => ['Mes groupes', 'Par club'],
+  asuivi: () => ['Suivi', 'Bilans à écrire et paiements à régulariser'],
   cclub: () => [(coClubList().find(c => c.id === view().id) || {}).name || 'Club', 'Mes groupes dans ce club'],
   niveaux: () => ['Échelles de niveaux', 'Prérequis et attendus'],
   seance: () => {
@@ -110,6 +111,7 @@ Object.assign(A, {
       g = grp(s.g);
     s.pres = s.pres || {};
     coStu(g)
+      .filter(k => !(s.out || []).includes(k))
       .concat(s.plus || [])
       .forEach(k => {
         if (!s.pres[k]) s.pres[k] = 'P';
@@ -233,16 +235,34 @@ Object.assign(A, {
   coPlus(d) {
     const s = sesGet(d.id),
       g = grp(s.g),
-      st = coStu(g).concat(s.plus || []),
+      st = coStu(g)
+        .filter(k => !(s.out || []).includes(k))
+        .concat(s.plus || []),
       cid = coClubOf(g),
       cand = Object.keys(M)
         .filter(k => k !== 'club' && !st.includes(k) && coClubOf(M[k]) === cid)
         .concat(ELEVES.filter(e => !M[e.id] && !st.includes(e.id) && coClubOf(e) === cid).map(e => e.id))
         .sort((a, b) => svName(a).localeCompare(svName(b)));
     sheet(
-      'Élève pour cette séance',
-      `<form class="body" id="co-plus" data-id="${d.id}"><p class="muted small">Il participe à cette séance seulement, sans entrer dans le groupe. Présent, il consomme son pack si la formule correspond ; sinon il apparaît à payer.</p><div class="fld"><input id="co-aq" type="search" placeholder="Rechercher" aria-label="Rechercher un adhérent"></div><div class="coadd">${cand.map(k => `<label class="corow" data-n="${esc(fold(svName(k)))}"><input type="checkbox" value="${k}">${coAv(k)}<span class="grow">${esc(svName(k))}${M[k] ? '' : ' <span class="tag">Sans compte</span>'}</span></label>`).join('')}</div><button class="btn full">Ajouter à la séance</button></form>`
+      'Ajouter un participant',
+      `<form class="body" id="co-plus" data-id="${d.id}"><p class="muted small">${g.once ? 'Il rejoint ce cours.' : 'Il participe à cette séance seulement, sans entrer dans le groupe.'} Présent, il consomme son pack si la formule correspond ; sinon il apparaît à payer.</p><div class="fld"><input id="co-aq" type="search" placeholder="Rechercher" aria-label="Rechercher un adhérent"></div><div class="coadd">${cand.map(k => `<label class="corow" data-n="${esc(fold(svName(k)))}"><input type="checkbox" value="${k}">${coAv(k)}<span class="grow">${esc(svName(k))}${M[k] ? '' : ' <span class="tag">Sans compte</span>'}</span></label>`).join('')}</div><button class="btn full">Ajouter à la séance</button></form>`
     );
+  },
+  /* retirer un participant de cette seule séance : un cours perd cet élève ; un groupe le garde pour les autres séances */
+  coSesRm(d) {
+    const s = sesGet(d.id),
+      g = grp(s.g);
+    if ((s.plus || []).includes(d.k)) return A.coPlusRm(d);
+    if (s.pres) delete s.pres[d.k];
+    coAtt(s, d.k);
+    if (g.once) {
+      g.mem = (g.mem || []).filter(k => k !== d.k);
+      g.ext = (g.ext || []).filter(k => k !== d.k);
+    } else {
+      s.out = [...new Set((s.out || []).concat(d.k))];
+      (s.pres = s.pres || {})[d.k] = 'E'; // ni présent ni absent : il voit cette séance comme excusée
+    }
+    coSave(svFirst(d.k) + ' retiré de cette séance');
   },
   coPlusRm(d) {
     const s = sesGet(d.id);
@@ -421,9 +441,20 @@ document.addEventListener('submit', e => {
       g = grp(s.g),
       ks = [...f.querySelectorAll('input[type=checkbox]:checked')].map(i => i.value);
     if (!ks.length) return;
-    s.plus = [...new Set((s.plus || []).concat(ks))];
+    if (g.once)
+      ks.forEach(k => {
+        const c = M[k] ? 'mem' : 'ext';
+        g[c] = [...new Set((g[c] || []).concat(k))];
+      });
+    else {
+      // un élève du groupe retiré de cette séance y revient ; les autres y sont accueillis
+      const retour = ks.filter(k => (s.out || []).includes(k));
+      s.out = (s.out || []).filter(k => !retour.includes(k));
+      retour.forEach(k => s.pres && delete s.pres[k]);
+      s.plus = [...new Set((s.plus || []).concat(ks.filter(k => !retour.includes(k))))];
+    }
     closeSheet();
-    const n = coStu(g).length + s.plus.length;
+    const n = coStu(g).length + (s.plus || []).length - (s.out || []).length;
     return coSave(
       g.max && n > g.max
         ? 'Ajouté : la séance dépasse la capacité (' + n + ' pour ' + g.max + ' places)'
@@ -642,8 +673,7 @@ Object.assign(A, {
     render(true);
   },
   coPayGo() {
-    S.dashTab = 'pay';
-    A.tab({ t: 'dash' });
+    A.tab({ t: 'asuivi' });
   },
   coDashP(d) {
     S.dashP = d.v;

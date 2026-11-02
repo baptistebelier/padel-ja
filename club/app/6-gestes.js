@@ -494,3 +494,28 @@ document.addEventListener('change', e => {
       toast('Photo ajoutée · la publication du mur est à jour');
     });
 });
+
+/* agenda en colonnes : à la souris, on attrape les colonnes pour les faire défiler (un simple clic ouvre toujours la carte) */
+(function () {
+  let g = null;
+  document.addEventListener('pointerdown', e => {
+    const b = e.pointerType === 'mouse' && e.button === 0 && e.target.closest('.plk');
+    if (b && b.scrollWidth > b.clientWidth) g = { b, x: e.clientX, l: b.scrollLeft, moved: false };
+  });
+  document.addEventListener('pointermove', e => {
+    if (!g) return;
+    const dx = e.clientX - g.x;
+    if (!g.moved && Math.abs(dx) < 6) return;
+    g.moved = true;
+    g.b.classList.add('drag');
+    g.b.scrollLeft = g.l - dx;
+  });
+  const fin = () => {
+    if (!g) return;
+    const b = g.b;
+    setTimeout(() => b.classList.remove('drag'));
+    g = null;
+  };
+  document.addEventListener('pointerup', fin);
+  document.addEventListener('pointercancel', fin);
+})();

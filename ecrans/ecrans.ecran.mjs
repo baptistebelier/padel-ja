@@ -482,7 +482,7 @@ test('Coach : fiche élève en blocs, notes de 1 à 10 et toile, jauge du cycle,
   await page.click(`[data-a="coPres"][data-k="${r.cand}"][data-s="P"]`);
   await page.waitForFunction(k => document.querySelector(`[data-a="coPres"][data-k="${k}"][data-s="P"].on`), r.cand);
   assert.ok(await large(), 'appel : pas de débordement');
-  await page.click(`[data-a="coPlusRm"][data-k="${r.cand}"]`);
+  await page.click(`[data-a="coSesRm"][data-k="${r.cand}"]`);
   await page.waitForFunction(k => !document.querySelector(`[data-a="coPres"][data-k="${k}"]`), r.cand);
   // fiche enseignant : blocs et raccourci vers les groupes
   await page.evaluate(() => { M[ME()].pro = { on: true, dip: 'DE JEPS', since: '2015', tel: '06 00 00 00 00', mail: 'a@exemple.fr' }; A.open({ v: 'me' }); });
@@ -632,8 +632,13 @@ test('Club : favoris avec du nouveau en tête, réglages d’une discussion, fil
   await page.evaluate(() => { S.plan.mode = 'list'; render(); });
   await page.waitForSelector('.plk .stack');
   assert.ok(await large(), 'liste sur toute la largeur');
-  const col = await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).gridTemplateColumns.split(' ').length);
-  assert.ok(col >= 3, 'en colonnes');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).gridAutoFlow), 'column', 'en colonnes');
+  await page.evaluate(() => { S.plan.mode = 'events'; render(); });
+  await page.waitForSelector('.plk .plc');
+  assert.ok(await page.locator('.plk .plc').count() >= 7, 'une colonne par jour, au moins sept');
+  assert.ok(await page.evaluate(() => { const p = document.querySelector('.plk'); return p.scrollWidth > p.clientWidth || p.querySelectorAll('.plc').length * 242 <= p.clientWidth; }), 'les colonnes défilent');
+  if (await page.locator('.plk .evc').count()) assert.ok(await page.evaluate(() => { const c = document.querySelector('.plk .evc'); return getComputedStyle(c.querySelector('.dblk')).display === 'none' && getComputedStyle(c.querySelector('.evp')).display !== 'none'; }), 'un picto à la place de la grosse date');
+  assert.ok(await large(), 'rien ne déborde de la page');
   // filtres : la couleur reste visible, l'état actif a sa coche
   await page.click('[data-a="planFilters"]');
   const f = page.locator('.chip.plf', { hasText: 'Cours' });
@@ -679,6 +684,91 @@ test('Club : un cours d’un groupe dont je ne suis pas reste à l’agenda, san
   await ctx.close();
 });
 
+test('Club : Gérer le club sans cours individuels, cartes vides, en-tête de discussion, onglet Bar', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/index.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  const liste = await page.evaluate(() => { GROUPS.push({ id: 'zc1', type: 'train', name: 'Cours individuel test', once: isoIn(1), mem: [], day: 1, h: '10 h', dur: '1 h', sub: 'x' }); const h = V.admin(); GROUPS.pop(); return h; });
+  assert.ok(!liste.includes('Cours individuel test'), 'pas de cours individuel');
+  // l'en-tête d'une discussion : ni sourdine ni cloche ; la sourdine est dans les réglages
+  await page.evaluate(() => { S.stack = [{ v: 'chan', id: chans[0].id }]; render(); });
+  await page.waitForSelector('#top [data-a="chanCfg"]');
+  assert.equal(await page.locator('#top [data-a="mute"]').count(), 0);
+  assert.equal(await page.locator('#top [data-a="notifs"]').evaluate(x => getComputedStyle(x).display), 'none');
+  await page.click('#top [data-a="chanCfg"]');
+  await page.waitForSelector('#sheet [data-a="mute"]');
+  const m0 = await page.evaluate(() => !!chans[0].mute);
+  await page.click('#sheet [data-a="mute"]');
+  assert.equal(await page.evaluate(() => !!chans[0].mute), !m0);
+  assert.equal(await page.getAttribute('#sheet [data-a="mute"]', 'aria-checked'), String(!m0));
+  // cartes vides
+  assert.ok(await page.evaluate(() => { const c = chans[0], l = c.msgs; c.msgs = []; S.stack = [{ v: 'chan', id: c.id }]; closeSheet(); render(); const ok = !!document.querySelector('.chat > .card > .empty'); c.msgs = l; return ok; }), 'aucun message : une carte');
+  // onglet Bar : le trophée reste petit
+  const haut = await page.evaluate(() => { const d = document.createElement('details'); d.className = 'more'; d.innerHTML = '<summary>' + ic('trophy') + 'x</summary>'; document.body.append(d); const h = d.querySelector('svg').getBoundingClientRect().height; d.remove(); return h; });
+  assert.ok(haut <= 24, 'picto à sa taille');
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
+test('Coach : participants d’une séance, Mes groupes, Suivi, formule d’un groupe, cycle sans dates, périodes en une fois', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
+  // navigation
+  assert.deepEqual(await page.evaluate(() => TABBAR.map(t => t[2]).filter(t => /Suivi|Mes /.test(t))), ['Suivi', 'Mes groupes']);
+  // participants
+  const r = await page.evaluate(() => { const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x) && coStu(x).length), d = coDates(g, isoIn(-40), TODAY).slice(-1)[0], k = coStu(g)[0]; S.stack = [{ v: 'seance', id: g.id + '.' + d }]; render(); return { id: g.id + '.' + d, k, g: g.id }; });
+  await page.waitForSelector('[data-a="coSesRm"]');
+  assert.ok(await large(), 'la fiche tient à 360 px');
+  await page.click(`[data-a="coSesRm"][data-k="${r.k}"]`);
+  await page.waitForFunction(k => !document.querySelector(`[data-a="coSesRm"][data-k="${k}"]`), r.k);
+  assert.ok(await page.evaluate(g => { const x = grp(g); return coStu(x).length > 0; }, r.g), 'il reste dans le groupe');
+  await page.click('[data-a="coPlus"]');
+  await page.waitForSelector('#co-plus');
+  await page.check(`#co-plus input[value="${r.k}"]`);
+  await page.click('#co-plus .btn.full');
+  await page.waitForSelector(`[data-a="coSesRm"][data-k="${r.k}"]`);
+  assert.equal(await page.evaluate(id => (sesGet(id).plus || []).length + (sesGet(id).out || []).length, r.id), 0, 'il revient, sans être compté en plus');
+  // Mes groupes : le picto du groupe actif
+  await page.evaluate(() => { S.stack = []; S.tab = 'clubs'; render(); });
+  await page.waitForSelector('.cogon');
+  assert.equal(await page.locator('.cofr .tg').count(), 0, 'plus d’interrupteur');
+  assert.equal(await page.$eval('.cogon[aria-pressed="true"] svg', x => getComputedStyle(x).fill !== 'none'), true, 'plein');
+  // la formule d'un groupe se choisit directement
+  const gid = await page.evaluate(() => { const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x)); delete g.offre; g.cycles = []; OFFRES.packs = [{ id: 'p10', formule: OFFRES.formules[0] ? OFFRES.formules[0].id : '', nom: 'Pack 10', seances: 10, prix: 200 }]; S.stack = [{ v: 'cgroupe', id: g.id }]; render(); return g.id; });
+  await page.click('[data-a="coGrpOf"]');
+  await page.waitForSelector('#co-gof');
+  await page.selectOption('#co-gof-o', 'pack:p10');
+  await page.click('#co-gof .btn.full');
+  await page.waitForFunction(id => grp(id).offre === 'pack:p10', gid);
+  // cycle sans dates : la jauge compte le pack entier, aucune alerte, et une séance posée s'y ajoute
+  const cy = await page.evaluate(id => { const g = grp(id); g.to = isoIn(-400); g.from = isoIn(-500); g.extra = []; g.cycles = [{ id: 'cz', nom: 'Pack', n: 10, offre: 'pack:p10', dates: [] }]; render(); return { txt: document.querySelector('#main').textContent, n: REGLES.cycleEtat(g, g.cycles[0], d => sesFind(g, d), TODAY).prevues }; }, gid);
+  assert.equal(cy.n, 10);
+  assert.ok(!/rattachées pour un pack/.test(cy.txt), 'pas de message d’erreur');
+  assert.ok(await page.locator('.cocycb i.pose').count() >= 1, 'les séances à poser se voient');
+  await page.evaluate(id => { const g = grp(id); g.extra = [isoIn(3)]; render(); }, gid);
+  assert.equal(await page.evaluate(id => grp(id).cycles[0].dates.length, gid), 1, 'la séance posée entre dans le cycle');
+  // périodes de travail
+  await page.evaluate(() => { S.stack = []; S.tab = 'me'; OFFRES.dispos = []; render(); });
+  await page.click('[data-a="coDispoAdd"]');
+  await page.waitForSelector('#co-dispo');
+  assert.ok(await large(), 'le formulaire tient à 360 px');
+  await page.click('[data-a="coDiPlus"]');
+  assert.equal(await page.locator('.codic').count(), 3);
+  await page.click('#co-dispo > .btn.full');
+  await page.waitForFunction(() => (OFFRES.dispos || []).length === 15, null, { timeout: 4000 });
+  // Suivi
+  await page.evaluate(() => { S.stack = []; S.tab = 'asuivi'; render(); });
+  await page.waitForSelector('.cosuivit');
+  assert.ok(/Bilans à écrire/.test(await page.textContent('#main')) && /Paiements à régulariser/.test(await page.textContent('#main')));
+  assert.ok(await large(), 'le Suivi tient à 360 px');
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
 test('Coach : mes disponibilités, ce qui reste libre s’affiche au planning', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
@@ -687,11 +777,12 @@ test('Coach : mes disponibilités, ce qui reste libre s’affiche au planning', 
   await page.evaluate(() => { OFFRES.dispos = []; OFFRES.conges = []; A.open({ v: 'me' }); });
   await page.click('[data-a="coDispoAdd"]');
   const jour = await page.evaluate(() => new Date(isoIn(1).split('-').map(Number)[0], isoIn(1).split('-').map(Number)[1] - 1, isoIn(1).split('-').map(Number)[2]).getDay());
-  await page.selectOption('#co-di-j', String(jour));
-  await page.fill('#co-di-d', '06:00');
-  await page.fill('#co-di-a', '08:00');
+  await page.$$eval('.codij input', (l, j) => l.forEach(x => { x.checked = +x.value === j; }), jour);
+  await page.click('.codic:nth-child(2) [data-a="coDiMoins"]');
+  await page.fill('.codic .codid', '06:00');
+  await page.fill('.codic .codia', '08:00');
   await page.fill('#co-di-l', 'Site test');
-  await page.click('#co-dispo .btn.full');
+  await page.click('#co-dispo > .btn.full');
   await page.waitForSelector('[data-a="coDispoDel"]');
   await page.evaluate(() => { S.stack = []; S.pl.w = coDow(TODAY) === 0 ? 1 : 0; A.tab({ t: 'planning' }); });
   await page.waitForFunction(() => document.querySelector('.cowf') && /Libre 6 h – 8 h · Site test/.test(document.querySelector('.cowf').title));
