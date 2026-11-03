@@ -758,6 +758,8 @@ test('Coach : le calendrier de paiement d’un pack, et les filtres du Suivi', a
   assert.match(form, /value="10"/);
   // Suivi : les filtres des bilans et le filtre des paiements
   await page.evaluate(() => { S.stack = []; A.tab({ t: 'asuivi' }); });
+  assert.equal(await page.locator('[data-a="coSuiviB"]').count(), 0, 'filtre des bilans replié, comme celui des paiements');
+  await page.click('[data-a="coSuiviBO"]');
   await page.waitForSelector('[data-a="coSuiviB"][data-v="tout"]');
   const n = async () => page.locator('#main .colist').first().locator('.item').count();
   const a = await n();
@@ -1207,3 +1209,24 @@ test('Club : agenda en cartes communes, l’étiquette du jour reste en haut pui
   assert.ok(Math.abs(r.c - r.a) < 2, 'étiquette fixe au défilement');
   await page.close();
 });
+
+test('Coach : en paysage, les sections se rangent sur deux colonnes ; sur téléphone et au planning, non', async () => {
+  const page = await browser.newPage({ viewport: { width: 1180, height: 820 } });
+  page.on('pageerror', e => { throw e; });
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof coBento === 'function');
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); const e = coElGet(coStudents()[0]); e.achats = [{ id: 'hz', t: 'pack', ref: 'p1', d: TODAY, nom: 'Pack essai', n: 3, prix: 90, pay: { ech: [{ s: 0, m: 90, ok: '' }] } }]; A.tab({ t: 'asuivi' }); });
+  await page.waitForSelector('.cobent .cocol .cosec');
+  const c = await page.evaluate(() => [...document.querySelectorAll('.cobent .cocol')].map(x => [x.getBoundingClientRect().left, x.querySelectorAll('.cohd').length]));
+  assert.ok(c[0][0] < c[1][0], 'côte à côte');
+  assert.ok(c[0][1] >= 1 && c[1][1] >= 1, 'une section de chaque côté');
+  await page.evaluate(() => A.tab({ t: 'planning' }));
+  await page.waitForSelector('.covues');
+  assert.equal(await page.locator('.cobent').count(), 0, 'le calendrier garde sa largeur');
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.evaluate(() => A.tab({ t: 'asuivi' }));
+  await page.waitForSelector('[data-a="coSuiviBO"]');
+  assert.equal(await page.locator('.cobent').count(), 0, 'une colonne sur téléphone');
+  await page.close();
+});
+

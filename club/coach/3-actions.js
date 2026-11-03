@@ -716,6 +716,10 @@ Object.assign(A, {
     S.coPick = [];
     render(true);
   },
+  coSuiviBO() {
+    S.suiviBO = !S.suiviBO;
+    render(true);
+  },
   coSuiviP(d) {
     S.suiviP = d.v;
     render(true);

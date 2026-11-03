@@ -457,9 +457,52 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('phone').classList.contains('drawer-open')) coDrawer(false);
 });
 const coRender1 = render;
+/* grand écran : un tableau de bord en bento. Les sections (un titre et ce qui le suit, ou une carte seule) se rangent sur
+   deux colonnes, chacune sous la plus courte ; chiffres, raccourcis et calendriers gardent toute la largeur */
+const CO_BENTO = window.matchMedia('(min-width: 1000px)');
+const CO_PLEIN = '.cotiles,.coshort,.cotopact,.covue,.cobento,.cosearchbar';
+function coBento() {
+  const main = $('main'),
+    pad = CO_BENTO.matches && main.querySelector(':scope > .pad');
+  if (!pad || pad.matches('.covues,.covuej,.covuem') || ['chan', 'dm', 'post', 'art', 'aide'].includes(view().v))
+    return;
+  const groupes = [];
+  [...pad.children].forEach(el => {
+    const der = groupes[groupes.length - 1];
+    if (el.matches('.cohd')) groupes.push({ els: [el], plein: false, titre: true });
+    else if (der && der.titre && (der.els.length < 2 || !el.matches(CO_PLEIN))) {
+      der.els.push(el);
+      der.plein = der.plein || el.matches(CO_PLEIN);
+    } else groupes.push({ els: [el], plein: el.matches(CO_PLEIN) || el.matches('.card:has(> .chips)') });
+  });
+  if (groupes.filter(g => !g.plein).length < 2) return;
+  const y = main.scrollTop;
+  let cols = null;
+  // chaque section reprend sa place dans l'ordre, à la suite ; les hauteurs se mesurent au fur et à mesure
+  groupes.forEach(g => {
+    const sec = document.createElement('section');
+    sec.className = 'cosec';
+    sec.append(...g.els);
+    if (g.plein) {
+      cols = null;
+      return pad.append(sec);
+    }
+    if (!cols) {
+      const b = document.createElement('div');
+      b.className = 'cobent';
+      b.innerHTML = '<div class="cocol"></div><div class="cocol"></div>';
+      cols = [...b.children];
+      pad.append(b);
+    }
+    (cols[1].offsetHeight < cols[0].offsetHeight ? cols[1] : cols[0]).append(sec);
+  });
+  main.scrollTop = y;
+}
+CO_BENTO.addEventListener('change', () => render(true));
 render = function () {
   const r = coRender1.apply(this, arguments),
     top = $('top');
+  coBento();
   if (top && !top.querySelector('.cobar')) {
     const dk = effDark(),
       bell = top.querySelector('[data-a="notifs"]');

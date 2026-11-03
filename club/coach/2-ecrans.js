@@ -282,15 +282,16 @@ function coSuivi() {
   S.coPayIds = dues.map(p => p.id);
   const tile = (i, n, t) => `<div class="cotile">${ic(i)}<b>${n}</b><span>${t}</span></div>`;
   return `<div class="pad cowide"><div class="cotiles cosuivit">${tile('doc', ids.length, ids.length > 1 ? 'Bilans à écrire' : 'Bilan à écrire')}${tile('euro', dues.length, dues.length > 1 ? 'Paiements à régulariser' : 'Paiement à régulariser')}${tile('euro', eur(total), 'À encaisser')}</div>
-${hd(
-  'Bilans à écrire',
-  `<span class="cofil chips">${coFiltre('coSuiviB', perB, [
-    ['j30', '30 derniers jours'],
-    ['tri', 'Ce trimestre'],
-    ['saison', 'Cette saison'],
-    ['tout', 'Tout confondu']
-  ])}${ids.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : ''}</span>`
-)}${sel ? coSelBar() : ''}${l.length ? list(l.join('')) : none('check', 'Tous les bilans sont écrits', 'Sur la période choisie.')}
+${hd('Bilans à écrire', `${ids.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviBO" aria-expanded="${!!S.suiviBO}" aria-label="Filtrer par période">${ic('funnel')}${perB !== 'j30' ? '<i class="codot"></i>' : ''}</button>`)}${
+    S.suiviBO
+      ? `<div class="chips">${coFiltre('coSuiviB', perB, [
+          ['j30', '30 derniers jours'],
+          ['tri', 'Ce trimestre'],
+          ['saison', 'Cette saison'],
+          ['tout', 'Tout confondu']
+        ])}</div>`
+      : ''
+  }${sel ? coSelBar() : ''}${l.length ? list(l.join('')) : none('check', 'Tous les bilans sont écrits', 'Sur la période choisie.')}
 ${hd('Paiements à régulariser', `${dues.length ? `<button class="chip" data-a="coSelModeP" aria-pressed="${selP}">${selP ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviPO" aria-expanded="${!!S.suiviPO}" aria-label="Filtrer par période">${ic('funnel')}${perP !== 'saison' ? '<i class="codot"></i>' : ''}</button>`)}${
     S.suiviPO
       ? `<div class="chips">${coFiltre('coSuiviP', perP, [
@@ -1079,8 +1080,8 @@ function coDash() {
       .map(q => chip(q[0], q[1]))
       .join('')}</div></div>
 <div class="cotiles">${coTile('clock', fr(F.h), 'Heures données')}${coTile('cal', F.n, 'Séances données')}${coTile('users', Object.keys(venus).length, 'Élèves venus')}${coTile('check', F.att == null ? '–' : F.att + ' %', 'Présence')}</div>
-${per === 'mois' ? hd(ic('chart') + 'Séances cumulées du mois') + `<div class="card">${coMonthCurve(histo)}</div>` : hd(ic('chart') + 'Heures mois par mois') + `<div class="card cobars comonths">${months.map(([l, n, h]) => `<div><b>${h ? fr(h) : ''}</b><i style="height:${Math.round((h / mx) * 100)}%"></i><span>${l}</span><small>${plural(n, 'séance')}</small></div>`).join('')}</div>`}
-<div class="cobento"><div class="cobmain">${hd(ic('ball') + 'Par formule')}<div class="card">${coActRows(rowsF) || empty('ball', 'Aucune séance', '')}</div>
+<div class="cobento"><div class="cobmain">${per === 'mois' ? hd(ic('chart') + 'Séances cumulées du mois') + `<div class="card">${coMonthCurve(histo)}</div>` : hd(ic('chart') + 'Heures mois par mois') + `<div class="card cobars comonths">${months.map(([l, n, h]) => `<div><b>${h ? fr(h) : ''}</b><i style="height:${Math.round((h / mx) * 100)}%"></i><span>${l}</span><small>${plural(n, 'séance')}</small></div>`).join('')}</div>`}
+${hd(ic('ball') + 'Par formule')}<div class="card">${coActRows(rowsF) || empty('ball', 'Aucune séance', '')}</div>
 ${hd(ic('users') + 'Par groupe')}<div class="card">${coActRows(rowsG) || empty('users', 'Aucun groupe', '')}</div></div>
 <div class="cobside">${hd(ic('star') + 'Élèves les plus présents')}<div class="card">${coActRows(rowsE, false) || '<p class="muted small">L\u2019appel n\u2019a pas encore été fait sur cette période.</p>'}</div>
 ${rowsC.length ? hd(ic('clubs') + 'Par club') + `<div class="card">${coActRows(rowsC)}</div>` : ''}${rowsS.length ? hd(ic('padel') + 'Par sport') + `<div class="card">${coActRows(rowsS)}</div>` : ''}
@@ -1257,18 +1258,32 @@ ${hd(ic('cal') + 'Séances à venir · ' + up.length, `<button class="chip" data
     up.length
       ? `<div class="coevs">${
           up
-            .slice(0, 12)
+            .slice(0, 6)
             .map(d => coSesRow(g, d))
             .join('') +
-          (up.length > 12
-            ? `<p class="muted small" style="padding:8px 0">Et ${plural(up.length - 12, 'autre séance', 'autres séances')}.</p>`
+          (up.length > 6
+            ? `<p class="muted small" style="padding:8px 0">Et ${plural(up.length - 6, 'autre séance', 'autres séances')}.</p>`
             : '')
         }</div>`
       : none('cal', 'Aucune séance à venir', 'Programme des séances : un pack, un cycle ou des dates une par une.')
   }
 ${coOffHtml(g)}
 ${next.length ? `<details class="card cothm"><summary><b>Thèmes des prochaines séances</b><span class="muted small"> · les élèves les voient dans leurs cours</span></summary><form id="co-themes" data-id="${g.id}">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist><button class="btn full">Enregistrer les thèmes</button></form></details>` : ''}
-${hd(ic('check') + 'Séances effectuées · ' + past.length, todo ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '')}${past.length ? `<div class="coevs">${past.map(d => coSesRow(g, d)).join('')}</div>` : none('check', 'Aucune séance faite', 'Après chaque séance : l’appel et le bilan, ici.')}
+${hd(ic('check') + 'Séances effectuées · ' + past.length, todo ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '')}${
+    past.length
+      ? `<div class="coevs">${past
+          .slice(0, 6)
+          .map(d => coSesRow(g, d))
+          .join('')}${
+          past.length > 6
+            ? `<details class="coplus"><summary>Voir les ${plural(past.length - 6, 'autre séance', 'autres séances')}</summary>${past
+                .slice(6)
+                .map(d => coSesRow(g, d))
+                .join('')}</details>`
+            : ''
+        }</div>`
+      : none('check', 'Aucune séance faite', 'Après chaque séance : l’appel et le bilan, ici.')
+  }
 ${
   recaps.length
     ? hd('Bilans du groupe') +
