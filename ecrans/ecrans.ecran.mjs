@@ -1329,3 +1329,27 @@ test('Club : le cadre de la carte des trophées reste dans chaque apparence, sur
   }
 });
 
+test('Club : la liste des commentaires ne défile pas sur le côté quand on glisse une bulle', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true }), page = await ctx.newPage();
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined', { polling: 300 });
+  const r = await page.evaluate(async () => {
+    document.querySelector('.ram-splash')?.remove();
+    const k = Object.keys(M).find(x => x !== 'club' && x !== ME());
+    posts.unshift({ id: 'pc', by: ME(), t: 'x', kind: 'annonce', title: 'x', body: 'x', likes: 0, com: [{ by: ME(), x: 'Quel match !!', t: 'x', re: { a: 1 } }, { by: k, x: 'Un score comme on aime', t: 'x' }] });
+    S.tab = 'home'; S.stack = []; render(); A.comments({ id: 'pc' });
+    const l = document.getElementById('com-list'), b = l.querySelector('.msg:not(.me) .bub'), t = x => new Touch({ identifier: 1, target: b, clientX: x, clientY: 500 });
+    b.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [t(100)], changedTouches: [t(100)] }));
+    b.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: [t(200)], changedTouches: [t(200)] }));
+    const c = getComputedStyle(l), av = { ox: c.overflowX, y: c.overflowY, ta: getComputedStyle(b).touchAction, bulle: b.closest('.bubw').style.transform };
+    l.scrollLeft = 40;
+    return Object.assign(av, { w: l.getBoundingClientRect().width });
+  });
+  assert.equal(r.ox, 'hidden');
+  assert.equal(r.y, 'auto', 'la liste défile toujours vers le bas');
+  assert.equal(r.ta, 'pan-y');
+  assert.ok(r.bulle.includes('translateX'), 'la bulle suit le doigt');
+  assert.ok(r.w <= 390);
+  await ctx.close();
+});
+

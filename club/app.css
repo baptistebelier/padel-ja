@@ -493,6 +493,9 @@ div.nrow{display:flex;gap:10px;align-items:flex-start}
 .fld input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;text-align:left}
 input[type=date]::-webkit-date-and-time-value{text-align:left}
 .sheet .body>*{min-width:0;max-width:100%}
+/* commentaires : la liste fait la largeur de l'écran ; glisser une bulle pour répondre ne la décale pas */
+.sheet .body.chat{overflow-x:hidden;overscroll-behavior-x:none}
+.bub[data-lp]{touch-action:pan-y}
 .fld .chk{display:flex;gap:12px;align-items:center;min-height:48px;font-family:var(--f-body);font-size:var(--t2);letter-spacing:0;text-transform:none;color:var(--fg);font-weight:500}
 .fld .chk input{width:26px;height:26px;min-height:0;flex:none;padding:0;accent-color:var(--accent)}
 .radio{display:grid;grid-template-columns:1fr 1fr;gap:10px}
