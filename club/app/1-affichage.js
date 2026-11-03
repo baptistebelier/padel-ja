@@ -46,7 +46,7 @@ const TITLES = {
   post: () => ['Publication', club().name],
   art: () => ['Actus', club().name],
   partners: () => ['Partenaires', club().name],
-  partner: id => [(PARTNERS.find(x => x.id === id) || { name: 'Partenaire' }).name, 'Partenaire de ' + club().name],
+  partner: () => ['Partenaire', club().name],
   archive: () => ['Archives', 'Saisons précédentes'],
   join: () => ['Adhérents', 'Faire entrer le club']
 };

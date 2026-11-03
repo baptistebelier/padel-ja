@@ -277,6 +277,7 @@ button.nm{padding-block:4px}
 .pafiche{align-items:flex-start;gap:12px}
 .pafiche .pbtns{width:100%}
 .pafiche p{margin:0}
+.pafiche .pbi{background:var(--accent);color:var(--on-accent)}
 .pcard img.big,.pafiche img.big,.adl.big{width:64px;height:64px;border-radius:12px;object-fit:contain;background:#fff}
 .adl.big{font-size:24px}
 .reqc{box-shadow:inset 0 0 0 2px var(--hot)}
