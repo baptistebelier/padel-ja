@@ -157,6 +157,31 @@ test('rappels : la veille et 2 h avant ; rien ne part si le cours est annulé', 
   assert.equal(envois.length, 0);
 });
 
+test('rappels : un élève annoncé absent n’en reçoit pas ; un cours déplacé a ses nouveaux rappels', async () => {
+  const { coach, club, key, d, a, ka } = await monte(30);
+  taches.faites.length = 0;
+  const r = await resa.reserver(a, club.id, key, { d, t: 570, formule: 'f1', objectif: 'Volée' });
+  const l = taches.faites.filter(x => x.kind === 'resa-rappel');
+  const rep = await ram.ops(a, club.id, [{ coll: 'cours', id: r.id, op: 'patch', patch: [{ p: ['resp', d, ka], t: 'set', v: 'no' }] }]);
+  assert.deepEqual(rep.rejected, []);
+  envois.length = 0;
+  await taches.handlers['resa-rappel'](l[0].p);
+  assert.equal(envois.length, 0, 'pas de rappel à un absent');
+  taches.faites.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: r.id, op: 'patch', patch: [{ p: ['h'], t: 'set', v: '11 h' }] }]);
+  await new Promise(x => setTimeout(x, 30));
+  const n = taches.faites.filter(x => x.kind === 'resa-rappel');
+  assert.deepEqual(n.map(x => x.p.h), ['11 h', '11 h'], 'les rappels suivent le cours');
+});
+
+test('annuler : l’élève qui annule est noté, pour dire à l’enseignant de qui ça vient', async () => {
+  const { club, key, d, a, ka } = await monte(31);
+  const r = await resa.reserver(a, club.id, key, { d, t: 570, formule: 'f1', objectif: 'Volée' });
+  await resa.annuler(a, club.id, r.id);
+  const x = (await ram.itemsOf(club.id, 'cours')).find(c => c.id === r.id);
+  assert.equal(x.data.annulePar, ka);
+});
+
 test('collectif : rien tant que le minimum n’est pas atteint, puis le cours suit les inscrits jusqu’au maximum', async () => {
   const { coach, club, key, d } = await monte(14);
   const post = ins => ({ by: key, kind: 'niveaux', at: Date.now(), nv: { mode: 'cours', sport: 'Padel', theme: 'Volée', time: '18 h', dur: '1 h 30', price: '15 €', dates: [d], tiers: [{ id: 't1', nom: 'Débutants', lo: 1, hi: 3, places: 2, max: 3 }, { id: 't2', lo: 4, hi: 6, places: 2 }], ins: { [d + '|t1']: ins, [d + '|t2']: ['z1'] }, at: {} } });

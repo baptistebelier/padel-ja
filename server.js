@@ -1221,7 +1221,7 @@ const server = http.createServer(async (req, res) => {
           return link ? json(res, 200, { url: link }) : json(res, link === undefined ? 503 : 400, { error: link === undefined ? 'Image non enregistrée : réessayez.' : 'Image illisible (PNG, JPEG ou WebP de 4 Mo au plus).' });
         }
         // anciennes versions de l'appli : leurs images intégrées sont rangées en fichiers avant l'enregistrement
-        if (m[2] === 'ops') return medias.extractOps(m[1], b.ops).then(ops => ram.ops(u.id, m[1], ops)).then(r => json(res, 200, r), fail);
+        if (m[2] === 'ops') return medias.extractOps(m[1], b.ops).then(ops => ram.ops(u.id, m[1], ops, { client: true })).then(r => json(res, 200, r), fail);
         if (m[2] === 'role') return ram.setRole(u.id, m[1], b.key, b.role).then(r => json(res, 200, r), fail);
         if (m[2] === 'remove') return ram.remove(u.id, m[1], b.key).then(r => json(res, 200, r), fail);
       }

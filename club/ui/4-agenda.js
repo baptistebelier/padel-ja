@@ -1,6 +1,9 @@
 /* /RAM Club — ui/4-agenda.js : Planning et agenda du club : semaine, jour, liste.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- planning ---------- */
+/* l'agenda du club : ce que le club organise (événements, stages, animations, tournois) ;
+   cours, séances collectives, parties dirigées et rencontres sont dans « Mon agenda » de ceux qui y participent */
+const CLUB_CATS = ['ani', 'tour'];
 function planItems(iso) {
   const [y, m, d] = iso.split('-').map(Number),
     wd = new Date(y, m - 1, d).getDay(),
@@ -80,7 +83,7 @@ function planItems(iso) {
         S.plan.cat[i.cat] !== false &&
         (!i.sport || S.plan.sp[i.sport]) &&
         (i.v !== 'grp' || seesMinors()) &&
-        (S.plan.scope === 'me' ? i.my : !i.priv && (!S.plan.mine || i.my))
+        (S.plan.scope === 'me' ? i.my : CLUB_CATS.includes(i.cat) && !i.priv && (!S.plan.mine || i.my))
     )
     .sort((a, b) => hMin(a.t) - hMin(b.t));
 }
@@ -266,16 +269,16 @@ const PLAN_CATS = [
   ['repas', 'Repas', 'cRepas']
 ];
 /* rappel des couleurs, au-dessus de la semaine */
+const planCatsOf = () => PLAN_CATS.filter(x => (S.plan.scope === 'me' ? true : CLUB_CATS.includes(x[0])));
 const planLegend = () =>
-  `<div class="pllegend" aria-label="Couleurs de l'agenda">${PLAN_CATS.filter(
-    x => (x[0] !== 'repas' || S.plan.scope === 'me') && S.plan.cat[x[0]]
-  )
+  `<div class="pllegend" aria-label="Couleurs de l'agenda">${planCatsOf()
+    .filter(x => S.plan.cat[x[0]])
     .map(x => `<span><i class="sq ${x[0]}"></i>${ic(x[2])}${x[1]}</span>`)
     .join('')}</div>`;
 /* filtres de l'agenda : nombre de filtres actifs (types masqués, sport masqué, « seulement les miens ») */
 function planFilterCount() {
   const P = S.plan,
-    cats = ['ens', 'jeu', 'ani', 'tour', 'eq'].concat(P.scope === 'me' ? ['repas'] : []);
+    cats = planCatsOf().map(x => x[0]);
   return (
     cats.filter(k => !P.cat[k]).length +
     ['Tennis', 'Padel'].filter(k => !P.sp[k]).length +
@@ -290,7 +293,7 @@ function planFiltersBody() {
     chip = (g, k, l, c, i) =>
       `<button class="chip plf" data-a="planF" data-g="${g}" data-k="${k}" aria-pressed="${!!P[g][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${i ? ic(i) : ''}${l}${P[g][k] ? ic('check') : ''}</button>`;
   return `<div class="body">${me ? '' : `<span class="kicker">Afficher</span><div class="chips wrap"><button class="chip" data-a="planMine" aria-pressed="${!!P.mine}">${ic('user')}Seulement les miens</button></div>`}
- <span class="kicker">Types</span><div class="chips wrap">${PLAN_CATS.filter(x => me || x[0] !== 'repas')
+ <span class="kicker">Types</span><div class="chips wrap">${planCatsOf()
    .map(x => chip('cat', x[0], x[1], x[0], x[2]))
    .join('')}</div>
  <span class="kicker">Sports</span><div class="chips wrap">${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>
@@ -313,8 +316,8 @@ const planCard = i =>
       sportTag(i.sport) +
       (i.tg1 || '')
   });
-/* Événements de l'agenda du club : tout ce qui est publié sur le mur avec une date (événements, stages,
-   tournois du club, tournois et animations /RAM JA, parties dirigées, séances collectives ; pas les parties des adhérents),
+/* Événements de l'agenda du club : ce qu'organise le club (événements, stages, animations,
+   tournois du club, tournois et animations /RAM JA),
    à venir sur 4 mois, une seule fois chacun (un stage sur plusieurs jours apparaît à son premier jour) */
 function eventsView() {
   const me = S.plan.scope === 'me',
@@ -345,7 +348,7 @@ function eventsView() {
         : empty(
             'cal',
             'Aucun événement à venir',
-            'Les événements, stages, tournois et séances du club apparaîtront ici.'
+            'Les événements, stages, animations et tournois du club apparaîtront ici.'
           )
   }</div>`;
 }
@@ -366,14 +369,13 @@ function planView() {
     byDay = P.mode === 'day';
   // deux agendas : le mien (tout ce où je me suis positionné) et celui du club ; chacun avec ses vues
   const me = P.scope === 'me',
-    views = ['events', 'week', 'day', 'list'];
+    views = ['events', 'week', 'day'];
   if (!views.includes(P.mode)) P.mode = views[0];
   const LBL = {
     next: ['À venir', 'list'],
     events: ['Événements', 'flag'],
     week: ['Semaine', 'cal'],
-    day: ['Jour', 'clock'],
-    list: ['Liste', 'list']
+    day: ['Jour', 'clock']
   };
   const mode = k =>
       `<button class="chip" data-a="planMode" data-m="${k}" aria-pressed="${P.mode === k}">${ic(LBL[k][1])}${LBL[k][0]}</button>`,
@@ -393,8 +395,6 @@ function planView() {
   if (P.mode === 'events') return eventsView().replace('<div class="pad">', '<div class="pad" id="plan">' + modes);
   const chip = (g2, k, l, c) =>
     `<button class="chip" data-a="planF" data-g="${g2}" data-k="${k}" aria-pressed="${!!P[g2][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
-  const dayBlock = iso =>
-    evDay(iso, planItems(iso).map(planCard).join('') || '<span class="muted small plc-v">Rien de prévu</span>');
   const strip = `<div class="wk">${days
     .map(iso => {
       const n = planItems(iso).length,
@@ -403,5 +403,5 @@ function planView() {
     })
     .join('')}</div>`;
   return `<div class="pad" id="plan">${modes}<div class="row" style="justify-content:space-between"><button class="ib rnd" data-a="planNav" data-n="-1" aria-label="${byDay ? 'Jour précédent' : 'Semaine précédente'}">${ic('back')}</button><span class="h3">${byDay ? fmtD(P.d) : 'Du ' + fmtD(days[0], 1) + ' au ' + fmtD(days[6], 1)}</span><button class="ib rnd" style="rotate:180deg" data-a="planNav" data-n="1" aria-label="${byDay ? 'Jour suivant' : 'Semaine suivante'}">${ic('back')}</button></div>
- ${P.mode === 'week' ? planLegend() + planGrid(days, false) + '<p class="muted small">Touche un bloc pour l\'ouvrir, un jour pour voir son détail. Glisse à gauche ou à droite pour changer de semaine.</p>' : byDay ? strip + planGrid([P.d], true) : strip + `<div class="plk">${days.map(dayBlock).join('')}</div>`}</div>`;
+ ${P.mode === 'week' ? planLegend() + planGrid(days, false) + '<p class="muted small">Touche un bloc pour l\'ouvrir, un jour pour voir son détail. Glisse à gauche ou à droite pour changer de semaine.</p>' : strip + planGrid([P.d], true)}</div>`;
 }

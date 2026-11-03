@@ -797,6 +797,14 @@ details.aide .aq p{margin:0;line-height:1.5}
 .evf{flex:0 0 100%;display:flex;flex-direction:column;gap:8px;position:relative;z-index:1}
 .evx.cx{opacity:.6}
 .evx.cx .evh{background:var(--hot);color:var(--on-hot)}
+/* raccourcis d'un cours (École) : un gros picto au-dessus du libellé, la couleur dit ce que fait le bouton */
+.ecacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ecact{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:10px 6px;border-radius:var(--rb);background:var(--card2);color:var(--fg);font-family:var(--f-sub);font-weight:700;font-size:14px;line-height:1.15;text-align:center}
+.ecact svg{width:26px;height:26px;flex:none}
+.ecact.go{background:var(--accent);color:var(--on-accent)}
+.ecact.warn{background:color-mix(in srgb,#F2A93B 22%,var(--card2))}
+.ecact.warn svg{color:#C97A0A}
+.ecact.del{background:color-mix(in srgb,var(--hot) 14%,var(--card2));color:var(--hot-tx,var(--hot))}
 /* l'étiquette du jour : elle reste en haut de l'écran tant qu'on est dans les cartes de ce jour */
 .evday{position:sticky;top:var(--segt,0px);z-index:3;margin:0;padding:6px 0 8px;background:var(--bg);transition:top .25s ease}
 .evday span{display:inline-block;max-width:100%;padding:4px 12px;background:var(--accent);color:var(--on-accent);font-family:var(--f-display);font-weight:400;font-size:24px;line-height:1.15;letter-spacing:.01em;text-transform:uppercase}

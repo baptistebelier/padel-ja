@@ -629,18 +629,16 @@ test('Club : favoris avec du nouveau en tête, réglages d’une discussion, fil
   const large = () => page.evaluate(() => { const m = document.getElementById('main').clientWidth, p = document.getElementById('plan').offsetWidth; return p >= m - 2; });
   assert.ok(await large(), 'semaine sur toute la largeur');
   assert.equal(await page.locator('.fbtn svg').evaluate(s => getComputedStyle(s).display !== 'none'), true, 'pictogramme des filtres');
-  await page.evaluate(() => { S.plan.mode = 'list'; render(); });
-  await page.waitForSelector('.plk .plc');
-  assert.ok(await large(), 'liste sur toute la largeur');
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).gridAutoFlow), 'column', 'en colonnes');
+  assert.equal(await page.locator('[data-a="planMode"][data-m="list"]').count(), 0, 'plus de vue Liste');
   await page.evaluate(() => { S.plan.mode = 'events'; render(); });
   await page.waitForSelector('.plk .plc');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).gridAutoFlow), 'column', 'en colonnes');
   assert.ok(await page.locator('.plk .plc').count() >= 7, 'une colonne par jour, au moins sept');
   assert.ok(await page.evaluate(() => { const p = document.querySelector('.plk'); return p.scrollWidth > p.clientWidth || p.querySelectorAll('.plc').length * 242 <= p.clientWidth; }), 'les colonnes défilent');
   assert.ok(await large(), 'rien ne déborde de la page');
   // filtres : la couleur reste visible, l'état actif a sa coche
   await page.click('[data-a="planFilters"]');
-  const f = page.locator('.chip.plf', { hasText: 'Cours' });
+  const f = page.locator('.chip.plf', { hasText: 'Tournois' });
   assert.equal(await f.getAttribute('aria-pressed'), 'true');
   assert.ok(await f.locator('svg').count() >= 2, 'pictogramme et coche');
   assert.notEqual(await f.evaluate(b => getComputedStyle(b).backgroundColor), await f.locator('.sq').evaluate(s => getComputedStyle(s).backgroundColor), 'le carré se distingue');
@@ -658,7 +656,7 @@ test('Club : favoris avec du nouveau en tête, réglages d’une discussion, fil
   await ctx.close();
 });
 
-test('Club : un cours d’un groupe dont je ne suis pas reste à l’agenda, sans sa discussion ni ses élèves', async () => {
+test('Club : un cours d’un groupe dont je ne suis pas n’est pas dans l’agenda du club, sa fiche reste sans sa discussion ni ses élèves', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
   await page.goto(DEMO + '/index.html');
@@ -672,11 +670,11 @@ test('Club : un cours d’un groupe dont je ne suis pas reste à l’agenda, san
     for (let i = 0; i < 14 && !trainOn(g, iso); i++) iso = isoIn(1, iso);
     S.plan.scope = 'club';
     const it = planItems(iso).find(x => x.id === g.id);
-    return { ok: chanOk(c), v: it && it.v, id: g.id };
+    return { ok: chanOk(c), present: !!it, id: g.id };
   });
   assert.ok(r, 'un groupe d’essai');
   assert.equal(r.ok, false, 'pas sa discussion');
-  assert.equal(r.v, 'ginfo', 'le cours reste à l’agenda');
+  assert.equal(r.present, false, 'l’agenda du club ne montre que ce que le club organise');
   await page.evaluate(id => A.open({ v: 'ginfo', id }), r.id);
   await page.waitForFunction(() => document.body.innerText.includes('réservées aux membres du groupe'));
   assert.deepEqual(errs, []);
@@ -1190,7 +1188,7 @@ test('Club : agenda en cartes communes, l’étiquette du jour reste en haut pui
   page.on('pageerror', e => { throw e; });
   await page.goto(JA + '/club/index.html');
   await page.waitForFunction(() => typeof S !== 'undefined' && typeof planCard === 'function');
-  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = 'list'; S.plan.d = TODAY; render(); });
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'agenda'; S.stack = []; S.plan.scope = 'me'; S.plan.mode = 'events'; S.plan.d = TODAY; render(); });
   await page.waitForSelector('.plc .evday');
   assert.equal(await page.locator('.dblk').count(), 0, 'plus de date dans les cartes');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'rien ne déborde à 360 px');
@@ -1350,6 +1348,63 @@ test('Club : la liste des commentaires ne défile pas sur le côté quand on gli
   assert.equal(r.ta, 'pan-y');
   assert.ok(r.bulle.includes('translateX'), 'la bulle suit le doigt');
   assert.ok(r.w <= 390);
+  await ctx.close();
+});
+
+test('Club : agenda du club réduit aux événements, sans vue Liste ; raccourcis de cours avec pictos', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof CLUB_CATS !== 'undefined', { polling: 300 });
+  const r = await page.evaluate(() => {
+    document.querySelector('.ram-splash')?.remove();
+    S.plan.scope = 'club'; S.plan.mode = 'list'; S.tab = 'agenda'; S.stack = []; render();
+    const cats = new Set();
+    for (let n = 0; n < 60; n++) planItems(isoIn(n)).forEach(i => cats.add(i.cat));
+    return { cats: [...cats], mode: S.plan.mode, filtres: planCatsOf().map(x => x[0]) };
+  });
+  assert.equal(r.mode, 'events', 'une ancienne vue Liste retombe sur Événements');
+  assert.deepEqual(r.filtres, ['ani', 'tour']);
+  assert.deepEqual(r.cats.filter(c => !['ani', 'tour'].includes(c)), []);
+  await page.evaluate(() => { const g = GROUPS.find(x => x.type === 'train' && !x.once); document.getElementById('main').insertAdjacentHTML('afterbegin', sessCard(g, TODAY, null, 1)); });
+  assert.equal(await page.locator('.ecact svg').count(), 4);
+  assert.ok(await page.locator('.ecact.del [d*="M4 7h16"]').count(), 'une corbeille pour supprimer');
+  assert.ok(await page.evaluate(() => { const s = document.querySelector('.ecact svg').getBoundingClientRect().height, f = parseFloat(getComputedStyle(document.querySelector('.ecact')).fontSize); return s > f; }), 'picto plus gros que le texte');
+  assert.ok(await page.evaluate(() => { const e = document.querySelector('.ecact.del'); return getComputedStyle(e).backgroundColor !== getComputedStyle(document.querySelector('.ecact:not(.go):not(.warn):not(.del)')).backgroundColor; }), 'code couleur');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('Club : revenir sur le mur par le glissement retrouve toute la page, à la même place', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof repeint === 'function', { polling: 300 });
+  const r = await page.evaluate(async () => {
+    document.querySelector('.ram-splash')?.remove();
+    S.tab = 'home'; S.stack = []; render();
+    const m = document.getElementById('main'), attend = t => new Promise(x => setTimeout(x, t));
+    await attend(100);
+    m.scrollTop = 500;
+    await attend(50);
+    const h0 = m.scrollHeight, y0 = m.scrollTop;
+    A.open({ v: 'post', id: posts.find(p => p.kind === 'event' || p.title).id });
+    await attend(400);
+    const el = m, t = x => new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 });
+    el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [t(10)], changedTouches: [t(10)] }));
+    el.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, cancelable: true, touches: [t(300)], changedTouches: [t(300)] }));
+    el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [t(300)] }));
+    await attend(700);
+    const vus = [...m.querySelectorAll('.post')].map(p => p.getBoundingClientRect().height);
+    return { stack: S.stack.length, h0, h1: m.scrollHeight, y0, y1: m.scrollTop, tr: m.style.transform, cl: m.className, plats: vus.filter(h => h < 10).length };
+  });
+  assert.equal(r.stack, 0, 'retour effectué');
+  assert.equal(r.h1, r.h0, 'la page garde toute sa hauteur');
+  assert.equal(r.y1, r.y0, 'à la même place');
+  assert.equal(r.tr, '', 'plus de décalage ni de calque restant');
+  assert.ok(!/swipe|pg-|sg-/.test(r.cl), r.cl);
+  assert.equal(r.plats, 0);
+  assert.deepEqual(errs, []);
   await ctx.close();
 });
 

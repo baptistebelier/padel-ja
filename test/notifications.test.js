@@ -114,3 +114,134 @@ test('/RAM Coach : réservation, inscrit de plus et annulation, prévenus dans l
   await settle();
   assert.match(sent[0][1].body, /Séance annulée/);
 });
+
+/* ---------- réservation : chaque notification du module, avec de vrais comptes ---------- */
+async function clubCours(n) {
+  const coach = 'CC' + n, club = await ram.create({ id: coach, name: 'Sarah Coach' }, { name: 'Club ' + n, short: 'C' + n });
+  const key = (await ram.myClubs(coach))[0].key;
+  await ram.ops(coach, club.id, [{ coll: 'conf', id: 'main', op: 'put', data: { name: 'Club ' + n, season: 'S' } }]);
+  const j = await ram.join({ id: 'EE' + n, name: 'Nina Anglade' }, club.code);
+  await ram.ops(coach, club.id, [{ coll: 'member', id: j.key, op: 'put', data: { n: 'Nina Anglade', valid: 'S' } }]);
+  await settle(); sent.length = 0;
+  return { coach, club, key, el: 'EE' + n, ek: j.key };
+}
+const D = '2031-03-04', D2 = '2031-03-11';
+const dernier = () => sent.map(x => [x[0], x[1].app || 'club', x[1].body]);
+
+test('absence : un élève l’annonce sur son cours réservé, l’enseignant est prévenu dans /RAM Coach', async () => {
+  const { coach, club, key, el, ek } = await clubCours(1);
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'r1', op: 'put', data: { type: 'train', name: 'Cours individuel', once: D, h: '9 h', dur: '1 h', coach: key, mem: [ek], cal: 'ram:r1' } }], { client: true });
+  await settle(); sent.length = 0;
+  const r = await ram.ops(el, club.id, [{ coll: 'cours', id: 'r1', op: 'patch', patch: [{ p: ['resp', D, ek], t: 'set', v: 'no' }] }], { client: true });
+  assert.deepEqual(r.rejected, [], 'le serveur accepte');
+  await settle();
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0][0], coach);
+  assert.equal(sent[0][1].app, 'coach');
+  assert.match(sent[0][1].body, /Nina sera absent : Cours individuel, .* à 9 h/);
+  sent.length = 0;
+  await ram.ops(el, club.id, [{ coll: 'cours', id: 'r1', op: 'patch', patch: [{ p: ['resp', D, ek], t: 'set', v: 'ok' }] }], { client: true });
+  await settle();
+  assert.match(sent[0][1].body, /Nina sera finalement là/);
+});
+
+test('absence : un élève ne répond que pour lui, sur son cours, et ne change rien d’autre', async () => {
+  const { coach, club, key, el, ek } = await clubCours(2);
+  await ram.ops(coach, club.id, [
+    { coll: 'cours', id: 'r1', op: 'put', data: { type: 'train', name: 'A', once: D, h: '9 h', coach: key, mem: [ek] } },
+    { coll: 'cours', id: 'r2', op: 'put', data: { type: 'train', name: 'B', once: D, h: '9 h', coach: key, mem: [] } }
+  ]);
+  const essai = async (id, patch) => (await ram.ops(el, club.id, [{ coll: 'cours', id, op: 'patch', patch }])).rejected.length;
+  assert.equal(await essai('r2', [{ p: ['resp', D, ek], t: 'set', v: 'no' }]), 1, 'pas le cours d’un autre');
+  assert.equal(await essai('r1', [{ p: ['resp', D, 'autre'], t: 'set', v: 'no' }]), 1, 'pas pour un autre élève');
+  assert.equal(await essai('r1', [{ p: ['mem'], t: 'add', v: ek }]), 1, 'pas les participants');
+  assert.equal(await essai('r1', [{ p: ['abs', D], t: 'add', v: ek }]), 0, 'sa propre absence');
+});
+
+test('absence sur un groupe, par un parent pour son enfant : l’enseignant est prévenu', async () => {
+  const { coach, club, key, el, ek } = await clubCours(3);
+  await ram.ops(coach, club.id, [
+    { coll: 'member', id: 'kid3', op: 'put', data: { n: 'Léo Anglade', parent: ek, valid: 'S' } },
+    { coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Mini-tennis', day: 2, h: '17 h', dur: '1 h', coach: key, mem: ['kid3'] } }
+  ]);
+  await settle(); sent.length = 0;
+  await ram.ops(el, club.id, [{ coll: 'group', id: 'g1', op: 'patch', patch: [{ p: ['abs', D], t: 'add', v: 'kid3' }] }]);
+  await settle();
+  assert.deepEqual(dernier().map(x => x.slice(0, 2)), [[coach, 'coach']]);
+  assert.match(sent[0][1].body, /Léo sera absent : Mini-tennis/);
+});
+
+test('l’enseignant annule, rétablit, déplace, change le lieu : les élèves sont prévenus, pas lui', async () => {
+  const { coach, club, key, el, ek } = await clubCours(4);
+  const c = { type: 'train', name: 'Cours individuel', once: D, h: '9 h', dur: '1 h', coach: key, mem: [ek], cal: 'ram:r1' };
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'r1', op: 'put', data: c }, { coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Collectif', day: 2, h: '17 h', dur: '1 h', coach: key, mem: [ek] } }], { client: true });
+  await settle();
+  const patch = async (coll, id, p) => { sent.length = 0; await ram.ops(coach, club.id, [{ coll, id, op: 'patch', patch: p }], { client: true }); await settle(); return dernier(); };
+  let l = await patch('cours', 'r1', [{ p: ['cancel'], t: 'add', v: D }]);
+  assert.deepEqual(l.map(x => x[0]), [el], 'l’élève seul');
+  assert.match(l[0][2], /Cours annulé : Cours individuel/);
+  l = await patch('cours', 'r1', [{ p: ['cancel'], t: 'rm', v: D }]);
+  assert.match(l[0][2], /Cours rétabli/);
+  l = await patch('cours', 'r1', [{ p: ['once'], t: 'set', v: D2 }, { p: ['h'], t: 'set', v: '10 h' }]);
+  assert.match(l[0][2], /Cours déplacé : Cours individuel, .* à 10 h/);
+  l = await patch('group', 'g1', [{ p: ['loc', D], t: 'set', v: 'Extérieur' }]);
+  assert.match(l[0][2], /le cours aura lieu en extérieur/);
+  l = await patch('group', 'g1', [{ p: ['cancel'], t: 'add', v: D }]);
+  assert.match(l[0][2], /Cours annulé : Collectif/);
+  l = await patch('group', 'g1', [{ p: ['skip'], t: 'add', v: D }, { p: ['extra'], t: 'add', v: D2 }]);
+  assert.match(l[0][2], /Collectif : la séance du .* passe au /);
+});
+
+test('un cours posé par l’enseignant : l’élève est prévenu ; une date passée : personne', async () => {
+  const { coach, club, key, el, ek } = await clubCours(5);
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'n1', op: 'put', data: { type: 'train', name: 'Cours duo', once: D, h: '9 h', coach: key, mem: [ek] } }], { client: true });
+  await settle();
+  assert.deepEqual(to(), [el]);
+  assert.match(sent[0][1].body, /Nouveau cours : Cours duo/);
+  sent.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'n1', op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: '2020-01-01' }] }], { client: true });
+  await settle();
+  assert.equal(sent.length, 0);
+});
+
+test('réglage « Mes cours » coupé : l’élève n’est plus prévenu', async () => {
+  const { coach, club, key, el, ek } = await clubCours(6);
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'r1', op: 'put', data: { type: 'train', name: 'Cours', once: D, h: '9 h', coach: key, mem: [ek] } }]);
+  await ram.ops(el, club.id, [{ coll: 'prefs', id: ek, op: 'put', data: { nset: { resa: false } } }]);
+  await settle(); sent.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'r1', op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: D }] }], { client: true });
+  await settle();
+  assert.equal(sent.length, 0);
+});
+
+test('réservation : l’élève réserve, se retire, annule ; l’enseignant apprend qui, l’élève n’est pas prévenu de son propre geste', async () => {
+  const { coach, club, key, el, ek } = await clubCours(7);
+  const c = { type: 'train', name: 'Cours', once: D, h: '9 h', coach: key, mem: [ek], cal: 'ram:r1' };
+  // écrit par le serveur au nom de l'enseignant (lib/reservation.js)
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'r1', op: 'put', data: c }]);
+  await settle();
+  assert.deepEqual(dernier().map(x => [x[0], x[1]]), [[coach, 'coach']]);
+  assert.match(sent[0][1].body, /Nouvelle réservation : Cours .* avec Nina/);
+  sent.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'r1', op: 'put', data: Object.assign({}, c, { cancel: [D], annulePar: ek }) }]);
+  await settle();
+  assert.deepEqual(dernier().map(x => x[0]), [coach], 'l’élève qui annule n’est pas prévenu');
+  assert.match(sent[0][1].body, /Nina annule : Cours/);
+});
+
+test('collectif : l’enseignant voit arriver et partir les inscrits avant le minimum', async () => {
+  const { coach, club, key, el, ek } = await clubCours(8);
+  const nv = { mode: 'cours', sport: 'Padel', theme: 'Volée', time: '18 h', dur: '1 h 30', dates: [D], tiers: [{ id: 't1', places: 4, min: 3 }], ins: {} };
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pc', op: 'put', data: { by: key, kind: 'niveaux', nv, at: Date.now() } }]);
+  await settle(); sent.length = 0;
+  await ram.ops(el, club.id, [{ coll: 'post', id: 'pc', op: 'patch', patch: [{ p: ['nv', 'ins', D + '|t1'], t: 'add', v: ek }] }]);
+  await settle();
+  const c = sent.filter(x => x[1].app === 'coach');
+  assert.equal(c.length, 1);
+  assert.match(c[0][1].body, /Nina s'inscrit : Volée/);
+  sent.length = 0;
+  await ram.ops(el, club.id, [{ coll: 'post', id: 'pc', op: 'patch', patch: [{ p: ['nv', 'ins', D + '|t1'], t: 'rm', v: ek }] }]);
+  await settle();
+  assert.match(sent.filter(x => x[1].app === 'coach')[0][1].body, /Nina se désinscrit : Volée/);
+});
+

@@ -1059,6 +1059,43 @@
           notify('resa', 'club', `: ${plus.map(nm).join(', ')} s'inscrit, ${String(b.name).toLowerCase()} ${when}`, go)
         );
     }
+    // un élève annonce son absence (ou revient) : l'enseignant ; un cours annulé ou déplacé : ses élèves
+    if ((coll === 'group' || coll === 'cours') && a) {
+      const abs = (g, d) => [
+        ...Object.keys((g.resp || {})[d] || {}).filter(k => g.resp[d][k] === 'no'),
+        ...((g.abs || {})[d] || [])
+      ];
+      if (b.coach === me)
+        [
+          ...new Set(
+            Object.keys(b.resp || {}).concat(
+              Object.keys(a.resp || {}),
+              Object.keys(b.abs || {}),
+              Object.keys(a.abs || {})
+            )
+          )
+        ].forEach(d => {
+          const av = abs(a, d),
+            ap = abs(b, d),
+            lieu = { v: 'seance', id: id + '.' + d };
+          ap.filter(k => !av.includes(k) && k !== me && known(k)).forEach(k =>
+            once(`abs/${id}/${d}/${k}`, () => notify('resa', k, `sera absent : ${b.name}, ${fmtD(d)}`, lieu))
+          );
+          av.filter(k => !ap.includes(k) && k !== me && known(k)).forEach(k =>
+            once(`absok/${id}/${d}/${k}`, () => notify('resa', k, `sera finalement là : ${b.name}, ${fmtD(d)}`, lieu))
+          );
+        });
+      const mien = (b.mem || []).some(k => (k === me || kids.includes(k)) && k !== b.annulePar);
+      if (mien && !b.nv && b.coach !== me && known(b.coach)) {
+        added(a.cancel, b.cancel).forEach(d =>
+          once(`cx/${id}/${d}`, () => notify('resa', b.coach, `annule le cours ${b.name}, ${fmtD(d)}`, { v: 'agenda' }))
+        );
+        if (b.once && a.once && (a.once !== b.once || a.h !== b.h))
+          once(`mv/${id}/${b.once}/${b.h}`, () =>
+            notify('resa', b.coach, `déplace le cours ${b.name} au ${fmtD(b.once)} à ${b.h}`, { v: 'agenda' })
+          );
+      }
+    }
     if (coll === 'post' && a) {
       const go = { v: 'post', id },
         mine = b.by === me,

@@ -5,13 +5,37 @@ let lastKey = '',
   lastFoot = '',
   slT,
   toastT;
+/* iPhone : après un glissement ou une animation de page, Safari peut ne repeindre que le haut de la zone qui défile
+   (le reste de la page reste vide jusqu'au prochain geste) : on force un nouveau dessin */
+function repeint() {
+  const m = $('main');
+  requestAnimationFrame(() => {
+    if (m.classList.contains('swipe-back') || m.classList.contains('swipe-done')) return;
+    m.style.transform = 'translateZ(0)';
+    requestAnimationFrame(() => {
+      m.style.transform = '';
+      const y = m.scrollTop;
+      if (y > 0) {
+        m.scrollTop = y - 1;
+        m.scrollTop = y;
+      }
+    });
+  });
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) repeint();
+});
+window.addEventListener('pageshow', () => repeint());
 function slide(c) {
   const m = $('main');
   m.classList.remove('pg-r', 'pg-l', 'sg-r', 'sg-l');
   void m.offsetWidth;
   m.classList.add(c);
   clearTimeout(slT);
-  slT = setTimeout(() => m.classList.remove(c), 320);
+  slT = setTimeout(() => {
+    m.classList.remove(c);
+    repeint();
+  }, 320);
 }
 const ROLE = {
   wait: 'Nouvel inscrit en attente de validation',
@@ -232,6 +256,7 @@ function render(keep) {
     S.dir = 0;
   }
   S.dir = 0;
+  if (key !== lastKey) repeint();
   lastKey = key;
   lastFoot = fk;
 }

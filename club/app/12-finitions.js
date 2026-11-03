@@ -88,7 +88,7 @@ fxWrap('tab', () => {
   s.classList.add('bnc');
 });
 // appui sur un bouton : il s'enfonce (au moins 150 ms, même pour un tap éclair), puis revient avec un ressort
-const FX_PRESS = '.btn,.chip,.ib,.act,.item,.pit,.menu button,.seg button,.tabs button';
+const FX_PRESS = '.btn,.chip,.ib,.act,.ecact,.item,.pit,.menu button,.seg button,.tabs button';
 document.addEventListener(
   'pointerdown',
   e => {

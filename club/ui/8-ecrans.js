@@ -76,7 +76,7 @@ const V = {
         : '';
     return `<div class="chat">${older}${lpHelp()}${c.kid && S.role !== 'kid' ? `<div class="note">Tu lis ce canal en tant que parent de Léo.</div>` : ''}${c.msgs.map((m, i) => msgRow(m, i, c.sport, 'c:' + c.id, S.sent && i === c.msgs.length - 1)).join('') || emptyCard('chat', 'Aucun message', 'Lance la discussion.')}${typingSlot('c:' + c.id)}</div>`;
   },
-  /* les modes de l'agenda (Événements, Semaine, Jour, Liste) deviennent des onglets, comme sur les autres pages */
+  /* les modes de l'agenda (Événements, Semaine, Jour) deviennent des onglets, comme sur les autres pages */
   agenda() {
     const h = agendaView(),
       // en haut de la page : « Mon agenda » / « Agenda du club » ; les vues (À venir, Semaine…) restent dessous

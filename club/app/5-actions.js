@@ -309,7 +309,7 @@ const A = {
     render(true);
     toast(
       r[d.u] === 'ok'
-        ? "Présence confirmée · l'enseignant est prévenu"
+        ? 'Présence confirmée'
         : r[d.u] === 'no'
           ? "Absence signalée · l'enseignant est prévenu"
           : 'Réponse retirée'
