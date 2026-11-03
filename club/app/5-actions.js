@@ -101,6 +101,7 @@ const A = {
     S.pop = null;
   },
   comments(d) {
+    S.reply = null;
     sheet('Commentaires', commentsBody(posts.find(p => p.id === d.id)));
   },
   follow(d) {
@@ -186,6 +187,7 @@ const A = {
   delPartner(d) {
     const i = PARTNERS.findIndex(x => x.id === d.id);
     if (i < 0) return;
+    if (view().v === 'partner') S.stack.pop();
     const x = PARTNERS.splice(i, 1)[0],
       ads = posts.filter(p => p.kind === 'ad').map(p => [p, p.partners.slice()]);
     ads.forEach(([p]) => (p.partners = p.partners.filter(y => y !== d.id)));
@@ -352,9 +354,12 @@ const A = {
       m = l && l[+d.i];
     if (!m) return;
     S.reply = { by: m.by, x: m.x || 'Photo' };
-    closeSheet();
+    // un commentaire : on revient à la liste, le champ de commentaire est prêt
+    const com = d.ref.startsWith('p:');
+    if (com) $('com-form') || comBack(d.ref);
+    else closeSheet();
     showAtt();
-    const i = $('msg-input');
+    const i = $(com ? 'com-input' : 'msg-input');
     if (i) i.focus();
   },
   promo(d) {
@@ -697,12 +702,44 @@ const A = {
       ev && ['image', "Terminer l'événement", 'evDone', at],
       adm && p.kind !== 'ad' && ['flag', p.pin ? 'Détacher du haut du mur' : 'Épingler en haut du mur', 'pin', at],
       (mine || adm) &&
-        ['annonce', 'event', 'cta', 'poll', 'comm'].includes(p.kind) &&
+        ['annonce', 'event', 'cta', 'poll', 'comm', 'play'].includes(p.kind) &&
         !p.arch && ['edit', 'Modifier', 'pedit', at],
       (mine || adm) && ['trash', 'Supprimer', 'pdel', at, 1],
       !mine && ['flag', 'Signaler cette publication', 'preport', at],
       !mine && p.by !== 'club' && ['block', 'Bloquer ' + first(p.by), 'block', `data-id="${p.by}"`, 1]
     ]);
+  },
+  /* profil : les chiffres mènent au palmarès, les abonnés à leur liste */
+  palmGo() {
+    S.palm = 'tennis';
+    if (S.tab === 'me' && !S.stack.length) S.meTab = 'jeu';
+    render(true);
+    const m = $('main'),
+      el = $('palmares');
+    if (el)
+      m.scrollTo({
+        top: m.scrollTop + el.getBoundingClientRect().top - m.getBoundingClientRect().top - 12,
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+      });
+  },
+  folList(d) {
+    const l = followersOf(d.id);
+    sheet(
+      'Abonnés de ' + first(d.id),
+      `<div class="body">${
+        l.length
+          ? `<div class="menu">${l.map(k => `<button data-a="member" data-id="${k}">${av(k, 'sm')}${name(k)}</button>`).join('')}</div>`
+          : empty('users', 'Aucun abonné à afficher', '')
+      }</div>`
+    );
+  },
+  paEdit(d) {
+    const x = PARTNERS.find(y => y.id === d.id);
+    if (!x) return;
+    sheet(
+      'Modifier le partenaire',
+      `<form class="body" id="pa-edit" data-id="${x.id}">${F('pa-name', "Nom de l'entreprise", '', x.name)}${T('pa-desc', 'Description', 'Activité, lien avec le club…', x.desc || '')}${paFields(x)}<button class="btn full">Enregistrer</button></form>`
+    );
   },
   rimg(d) {
     S.img = null;
@@ -723,9 +760,10 @@ const A = {
           .replace(/&quot;/g, '"')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>');
+    if (p.kind === 'play') return playEdit(p);
     sheet(
       'Modifier',
-      `<form class="body" id="edit-form" data-id="${p.id}">${p.kind === 'poll' ? F('e-title', 'Question', '', plain(p.q)) : F('e-title', 'Titre', '', plain(p.title)) + T('e-body', 'Texte', '', plain(p.body))}${p.kind === 'event' ? F('e-place', 'Lieu', '', plain(p.place)) : ''}${p.kind === 'poll' ? '' : `<div class="fld"><label for="a-img">${p.img ? 'Remplacer la photo de couverture' : 'Ajouter une photo de couverture'}</label><input type="file" id="a-img" accept="image/*"><div class="prev" id="a-prev" ${p.img ? `style="background-image:url(${p.img})"` : 'hidden'}></div>${p.img ? `<label class="chk" for="e-noimg"><input type="checkbox" id="e-noimg">Retirer la photo</label>` : ''}</div>`}<button class="btn full">Enregistrer</button></form>`
+      `<form class="body" id="edit-form" data-id="${p.id}">${p.kind === 'poll' ? F('e-title', 'Question', '', plain(p.q)) : F('e-title', 'Titre', '', plain(p.title)) + T('e-body', 'Texte', '', plain(p.body))}${p.kind === 'event' ? F('e-place', 'Lieu', '', plain(p.place)) + (p.d ? evWhenFields(p) : '') : ''}${p.kind === 'poll' ? '' : `<div class="fld"><label for="a-img">${p.img ? 'Remplacer la photo de couverture' : 'Ajouter une photo de couverture'}</label><input type="file" id="a-img" accept="image/*"><div class="prev" id="a-prev" ${p.img ? `style="background-image:url(${p.img})"` : 'hidden'}></div>${p.img ? `<label class="chk" for="e-noimg"><input type="checkbox" id="e-noimg">Retirer la photo</label>` : ''}</div>`}<button class="btn full">Enregistrer</button></form>`
     );
   },
   pdel(d) {
@@ -781,7 +819,7 @@ const A = {
     const mine = m.by === ME(),
       at = `data-ref="${d.ref}" data-i="${d.i}"`,
       items = [
-        !d.ref.startsWith('p:') && ['com', 'Répondre', 'reply', at],
+        ['com', 'Répondre', 'reply', at],
         mine && ['info', 'Infos du message', 'msgInfo', at],
         (mine || isAdmin()) && ['trash', 'Supprimer le message', 'mdel', at, 1],
         !mine && ['flag', 'Signaler ce message', 'mreport', at],

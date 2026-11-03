@@ -485,11 +485,9 @@ A.motif = d => {
     ph = $('phone');
   const move = v => {
     els().forEach(e => (e.style.transform = v ? `translateX(${v}px)` : ''));
-    ph.style.setProperty('--sw', Math.min(v, 60) + 'px');
   };
   const reset = () => {
     els().forEach(e => e.classList.remove('swipe-back', 'swipe-done'));
-    ph.classList.remove('swiping');
     move(0);
   };
   document.addEventListener(
@@ -524,7 +522,6 @@ A.motif = d => {
         if (ddx < 8) return;
         lock = true;
         els().forEach(el => el.classList.add('swipe-back'));
-        ph.classList.add('swiping');
       }
       dx = Math.max(0, ddx);
       move(dx);

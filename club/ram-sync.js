@@ -1097,6 +1097,13 @@
             )
         );
       }
+      // le créateur a changé le créneau : ceux qui sont inscrits ou en attente sont prévenus
+      if (!mine && b.play && a.play && (a.play.d !== b.play.d || a.play.time !== b.play.time)) {
+        if (b.play.in.concat(b.play.wait).some(k => k === me || ((M[me] || {}).kids || []).includes(k)))
+          once(`playmove/${id}/${b.play.d}/${b.play.time}`, () =>
+            notify('play', b.by, `a déplacé sa partie au ${b.play.date} à ${b.play.time}`, go)
+          );
+      }
       if (mine && b.play && a.play) {
         const y = b.play,
           when = `${y.date} à ${y.time}`;

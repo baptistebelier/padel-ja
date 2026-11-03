@@ -227,8 +227,6 @@
 /* ---------- retour en arrière en glissant depuis le bord gauche ---------- */
 #main.swipe-back, #top.swipe-back, .foot.swipe-back { transition: none !important; }
 #main.swipe-done, #top.swipe-done, .foot.swipe-done { transition: transform .18s ease-out !important; }
-.phone.swiping::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--sw, 0px); z-index: 4; pointer-events: none;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent); }
 
 /* =========================================================================
    Plein écran dans tous les formats (22/10/2026)
@@ -623,11 +621,17 @@ html, body { background: var(--bg); }
 
 /* Full street : la carte « Investissement » garde son cadre (bronze, argent, or…) en plus de l'ombre décalée
    (l'ombre forcée des cartes en full street effaçait le cadre, dessiné lui aussi en box-shadow) */
-:root[data-style="street"] #main .tcard.cf1 { box-shadow: 0 0 0 2px #C8834B, 7px 7px 0 var(--ram-hard) !important; }
-:root[data-style="street"] #main .tcard.cf2 { box-shadow: 0 0 0 2px #DDE3EA, 0 0 0 4px #8E99A6, 7px 7px 0 var(--ram-hard) !important; }
-:root[data-style="street"] #main .tcard.cf3 { box-shadow: 0 0 0 2px #F2C230, 0 0 0 4px var(--bg), 0 0 0 6px #F2C230, 7px 7px 0 var(--ram-hard) !important; }
-:root[data-style="street"] #main .tcard.cf4 { box-shadow: 0 0 0 2px #7FE3D8, 0 0 0 4px var(--bg), 0 0 0 6px #3FB8C9, 0 0 14px 6px rgba(127, 227, 216, .2), 7px 7px 0 var(--ram-hard) !important; }
-:root[data-style="street"] #main .tcard.cf5 { box-shadow: 0 0 0 2px #6FB7FF, 0 0 0 4px #A78BFA, 0 0 0 6px var(--bg), 0 0 0 7px #6FB7FF, 0 0 18px 8px rgba(111, 183, 255, .25), 7px 7px 0 var(--ram-hard) !important; }
+/* le cadre de la carte des trophées est celui de la photo de profil : il reste quelle que soit l'apparence et la page */
+#phone #main .tcard.cf1 { box-shadow: 0 0 0 2px #C8834B !important; }
+#phone #main .tcard.cf2 { box-shadow: 0 0 0 2px #DDE3EA, 0 0 0 4px #8E99A6 !important; }
+#phone #main .tcard.cf3 { box-shadow: 0 0 0 2px #F2C230, 0 0 0 4px var(--bg), 0 0 0 6px #F2C230 !important; }
+#phone #main .tcard.cf4 { box-shadow: 0 0 0 2px #7FE3D8, 0 0 0 4px var(--bg), 0 0 0 6px #3FB8C9, 0 0 14px 6px rgba(127, 227, 216, .2) !important; }
+#phone #main .tcard.cf5 { box-shadow: 0 0 0 2px #6FB7FF, 0 0 0 4px #A78BFA, 0 0 0 6px var(--bg), 0 0 0 7px #6FB7FF, 0 0 18px 8px rgba(111, 183, 255, .25) !important; }
+:root[data-style="street"] #phone #main .tcard.cf1 { box-shadow: 0 0 0 2px #C8834B, 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] #phone #main .tcard.cf2 { box-shadow: 0 0 0 2px #DDE3EA, 0 0 0 4px #8E99A6, 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] #phone #main .tcard.cf3 { box-shadow: 0 0 0 2px #F2C230, 0 0 0 4px var(--bg), 0 0 0 6px #F2C230, 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] #phone #main .tcard.cf4 { box-shadow: 0 0 0 2px #7FE3D8, 0 0 0 4px var(--bg), 0 0 0 6px #3FB8C9, 0 0 14px 6px rgba(127, 227, 216, .2), 7px 7px 0 var(--ram-hard) !important; }
+:root[data-style="street"] #phone #main .tcard.cf5 { box-shadow: 0 0 0 2px #6FB7FF, 0 0 0 4px #A78BFA, 0 0 0 6px var(--bg), 0 0 0 7px #6FB7FF, 0 0 18px 8px rgba(111, 183, 255, .25), 7px 7px 0 var(--ram-hard) !important; }
 
 /* =========================================================================
    DISCUSSIONS plus digestes, façon WhatsApp, style /RAM gardé (27/10/2026)

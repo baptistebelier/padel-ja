@@ -495,6 +495,58 @@ document.addEventListener('change', e => {
     });
 });
 
+/* /RAM Club : glisser à gauche ou à droite sur une page principale passe à la section voisine de la barre du bas.
+   Sauf là où le doigt a déjà un rôle : ce qui défile sur les côtés, l'agenda (il change de semaine), les messages, les champs */
+(function () {
+  if (window.RAM_APP === 'coach') return;
+  let g = null;
+  const defile = el => {
+    for (let n = el; n && n.id !== 'main'; n = n.parentElement)
+      if (n.scrollWidth > n.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return true;
+    return false;
+  };
+  document.addEventListener(
+    'touchstart',
+    e => {
+      g = null;
+      const t = e.touches[0],
+        el = e.target,
+        w = window.innerWidth;
+      if (e.touches.length !== 1 || S.stack.length || $('sheet') || $('tabs').hidden || !el.closest('#main')) return;
+      // les bords de l'écran restent au système (retour du navigateur)
+      if (t.clientX < 24 || t.clientX > w - 24) return;
+      if (el.closest('input,textarea,select,.swipe,.bub,.gal') || defile(el)) return;
+      if (el.closest('#plan') && S.plan.mode !== 'events') return;
+      g = { x: t.clientX, y: t.clientY, t: Date.now() };
+    },
+    { passive: true }
+  );
+  document.addEventListener(
+    'touchmove',
+    e => {
+      if (e.touches.length > 1) g = null;
+    },
+    { passive: true }
+  );
+  document.addEventListener(
+    'touchend',
+    e => {
+      if (!g) return;
+      const c = e.changedTouches[0],
+        dx = c.clientX - g.x,
+        dy = c.clientY - g.y,
+        vite = Date.now() - g.t < 700;
+      g = null;
+      if (!vite || Math.abs(dx) < 70 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+      const l = [...$('tabs').querySelectorAll('[data-t]')].map(b => b.dataset.t),
+        v = l[l.indexOf(S.tab) + (dx < 0 ? 1 : -1)];
+      if (v) A.tab({ t: v });
+    },
+    { passive: true }
+  );
+  document.addEventListener('touchcancel', () => (g = null), { passive: true });
+})();
+
 /* agenda en colonnes : à la souris, on attrape les colonnes pour les faire défiler (un simple clic ouvre toujours la carte) */
 (function () {
   let g = null;

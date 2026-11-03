@@ -308,8 +308,24 @@ const V = {
   ${can ? `<button class="btn full ghost" data-a="newPost" data-k="commpromo" data-c="${c.id}">Promouvoir sur le mur</button>` : ''}</div>`;
   },
   partners() {
-    return `<div class="pad"><p class="muted">Les entreprises qui soutiennent ${club().name}.</p>${PARTNERS.length ? `<div class="pgrid">${PARTNERS.map(x => `<div class="pcard">${plogo(x, 'big')}<span class="nm">${x.name}</span><span class="muted small">${x.desc || ''}</span>${isAdmin() ? `<label class="btn sm ghost">Changer le logo<input type="file" accept="image/*" data-plogo="${x.id}" hidden></label><button class="btn sm ghost" data-a="delPartner" data-id="${x.id}">Retirer</button>` : ''}</div>`).join('')}</div>` : empty('club', 'Aucun partenaire', 'Ajoute le premier partenaire du club.')}
+    return `<div class="pad"><p class="muted">Les entreprises qui soutiennent ${club().name}.</p>${PARTNERS.length ? `<div class="pgrid">${PARTNERS.map(x => `<button class="pcard" data-a="open" data-v="partner" data-id="${x.id}">${plogo(x, 'big')}<span class="nm">${x.name}</span><span class="muted small">${x.desc || ''}</span></button>`).join('')}</div>` : empty('club', 'Aucun partenaire', 'Ajoute le premier partenaire du club.')}
   ${isAdmin() ? `<div class="ctl"><button class="btn grow" data-a="newPost" data-k="partner">Ajouter un partenaire</button><button class="btn grow ghost" data-a="newPost" data-k="ad">Créer une pub</button></div>` : ''}</div>`;
+  },
+  /* la fiche d'un partenaire : logo, description et de quoi le joindre */
+  partner(id) {
+    const x = PARTNERS.find(y => y.id === id);
+    if (!x) return `<div class="pad">${empty('club', 'Partenaire introuvable', '')}</div>`;
+    const lien = (i, t, v, href, ext) =>
+      `<a class="pbtn" href="${esc(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}><span class="pbi">${ic(i)}</span><span class="pbt"><b>${t}</b><span class="small">${esc(v)}</span></span></a>`;
+    return `<div class="pad"><div class="card pafiche">${plogo(x, 'big')}<h2 class="tilt sm">${x.name}</h2>${x.desc ? `<p>${x.desc}</p>` : ''}${
+      x.url || x.tel || x.mail
+        ? `<div class="pbtns">${x.url ? lien('globe', 'Site internet', x.url.replace(/^https?:\/\//i, '').replace(/\/$/, ''), x.url, 1) : ''}${x.tel ? lien('phone', 'Appeler', x.tel, 'tel:' + x.tel.replace(/\s/g, '')) : ''}${x.mail ? lien('mail', 'Écrire', x.mail, 'mailto:' + x.mail) : ''}</div>`
+        : ''
+    }</div>${
+      isAdmin()
+        ? `<div class="ctl" style="flex-wrap:wrap"><button class="btn grow" data-a="paEdit" data-id="${x.id}">${ic('edit')}Modifier</button><label class="btn grow ghost">${ic('image')}Changer le logo<input type="file" accept="image/*" data-plogo="${x.id}" hidden></label><button class="btn grow ghost" data-a="delPartner" data-id="${x.id}">${ic('trash')}Retirer</button></div>`
+        : ''
+    }<button class="btn ghost full" data-a="open" data-v="partners">${ic('heart')}Tous les partenaires</button></div>`;
   },
   member(id) {
     return profile(id);

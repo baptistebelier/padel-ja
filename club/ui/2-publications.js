@@ -203,7 +203,7 @@ function adBand(p) {
     // frise : le logo seul, à toute la hauteur du bandeau ; le nom en grand si le partenaire n'a pas de logo
     .map(
       x =>
-        `<button class="adi${x.logo ? '' : ' txt'}" data-a="open" data-v="partners" aria-label="${esc(x.name)}">${x.logo ? `<img src="${x.logo}" alt="">` : `<span>${x.name}</span>`}</button>`
+        `<button class="adi${x.logo ? '' : ' txt'}" data-a="open" data-v="partner" data-id="${x.id}" aria-label="${esc(x.name)}">${x.logo ? `<img src="${x.logo}" alt="">` : `<span>${x.name}</span>`}</button>`
     )
     .join('');
   return `<section class="adband ${p.color === 'hot' ? 'hot' : ''}" data-ad="${p.id}" aria-label="${esc(p.title)}"><div class="adh"><span>${p.title}</span>${isAdmin() ? `<button class="ib" data-a="pmenu" data-id="${p.id}" aria-label="Options du bandeau">${ic('more')}</button>` : ''}</div><div class="adw"><div class="track">${items}${items.replace(/<button /g, '<button tabindex="-1" aria-hidden="true" ')}</div></div></section>`;

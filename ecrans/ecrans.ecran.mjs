@@ -1253,3 +1253,79 @@ test('Coach : un cycle reprend l’achat déjà noté du même produit au lieu d
   await page.close();
 });
 
+test('Club : répondre à un commentaire, modifier sa recherche, glisser entre sections, profil, fiche partenaire', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, hasTouch: true }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof playEdit === 'function', { polling: 300 });
+  await page.evaluate(() => {
+    document.querySelector('.ram-splash')?.remove();
+    const k = Object.keys(M).find(x => x !== 'club' && x !== ME());
+    window.kz = k;
+    posts.unshift({ id: 'pz', by: ME(), t: 'x', kind: 'play', likes: 0, com: [{ by: k, x: 'Je suis dispo', t: 'x' }], play: { sport: 'Padel', date: fmtD(isoIn(3)), d: isoIn(3), time: '18 h', dur: '1 h 30', fmt: 'Double', lo: 3, hi: 5, places: 3, in: [k], wait: [] } });
+    S.tab = 'home'; S.stack = []; render(); A.comments({ id: 'pz' });
+  });
+  // réponse : le menu la propose, le commentaire garde la citation
+  await page.evaluate(() => A.mmenu({ ref: 'p:pz', i: '0' }));
+  await page.click('.menu [data-a="reply"]');
+  await page.waitForSelector('#com-form');
+  assert.ok(await page.locator('#att .quote').isVisible(), 'citation au-dessus du champ');
+  await page.fill('#com-input', 'Parfait');
+  await page.click('#com-form .send');
+  assert.equal(await page.evaluate(() => posts[0].com[1].rep.x), 'Je suis dispo');
+  assert.ok(await page.locator('#com-list .quote').count(), 'la citation s’affiche');
+  // modifier une recherche : formulaire rempli, inscrit conservé
+  await page.evaluate(() => { closeSheet(); A.pmenu({ id: 'pz' }); });
+  await page.click('.menu [data-a="pedit"]');
+  await page.waitForSelector('#play-edit');
+  assert.equal(await page.inputValue('#l-hi'), 'Niveau 5');
+  await page.selectOption('#l-hi', 'Niveau 7');
+  await page.selectOption('#a-h1', '20 h');
+  await page.click('#play-edit .btn.full');
+  assert.deepEqual(await page.evaluate(() => { const y = posts[0].play; return [y.hi, y.time, y.in.length]; }), [7, '20 h', 1]);
+  // glisser : section suivante, précédente ; pas sur une page ouverte par-dessus
+  const glisse = (de, a) => page.evaluate(([de, a]) => {
+    const m = document.getElementById('main'), el = m.querySelector('.pad') || m;
+    const t = x => new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 });
+    el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [t(de)], changedTouches: [t(de)] }));
+    el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [t(a)] }));
+    return S.tab;
+  }, [de, a]);
+  await page.evaluate(() => { S.tab = 'chans'; S.stack = []; closeSheet(); render(); });
+  assert.equal(await glisse(300, 100), 'agenda');
+  await page.evaluate(() => { S.tab = 'chans'; render(); });
+  assert.equal(await glisse(100, 300), 'home');
+  // profil : trophées au-dessus des onglets, chiffres qui mènent au palmarès, abonnés
+  await page.evaluate(() => { S.tab = 'me'; S.stack = []; S.meTab = 'reglages'; render(); });
+  assert.ok(await page.evaluate(() => document.querySelector('.stats + *').compareDocumentPosition(document.querySelector('.me-tabs')) & 4), 'avant les onglets');
+  assert.equal(await page.locator('.stats svg').count(), 4);
+  await page.click('.stats [data-a="palmGo"]');
+  await page.waitForSelector('#palmares');
+  assert.equal(await page.evaluate(() => S.meTab), 'jeu');
+  assert.equal(await page.locator('.meshort .btn svg').count(), 4);
+  await page.evaluate(k => { M[k].fo = [ME()]; const j = Object.keys(M).find(x => x !== 'club' && x !== ME() && x !== k); M[j].fo = [k]; A.folList({ id: k }); }, await page.evaluate(() => window.kz));
+  await page.waitForSelector('#sheet .menu [data-a="member"]');
+  // bandeau : le logo touché ouvre la fiche de ce partenaire, avec son site
+  await page.evaluate(() => { closeSheet(); PARTNERS[0].url = 'https://exemple.fr'; S.tab = 'home'; S.stack = []; posts.unshift({ id: 'adz', by: 'club', t: 'x', kind: 'ad', likes: 0, com: [], partners: [PARTNERS[0].id], title: 'Nos partenaires' }); render(); });
+  await page.evaluate(() => document.querySelector('.adi[data-v="partner"]').click());
+  await page.waitForSelector('.pafiche');
+  assert.equal(await page.getAttribute('.pafiche a.pbtn', 'href'), 'https://exemple.fr');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('Club : le cadre de la carte des trophées reste dans chaque apparence, sur téléphone et ordinateur', async () => {
+  for (const w of [360, 1280]) {
+    const page = await browser.newPage({ viewport: { width: w, height: 800 } });
+    await page.goto(DEMO + '/index.html');
+    await page.waitForFunction(() => typeof A !== 'undefined' && typeof trophyCard === 'function', { polling: 300 });
+    await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; render(); });
+    for (const st of ['epure', '', 'street']) {
+      const r = await page.evaluate(st => { A.ustyle({ k: st }); const c = document.querySelector('.tcard'); return [1, 2, 3, 4, 5].map(n => { c.className = 'card tcard cf' + n; return getComputedStyle(c).boxShadow; }); }, st);
+      ['200, 131, 75', '221, 227, 234', '242, 194, 48', '127, 227, 216', '111, 183, 255'].forEach((rgb, i) => assert.ok(r[i].includes(rgb), `largeur ${w}, style « ${st} », cadre ${i + 1} : ${r[i]}`));
+    }
+    await page.close();
+  }
+});
+

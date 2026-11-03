@@ -65,6 +65,11 @@ function readVis() {
     both: sp === 'Tennis et padel'
   };
 }
+/* comment joindre un partenaire : tout est facultatif */
+const paFields = (x = {}) =>
+  O('pa-url', 'Site internet', 'garage-tilleuls.fr', x.url || '') +
+  O('pa-tel', 'Téléphone', '05 55 00 00 00', x.tel || '') +
+  O('pa-mail', 'E-mail', 'contact@garage-tilleuls.fr', x.mail || '');
 function forms(k, cid) {
   if (k === 'stage') {
     const e = forms('event', cid);
@@ -124,7 +129,7 @@ function forms(k, cid) {
     partner: [
       'Ajouter un partenaire',
       F('a-title', "Nom de l'entreprise", 'Garage des Tilleuls') +
-        `<div class="fld"><label for="a-body">Description (facultative)</label><textarea id="a-body" placeholder="Activité, lien avec le club…"></textarea></div><div class="fld"><label for="a-img">Logo</label><input type="file" id="a-img" accept="image/*"><div class="prev" id="a-prev" hidden></div></div>`,
+        `<div class="fld"><label for="a-body">Description (facultative)</label><textarea id="a-body" placeholder="Activité, lien avec le club…"></textarea></div>${paFields()}<div class="fld"><label for="a-img">Logo</label><input type="file" id="a-img" accept="image/*"><div class="prev" id="a-prev" hidden></div></div>`,
       'Ajouter le partenaire'
     ],
     ad: [
@@ -240,3 +245,71 @@ function forms(k, cid) {
     ]
   }[k];
 }
+/* modifier une recherche de partie : le formulaire de sa création, déjà rempli */
+function playEdit(p) {
+  const y = p.play;
+  S.img = null;
+  sheet(
+    'Modifier ma recherche',
+    `<form class="body" id="play-edit" data-id="${p.id}">${forms('play')[1]}${y.in.length ? `<p class="muted small">${y.in.length > 1 ? 'Les joueurs inscrits gardent leur place et seront prévenus' : 'Le joueur inscrit garde sa place et sera prévenu'} si la date ou l'heure change.</p>` : ''}<button class="btn full">Enregistrer</button></form>`
+  );
+  const put = (id, v) => $(id) && v != null && ($(id).value = v);
+  put('p-sport', y.sport);
+  put('a-d1', y.d);
+  put('a-h1', y.time);
+  put('a-dur', y.dur);
+  put('a-fmt', y.fmt);
+  put('a-pl', String(y.places));
+  if (y.sport === 'Padel') {
+    put('l-lo', LV[y.lo - 1]);
+    put('l-hi', LV[y.hi - 1]);
+  } else {
+    put('v-lo', y.lo);
+    put('v-hi', y.hi);
+  }
+  $('p-sport').dispatchEvent(new Event('change', { bubbles: true }));
+  if (y.sport !== 'Padel') $('a-fmt').value = y.fmt;
+}
+/* date et heures d'un événement, dans « Modifier » */
+const evWhenFields = p =>
+  `<div class="two"><div class="fld"><label for="e-d1">Du</label><input id="e-d1" type="date" value="${p.d}"></div><div class="fld"><label for="e-d2">Au (facultatif)</label><input id="e-d2" type="date" value="${p.d2 || ''}"></div></div><div class="two">${Sel('e-h1', 'De', HOURS, p.h1)}${Sel('e-h2', 'À', HOURS, p.h2)}</div>`;
+/* ce qu'indique le formulaire de partie ; n et txt : à qui elle est visible */
+function playLu(val) {
+  const pad = val('p-sport') === 'Padel',
+    fmt = pad ? 'Double' : val('a-fmt'),
+    others = adults().filter(x => x !== ME());
+  let lo, hi, n, txt;
+  if (pad) {
+    const a = LV.indexOf(val('l-lo')) + 1,
+      b = LV.indexOf(val('l-hi')) + 1;
+    lo = Math.min(a, b);
+    hi = Math.max(a, b);
+    n = others.filter(x => M[x].pl >= lo && M[x].pl <= hi).length;
+    txt = 'de niveau ' + lo + ' à ' + hi;
+  } else {
+    const a = rIdx(val('v-lo')),
+      b = rIdx(val('v-hi')),
+      i0 = Math.min(a, b),
+      i1 = Math.max(a, b);
+    lo = RANKS[i0];
+    hi = RANKS[i1];
+    n = others.filter(x => rIdx(M[x].r) >= i0 && rIdx(M[x].r) <= i1).length;
+    txt = 'de ' + lo + ' à ' + hi;
+  }
+  return {
+    n,
+    txt,
+    play: {
+      sport: pad ? 'Padel' : 'Tennis',
+      date: fmtD(val('a-d1')),
+      d: val('a-d1'), // date ISO : la partie apparaît dans l'agenda
+      time: val('a-h1'),
+      dur: val('a-dur'),
+      fmt,
+      lo,
+      hi,
+      places: fmt === 'Simple' ? 1 : +val('a-pl')
+    }
+  };
+}
+const paLu = val => ({ url: toUrl(val('pa-url')), tel: val('pa-tel'), mail: val('pa-mail') });

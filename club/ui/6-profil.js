@@ -71,6 +71,18 @@ function contact(id) {
   const c = CT[id] || {};
   return `<div class="card"><span class="kicker">Contact</span>${catRow}${c.tel ? row('phone', 'Téléphone', c.tel) : ''}${c.mail ? row('mail', 'E-mail', c.mail) : ''}${c.soc ? row('at', c.soc[0], c.soc[1]) : ''}<p class="muted small">${c.tel || c.mail || c.soc ? `Les coordonnées affichées sont celles que ${first(id)} a choisi de partager.` : `${first(id)} ne partage pas ses coordonnées.`}</p></div>`;
 }
+/* abonnés d'un adhérent : ceux dont le profil le suit ; moi si je le suis */
+const followersOf = id =>
+  Object.keys(M)
+    .filter(
+      j =>
+        j !== 'club' && j !== id && !S.blocked.has(j) && (j === ME() ? S.follow.has(id) : (M[j].fo || []).includes(id))
+    )
+    .sort((a, b) => name(a).localeCompare(name(b)));
+const stat = (i, n, l, go) =>
+  go
+    ? `<button ${go} aria-label="${l} : ${n}">${ic(i)}<b>${n}</b><span>${l}</span></button>`
+    : `<div>${ic(i)}<b>${n}</b><span>${l}</span></div>`;
 function profile(id) {
   const m = M[id],
     self = id === ME(),
@@ -84,7 +96,7 @@ function profile(id) {
  <div class="row" style="flex-wrap:wrap;gap:6px">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}<span class="muted small">${m.team}</span></div>
  <div class="rtiles">${m.r && m.r !== 'NC' ? `<span class="rt tennis"><b>${m.r}</b>Tennis</span>` : ''}${m.pl ? `<span class="rt padel"><b>Niv ${m.pl}</b>Padel</span>` : ''}${m.tn && m.tn.n ? `<span class="rt tennis"><b>Niv ${m.tn.n}</b>Tennis${m.tn.t ? ' · ' + esc(m.tn.t) : ''}</span>` : ''}${m.pad ? `<span class="rt"><b>${m.pad}</b>Classement padel</span>` : ''}${(!m.r || m.r === 'NC') && !m.pl && !m.pad && !(m.tn && m.tn.n) ? '<span class="rt"><b>NC</b>Non classé</span>' : ''}</div>
  ${self || kid ? '' : `<div class="ctl">${blk ? `<button class="btn grow ghost" data-a="unblock" data-id="${id}">Débloquer ${first(id)}</button>` : `<button class="btn grow ${f ? 'on' : ''}" data-a="follow" data-id="${id}" aria-pressed="${f}">${ic(f ? 'check' : 'plus')}${f ? 'Suivi' : 'Suivre ' + first(id)}</button>`}<button class="ib rnd" data-a="umenu" data-id="${id}" aria-label="Options">${ic('more')}</button></div>`}</div>
- <div class="stats"><div><b>${kid ? '—' : m.fol + (f ? 1 : 0)}</b><span>Abonnés</span></div><div><b>${w}</b><span>Victoires</span></div><div><b>${m.res.length - w}</b><span>Défaites</span></div><div><b>${pf}</b><span>Perfs</span></div></div>${self ? '' : trophyCard(id)}`;
+ <div class="stats">${stat('users', kid ? '—' : m.fol + (f ? 1 : 0), 'Abonnés', kid ? '' : `data-a="folList" data-id="${id}"`)}${stat('trophy', w, 'Victoires', 'data-a="palmGo"')}${stat('x', m.res.length - w, 'Défaites', 'data-a="palmGo"')}${stat('star', pf, 'Perfs', 'data-a="palmGo"')}</div>${trophyCard(id)}`;
   /* mon profil : la carte d'identité en haut, puis trois onglets au lieu d'une longue colonne */
   if (self) {
     const T = ['jeu', 'infos', 'reglages'].includes(S.meTab) ? S.meTab : 'jeu',
@@ -110,7 +122,7 @@ function profile(id) {
     h += `<div class="note">Compte jeune : pas de messagerie privée ni d'abonnés. Ses résultats ne sont visibles que de son groupe, de ses parents et des encadrants.</div>`;
   h +=
     contact(id) +
-    `<div class="stack"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
+    `<div class="stack" id="palmares"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
   return h + '</div>';
 }
 /* onglets de mon profil :
@@ -120,7 +132,7 @@ function profile(id) {
 function meTabBody(T, id, m, kid) {
   let h = '';
   if (T === 'jeu')
-    return `${trophyCard(id)}<div class="stack"><div class="ctl"><button class="btn grow" data-a="result">Ajouter un résultat</button>${kid ? '' : `<button class="btn grow ghost" data-a="newPost" data-k="play">Chercher une partie</button>`}</div><div class="ctl"><button class="btn sm ghost grow" data-a="rank" data-k="tennis">Classement tennis</button><button class="btn sm ghost grow" data-a="rank" data-k="padel">Classement padel</button></div></div><div class="stack"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
+    return `<div class="meshort"><button class="btn" data-a="result">${ic('score')}Ajouter un résultat</button>${kid ? '' : `<button class="btn ghost" data-a="newPost" data-k="play">${ic('search')}Chercher une partie</button>`}<button class="btn ghost" data-a="rank" data-k="tennis">${ic('racket')}Classement tennis</button><button class="btn ghost" data-a="rank" data-k="padel">${ic('ball')}Classement padel</button></div><div class="stack" id="palmares"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
   if (T === 'infos') {
     h = contact(id);
     if (!kid)

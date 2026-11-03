@@ -47,7 +47,8 @@ document.addEventListener('submit', e => {
     const x = val('com-input');
     if (!x) return;
     const p = posts.find(p => p.id === f.dataset.id);
-    p.com.push({ by: ME(), x, _pop: 1, t: "À l'instant" });
+    p.com.push({ by: ME(), x, _pop: 1, t: "À l'instant", rep: S.reply || undefined });
+    S.reply = null;
     sheet('Commentaires', commentsBody(p), true);
     const l = $('com-list');
     l.scrollTop = l.scrollHeight;
@@ -61,6 +62,18 @@ document.addEventListener('submit', e => {
       p.title = g('e-title');
       p.body = g('e-body');
       if ($('e-place')) p.place = g('e-place');
+      if ($('e-d1')) {
+        const d1 = val('e-d1'),
+          d2 = val('e-d2'),
+          one = !d2 || d2 === d1;
+        if (!d1 || (!one && d2 < d1)) return toast('La date de fin est avant la date de début');
+        if (hMin(val('e-h2')) <= hMin(val('e-h1'))) return toast("L'heure de fin doit être après l'heure de début");
+        p.d = d1;
+        p.d2 = one ? '' : d2;
+        p.h1 = val('e-h1');
+        p.h2 = val('e-h2');
+        p.date = (one ? fmtD(d1) : `Du ${fmtD(d1, 1)} au ${fmtD(d2, 1)}`) + ' · ' + p.h1 + ' – ' + p.h2;
+      }
       if ($('e-noimg') && $('e-noimg').checked) delete p.img;
       if (S.img) p.img = S.img;
       S.img = null;
@@ -68,6 +81,26 @@ document.addEventListener('submit', e => {
     closeSheet();
     render(true);
     toast('Publication modifiée');
+    return;
+  }
+  if (f.id === 'pa-edit') {
+    const x = PARTNERS.find(y => y.id === f.dataset.id);
+    if (!x) return;
+    Object.assign(x, { name: g('pa-name'), desc: g('pa-desc') }, paLu(val));
+    closeSheet();
+    render(true);
+    toast('Partenaire modifié');
+    return;
+  }
+  if (f.id === 'play-edit') {
+    const p = posts.find(p => p.id === f.dataset.id),
+      { play } = playLu(val);
+    if (play.places < p.play.in.length)
+      return toast(`${p.play.in.length} joueurs sont déjà inscrits : garde au moins ${p.play.in.length} places`);
+    p.play = Object.assign({}, p.play, play);
+    closeSheet();
+    render(true);
+    toast('Recherche modifiée');
     return;
   }
   if (f.id === 'done-form') {
@@ -617,7 +650,7 @@ document.addEventListener('submit', e => {
       return;
     }
     if (k === 'partner') {
-      PARTNERS.push({ id: 'pa' + Date.now(), name: g('a-title'), desc: g('a-body'), logo: img || null });
+      PARTNERS.push({ id: 'pa' + Date.now(), name: g('a-title'), desc: g('a-body'), logo: img || null, ...paLu(val) });
       S.img = null;
       closeSheet();
       render(true);
@@ -880,27 +913,7 @@ document.addEventListener('submit', e => {
       return;
     }
     if (k === 'play') {
-      const pad = val('p-sport') === 'Padel',
-        fmt = pad ? 'Double' : val('a-fmt'),
-        others = adults().filter(x => x !== ME());
-      let lo, hi, n, txt;
-      if (pad) {
-        const a = LV.indexOf(val('l-lo')) + 1,
-          b = LV.indexOf(val('l-hi')) + 1;
-        lo = Math.min(a, b);
-        hi = Math.max(a, b);
-        n = others.filter(x => M[x].pl >= lo && M[x].pl <= hi).length;
-        txt = 'de niveau ' + lo + ' à ' + hi;
-      } else {
-        const a = rIdx(val('v-lo')),
-          b = rIdx(val('v-hi')),
-          i0 = Math.min(a, b),
-          i1 = Math.max(a, b);
-        lo = RANKS[i0];
-        hi = RANKS[i1];
-        n = others.filter(x => rIdx(M[x].r) >= i0 && rIdx(M[x].r) <= i1).length;
-        txt = 'de ' + lo + ' à ' + hi;
-      }
+      const { play, n, txt } = playLu(val);
       posts.unshift({
         id: 'p' + Date.now(),
         by: ME(),
@@ -908,19 +921,7 @@ document.addEventListener('submit', e => {
         kind: 'play',
         likes: 0,
         com: [],
-        play: {
-          sport: pad ? 'Padel' : 'Tennis',
-          date: fmtD(val('a-d1')),
-          d: val('a-d1'), // date ISO : la partie apparaît dans l'agenda
-          time: val('a-h1'),
-          dur: val('a-dur'),
-          fmt,
-          lo,
-          hi,
-          places: fmt === 'Simple' ? 1 : +val('a-pl'),
-          in: [],
-          wait: []
-        }
+        play: Object.assign(play, { in: [], wait: [] })
       });
       home(`Recherche publiée · visible par ${n} adhérent${n > 1 ? 's' : ''} ${txt}`);
       return;
