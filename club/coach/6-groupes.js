@@ -99,7 +99,8 @@ function coCycleSet(g, c, list) {
 function coPayPlan(prix, nums, montants) {
   return REGLES.planPaiement(prix, nums, montants);
 }
-/* la formule du cycle notée pour les élèves du groupe, avec ses numéros de séance ; un élève déjà noté ne change pas */
+/* la formule du cycle notée pour les élèves du groupe, avec ses numéros de séance ; un élève déjà noté ne change pas,
+   et le même produit acheté à un mois près du début du cycle (import, boutique) est relié au cycle plutôt que noté deux fois */
 function coCycleAchats(g, c) {
   const [t, ref] = String(c.offre || '').split(':');
   if (t !== 'pack' && t !== 'abo') return 0;
@@ -112,6 +113,13 @@ function coCycleAchats(g, c) {
   coStu(g).forEach(k => {
     const e = coElGet(k);
     if ((e.achats || []).some(a => a.cycle === cle)) return;
+    const deja = (e.achats || []).find(
+      a => !a.cycle && a.t === t && a.ref === ref && a.d >= isoIn(-31, d0) && a.d <= isoIn(31, d0)
+    );
+    if (deja) {
+      deja.cycle = cle;
+      return;
+    }
     const a = {
       id: 'h' + Date.now().toString(36) + n,
       t,

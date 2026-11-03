@@ -1230,3 +1230,26 @@ test('Coach : en paysage, les sections se rangent sur deux colonnes ; sur télé
   await page.close();
 });
 
+test('Coach : un cycle reprend l’achat déjà noté du même produit au lieu d’en créer un second', async () => {
+  const page = await browser.newPage({ viewport: { width: 1180, height: 820 } });
+  page.on('pageerror', e => { throw e; });
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof coCycleAchats === 'function');
+  const r = await page.evaluate(() => {
+    document.querySelector('.ram-splash')?.remove();
+    const g = coGroups('', true).find(x => coIsGrp(x) && coStu(x).length), k = coStu(g)[0], e = coElGet(k);
+    OFFRES.packs = (OFFRES.packs || []).concat({ id: 'pz', formule: '', nom: 'Pack Z', seances: 10, prix: 270, ech: [1, 4, 7], echm: [90, 90, 90] });
+    e.achats = [{ id: 'hold', t: 'pack', ref: 'pz', d: '2026-09-23', nom: 'Pack Z', n: 10, prix: 270, pay: { ech: [{ s: 0, m: 90, ok: '2026-09-23' }] } }];
+    const c = { id: 'cz', offre: 'pack:pz', dates: ['2026-09-23'] };
+    coCycleAchats(g, c);
+    const proches = coEl(k).achats.filter(a => a.ref === 'pz'), loin = { id: 'cy', offre: 'pack:pz', dates: ['2027-03-01'] };
+    const un = proches.length, lie = proches[0].cycle;
+    coCycleAchats(g, loin);
+    return { un, lie, cle: g.id + ':cz', deux: coEl(k).achats.filter(a => a.ref === 'pz').length };
+  });
+  assert.equal(r.un, 1, 'pas de doublon');
+  assert.equal(r.lie, r.cle, 'l’achat existant est relié au cycle');
+  assert.equal(r.deux, 2, 'un cycle bien plus tard reste un nouvel achat');
+  await page.close();
+});
+
