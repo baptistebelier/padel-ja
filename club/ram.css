@@ -346,6 +346,7 @@ html, body { background: var(--bg); }
   :is(#main, #subnav) > .seg button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) { background: var(--card); border: 1px solid var(--line); border-top: 0; box-shadow: 6px 6px 0 var(--ram-hard); margin-bottom: 40px; }
   :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) .card { box-shadow: 3px 3px 0 var(--ram-hard); }
+  :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) .evday { background: var(--card); }
 }
 
 /* accueil : la frise de raccourcis respire sous la barre du haut (titre, notifications) */
@@ -550,6 +551,7 @@ html, body { background: var(--bg); }
 @media (max-width: 1023px) {
   :is(#main, #subnav) > .seg + .pad { background: var(--card); border: 1px solid var(--line); box-shadow: 4px 4px 0 var(--ram-hard); margin: 12px 10px 24px; }
   :is(#main, #subnav) > .seg + .pad .card { box-shadow: 3px 3px 0 var(--ram-hard); }
+  :is(#main, #subnav) > .seg + .pad .evday { background: var(--card); }
 }
 
 /* ordinateur : « Ajouter du contenu » devient un bouton carré « + », en bas, juste à droite du menu latéral

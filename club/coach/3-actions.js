@@ -194,10 +194,34 @@ Object.assign(A, {
     );
   },
   coContent(d) {
+    const g = d.g && grp(d.g);
+    closeSheet();
     sheet(
-      'Contenu pour ' + svFirst(d.id),
-      `<form class="body" id="co-cont" data-id="${d.id}">${T('co-txt', 'Message', 'Exercice, conseil, vidéo à regarder…')}${O('co-url', 'Lien (facultatif)', 'Vidéo, document…')}<button class="btn full">${ic('send')}Envoyer</button></form>`
+      'Contenu pour ' + (g ? esc(g.name) : svFirst(d.id)),
+      `<form class="body" id="co-cont" data-id="${d.id || ''}" data-g="${d.g || ''}">${T('co-txt', 'Message', 'Exercice, conseil, vidéo à regarder…')}${O('co-url', 'Lien (facultatif)', 'Vidéo, document…')}<button class="btn full">${ic('send')}Envoyer</button></form>`
     );
+  },
+  /* raccourci : à qui donner du contenu ; un groupe : chacun de ses élèves le reçoit */
+  coContentPick() {
+    const gs = coGroups().filter(g => coIsGrp(g) && !coOver(g) && coStu(g).length),
+      l = coStudents().sort((a, b) => svName(a).localeCompare(svName(b)));
+    sheet(
+      'Donner du contenu',
+      `<div class="body">${gs.length ? `<span class="kicker">Groupes</span><div class="menu">${gs.map(g => `<button data-a="coContent" data-g="${g.id}">${ic('users')}${esc(g.name)}</button>`).join('')}</div>` : ''}<span class="kicker">Élèves</span><div class="menu">${l.map(k => `<button data-a="coContent" data-id="${k}">${coAv(k)}${esc(svName(k))}</button>`).join('')}</div></div>`
+    );
+  },
+  /* raccourci : la discussion d'un de mes groupes */
+  coNewGrpMsg() {
+    const gs = coGroups().filter(g => coIsGrp(g) && !coOver(g) && chans.some(c => c.id === g.id));
+    if (!gs.length) return toast('Aucun groupe n’a de discussion : crée-la depuis la page du groupe');
+    sheet(
+      'Écrire à un groupe',
+      `<div class="body"><div class="menu">${gs.map(g => `<button data-a="coOpenChan" data-id="${g.id}">${ic('users')}${esc(g.name)}</button>`).join('')}</div></div>`
+    );
+  },
+  coOpenChan(d) {
+    closeSheet();
+    A.open({ v: 'chan', id: d.id });
   },
   coNewMsg() {
     const l = coStudents().sort((a, b) => svName(a).localeCompare(svName(b)));
@@ -435,9 +459,10 @@ document.addEventListener('submit', e => {
   if (f.id === 'co-cont') {
     const t = val('co-txt');
     if (!t) return;
-    svNew(id, 'contenu', { txt: t, url: toUrl(val('co-url')) || undefined });
+    const gr = f.dataset.g && grp(f.dataset.g);
+    (gr ? coStu(gr) : [id]).forEach(k => svNew(k, 'contenu', { txt: t, url: toUrl(val('co-url')) || undefined }));
     closeSheet();
-    return coSave('Contenu envoyé à ' + svFirst(id));
+    return coSave('Contenu envoyé à ' + (gr ? gr.name : svFirst(id)));
   }
   if (f.id === 'co-grp') {
     const g = grp(id),

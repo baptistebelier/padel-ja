@@ -538,7 +538,7 @@ document.addEventListener('submit', e => {
       );
       return;
     }
-    if (k === 'event' || k === 'stage') {
+    if (k === 'event' || k === 'stage' || k === 'anim') {
       const reg = f.querySelector('input[name="a-reg"]:checked').value,
         d1 = val('a-d1'),
         d2 = val('a-d2'),
@@ -558,7 +558,9 @@ document.addEventListener('submit', e => {
       }
       posts.unshift({
         ...base,
-        ...(k === 'stage' ? { stage: true, by: S.role === 'coach' ? ME() : 'club' } : {}),
+        ...(k === 'stage' || k === 'anim'
+          ? { [k === 'anim' ? 'anim' : 'stage']: true, by: S.role === 'coach' ? ME() : 'club' }
+          : {}),
         mur: false,
         kind: 'event',
         reg,
@@ -582,7 +584,8 @@ document.addEventListener('submit', e => {
       S.img = null;
       versPage(
         base.id,
-        (k === 'stage' ? 'Stage créé' : 'Événement créé') + ' · il est à l’Agenda, à toi de le promouvoir sur le mur'
+        (k === 'stage' ? 'Stage créé' : k === 'anim' ? 'Animation créée' : 'Événement créé') +
+          ' · il est à l’Agenda, à toi de le promouvoir sur le mur'
       );
       return;
     }

@@ -89,6 +89,38 @@ const gallery = ph =>
     ? `<div class="gal ${ph.length === 1 ? 'one' : ''}">${ph.map((u, i) => `<button class="ph" style="background-image:url(${u})" data-a="photo" aria-label="Photo ${i + 1} sur ${ph.length}"></button>`).join('')}</div>`
     : '';
 
+/* carte d'événement, la même dans /RAM Club et /RAM Coach : l'heure seule (le jour est sur l'étiquette épinglée au-dessus),
+   le titre, une ligne par information avec son picto, les étiquettes ; un grand picto en fond rappelle ce que c'est */
+const EV_PIC = { ens: 'cCours', jeu: 'ball', ani: 'cal', tour: 'cTour', eq: 'users', repas: 'cRepas' };
+const evCard = o => {
+  const el = o.foot || o.fixe ? 'div' : 'button';
+  return `<${el} class="card evx ${o.cat || 'ens'}${o.cx ? ' cx' : ''}" ${o.go || ''}><span class="evh">${o.t || 'Journée'}</span><span class="evb"><span class="evt">${o.title}</span>${(
+    o.lines || []
+  )
+    .filter(Boolean)
+    .map(([i, x, c]) => `<span class="evl${c ? ' ' + c : ''}">${ic(i)}<span>${x}</span></span>`)
+    .join(
+      ''
+    )}${o.tags ? `<span class="tags evg">${o.tags}</span>` : ''}</span><span class="evpic" aria-hidden="true">${ic(o.pic || EV_PIC[o.cat] || 'cal')}</span>${o.foot ? `<div class="evf">${o.foot}</div>` : ''}</${el}>`;
+};
+const evLabel = iso => (iso === TODAY ? "Aujourd'hui · " : iso === isoIn(1) ? 'Demain · ' : '') + fmtD(iso);
+/* un jour : son étiquette reste en haut de l'écran tant qu'on est dans ses cartes, la suivante la remplace */
+const evDay = (iso, rows, c = '') =>
+  `<section class="plc${c ? ' ' + c : ''}${iso === TODAY ? ' today' : ''}"><h2 class="evday"><span>${evLabel(iso)}</span></h2>${rows}</section>`;
+/* une liste déjà triée, regroupée par jour */
+const evDays = (l, dateOf, carte) => {
+  const out = [];
+  l.forEach(x => {
+    const d = dateOf(x);
+    if (!out.length || out[out.length - 1][0] !== d) out.push([d, []]);
+    out[out.length - 1][1].push(carte(x));
+  });
+  return out.map(([d, c]) => evDay(d, c.join(''))).join('');
+};
+const evTag = t => `<span class="tag">${t}</span>`;
+const evCx = t => `<span class="tag" style="background:var(--hot);color:#fff">${t}</span>`;
+const evLoc = l => `<span class="tag loc">${ic(l === 'En salle' ? 'home' : 'sun')}${l}</span>`;
+
 function recCard(r) {
   const g = grp(r.tid),
     s = teamScore(r);

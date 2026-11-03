@@ -630,14 +630,13 @@ test('Club : favoris avec du nouveau en tête, réglages d’une discussion, fil
   assert.ok(await large(), 'semaine sur toute la largeur');
   assert.equal(await page.locator('.fbtn svg').evaluate(s => getComputedStyle(s).display !== 'none'), true, 'pictogramme des filtres');
   await page.evaluate(() => { S.plan.mode = 'list'; render(); });
-  await page.waitForSelector('.plk .stack');
+  await page.waitForSelector('.plk .plc');
   assert.ok(await large(), 'liste sur toute la largeur');
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).gridAutoFlow), 'column', 'en colonnes');
   await page.evaluate(() => { S.plan.mode = 'events'; render(); });
   await page.waitForSelector('.plk .plc');
   assert.ok(await page.locator('.plk .plc').count() >= 7, 'une colonne par jour, au moins sept');
   assert.ok(await page.evaluate(() => { const p = document.querySelector('.plk'); return p.scrollWidth > p.clientWidth || p.querySelectorAll('.plc').length * 242 <= p.clientWidth; }), 'les colonnes défilent');
-  if (await page.locator('.plk .evc').count()) assert.ok(await page.evaluate(() => { const c = document.querySelector('.plk .evc'); return getComputedStyle(c.querySelector('.dblk')).display === 'none' && getComputedStyle(c.querySelector('.evp')).display !== 'none'; }), 'un picto à la place de la grosse date');
   assert.ok(await large(), 'rien ne déborde de la page');
   // filtres : la couleur reste visible, l'état actif a sa coche
   await page.click('[data-a="planFilters"]');
@@ -1159,3 +1158,52 @@ test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et
   await sc.close();
 });
 
+test('Coach : raccourcis en haut, carte commune, jour épinglé, paiements à supprimer', async () => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 700 } });
+  page.on('pageerror', e => { throw e; });
+  page.on('dialog', d => d.accept());
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof coPayTodo === 'function');
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); A.tab({ t: 'today' }); });
+  await page.waitForSelector('.coshort');
+  assert.ok(await page.evaluate(() => { const r = document.querySelector('.coshort'), c = document.querySelector('.cotiles'); return r.compareDocumentPosition(c) & 4; }), 'raccourcis avant les chiffres');
+  const short = await page.locator('.coshort').innerText();
+  for (const x of ['stage', 'séance collective', 'animation', 'à un élève', 'à un groupe', 'contenu']) assert.ok(short.toLowerCase().includes(x), x);
+  assert.ok(!short.includes('Statistiques'), 'plus de raccourci Statistiques');
+  // un élève fictif avec un paiement dû : il se sélectionne et se retire, l'achat reste
+  await page.evaluate(() => { const k = coStudents()[0], e = coElGet(k); e.achats = [{ id: 'hz', t: 'pack', ref: 'p1', d: TODAY, nom: 'Pack essai', n: 3, prix: 90, pay: { ech: [{ s: 0, m: 90, ok: '' }] } }]; window.kz = k; A.tab({ t: 'asuivi' }); });
+  await page.click('[data-a="coSelModeP"]');
+  const n0 = await page.evaluate(() => coPayTodo().length);
+  assert.ok(n0 >= 1);
+  await page.locator('[data-a="coPickP"][data-id*="hz"]').click();
+  await page.click('[data-a="coPickDelP"]');
+  await page.waitForFunction(n => coPayTodo().length === n - 1, n0);
+  assert.equal(await page.evaluate(() => coEl(window.kz).achats[0].pay.off), 1);
+  assert.equal(await page.evaluate(() => coEl(window.kz).achats.length), 1, 'l’achat reste');
+  await page.close();
+});
+
+test('Club : agenda en cartes communes, l’étiquette du jour reste en haut puis change', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 640 } });
+  page.on('pageerror', e => { throw e; });
+  await page.goto(JA + '/club/index.html');
+  await page.waitForFunction(() => typeof S !== 'undefined' && typeof planCard === 'function');
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = 'list'; S.plan.d = TODAY; render(); });
+  await page.waitForSelector('.plc .evday');
+  assert.equal(await page.locator('.dblk').count(), 0, 'plus de date dans les cartes');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'rien ne déborde à 360 px');
+  const r = await page.evaluate(async () => {
+    const m = document.getElementById('main'), days = [...document.querySelectorAll('.evday')];
+    const second = days[1].closest('.plc'), top = () => m.getBoundingClientRect().top;
+    m.scrollTop = second.offsetTop - m.offsetTop + 10;
+    await new Promise(r => setTimeout(r, 350));
+    const pos = el => el.getBoundingClientRect().top - top();
+    const a = pos(days[1]), b = getComputedStyle(days[1]).position;
+    m.scrollTop += 20;
+    await new Promise(r => setTimeout(r, 100));
+    return { a, b, c: pos(days[1]), h: document.getElementById('top').getBoundingClientRect().bottom - top() };
+  });
+  assert.equal(r.b, 'sticky');
+  assert.ok(Math.abs(r.c - r.a) < 2, 'étiquette fixe au défilement');
+  await page.close();
+});

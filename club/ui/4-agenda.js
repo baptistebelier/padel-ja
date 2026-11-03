@@ -14,19 +14,19 @@ function planItems(iso) {
       sport: g.sport,
       t: g.h,
       dur: typeof durMin === 'function' ? durMin(g.dur) : g.dur === '1 h' ? 60 : 90,
-      sub:
-        (cx ? 'Cours annulé · ' : 'Cours · ') +
-        g.dur +
-        (g.coach ? ' · ' + first(g.coach) : '') +
-        (cx ? '' : ' · ' + locOf(g, iso)) +
-        // les élèves sans compte /RAM Club (ajoutés dans /RAM Coach) comptent aussi
-        (cx || !(g.mem.length + (g.ext || []).length)
+      lines: [g.coach && ['user', first(g.coach)], ['clock', g.dur]],
+      // les élèves sans compte /RAM Club (ajoutés dans /RAM Coach) comptent aussi
+      tg0: cx ? evCx('Cours annulé') : evLoc(locOf(g, iso)),
+      tg1:
+        cx || !(g.mem.length + (g.ext || []).length)
           ? ''
-          : ' · ' +
-            (g.mem.length + (g.ext || []).length) +
-            (g.max ? '/' + g.max : '') +
-            ' élève' +
-            (g.mem.length + (g.ext || []).length > 1 ? 's' : '')),
+          : evTag(
+              g.mem.length +
+                (g.ext || []).length +
+                (g.max ? '/' + g.max : '') +
+                ' élève' +
+                (g.mem.length + (g.ext || []).length > 1 ? 's' : '')
+            ),
       title: g.name,
       cx,
       v: chans.some(c => c.id === g.id && chanOk(c)) ? 'chan' : seesMinors() ? 'grp' : 'ginfo',
@@ -43,7 +43,7 @@ function planItems(iso) {
         sport: recSport(r),
         t: r.h,
         dur: 240,
-        sub: r.comp,
+        lines: [['trophy', r.comp]],
         title: teamName(g) + ' – ' + r.opp,
         v: 'rec',
         id: r.id,
@@ -60,11 +60,12 @@ function planItems(iso) {
         sport: p.sport || '',
         t: p.d2 ? '' : p.h1,
         dur: du > 0 ? du : 120,
-        sub:
-          (p.stage ? 'Stage · ' : p.trn ? 'Tournoi · ' : '') +
-          (p.d2
-            ? 'Du ' + fmtD(p.d, 1) + ' au ' + fmtD(p.d2, 1)
-            : p.h1 + ' – ' + p.h2 + (p.place ? ' · ' + p.place : '')),
+        kind: p.stage ? 'Stage' : p.anim ? 'Animation' : p.trn ? 'Tournoi' : '',
+        pic: p.stage ? 'racket' : p.anim ? 'users' : '',
+        lines: [
+          p.d2 ? ['cal', 'Du ' + fmtD(p.d, 1) + ' au ' + fmtD(p.d2, 1)] : ['clock', p.h1 + ' – ' + p.h2],
+          p.place && ['pin', p.place]
+        ],
         title: p.title.replace(/<[^>]+>/g, ''),
         v: 'post',
         id: p.id,
@@ -104,7 +105,11 @@ function planMore(iso, out, me, mine) {
         sport: y.sport,
         t: y.time,
         dur: hMin(y.dur) || 90,
-        sub: `Partie libre · ${y.fmt}${inn ? ' · inscrit' : wt ? ' · liste d’attente' : ''} · ${y.in.length}/${y.places}`,
+        lines: [
+          ['clock', y.dur],
+          ['users', `${y.fmt} · ${y.in.length}/${y.places}`]
+        ],
+        tg1: inn ? evTag('Inscrit') : wt ? evTag('Liste d’attente') : '',
         title: `Partie ${y.fmt.toLowerCase()} de ${first(p.by)}`,
         v: 'post',
         id: p.id,
@@ -122,7 +127,16 @@ function planMore(iso, out, me, mine) {
         sport: nv.sport,
         t: nv.time,
         dur: hMin(nv.dur) || 90,
-        sub: `${NV_MODE[nv.mode]}${s === 'ok' ? ' · validée' : s === 'wait' ? ' · liste d’attente' : s === 'in' ? ' · inscrit' : ''}${st.win ? '' : ' · en attente de joueurs'}`,
+        kind: NV_MODE[nv.mode],
+        lines: [['clock', nv.dur]],
+        tg1:
+          (s === 'ok'
+            ? evTag('Validée')
+            : s === 'wait'
+              ? evTag('Liste d’attente')
+              : s === 'in'
+                ? evTag('Inscrit')
+                : '') + (st.win ? '' : evTag('En attente de joueurs')),
         title:
           nv.mode === 'cours'
             ? nv.theme || 'Séance collective'
@@ -144,7 +158,8 @@ function planMore(iso, out, me, mine) {
           sport: p.sport || 'Padel',
           t: jaHour(nx.at),
           dur: 90,
-          sub: `Ton match${nx.court ? ' · ' + nx.court : ''}${nx.vs ? ' · contre ' + nx.vs : ''}`,
+          kind: 'Ton match',
+          lines: [nx.court && ['pin', nx.court], nx.vs && ['users', 'Contre ' + nx.vs]],
           title: p.title,
           v: 'post',
           id: p.id,
@@ -158,7 +173,10 @@ function planMore(iso, out, me, mine) {
         sport: p.sport || 'Padel',
         t: hhmm(p.ja.time),
         dur: p.ja.ani ? 180 : 480,
-        sub: `${p.ja.ani ? 'Animation · ' + (p.ja.fmt || '') : 'Tournoi · ' + (p.ja.cat || '')}${inn ? ' · inscrit' : ''}`,
+        kind: p.ja.ani ? 'Animation' : 'Tournoi',
+        pic: p.ja.ani ? 'users' : '',
+        lines: [(p.ja.ani ? p.ja.fmt : p.ja.cat) && ['flag', p.ja.ani ? p.ja.fmt : p.ja.cat]],
+        tg1: inn ? evTag('Inscrit') : '',
         title: p.title,
         v: 'post',
         id: p.id,
@@ -173,7 +191,8 @@ function planMore(iso, out, me, mine) {
         cat: 'repas',
         t: o.moment === 'soir' ? '19 h 30' : '12 h',
         dur: 60,
-        sub: `Bar · ${o.qty} × ${o.name}${o.st === 'servi' ? ' · servi' : ''}`,
+        lines: [['cRepas', `${o.qty} × ${o.name}`]],
+        tg1: o.st === 'servi' ? evTag('Servi') : '',
         title: o.moment === 'soir' ? 'Repas du soir' : 'Repas du midi',
         v: 'barday',
         id: o.date,
@@ -277,18 +296,23 @@ function planFiltersBody() {
  <span class="kicker">Sports</span><div class="chips wrap">${chip('sp', 'Tennis', 'Tennis')}${chip('sp', 'Padel', 'Padel')}</div>
  <div class="ctl"><button class="btn ghost grow" data-a="planReset">Tout afficher</button><button class="btn grow" data-a="close">Voir l’agenda</button></div></div>`;
 }
-/* vue Événements : chaque élément sur sa carte (bloc date à la couleur de son type), pour la distinguer de la Liste */
-const PLAN_KIND = { ens: 'Cours', jeu: 'Partie', ani: 'Événement', tour: 'Tournoi', eq: 'Rencontre', repas: 'Repas' };
-const planCard = (i, iso) => {
-  const [, m, d] = iso.split('-').map(Number),
-    pre = (String(i.sub).match(/^(Stage|Tournoi) · /) || [])[1],
-    sub = pre ? String(i.sub).slice(pre.length + 3) : i.sub,
-    when = i.t && !String(sub).includes(i.t) ? i.t + ' · ' : '';
-  return `<button class="card evc ${i.cat}${i.cx ? ' cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><span class="dblk"><b>${d}</b>${MO[m - 1]}</span><span class="evp">${ic((PLAN_CATS.find(x => x[0] === i.cat) || [])[2] || 'cal')}</span><span class="grow"><span class="kicker">${pre || PLAN_KIND[i.cat] || ''}${iso === TODAY ? " · aujourd'hui" : ''}</span><span class="nm">${i.title}</span><span class="muted small">${when}${sub}</span>${i.sport ? sportTag(i.sport) : ''}</span>${ic('back')}</button>`;
-};
-/* une ligne d'agenda (vues Liste, Jour) */
-const planRow = i =>
-  `<button class="pit ${i.cat} ${i.cx ? 'cx' : ''}" data-a="open" data-v="${i.v}" data-id="${i.id}"><i class="sq"></i><span class="tm">${i.t || 'Journée'}</span><span class="grow"><span class="nm">${i.title}</span><br><span class="muted small">${i.sub}</span>${i.sport ? ' ' + sportTag(i.sport) : ''}</span></button>`;
+/* les vues Événements et Liste : la carte commune (ui/1-briques.js), sous l'étiquette du jour */
+const PLAN_KIND = { jeu: 'Partie', ani: 'Événement', tour: 'Tournoi', eq: 'Rencontre', repas: 'Repas' };
+const planCard = i =>
+  evCard({
+    cat: i.cat,
+    pic: i.pic,
+    t: i.all ? '' : i.t,
+    cx: i.cx,
+    go: `data-a="open" data-v="${i.v}" data-id="${i.id}"`,
+    title: i.title,
+    lines: i.lines,
+    tags:
+      (i.tg0 || '') +
+      (i.kind || PLAN_KIND[i.cat] ? evTag(i.kind || PLAN_KIND[i.cat]) : '') +
+      sportTag(i.sport) +
+      (i.tg1 || '')
+  });
 /* Événements de l'agenda du club : tout ce qui est publié sur le mur avec une date (événements, stages,
    tournois du club, tournois et animations /RAM JA, parties dirigées, séances collectives ; pas les parties des adhérents),
    à venir sur 4 mois, une seule fois chacun (un stage sur plusieurs jours apparaît à son premier jour) */
@@ -311,7 +335,7 @@ function eventsView() {
     cols.push([iso, (days.find(x => x[0] === iso) || [iso, []])[1]]);
   return `<div class="pad">${
     days.length
-      ? `<div class="plk">${cols.map(([iso, l]) => `<section class="plc${l.length ? '' : ' vide'}${iso === TODAY ? ' today' : ''}"><span class="kicker plc-h">${fmtD(iso)}</span>${l.map(i => planCard(i, iso)).join('') || '<span class="muted small plc-v">Rien de prévu</span>'}</section>`).join('')}</div>`
+      ? `<div class="plk">${cols.map(([iso, l]) => evDay(iso, l.map(planCard).join('') || '<span class="muted small plc-v">Rien de prévu</span>', l.length ? '' : 'vide')).join('')}</div>`
       : me
         ? empty(
             'cal',
@@ -369,11 +393,8 @@ function planView() {
   if (P.mode === 'events') return eventsView().replace('<div class="pad">', '<div class="pad" id="plan">' + modes);
   const chip = (g2, k, l, c) =>
     `<button class="chip" data-a="planF" data-g="${g2}" data-k="${k}" aria-pressed="${!!P[g2][k]}">${c ? `<i class="sq ${c}"></i>` : ''}${l}</button>`;
-  const item = planRow;
-  const dayBlock = iso => {
-    const it = planItems(iso);
-    return `<div class="stack"><span class="kicker" ${iso === TODAY ? 'style="color:var(--accent)"' : ''}>${fmtD(iso)}${iso === TODAY ? " · aujourd'hui" : ''}</span>${it.length ? it.map(item).join('') : '<span class="muted small">Rien de prévu</span>'}</div>`;
-  };
+  const dayBlock = iso =>
+    evDay(iso, planItems(iso).map(planCard).join('') || '<span class="muted small plc-v">Rien de prévu</span>');
   const strip = `<div class="wk">${days
     .map(iso => {
       const n = planItems(iso).length,

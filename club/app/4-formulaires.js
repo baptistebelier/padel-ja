@@ -70,6 +70,10 @@ function forms(k, cid) {
     const e = forms('event', cid);
     return ['Nouveau stage', e[1], 'Publier le stage'];
   }
+  if (k === 'anim') {
+    const e = forms('event', cid);
+    return ['Nouvelle animation', e[1], 'Publier l’animation'];
+  }
   const cm = COMMS.find(c => c.id === cid);
   const coaches = Object.keys(M).filter(x => (M[x].role || '').startsWith('Enseignant'));
   return {

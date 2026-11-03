@@ -196,7 +196,7 @@
           const m = String(d).slice(0, 7);
           parMois[m] = (parMois[m] || 0) + p;
         });
-        if (ech && a.d <= to) ech.forEach(x => !x.ok && (aEncaisser += +x.m || 0));
+        if (ech && a.d <= to && !a.pay.off) ech.forEach(x => !x.ok && (aEncaisser += +x.m || 0));
       });
       const cov = couverture(
         achats.filter(a => a.d <= to),
@@ -207,7 +207,7 @@
         if (a.t === 'pack' && +a.n > a.used) prepaye += ((+a.n - a.used) * prixAchat(a, offres)) / +a.n;
       });
       (venues[k] || []).forEach(v => {
-        if (v.d < from || cov.couvre.has(v)) return;
+        if (v.d < from || cov.couvre.has(v) || (((eleves || {})[k] || {}).payIgn || []).includes(v.d)) return;
         const f = formuleDe(offres, v.n, v.min, v.sport);
         if (!f) return;
         nonCouvertes++;

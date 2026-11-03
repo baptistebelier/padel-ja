@@ -21,20 +21,32 @@ const respOf = (g, iso, id) => ((g.resp || {})[iso] || {})[id] || (((g.abs || {}
 function sessCard(g, iso, who, manage) {
   const cx = (g.cancel || []).includes(iso),
     loc = locOf(g, iso),
-    [y, m, d] = iso.split('-').map(Number),
     r = who ? respOf(g, iso, who) : '',
     nOk = g.mem.filter(p => respOf(g, iso, p) === 'ok').length,
     nNo = g.mem.filter(p => respOf(g, iso, p) === 'no').length;
-  return (
-    `<div class="card"><div class="row" style="align-items:flex-start;gap:12px"><span class="dblk"><b>${d}</b>${MO[m - 1]}<i>${g.h}</i></span><div class="grow"><span class="h3" style="font-size:19px">${g.name}</span><br><span class="muted small">${DA[new Date(y, m - 1, d).getDay()]} · ${g.h} · ${g.dur}${g.coach ? ' · ' + first(g.coach) : ''}</span><div class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag loc">${ic(loc === 'En salle' ? 'home' : 'sun')}${loc}</span>`}${sportTag(g.sport)}${who && who !== ME() ? `<span class="tag">${first(who)}</span>` : ''}${manage || !who ? `<span class="tag">${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' / ' + g.max : ''}</span>${grpFull(g) ? '<span class="tag" style="background:var(--accent);color:var(--on-accent)">Complet</span>' : ''}` : ''}</div></div></div>` +
-    (cx || !who
-      ? ''
-      : `<div class="ctl"><button class="btn sm grow ${r === 'ok' ? '' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${who}" data-s="ok">${who === ME() ? 'Je serai présent' : first(who) + ' sera présent'}</button><button class="btn sm grow ${r === 'no' ? 'hot' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${who}" data-s="no">Absent</button></div>`) +
-    (manage
-      ? `<span class="muted small">${nOk} présent${nOk > 1 ? 's' : ''} annoncé${nOk > 1 ? 's' : ''} · ${nNo} absent${nNo > 1 ? 's' : ''} · ${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.ext && g.ext.length ? ' dont ' + g.ext.length + ' sans compte' : ''}</span><div class="ctl" style="flex-wrap:wrap">${cx ? '' : `<button class="btn sm grow ghost" data-a="loc" data-g="${g.id}" data-d="${iso}">${loc === 'En salle' ? 'Passer en extérieur' : 'Passer en salle'}</button>`}<button class="btn sm grow ${cx ? '' : 'ghost'}" data-a="cancelCourse" data-id="${g.id}" data-d="${iso}">${cx ? 'Rétablir le cours' : 'Annuler'}</button><button class="btn sm grow ghost" data-a="delCourse" data-id="${g.id}" data-d="${iso}">Supprimer</button><button class="btn sm grow" data-a="open" data-v="grp" data-id="${g.id}">Appel</button></div>`
-      : '') +
-    `</div>`
-  );
+  return evCard({
+    cat: 'ens',
+    t: g.h,
+    cx,
+    title: g.name,
+    lines: [g.coach && ['user', first(g.coach)], ['clock', g.dur]],
+    tags:
+      (cx ? evCx('Cours annulé') : evLoc(loc)) +
+      sportTag(g.sport) +
+      (who && who !== ME() ? evTag(first(who)) : '') +
+      (manage || !who
+        ? evTag(`${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' / ' + g.max : ''}`) +
+          (grpFull(g) ? '<span class="tag" style="background:var(--accent);color:var(--on-accent)">Complet</span>' : '')
+        : ''),
+    fixe: true,
+    foot:
+      (cx || !who
+        ? ''
+        : `<div class="ctl"><button class="btn sm grow ${r === 'ok' ? '' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${who}" data-s="ok">${who === ME() ? 'Je serai présent' : first(who) + ' sera présent'}</button><button class="btn sm grow ${r === 'no' ? 'hot' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${who}" data-s="no">Absent</button></div>`) +
+      (manage
+        ? `<span class="muted small">${nOk} présent${nOk > 1 ? 's' : ''} annoncé${nOk > 1 ? 's' : ''} · ${nNo} absent${nNo > 1 ? 's' : ''} · ${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.ext && g.ext.length ? ' dont ' + g.ext.length + ' sans compte' : ''}</span><div class="ctl" style="flex-wrap:wrap">${cx ? '' : `<button class="btn sm grow ghost" data-a="loc" data-g="${g.id}" data-d="${iso}">${loc === 'En salle' ? 'Passer en extérieur' : 'Passer en salle'}</button>`}<button class="btn sm grow ${cx ? '' : 'ghost'}" data-a="cancelCourse" data-id="${g.id}" data-d="${iso}">${cx ? 'Rétablir le cours' : 'Annuler'}</button><button class="btn sm grow ghost" data-a="delCourse" data-id="${g.id}" data-d="${iso}">Supprimer</button><button class="btn sm grow" data-a="open" data-v="grp" data-id="${g.id}">Appel</button></div>`
+        : '')
+  });
 }
 /* « Premiers pas » du bureau : 5 étapes cochées toutes seules, chacune ouvre son écran ; disparaît quand tout est fait */
 function setupCard() {
@@ -153,7 +165,11 @@ function ecoleBody(t) {
     items.sort((a, b) => a.iso.localeCompare(b.iso) || hMin(a.g.h) - hMin(b.g.h));
     b = items.length
       ? `<p class="muted small">Tes cours des trois prochaines semaines. Indique ta présence : l'enseignant prépare la séance en conséquence, et tu es notifié si le lieu change ou si le cours est annulé.</p>` +
-        items.map(x => sessCard(x.g, x.iso, x.w, x.c)).join('')
+        evDays(
+          items,
+          x => x.iso,
+          x => sessCard(x.g, x.iso, x.w, x.c)
+        )
       : empty(
           'school',
           'Aucun cours',

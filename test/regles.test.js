@@ -143,3 +143,11 @@ test('replanAchat : recale ce qui reste à payer, jamais ce qui est réglé', ()
   assert.equal(replanAchat({ prix: 250, pay: { ech: [{ s: 1, m: 85, ok: '' }, { s: 4, m: 85, ok: '' }, { s: 7, m: 80, ok: '' }] } }, pk), null, 'déjà bon');
   assert.equal(replanAchat({ prix: 250 }, pk), null, 'payé en une fois, sans calendrier');
 });
+
+test('chiffre : un paiement retiré de la liste ne compte plus dans ce qui reste à encaisser', () => {
+  const { chiffre } = require('../club/regles.js');
+  const achat = off => ({ id: 'h', t: 'pack', d: '2026-10-01', n: 3, prix: 90, pay: Object.assign({ ech: [{ s: 1, m: 90, ok: '' }] }, off ? { off: 1 } : {}) });
+  const f = off => chiffre({ eleves: { a: { achats: [achat(off)] } }, seances: [], offres: { formules: [], packs: [], abos: [] }, from: '2026-10-01', to: '2026-10-31' }).aEncaisser;
+  assert.equal(f(false), 90);
+  assert.equal(f(true), 0);
+});

@@ -60,10 +60,19 @@ function archView() {
       : no;
   if (t === 'evs')
     b = E.length
-      ? E.map(p => {
-          const [y, m, d] = (p.d || TODAY).split('-').map(Number);
-          return `<button class="item" data-a="open" data-v="post" data-id="${p.id}"><span class="dblk"><b>${d}</b>${MO[m - 1]}</span><span class="grow"><span class="h3">${p.title}</span><br><span class="muted small">${p.date} · ${p.place}</span></span></button>`;
-        }).join('')
+      ? evDays(
+          E,
+          p => p.d || TODAY,
+          p =>
+            evCard({
+              cat: p.trn ? 'tour' : 'ani',
+              pic: p.stage ? 'racket' : p.anim ? 'users' : '',
+              t: p.d2 ? '' : p.h1,
+              go: `data-a="open" data-v="post" data-id="${p.id}"`,
+              title: p.title,
+              lines: [p.place && ['pin', p.place]]
+            })
+        )
       : no;
   return `<div class="pad"><div class="stack"><span class="kicker">Saison en cours : ${S.season}</span><div class="chips">${seasons.map(x => `<button class="chip" data-a="arch" data-k="s" data-val="${x}" aria-pressed="${x === s}">${x}</button>`).join('')}</div>
  <div class="chips">${[

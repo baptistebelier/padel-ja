@@ -138,14 +138,22 @@ function persoBody() {
           : '') +
         (hist.length
           ? `<span class="kicker">Historique des séances · ${nP} présence${nP > 1 ? 's' : ''} sur ${hist.length}</span>` +
-            hist
-              .slice(0, 8)
-              .map(s => {
+            evDays(
+              hist.slice(0, 8),
+              s => s.d,
+              s => {
                 const st = s.pres[k],
                   g = grp(s.g);
-                return `<div class="card"><div class="row" style="gap:10px;align-items:flex-start"><span class="dblk"><b>${+s.d.slice(8)}</b>${MO[+s.d.slice(5, 7) - 1]}</span><div class="grow"><span class="nm">${g ? g.name : 'Séance'}</span> <span class="tag" ${st === 'P' ? '' : 'style="background:var(--hot);color:#fff"'}>${st === 'P' ? 'Présent' : st === 'E' ? 'Excusé' : 'Absent'}</span>${s.theme ? `<br><span class="muted small">${esc(s.theme)}</span>` : ''}${s.recap ? `<p class="small">${esc(s.recap)}</p>` : ''}</div></div></div>`;
-              })
-              .join('')
+                return evCard({
+                  cat: 'ens',
+                  fixe: true,
+                  t: g ? g.h : '',
+                  title: g ? g.name : 'Séance',
+                  lines: [s.theme && ['ladder', esc(s.theme)], s.recap && ['doc', esc(s.recap)]],
+                  tags: st === 'P' ? evTag('Présent') : evCx(st === 'E' ? 'Excusé' : 'Absent')
+                });
+              }
+            )
           : '')
       );
     })

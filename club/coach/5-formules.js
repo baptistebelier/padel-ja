@@ -220,10 +220,12 @@ function coPayTodo(depuis) {
   const out = [];
   ELEVES.filter(e => coInClub(e) && (e.achats || []).some(a => a.pay)).forEach(e =>
     coPacks(e.id).forEach(a => {
+      if ((a.pay || {}).off) return; // retiré de la liste par l'enseignant
       const faites = a.cycle ? coCycleUsed(a, e.id) : a.used || 0,
         due = (coPayEch(a) || []).filter(x => !x.ok && faites >= (+x.s || 0));
       if (due.length)
         out.push({
+          id: 'a|' + e.id + '|' + a.id,
           t: esc(svName(e.id)),
           d: a.d,
           sub: esc(a.nom || ofLabel(a.t, a.ref)) + ' · ' + plural(due.length, 'paiement attendu', 'paiements attendus'),
@@ -236,10 +238,11 @@ function coPayTodo(depuis) {
     .filter(x => !coIsGrp(x.g) && !isCx(x.g, x.d) && x.s && x.s.pres)
     .forEach(x =>
       Object.keys(x.s.pres)
-        .filter(k => x.s.pres[k] === 'P' && coDue(k, x.d))
+        .filter(k => x.s.pres[k] === 'P' && coDue(k, x.d) && !((coEl(k) || {}).payIgn || []).includes(x.d))
         .forEach(k => {
           const f = REGLES.formuleDe(OFFRES, Math.max(1, coStu(x.g).length), durMin(x.g.dur), x.g.sport);
           out.push({
+            id: 's|' + k + '|' + x.d,
             t: esc(svName(k)),
             d: x.d,
             sub: 'Séance du ' + fmtD(x.d),
@@ -250,6 +253,48 @@ function coPayTodo(depuis) {
     );
   return out;
 }
+/* Suivi : sélection des paiements à régulariser, comme les bilans ; les retirer ne touche ni à l'achat ni aux séances */
+function coSelBarP() {
+  const all = S.coPayIds || [],
+    pick = (S.coPickP || []).filter(id => all.includes(id)),
+    every = all.length && pick.length === all.length;
+  return `<div class="card cosbar"><button class="item cosel" data-a="coPickAllP" aria-pressed="${!!every}"><span class="cochk" aria-hidden="true">${ic('check')}</span><span class="grow"><span class="nm">Tout sélectionner</span><br><span class="muted small">${pick.length ? plural(pick.length, 'paiement sélectionné', 'paiements sélectionnés') : 'Touche les paiements à supprimer'}</span></span></button><button class="btn sm hot full" data-a="coPickDelP" ${pick.length ? '' : 'disabled'}>${ic('trash')}Supprimer de la liste</button></div>`;
+}
+Object.assign(A, {
+  coSelModeP() {
+    S.coSelP = !S.coSelP;
+    S.coPickP = [];
+    render(true);
+  },
+  coPickP(d) {
+    const l = (S.coPickP = S.coPickP || []),
+      i = l.indexOf(d.id);
+    if (i >= 0) l.splice(i, 1);
+    else l.push(d.id);
+    render(true);
+  },
+  coPickAllP() {
+    const all = S.coPayIds || [];
+    S.coPickP = (S.coPickP || []).length === all.length ? [] : all.slice();
+    render(true);
+  },
+  coPickDelP() {
+    const l = (S.coPickP || []).filter(id => (S.coPayIds || []).includes(id));
+    if (!l.length) return;
+    l.forEach(id => {
+      const [t, k, x] = id.split('|'),
+        e = coElGet(k);
+      if (t === 's') e.payIgn = (e.payIgn || []).concat(x);
+      else {
+        const a = (e.achats || []).find(h => h.id === x);
+        if (a && a.pay) a.pay.off = 1;
+      }
+    });
+    S.coSelP = false;
+    S.coPickP = [];
+    coSave(plural(l.length, 'paiement supprimé', 'paiements supprimés') + ' de la liste');
+  }
+});
 /* la partie « suivi pratique » de la page Statistiques */
 function coPayPage(C) {
   const todo = coPayTodo(),
