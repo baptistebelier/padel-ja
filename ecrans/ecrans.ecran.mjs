@@ -1503,3 +1503,18 @@ test('JA : en paysage, les pages passent sur plusieurs colonnes ; sur téléphon
   await ctx.close();
 });
 
+test('JA : le bouton pour activer les notifications, et le service worker les reçoit', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 } });
+  const { page, errors } = await openPage(ctx, JA + '/demo');
+  await page.goto(JA + '/profil');
+  await page.waitForSelector('#notifCard');
+  // sans autorisation possible (navigateur de test), la carte explique pourquoi ; sinon, le bouton est là
+  const refus = await page.evaluate(() => !('Notification' in window) || Notification.permission === 'denied');
+  if (refus) assert.match(await page.locator('#notifTxt').innerText(), /bloquées|ne gère pas|écran d'accueil/);
+  else assert.ok(await page.locator('#notifOn').isVisible(), 'bouton Activer');
+  const sw = await page.evaluate(() => fetch('/sw.js').then(r => r.text()));
+  assert.ok(sw.includes("addEventListener('push'") && sw.includes('notificationclick'));
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+

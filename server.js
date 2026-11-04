@@ -45,11 +45,17 @@ const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf:
 const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m) });   // notifications sur le téléphone
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
 // une notification passe par la file : un redémarrage du serveur ne la perd pas
-require('./lib/pushnotif.js').createNotifier({ ram, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
+const notifier = require('./lib/pushnotif.js').createNotifier({ ram, formules: u => require('./lib/formules.js').get(store, u), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
 taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
 taches.on('shopify-achat', o => reservation.achatShopify(o));
+/* chaque soir à 18 h (heure de Paris) : rappels des cours de groupe et résumé des enseignants, une seule fois par jour */
+taches.on('veille', p => notifier.veille(p.d));
+setInterval(() => {
+  const [d, h] = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).format(new Date()).split(' ');
+  if (+h === 18) taches.enqueue('veille', { d }, { key: 'veille:' + d });
+}, 600000).unref();
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
-const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, agenda: Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) }), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
+const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, Mail, agenda: Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) }), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
 const googleAgenda = require('./lib/google-agenda.js').createGoogleAgenda({ ram, store, coachTables, taches, log: m => console.warn('/RAM Coach : ' + m) });   // les séances écrites dans Google Agenda, en temps réel
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
@@ -400,7 +406,7 @@ function applyServerAction(room, action) {
 }
 
 /* tournois et animations publiés sur /RAM Club, inscriptions depuis l'appli du club (lib/jaclub.js) */
-const jaClub = require('./lib/jaclub.js').createJaClub({ store, ram, clubs, Engine, Ani, getRoom, applyServerAction });
+const jaClub = require('./lib/jaclub.js').createJaClub({ store, ram, clubs, Engine, Ani, getRoom, applyServerAction, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) } });
 
 /* ---------------------------------------------------------------------
    base de joueurs : un joueur = une licence (ou, à défaut, NOM + prénom)
@@ -1110,7 +1116,7 @@ const server = http.createServer(async (req, res) => {
       if (p === '/api/ram/push/key' && req.method === 'GET') return json(res, 200, { key: await push.publicKey() });
       if (p === '/api/ram/push/subscribe' && req.method === 'POST') {
         const b = await readBody(req);
-        return push.subscribe(u.id, b.subscription, req.headers['user-agent'], b.app === 'coach' ? 'coach' : 'club').then(() => json(res, 200, { ok: true }), fail);
+        return push.subscribe(u.id, b.subscription, req.headers['user-agent'], b.app === 'coach' ? 'coach' : b.app === 'ja' ? 'ja' : 'club').then(() => json(res, 200, { ok: true }), fail);
       }
       if (p === '/api/ram/push/unsubscribe' && req.method === 'POST') {
         const b = await readBody(req);

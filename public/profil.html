@@ -27,6 +27,11 @@
   </header>
   <div class="grid g-2">
     <div class="grid" style="align-content:start">
+      <section class="card" id="notifCard">
+        <span class="eyebrow">Notifications</span><h2>Sur cet appareil</h2>
+        <p class="muted small" id="notifTxt">Recevez une notification quand un adhérent s'inscrit ou se retire de vos tournois depuis /RAM Club, et quand un tournoi est complet.</p>
+        <button class="btn primary sm" type="button" id="notifOn">Activer les notifications</button>
+      </section>
       <section class="card">
         <span class="eyebrow">Identité</span>
         <div class="who"><div class="av-wrap"><label class="avatar av-edit" id="av" title="Changer la photo de profil">JA<input type="file" accept="image/*" id="avFile" hidden></label>
@@ -329,6 +334,31 @@
     });
   }
   loadTpl();
+})();
+</script>
+<script>
+/* notifications de /RAM JA : l'abonnement de cet appareil, rattaché au compte connecté */
+(function () {
+  const btn = document.getElementById('notifOn'), txt = document.getElementById('notifTxt'), card = document.getElementById('notifCard');
+  const dit = (m, fini) => { txt.textContent = m; if (fini) btn.hidden = true; };
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return dit(/iPhone|iPad|iPod/.test(navigator.userAgent) ? "Sur iPhone et iPad, ajoutez d'abord /RAM JA à l'écran d'accueil pour recevoir les notifications." : 'Ce navigateur ne gère pas les notifications.', true);
+  }
+  if (Notification.permission === 'granted') dit('Les notifications sont activées sur cet appareil.', false), (btn.textContent = 'Renouveler');
+  if (Notification.permission === 'denied') dit('Les notifications sont bloquées pour ce site : autorisez-les dans les réglages de votre navigateur.', true);
+  const u8 = s => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  btn.onclick = async () => {
+    try {
+      const k = await fetch('/api/ram/push/key', { credentials: 'include' }).then(r => r.json());
+      if (!k.key) return dit("Les notifications ne sont pas disponibles pour l'instant.");
+      if ((await Notification.requestPermission()) !== 'granted') return dit('Autorisation refusée.');
+      await navigator.serviceWorker.register('/sw.js');
+      const reg = await navigator.serviceWorker.ready, sub = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: u8(k.key) }));
+      const r = await fetch('/api/ram/push/subscribe', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), app: 'ja' }) });
+      dit(r.ok ? 'Les notifications sont activées sur cet appareil.' : "L'activation a échoué : réessayez.", r.ok);
+    } catch (e) { dit("L'activation a échoué : réessayez."); }
+  };
+  void card;
 })();
 </script>
 </body>

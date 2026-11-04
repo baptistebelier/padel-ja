@@ -453,6 +453,9 @@ const A = {
   readh() {
     const me = ME();
     if (JOINREQ.some(j => j.id === me)) return;
+    // synchronisé : le bureau est prévenu (lib/pushnotif.js)
+    M[me].req = S.season;
+    M[me].via = "une reprise d'adhésion";
     JOINREQ.push({
       id: me,
       n: M[me].n,

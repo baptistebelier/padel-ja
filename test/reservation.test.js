@@ -18,7 +18,7 @@ const settings = {};
 const store = { getCoachSetting: async (u, k) => (settings[u] || {})[k] || null, saveCoachSetting: async (u, k, v) => { (settings[u] = settings[u] || {})[k] = v; }, getAccount: async () => null };
 const envois = [], taches = { faites: [], handlers: {}, enqueue(kind, p, o) { this.faites.push({ kind, p, o }); }, on(k, fn) { this.handlers[k] = fn; } };
 let horloge = null;
-const resa = createReservation({ ram, store, coachTables, Formules, taches, push: { sendMany: async (uids, msg) => { envois.push({ uids, msg }); } }, now: () => horloge || new Date() });
+const resa = createReservation({ ram, store, coachTables, Formules, taches, Mail: require('../lib/mail.js'), push: { sendMany: async (uids, msg) => { envois.push({ uids, msg }); } }, now: () => horloge || new Date() });
 
 async function monte(n) {
   const coach = 'C' + n, club = await ram.create({ id: coach, name: 'Sarah Benali' }, { name: 'Club ' + n });
@@ -320,3 +320,29 @@ test('agenda : les cours confirmés vers Google, et ce qui est posé chez Google
   const panne = Agenda.createAgenda({ fetchFn: async () => { throw new Error('panne'); } });
   assert.deepEqual(await panne.occupe(['https://calendar.google.com/a'], '2026-07-01', '2026-07-31'), [], 'injoignable : la réservation continue');
 });
+
+test('page publique : l’élève sans compte reçoit un e-mail si l’enseignant annule ou déplace ; pas s’il annule lui-même', async () => {
+  const { coach, club, key, d } = await monte(33);
+  await ram.ops(coach, club.id, [
+    { coll: 'eleve', id: 'ex', op: 'put', data: { n: 'Léa Martin', mail: 'lea@exemple.fr' } },
+    { coll: 'cours', id: 'rp', op: 'put', data: { type: 'train', name: 'Cours', once: d, h: '10 h', dur: '1 h', coach: key, mem: [], ext: ['ex'], cal: 'ram:rp' } }
+  ]);
+  await new Promise(r => setTimeout(r, 30));
+  const mails = () => taches.faites.filter(x => x.kind === 'mail');
+  taches.faites.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'rp', op: 'patch', patch: [{ p: ['h'], t: 'set', v: '11 h' }] }]);
+  await new Promise(r => setTimeout(r, 30));
+  assert.equal(mails().length, 1);
+  assert.equal(mails()[0].p.to, 'lea@exemple.fr');
+  assert.match(mails()[0].p.subject, /Cours déplacé : .* à 11 h/);
+  taches.faites.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'rp', op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: d }] }]);
+  await new Promise(r => setTimeout(r, 30));
+  assert.match(mails()[0].p.subject, /Cours annulé/);
+  taches.faites.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'rp', op: 'patch', patch: [{ p: ['cancel'], t: 'set', v: [] }, { p: ['annulePar'], t: 'set', v: 'ex' }] }]);
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'rp', op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: d }] }]);
+  await new Promise(r => setTimeout(r, 30));
+  assert.equal(mails().length, 0, 'il a annulé lui-même');
+});
+

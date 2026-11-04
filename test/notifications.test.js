@@ -14,7 +14,8 @@ if (saved.url) process.env.SUPABASE_URL = saved.url;
 if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
 
 const sent = [];
-createNotifier({ ram, push: { send: async (uid, msg) => { sent.push([uid, msg]); return 1; } } });
+const OFFRES_T = { formules: [{ id: 'f1', joueurs: 1, duree: 60, sport: 'Padel', prix: 30 }], packs: [{ id: 'p3', formule: 'f1', seances: 2, prix: 60 }] };
+const notifier = createNotifier({ ram, formules: async () => OFFRES_T, push: { send: async (uid, msg) => { sent.push([uid, msg]); return 1; } } });
 const settle = () => new Promise(r => setTimeout(r, 30));
 const to = () => sent.map(x => x[0]).sort();
 const item = (s, coll, id) => (s.items.find(i => i.coll === coll && i.id === id) || {}).data;
@@ -267,5 +268,144 @@ test('présence confirmée : l’enseignant est prévenu ; événement et collec
   await settle();
   assert.deepEqual(to(), [el]);
   assert.match(sent[0][1].body, /Modifié : Volée, .* à 19 h/);
+});
+
+/* ---------- le reste du catalogue ---------- */
+async function clubDeux(n) {
+  const x = await clubCours(n), j = await ram.join({ id: 'FF' + n, name: 'Paul Roux' }, x.club.code);
+  await ram.ops(x.coach, x.club.id, [{ coll: 'member', id: j.key, op: 'put', data: { n: 'Paul Roux', valid: 'S', pl: 5, r: '15/1' } }, { coll: 'member', id: x.ek, op: 'put', data: { n: 'Nina Anglade', valid: 'S', pl: 5, r: '15/1' } }]);
+  await settle(); sent.length = 0;
+  return Object.assign(x, { p: 'FF' + n, pk: j.key });
+}
+const ops = async (who, club, l, opts) => { const r = await ram.ops(who, club.id, l, opts); assert.deepEqual(r.rejected, []); await settle(); const out = sent.slice(); sent.length = 0; return out; };
+const corps = l => l.map(x => x[1].body).join(' | ');
+
+test('ciblage : une annonce réservée aux femmes ne va pas à tout le club', async () => {
+  const { coach, club, el, p, ek, pk } = await clubDeux(20);
+  await ops(coach, club, [{ coll: 'member', id: ek, op: 'patch', patch: [{ p: ['g'], t: 'set', v: 'F' }] }, { coll: 'member', id: pk, op: 'patch', patch: [{ p: ['g'], t: 'set', v: 'H' }] }]);
+  const l = await ops(coach, club, [{ coll: 'post', id: 'a1', op: 'put', data: { by: 'club', kind: 'annonce', title: 'Soirée', rule: { gen: 'Femmes' } } }]);
+  assert.deepEqual(l.map(x => x[0]).sort(), [el], 'pas ' + p);
+});
+
+test('abonnés : nouvel abonné, résultat publié, classement mis à jour', async () => {
+  const { club, el, p, ek, pk } = await clubDeux(21);
+  let l = await ops(el, club, [{ coll: 'member', id: ek, op: 'patch', patch: [{ p: ['fo'], t: 'add', v: pk }] }]);
+  assert.deepEqual(l.map(x => x[0]), [p]);
+  assert.match(corps(l), /Nina te suit/);
+  l = await ops(p, club, [{ coll: 'post', id: 'r1', op: 'put', data: { by: pk, kind: 'perf', res: { w: 1, opp: 'Luc', or: '15', sc: '6-3 6-4', perf: true } } }]);
+  assert.deepEqual(l.map(x => x[0]), [el]);
+  assert.match(corps(l), /Paul gagne contre Luc : 6-3 6-4 · perf/);
+  l = await ops(p, club, [{ coll: 'member', id: pk, op: 'patch', patch: [{ p: ['r'], t: 'set', v: '15' }] }]);
+  assert.deepEqual(l.map(x => x[0]), [el]);
+  assert.match(corps(l), /Paul met à jour son classement/);
+});
+
+test('parties : recherche à mon niveau, désistement, attente, place libérée, créneau déplacé', async () => {
+  const { club, el, p, ek, pk } = await clubDeux(22);
+  const y = { sport: 'Padel', date: 'lun. 3', d: D, time: '18 h', dur: '1 h', fmt: 'Double', lo: 3, hi: 7, places: 1, in: [], wait: [] };
+  let l = await ops(p, club, [{ coll: 'post', id: 'pl', op: 'put', data: { by: pk, kind: 'play', play: y } }]);
+  assert.deepEqual(l.map(x => x[0]), [el]);
+  assert.match(corps(l), /Paul cherche des joueurs : padel/);
+  l = await ops(el, club, [{ coll: 'post', id: 'pl', op: 'patch', patch: [{ p: ['play', 'in'], t: 'add', v: ek }] }]);
+  assert.match(corps(l), /Nina rejoint ta partie/);
+  // le créateur note un autre joueur en attente, puis Nina se retire : le premier en attente est prévenu
+  await ops(p, club, [{ coll: 'post', id: 'pl', op: 'patch', patch: [{ p: ['play', 'wait'], t: 'add', v: pk }] }]);
+  l = await ops(el, club, [{ coll: 'post', id: 'pl', op: 'patch', patch: [{ p: ['play', 'in'], t: 'rm', v: ek }] }]);
+  assert.match(corps(l), /Nina se désiste/);
+  assert.match(corps(l), /Une place s'est libérée/);
+  await ops(el, club, [{ coll: 'post', id: 'pl', op: 'patch', patch: [{ p: ['play', 'wait'], t: 'add', v: ek }] }]);
+  l = await ops(p, club, [{ coll: 'post', id: 'pl', op: 'patch', patch: [{ p: ['play', 'time'], t: 'set', v: '19 h' }] }]);
+  assert.ok(l.some(x => x[0] === el && /déplace sa partie .* 19 h/.test(x[1].body)));
+});
+
+test('événement : l’organisateur voit les inscrits, place libérée, suppression', async () => {
+  const { coach, club, el, p, ek, pk } = await clubDeux(23);
+  await ops(coach, club, [{ coll: 'post', id: 'e1', op: 'put', data: { by: 'club', kind: 'event', mur: false, title: 'Tournoi interne', date: 'sam.', cap: 1, myBy: {} } }]);
+  let l = await ops(el, club, [{ coll: 'post', id: 'e1', op: 'patch', patch: [{ p: ['myBy', ek], t: 'set', v: 'yes' }] }]);
+  assert.deepEqual(l.map(x => x[0]), [coach], 'le bureau');
+  assert.match(corps(l), /Nina s'inscrit à « Tournoi interne »/);
+  await ops(p, club, [{ coll: 'post', id: 'e1', op: 'patch', patch: [{ p: ['myBy', pk], t: 'set', v: 'wait' }] }]);
+  l = await ops(el, club, [{ coll: 'post', id: 'e1', op: 'patch', patch: [{ p: ['myBy', ek], t: 'set', v: null }] }]);
+  assert.ok(l.some(x => x[0] === p && /Une place s'est libérée/.test(x[1].body)), corps(l));
+  l = await ops(coach, club, [{ coll: 'post', id: 'e1', op: 'del' }]);
+  assert.deepEqual(l.map(x => x[0]), [p]);
+  assert.match(corps(l), /Annulé : Tournoi interne/);
+});
+
+test('nouveau collectif : les adhérents de la fourchette, pas les autres', async () => {
+  const { coach, club, key, el, p, pk } = await clubDeux(24);
+  await ops(coach, club, [{ coll: 'member', id: pk, op: 'patch', patch: [{ p: ['pl'], t: 'set', v: 1 }] }]);
+  const l = await ops(coach, club, [{ coll: 'post', id: 'c1', op: 'put', data: { by: key, kind: 'niveaux', mur: false, nv: { mode: 'cours', sport: 'Padel', theme: 'Volée', time: '18 h', dates: [D], tiers: [{ id: 't1', lo: 4, hi: 7, places: 4 }], ins: {} } } }]);
+  assert.deepEqual(l.map(x => x[0]), [el], 'pas ' + p);
+  assert.match(corps(l), /Nouvelle séance collective : Volée/);
+});
+
+test('équipe : capitaine nommé, réponse à la convocation, fin de rencontre', async () => {
+  const { coach, club, el, p, ek, pk } = await clubDeux(25);
+  await ops(coach, club, [{ coll: 'group', id: 't1', op: 'put', data: { type: 'team', name: 'Équipe 1', mem: [ek, pk] } }, { coll: 'rec', id: 'm1', op: 'put', data: { tid: 't1', opp: 'TC Tulle', st: 'soon' } }]);
+  let l = await ops(coach, club, [{ coll: 'group', id: 't1', op: 'patch', patch: [{ p: ['cap'], t: 'set', v: pk }] }]);
+  assert.deepEqual(l.map(x => x[0]), [p]);
+  assert.match(corps(l), /Tu es capitaine : Équipe 1/);
+  l = await ops(coach, club, [{ coll: 'rec', id: 'm1', op: 'patch', patch: [{ p: ['conv', ek], t: 'set', v: 'ok' }] }]);
+  assert.ok(l.some(x => x[0] === p && /Nina est dispo contre TC Tulle/.test(x[1].body)), corps(l));
+  await ops(coach, club, [{ coll: 'rec', id: 'm1', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'live' }] }]);
+  l = await ops(coach, club, [{ coll: 'rec', id: 'm1', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'done' }] }]);
+  assert.deepEqual(l.map(x => x[0]).sort(), [el, p].sort());
+  assert.match(corps(l), /TC Tulle : fin de la rencontre/);
+});
+
+test('commission, adhésion, trophée, bar, signalement', async () => {
+  const { coach, club, key, el, ek } = await clubDeux(26);
+  await ops(coach, club, [{ coll: 'comm', id: 'c1', op: 'put', data: { name: 'Animation', resp: key, mem: [], req: [] } }]);
+  let l = await ops(el, club, [{ coll: 'comm', id: 'c1', op: 'patch', patch: [{ p: ['req'], t: 'add', v: ek }] }]);
+  assert.deepEqual(l.map(x => x[0]), [coach]);
+  assert.match(corps(l), /Nina souhaite rejoindre : animation/);
+  l = await ops(coach, club, [{ coll: 'comm', id: 'c1', op: 'patch', patch: [{ p: ['req'], t: 'rm', v: ek }] }]);
+  assert.match(corps(l), /Ta demande n'est pas retenue/);
+  await ops(coach, club, [{ coll: 'member', id: ek, op: 'patch', patch: [{ p: ['valid'], t: 'set', v: '' }] }]);
+  l = await ops(coach, club, [{ coll: 'member', id: ek, op: 'patch', patch: [{ p: ['valid'], t: 'set', v: 'S' }] }]);
+  assert.ok(l.some(x => x[0] === el && /adhésion est validée pour la saison S/.test(x[1].body)), corps(l));
+  await ops(el, club, [{ coll: 'stats', id: ek, op: 'patch', patch: [{ p: ['x'], t: 'set', v: 1 }] }]);
+  l = await ops(coach, club, [{ coll: 'stats', id: ek, op: 'patch', patch: [{ p: ['k'], t: 'add', v: 'award:invaincu' }] }]);
+  assert.deepEqual(l.map(x => x[0]), [el]);
+  assert.match(corps(l), /décerne un trophée/);
+  l = await ops(el, club, [{ coll: 'report', id: 'r1', op: 'put', data: { kind: 'com', by: ek, author: key, excerpt: 'Propos déplacés' } }]);
+  assert.deepEqual(l.map(x => x[0]), [coach]);
+  assert.match(corps(l), /Signalement de Nina : Propos déplacés/);
+  assert.equal((await ram.ops(el, club.id, [{ coll: 'report', id: 'r2', op: 'put', data: { kind: 'com', by: 'quelqu1', excerpt: 'x' } }])).rejected.length, 1, 'pas au nom d’un autre');
+  await ops(coach, club, [{ coll: 'bar', id: 'b1', op: 'put', data: { name: 'Burger', resa: true, moments: ['midi'] } }]);
+  await ops(el, club, [{ coll: 'order', id: 'o1', op: 'put', data: { by: ek, item: 'b1', date: '2031-03-04', moment: 'midi', qty: 1, st: 'ok' } }]);
+  l = await ops(el, club, [{ coll: 'order', id: 'o1', op: 'patch', patch: [{ p: ['st'], t: 'set', v: 'annule' }] }]);
+  assert.deepEqual(l.map(x => x[0]), [coach]);
+  assert.match(corps(l), /Nina annule : 1 × Burger/);
+});
+
+test('appel : l’enseignant apprend qu’un paiement arrive et qu’un pack est terminé', async () => {
+  const { coach, club, key, ek } = await clubDeux(27);
+  await ops(coach, club, [
+    { coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Cours', day: 1, h: '9 h', dur: '1 h', sport: 'Padel', coach: key, mem: [ek], cycles: [{ id: 'c1', dates: ['2026-01-05', '2026-01-12'] }] } },
+    { coll: 'eleve', id: ek, op: 'put', data: { n: 'Nina Anglade', achats: [
+      { id: 'hc', t: 'pack', ref: 'p3', d: '2026-01-01', nom: 'Cycle', n: 10, prix: 200, cycle: 'g1:c1', pay: { ech: [{ s: 1, m: 100, ok: '2026-01-01' }, { s: 2, m: 100, ok: '' }] } }
+    ] } }
+  ]);
+  let l = await ops(coach, club, [{ coll: 'seance', id: 'g1.2026-01-05', op: 'put', data: { g: 'g1', d: '2026-01-05', pres: { [ek]: 'P' } } }]);
+  assert.equal(l.length, 0, 'la 1re échéance est déjà réglée');
+  l = await ops(coach, club, [{ coll: 'seance', id: 'g1.2026-01-12', op: 'put', data: { g: 'g1', d: '2026-01-12', pres: { [ek]: 'P' } } }]);
+  assert.deepEqual(l.map(x => [x[0], x[1].app]), [[coach, 'coach']]);
+  assert.match(corps(l), /Nina : paiement attendu de 100 €, Cycle/);
+});
+
+test('la veille à 18 h : rappel du cours de groupe, résumé à l’enseignant ; un absent n’a pas de rappel', async () => {
+  const { coach, club, key, el, p, ek, pk } = await clubDeux(28);
+  const REGLES = require('../club/regles.js'), t = '2031-03-03', d = REGLES.addDays(t, 1);
+  await ops(coach, club, [{ coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Collectif', day: REGLES.dowOf(d), h: '17 h', dur: '1 h', coach: key, mem: [ek, pk], abs: { [d]: [pk] } } }]);
+  await notifier.veille(t);
+  const miens = sent.filter(x => x[1].tag.startsWith(club.id));
+  assert.deepEqual(miens.filter(x => /Rappel/.test(x[1].body)).map(x => x[0]), [el], 'pas ' + p);
+  assert.match(miens.find(x => x[0] === el)[1].body, /Rappel : Collectif avec Sarah, demain à 17 h/);
+  const c = miens.find(x => x[0] === coach);
+  assert.equal(c[1].app, 'coach');
+  assert.match(c[1].body, /Demain : 1 séance, la première à 17 h/);
+  sent.length = 0;
 });
 

@@ -56,3 +56,39 @@ test('appareils : l’enseignement va à l’appli /RAM Coach, le reste à /RAM 
   } finally { global.fetch = real; }
   assert.deepEqual(hits.map(u => u.split('/').pop()), ['coach', 'club']);
 });
+
+test('/RAM JA : l’abonnement est reconnu, et son message ne part pas sur les autres applis', async () => {
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const { createStore } = require('../lib/store');
+  const { createWebPush } = require('../lib/webpush');
+  const saved = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY };
+  delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  const store = createStore(fs.mkdtempSync(path.join(os.tmpdir(), 'ram-pushja-')));
+  if (saved.url) process.env.SUPABASE_URL = saved.url;
+  if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
+  const push = createWebPush({ store }), hits = [], real = global.fetch;
+  const ua = crypto.createECDH('prime256v1'); ua.generateKeys();
+  const sub = n => ({ endpoint: 'https://push.test/' + n, keys: { p256dh: b64u(ua.getPublicKey()), auth: b64u(crypto.randomBytes(16)) } });
+  global.fetch = async u => { hits.push(String(u).split('/').pop()); return { ok: true, status: 201 }; };
+  try {
+    await push.subscribe('U', sub('club'), 'Chrome', 'club');
+    await push.send('U', { body: 'x', app: 'ja' });
+    assert.deepEqual(hits, ['club'], 'sans appareil /RAM JA : sur /RAM Club');
+    hits.length = 0;
+    await push.subscribe('U', sub('ja'), 'Chrome', 'ja');
+    await push.send('U', { body: 'x', app: 'ja' });
+    assert.deepEqual(hits, ['ja']);
+    hits.length = 0;
+    await push.send('U', { body: 'x' });
+    assert.deepEqual(hits, ['club'], 'un message du Club ne va pas sur /RAM JA');
+  } finally { global.fetch = real; }
+});
+test('/RAM JA : message d’inscription, de retrait, tournoi complet', () => {
+  const { avisInscription } = require('../lib/jaclub');
+  assert.equal(avisInscription('T1', { name: 'Open' }, 'in', 'Nina A / Paul B', 3, 16).body, "Nina A / Paul B s'inscrit : Open");
+  assert.equal(avisInscription('T1', { name: 'Open' }, 'in', 'A / B', 16, 16).body, "A / B s'inscrit : Open · complet (16/16)");
+  const m = avisInscription('T1', { name: 'Open' }, 'out', 'A / B', 15, 16);
+  assert.equal(m.body, 'A / B se retire : Open');
+  assert.deepEqual([m.app, m.url], ['ja', '/t/T1']);
+});
+
