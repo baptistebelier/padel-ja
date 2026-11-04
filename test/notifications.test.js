@@ -16,7 +16,7 @@ if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
 const sent = [];
 const OFFRES_T = { formules: [{ id: 'f1', joueurs: 1, duree: 60, sport: 'Padel', prix: 30 }], packs: [{ id: 'p3', formule: 'f1', seances: 2, prix: 60 }] };
 const notifier = createNotifier({ ram, formules: async () => OFFRES_T, push: { send: async (uid, msg) => { sent.push([uid, msg]); return 1; } } });
-const settle = () => new Promise(r => setTimeout(r, 30));
+const settle = () => notifier.calme();   // attend que tout soit parti : jamais un délai au jugé (Render est lent)
 const to = () => sent.map(x => x[0]).sort();
 const item = (s, coll, id) => (s.items.find(i => i.coll === coll && i.id === id) || {}).data;
 
