@@ -297,7 +297,14 @@ test('abonnés : nouvel abonné, résultat publié, classement mis à jour', asy
   assert.match(corps(l), /Paul gagne contre Luc : 6-3 6-4 · perf/);
   l = await ops(p, club, [{ coll: 'member', id: pk, op: 'patch', patch: [{ p: ['r'], t: 'set', v: '15' }] }]);
   assert.deepEqual(l.map(x => x[0]), [el]);
-  assert.match(corps(l), /Paul met à jour son classement/);
+  assert.match(corps(l), /Nouveau classement de tennis pour Paul : 15/);
+  assert.equal(l.length, 1, 'le tennis seulement');
+  l = await ops(p, club, [{ coll: 'member', id: pk, op: 'patch', patch: [{ p: ['pl'], t: 'set', v: 6 }] }]);
+  assert.equal(l.length, 1, 'le niveau seulement');
+  assert.match(corps(l), /Nouveau niveau de padel pour Paul : 6/);
+  l = await ops(p, club, [{ coll: 'member', id: pk, op: 'patch', patch: [{ p: ['pad'], t: 'set', v: 2840 }] }]);
+  assert.equal(l.length, 1, 'le classement seulement');
+  assert.match(corps(l), /Nouveau classement de padel pour Paul : n° 2840/);
 });
 
 test('parties : recherche à mon niveau, désistement, attente, place libérée, créneau déplacé', async () => {

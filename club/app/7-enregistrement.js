@@ -405,35 +405,36 @@ document.addEventListener('submit', e => {
   }
   if (f.id === 'rank-form') {
     const me = M[ME()],
-      tn = f.dataset.k === 'tennis';
+      k = f.dataset.k,
+      tn = k === 'tennis',
+      qui = name(ME());
     let title, body;
+    // trois choses distinctes : changer l'une ne touche ni n'annonce les autres
     if (tn) {
       const o = me.r,
         n = val('r-new');
-      if (o === n) {
-        closeSheet();
-        return;
-      }
+      if (o === n) return closeSheet();
       me.r = n;
-      title = `Classement tennis <em>${n === 'NC' ? 'non classé' : n}</em>`;
-      body = `${first(ME())} passe de ${o} à ${n}.`;
+      title = `Nouveau classement de tennis <em>pour ${qui}</em>`;
+      body = `${o === 'NC' ? 'Non classé' : o} → ${n === 'NC' ? 'non classé' : n}`;
+    } else if (k === 'niveau') {
+      const lv = val('r-pl'),
+        nl = lv === 'Aucun' ? null : LV.indexOf(lv) + 1,
+        o = me.pl || null;
+      if (nl === o) return closeSheet();
+      me.pl = nl;
+      title = `Nouveau niveau de padel <em>pour ${qui}</em>`;
+      body = `${o ? 'Niveau ' + o : 'Sans niveau'} → ${nl ? 'niveau ' + nl : 'sans niveau'}`;
     } else {
       const num = val('r-pad').replace(/\D/g, ''),
-        lv = val('r-pl'),
         np = num ? +num : null,
-        nl = lv === 'Aucun' ? null : LV.indexOf(lv) + 1;
-      if (np === (me.pad || null) && nl === (me.pl || null)) {
-        closeSheet();
-        return;
-      }
+        o = me.pad || null;
+      if (np === o) return closeSheet();
       me.pad = np;
-      me.pl = nl;
       // la fiche joueur /RAM JA reprend le classement padel (vu par les juges-arbitres)
       if (window.ramPlayerSync) ramPlayerSync({ rank: np ? String(np) : '' }).catch(() => {});
-      title = `Classement padel <em>${np ? 'n° ' + np : 'non classé'}</em>`;
-      body = np
-        ? `${first(ME())} est désormais n° ${np} au classement padel${nl ? ', niveau ' + nl : ''}.`
-        : `${first(ME())} n'est pas classé en padel${nl ? ', niveau ' + nl : ''}.`;
+      title = `Nouveau classement de padel <em>pour ${qui}</em>`;
+      body = `${o ? 'N° ' + o : 'Non classé'} → ${np ? 'n° ' + np : 'non classé'}`;
     }
     posts.unshift({
       id: 'p' + Date.now(),
@@ -448,7 +449,7 @@ document.addEventListener('submit', e => {
     });
     closeSheet();
     render(true);
-    toast(`Classement mis à jour · ${me.fol} abonnés notifiés`);
+    toast(`Mis à jour · ${me.fol} abonnés notifiés`);
     return;
   }
   if (f.id === 'pres-form') {

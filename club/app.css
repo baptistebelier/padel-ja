@@ -306,6 +306,11 @@ button.nm{padding-block:4px}
 .stats b{display:block;font-family:var(--f-display);font-weight:400;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.1}
 .stats span{font-size:12px;color:var(--muted);display:block;line-height:1.2}
 .stats svg{display:block;width:22px;height:22px;margin:0 auto 4px;color:var(--accent-tx,var(--accent))}
+/* mon profil : le club ouvert, ses actions en pictogrammes, l'investissement dans ce club */
+.meclub{display:flex;flex-direction:column;gap:10px;min-width:0}
+.meclubh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.meclubh .h3{min-width:0}
+.meclubh .acts2{display:flex;gap:6px;margin-left:auto}
 /* raccourcis de mon profil : quatre cases, le picto au-dessus du libellé */
 .meshort{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .meshort .btn{flex-direction:column;justify-content:center;gap:6px;min-height:76px;padding:10px 8px;line-height:1.15;white-space:normal;text-align:center}
@@ -809,6 +814,10 @@ details.aide .aq p{margin:0;line-height:1.5}
 .evday{position:sticky;top:var(--segt,0px);z-index:3;margin:0;padding:6px 0 8px;background:var(--bg);transition:top .25s ease}
 .evday span{display:inline-block;max-width:100%;padding:4px 12px;background:var(--accent);color:var(--on-accent);font-family:var(--f-display);font-weight:400;font-size:24px;line-height:1.15;letter-spacing:.01em;text-transform:uppercase}
 :root[data-style="street"] .evday span{transform:rotate(-1.5deg)}
+/* l'étiquette ne suit le défilement que sur téléphone */
+@media (min-width:768px){
+  .evday{position:static;background:none!important;padding:0}
+}
 /* sous les onglets, qui restent aussi en haut de la page */
 #main>.seg+.pad .evday{top:calc(var(--segt,0px) + 60px)}
 .plc{display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -892,12 +901,12 @@ details.aide .aq p{margin:0;line-height:1.5}
 /* une colonne par jour, qui défile sur les côtés (doigt, ou souris : voir app/6-gestes.js) */
 @media (min-width:600px){
   #main>#plan{max-width:none!important}
-  /* les colonnes défilent aussi vers le bas, sous l'étiquette de leur jour */
-  .plk{display:grid;grid-auto-flow:column;grid-auto-columns:250px;gap:12px;align-items:start;overflow:auto;max-height:calc(100dvh - 210px);min-height:360px;padding-bottom:12px;scroll-snap-type:x proximity;cursor:grab;touch-action:pan-x pan-y}
+  /* une colonne par jour : elles défilent sur les côtés, la page défile vers le bas */
+  .plk{display:grid;grid-auto-flow:column;grid-auto-columns:250px;gap:12px;align-items:start;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity;cursor:grab;touch-action:pan-x pan-y}
   .plk.drag{cursor:grabbing;scroll-snap-type:none;user-select:none}
   .plk.drag *{pointer-events:none}
-  .plc,.plc.vide{display:flex;margin-top:0;scroll-snap-align:start}
-  .plk .evday{top:0}
+  .plc,.plc.vide,.plc+.plc{display:flex;margin-top:0;scroll-snap-align:start}
+  .plk .evday{position:static}
   .plk .evday span{font-size:19px}
   .plk .evx{flex-direction:column;gap:8px}
   .plk .evb{flex:none;width:100%}
@@ -975,17 +984,41 @@ details.aide .aq p{margin:0;line-height:1.5}
   border-radius: 3px;
 }
 /* réserver un cours : un jour sous l'autre sur téléphone, en colonnes sur ordinateur */
-.rsj{display:flex;flex-direction:column;gap:10px}
-.rsd{background:var(--card);border-radius:var(--rb);padding:10px 12px;min-width:0}
-.rsd.today .kicker{color:var(--accent)}
+/* réservation : les codes des logiciels de rendez-vous. Formule, puis jour sur un calendrier, puis horaire */
+.rshd{flex-direction:row;align-items:center;gap:12px}
+.rshd .grow{display:flex;flex-direction:column;min-width:0}
+.rshead{display:flex;align-items:center;gap:10px}
+.rsnum{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%!important;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13px;vertical-align:middle}
+.rst-h{font-family:var(--f-sub);font-weight:700;font-size:17px;vertical-align:middle}
+.rsfs{display:grid;gap:8px;margin-top:10px}
+.rsf{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;width:100%;padding:12px 14px;text-align:left;border:2px solid var(--line);border-radius:var(--rb);background:var(--card);color:inherit}
+.rsf .muted{grid-column:1}
+.rsf b{grid-column:2;grid-row:1 / span 2;align-self:center;font-size:17px}
+.rsf[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--card))}
+.rsb{display:flex;flex-direction:column;gap:18px;min-width:0}
+.rsm{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 8px}
+.rsm b{text-transform:capitalize;font-size:17px}
+.rsg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;justify-items:center}
+.rsdow{font-size:12px;color:var(--muted);padding:4px 0}
+.rsj{display:grid;place-items:center;width:100%;max-width:46px;aspect-ratio:1;min-height:0;padding:0;border-radius:50%!important;font-weight:600;font-size:15px;position:relative}
+button.rsj{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent-tx,var(--fg));font-weight:700}
+button.rsj.on{background:var(--accent);color:var(--on-accent)}
+.rsj.off{color:var(--muted);opacity:.55}
+.rsj.today::after{content:'';position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%!important;background:currentColor}
+.rsday{margin:10px 0 0;font-family:var(--f-sub);font-weight:700;font-size:18px}
+.rsday::first-letter{text-transform:uppercase}
+.rsts{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.rst{display:grid;place-items:center;min-height:50px;width:100%;border:2px solid var(--accent);border-radius:var(--rb);background:transparent;color:var(--accent-tx,var(--fg));font-weight:700;font-size:16px}
+.rst2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rst2 span{display:grid;place-items:center;min-height:50px;border-radius:var(--rb);background:var(--muted);color:var(--bg);font-weight:700}
+.rsgo{display:grid;place-items:center;min-height:50px;border-radius:var(--rb);background:var(--accent);color:var(--on-accent);font-weight:700;font-size:16px}
+.rsk{display:block;margin-top:14px}
 .rss{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.chip.rsl{min-height:44px}
 .rsp{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;border-radius:var(--rb);background:var(--card2);color:var(--muted);font-size:13px}
-@media (min-width:1024px){
+@media (min-width:768px){
   #main>.rsw{max-width:none!important}
-  .rsj{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:start}
-  .rsd .rss{flex-direction:column}
-  .rsd .rsl,.rsd .rsp{justify-content:center;width:100%}
+  .rsfs{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .rsb{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:start}
 }
 /* réservation : liste d'attente d'une plage prise */
 .rsp{flex-wrap:wrap;gap:6px;padding:6px 10px}

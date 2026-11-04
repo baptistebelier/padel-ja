@@ -1537,7 +1537,7 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/api/public/resa/')) {
       const q = k => url.searchParams.get(k) || '', refus = e => { if (e instanceof reservation.Refus) return json(res, 400, { error: e.message }); throw e; };
       try {
-        if (p === '/api/public/resa/creneaux' && req.method === 'GET') return json(res, 200, await reservation.pubCreneaux(q('c'), q('k'), q('de')));
+        if (p === '/api/public/resa/creneaux' && req.method === 'GET') return json(res, 200, await reservation.pubCreneaux(q('c'), q('k'), q('de'), q('n')));
         if (p === '/api/public/resa/reserver' && req.method === 'POST') {
           if (Auth.tooManyAttempts('resa-pub|' + clientIp(req))) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
           const b = await readBody(req), r = await reservation.pubReserver(String(b.c || ''), String(b.k || ''), b), lien = appUrl(req) + r.annuler;
@@ -1578,7 +1578,7 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       const q = k => url.searchParams.get(k) || '', refus = e => { if (e instanceof reservation.Refus) return json(res, 400, { error: e.message }); throw e; };
       try {
-        if (p === '/api/reservation/creneaux' && req.method === 'GET') return json(res, 200, await reservation.creneaux(u.id, q('c'), q('k'), q('de')));
+        if (p === '/api/reservation/creneaux' && req.method === 'GET') return json(res, 200, await reservation.creneaux(u.id, q('c'), q('k'), q('de'), q('n')));
         if (p === '/api/reservation/enseignants' && req.method === 'GET') return json(res, 200, { enseignants: await reservation.enseignants(u.id, q('c')) });
         if (p === '/api/reservation/mes' && req.method === 'GET') return json(res, 200, { cours: await reservation.mes(u.id, q('c')) });
         if (p === '/api/reservation/reserver' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.reserver(u.id, String(b.c || ''), String(b.k || ''), b)); }

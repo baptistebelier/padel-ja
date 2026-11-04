@@ -96,17 +96,20 @@ function profile(id) {
  <div class="row" style="flex-wrap:wrap;gap:6px">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}<span class="muted small">${m.team}</span></div>
  <div class="rtiles">${m.r && m.r !== 'NC' ? `<span class="rt tennis"><b>${m.r}</b>Tennis</span>` : ''}${m.pl ? `<span class="rt padel"><b>Niv ${m.pl}</b>Padel</span>` : ''}${m.tn && m.tn.n ? `<span class="rt tennis"><b>Niv ${m.tn.n}</b>Tennis${m.tn.t ? ' · ' + esc(m.tn.t) : ''}</span>` : ''}${m.pad ? `<span class="rt"><b>${m.pad}</b>Classement padel</span>` : ''}${(!m.r || m.r === 'NC') && !m.pl && !m.pad && !(m.tn && m.tn.n) ? '<span class="rt"><b>NC</b>Non classé</span>' : ''}</div>
  ${self || kid ? '' : `<div class="ctl">${blk ? `<button class="btn grow ghost" data-a="unblock" data-id="${id}">Débloquer ${first(id)}</button>` : `<button class="btn grow ${f ? 'on' : ''}" data-a="follow" data-id="${id}" aria-pressed="${f}">${ic(f ? 'check' : 'plus')}${f ? 'Suivi' : 'Suivre ' + first(id)}</button>`}<button class="ib rnd" data-a="umenu" data-id="${id}" aria-label="Options">${ic('more')}</button></div>`}</div>
- <div class="stats">${stat('users', kid ? '—' : m.fol + (f ? 1 : 0), 'Abonnés', kid ? '' : `data-a="folList" data-id="${id}"`)}${stat('trophy', w, 'Victoires', 'data-a="palmGo"')}${stat('x', m.res.length - w, 'Défaites', 'data-a="palmGo"')}${stat('star', pf, 'Perfs', 'data-a="palmGo"')}</div>${trophyCard(id)}`;
+ <div class="stats">${stat('users', kid ? '—' : m.fol + (f ? 1 : 0), 'Abonnés', kid ? '' : `data-a="folList" data-id="${id}"`)}${stat('trophy', w, 'Victoires', 'data-a="palmGo"')}${stat('x', m.res.length - w, 'Défaites', 'data-a="palmGo"')}${stat('star', pf, 'Perfs', 'data-a="palmGo"')}</div>${self ? '' : trophyCard(id)}`;
   /* mon profil : la carte d'identité en haut, puis trois onglets au lieu d'une longue colonne */
   if (self) {
     const T = ['jeu', 'infos', 'reglages'].includes(S.meTab) ? S.meTab : 'jeu',
       tab = (k, i, l) =>
         `<button role="tab" aria-selected="${T === k}" data-a="meTab" data-k="${k}">${ic(i)}${l}</button>`;
-    if ((isAdmin() || S.role === 'cap') && !pending())
-      h += `<button class="btn full" data-a="admin">${ic('gear')}${isAdmin() && S.role !== 'coach' ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Gérer mon équipe'}</button>`;
-    // changer de club en un geste : mes clubs, juste sous « Gérer le club »
-    if (window.RAM && RAM.live && (RAM.clubs || []).length)
-      h += `<button class="btn full ghost" data-a="ramClubs">${ic('club')}Mes clubs${RAM.clubs.length > 1 ? ' · ' + RAM.clubs.length : ''}</button>`;
+    // le club ouvert : son nom, ses actions en pictogrammes, l'investissement dans ce club
+    const clubs = (window.RAM && RAM.live && RAM.clubs) || [],
+      ici = clubs.find(c => c.id === RAM.club),
+      plusieurs = clubs.length > 1,
+      gere = (isAdmin() || S.role === 'cap') && !pending(),
+      gereL =
+        isAdmin() && S.role !== 'coach' ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Gérer mon équipe';
+    h += `<section class="meclub"><div class="meclubh"><span class="h3">${esc(club().name)}</span>${ici && ici.main ? '<span class="tag lime">Club principal</span>' : ''}<span class="acts2">${gere ? `<button class="ib rnd" data-a="admin" aria-label="${gereL}" title="${gereL}">${ic('gear')}</button>` : ''}${plusieurs ? `<button class="ib rnd" data-a="ramClubs" aria-label="Changer de club" title="Changer de club">${ic('swap')}</button>` : ''}</span></div>${plusieurs && ici && !ici.main ? `<button class="btn sm ghost" data-a="ramMain" data-id="${ici.id}">${ic('star')}Faire de ce club mon club principal</button>` : ''}${trophyCard(id)}</section>`;
     h += `<div class="bar-tabs me-tabs" role="tablist">${tab('jeu', 'ball', 'Mon jeu')}${tab('infos', 'user', 'Mes infos')}${tab('reglages', 'gear', 'Réglages')}</div>`;
     return (
       h +
@@ -132,7 +135,7 @@ function profile(id) {
 function meTabBody(T, id, m, kid) {
   let h = '';
   if (T === 'jeu')
-    return `<div class="meshort"><button class="btn" data-a="result">${ic('score')}Ajouter un résultat</button>${kid ? '' : `<button class="btn ghost" data-a="newPost" data-k="play">${ic('search')}Chercher une partie</button>`}<button class="btn ghost" data-a="rank" data-k="tennis">${ic('racket')}Classement tennis</button><button class="btn ghost" data-a="rank" data-k="padel">${ic('ball')}Classement padel</button></div><div class="stack" id="palmares"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
+    return `<div class="meshort"><button class="btn" data-a="result">${ic('score')}Ajouter un résultat</button>${kid ? '' : `<button class="btn ghost" data-a="rankMenu">${ic('chart')}Changer mon classement</button>`}</div><div class="stack" id="palmares"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
   if (T === 'infos') {
     h = contact(id);
     if (!kid)

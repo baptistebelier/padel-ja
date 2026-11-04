@@ -1690,8 +1690,10 @@
                 ? `propose ${o.nv.mode === 'cours' ? 'une séance collective' : 'une partie dirigée'}, ${fmtD((o.nv.dates || [])[0])} à ${o.nv.time}`
                 : o.kind === 'play'
                   ? `cherche des joueurs : ${o.play.sport.toLowerCase()}, ${o.play.date} à ${o.play.time}`
-                  : /^Classement/.test(ttl(o))
-                    ? `met à jour son ${ttl(o).replace(/^Classement/, 'classement')}`
+                  : /^Nouveau (classement|niveau)/.test(ttl(o))
+                    ? `a un ${ttl(o)
+                        .replace(/^Nouveau/, 'nouveau')
+                        .replace(/ pour .*$/, '')}`
                     : 'a publié sur le mur';
         if (pr && pr.pid === R.key)
           notify(
@@ -2538,8 +2540,9 @@
     if (fiche && (tab === 'jeu' || tab === 'infos')) h = inside(h, '<button class="btn ghost full logout"', fiche);
     if (id === ME() && isBureau() && R.code)
       h = h.replace(
-        '<div class="phero">',
-        `<div class="card"><span class="kicker">Code du club</span><p><b style="font-size:22px;letter-spacing:.06em">${e(R.code)}</b></p><p class="muted small">Donne ce code aux adhérents : ils l'entrent dans l'appli, puis tu valides leur demande.</p><button class="btn sm ghost" data-a="ramCopy">Copier l'invitation</button></div><div class="phero">`
+        '<button class="btn ghost full logout"',
+        () =>
+          `<div class="card"><span class="kicker">Code du club</span><p><b style="font-size:22px;letter-spacing:.06em">${e(R.code)}</b></p><p class="muted small">Donne ce code aux adhérents : ils l'entrent dans l'appli, puis tu valides leur demande.</p><button class="btn sm ghost" data-a="ramCopy">Copier l'invitation</button></div><button class="btn ghost full logout"`
       );
     if (id !== ME() && isBureau() && !isMinor(id) && R.roles[id]) {
       const r = R.roles[id],

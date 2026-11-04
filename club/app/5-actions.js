@@ -1289,15 +1289,26 @@ const A = {
   <div class="fld"><span class="lb">Score · tes jeux / ceux de l'adversaire</span>${row(1, '1er set')}${row(2, '2e set')}${row(3, '3e set')}<span class="muted small">Laisse le 3e set vide si le match s'est joué en deux sets.</span></div><button class="btn full">${isMinor(ME()) ? 'Publier (visible par ton groupe et tes parents)' : 'Publier et notifier mes ' + M[ME()].fol + ' abonnés'}</button></form>`
     );
   },
+  rankMenu() {
+    menuSheet('Changer mon classement', [
+      ['racket', 'Classement de tennis', 'rank', 'data-k="tennis"'],
+      ['chart', 'Classement de padel', 'rank', 'data-k="padel"'],
+      ['ball', 'Niveau de padel', 'rank', 'data-k="niveau"']
+    ]);
+  },
   rank(d) {
     const tn = d.k === 'tennis',
+      nv = d.k === 'niveau',
       me = M[ME()];
+    closeSheet();
     sheet(
-      tn ? 'Mon classement tennis' : 'Mon classement padel',
+      tn ? 'Mon classement de tennis' : nv ? 'Mon niveau de padel' : 'Mon classement de padel',
       `<form class="body" id="rank-form" data-k="${d.k}">` +
         (tn
           ? `<div class="fld"><label for="r-new">Classement</label><select id="r-new">${RANKS.map(r => `<option value="${r}" ${r === me.r ? 'selected' : ''}>${r === 'NC' ? 'Non classé' : r}</option>`).join('')}</select></div>`
-          : `<div class="fld"><label for="r-pad">Classement national</label><input id="r-pad" inputmode="numeric" pattern="[0-9]*" placeholder="Laisse vide si non classé" value="${me.pad || ''}" autocomplete="off"></div><div class="fld"><label for="r-pl">Niveau de jeu</label><select id="r-pl">${['Aucun', ...LV].map((l, i) => `<option ${(me.pl || 0) === i ? 'selected' : ''}>${l}</option>`).join('')}</select><span class="muted small">${LVHELP}</span></div>`) +
+          : nv
+            ? `<div class="fld"><label for="r-pl">Niveau de jeu</label><select id="r-pl">${['Aucun', ...LV].map((l, i) => `<option ${(me.pl || 0) === i ? 'selected' : ''}>${l}</option>`).join('')}</select><span class="muted small">${LVHELP}</span></div>`
+            : `<div class="fld"><label for="r-pad">Classement national</label><input id="r-pad" inputmode="numeric" pattern="[0-9]*" placeholder="Laisse vide si non classé" value="${me.pad || ''}" autocomplete="off"></div>`) +
         `<p class="muted small">Le classement n'est pas relié à Ten'Up : tu le mets à jour toi-même, et tes abonnés sont prévenus.</p><button class="btn full">Enregistrer</button></form>`
     );
   },

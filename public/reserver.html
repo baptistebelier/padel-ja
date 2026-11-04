@@ -19,17 +19,35 @@
   button{min-height:44px;padding:0 14px;border:0;border-radius:8px;background:var(--card2);color:var(--tx);font:inherit;font-weight:700;cursor:pointer}
   button.go{width:100%;margin-top:14px;background:var(--accent);color:var(--on)}
   button:disabled{opacity:.4;cursor:default}
-  .nav{display:flex;align-items:center;gap:8px;margin-top:12px}
-  .nav b{flex:1;text-align:center}
-  .jours{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-  .slots{display:flex;flex-wrap:wrap;gap:6px}
-  .slots button[aria-pressed=true]{background:var(--accent);color:var(--on)}
+  .num{display:inline-grid;place-items:center;width:24px;height:24px;margin-right:8px;border-radius:50%;background:var(--accent);color:var(--on);font-size:13px;font-weight:700}
+  .tit{margin:0 0 10px;font-size:17px;font-weight:700}
+  .fos{display:grid;gap:8px}
+  .fo{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;width:100%;padding:12px 14px;text-align:left;font-weight:400;background:var(--card);border:2px solid var(--line)}
+  .fo small{color:var(--muted);grid-column:1}
+  .fo b{grid-column:2;grid-row:1 / span 2;align-self:center;font-size:17px}
+  .fo[aria-pressed=true]{border-color:var(--accent);background:var(--card2)}
+  .pose{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+  .pose .card{margin-top:0}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .nav b{text-transform:capitalize;font-size:17px}
+  .nav button{width:44px;padding:0;border-radius:50%}
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;justify-items:center}
+  .dow{font-size:12px;color:var(--muted);padding:4px 0}
+  .dj{display:grid;place-items:center;width:100%;max-width:46px;min-height:0;aspect-ratio:1;padding:0;border-radius:50%;font-size:15px}
+  button.dj{background:rgba(224,245,10,.14);color:var(--accent)}
+  button.dj[aria-pressed=true]{background:var(--accent);color:var(--on)}
+  span.dj{color:var(--muted);opacity:.5}
+  .jr{margin:0;font-size:18px;font-weight:700}
+  .jr::first-letter{text-transform:uppercase}
+  .slots{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .slots button{width:100%;min-height:50px;background:transparent;border:2px solid var(--accent);color:var(--accent);font-size:16px}
+  .ret{background:none;padding:0;min-height:36px;color:var(--muted);font-weight:400}
+  @media (min-width:768px){.fos{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}.pose{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:start}}
   .chk{display:flex;gap:8px;align-items:flex-start;font-weight:400}
   .chk input{width:20px;min-height:20px;margin:2px 0 0;flex:none}
   .pot{position:absolute;left:-9999px}
   .err{color:var(--hot);margin-top:10px}
   .ok{border-color:var(--accent)}
-  @media (min-width:900px){.jours{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:start}.slots button{width:100%}}
 </style>
 </head>
 <body>
@@ -53,23 +71,31 @@
     };
     return;
   }
-  var c = parts[1], k = parts[2], S = { w: 0, data: null, f: null, pick: null };
-  var lundi = function (w) { var d = new Date(); d.setDate(d.getDate() - (d.getDay() + 6) % 7 + 7 * w); return iso(d); };
+  var c = parts[1], k = parts[2], S = { w: 0, data: null, f: null, pick: null, jour: null };
+  var moisDe = function (w) { var d = new Date(); return iso(new Date(d.getFullYear(), d.getMonth() + w, 1)); };
+  var nb = function (de) { var p = de.split('-').map(Number); return new Date(p[0], p[1], 0).getDate(); };
   function charge() {
-    fetch('/api/public/resa/creneaux?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) + '&de=' + lundi(S.w))
+    fetch('/api/public/resa/creneaux?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) + '&de=' + moisDe(S.w) + '&n=' + nb(moisDe(S.w)))
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
-      .then(function (d) { S.data = d; S.f = S.f || (d.formules[0] && d.formules[0].id); S.pick = null; dessine(); })
+      .then(function (d) { S.data = d; S.f = S.f || (d.formules[0] && d.formules[0].id); S.pick = null; S.jour = null; dessine(); })
       .catch(function (x) { m.innerHTML = '<h1>Réserver un cours</h1><div class="card"><p>' + e(x.message || 'Page indisponible') + '</p></div>'; });
   }
   function dessine() {
     var d = S.data, f = d.formules.filter(function (x) { return x.id === S.f; })[0];
     if (!f) { m.innerHTML = '<h1>' + e(d.coach) + '</h1><div class="card"><p>Aucun cours n’est réservable pour l’instant.</p></div>'; return; }
-    var jours = d.jours.map(function (j) {
-      var l = [];
-      j.libres.forEach(function (p) { for (var t = p.du; t + f.duree <= p.au; t += 30) l.push('<button type="button" data-d="' + j.d + '" data-t="' + t + '" aria-pressed="' + (S.pick && S.pick.d === j.d && S.pick.t === t) + '">' + H(t) + '</button>'); });
-      return '<section class="card" style="margin:0"><h2>' + e(jour(j.d, { weekday: 'short', day: 'numeric', month: 'short' })) + '</h2><div class="slots">' + (l.join('') || '<span class="muted">Rien de libre</span>') + '</div></section>';
-    }).join('');
-    var form = S.pick ? '<form class="card" id="f"><h2>' + e(jour(S.pick.d)) + ' à ' + H(S.pick.t) + '</h2>' +
+    var heures = function (j) { var l = []; j.libres.forEach(function (p) { for (var t = p.du; t + f.duree <= p.au; t += 30) l.push(t); }); return l; };
+    var dispo = d.jours.filter(function (j) { return heures(j).length; });
+    if (!S.jour || !dispo.some(function (j) { return j.d === S.jour; })) S.jour = dispo[0] ? dispo[0].d : null;
+    var de = moisDe(S.w), vide = (new Date(de + 'T12:00:00').getDay() + 6) % 7, cases = '';
+    for (var v = 0; v < vide; v++) cases += '<span></span>';
+    d.jours.forEach(function (j) {
+      var n = +j.d.slice(8);
+      cases += heures(j).length ? '<button type="button" class="dj" data-j="' + j.d + '" aria-pressed="' + (j.d === S.jour) + '">' + n + '</button>' : '<span class="dj">' + n + '</span>';
+    });
+    var ouvert = d.jours.filter(function (j) { return j.d === S.jour; })[0];
+    var slots = ouvert ? heures(ouvert).map(function (t) { return '<button type="button" data-d="' + ouvert.d + '" data-t="' + t + '">' + H(t) + '</button>'; }).join('') : '';
+    var dur = f.duree < 60 ? f.duree + ' min' : H(f.duree);
+    var form = S.pick ? '<form class="card" id="f"><button type="button" class="ret" id="ret">‹ Changer de créneau</button><h2>Vos informations</h2><p class="jr">' + e(jour(S.pick.d)) + ' à ' + H(S.pick.t) + '</p><p class="muted">' + e(f.nom) + ' · ' + dur + ' · ' + f.prix + ' € · avec ' + e(d.coach) + '</p>' +
       '<label for="p">Prénom</label><input id="p" required autocomplete="given-name" value="' + e(S.v.p) + '"><label for="n">Nom</label><input id="n" required autocomplete="family-name" value="' + e(S.v.n) + '">' +
       '<label for="t">Téléphone</label><input id="t" required type="tel" autocomplete="tel" value="' + e(S.v.t) + '"><label for="em">E-mail</label><input id="em" required type="email" autocomplete="email" value="' + e(S.v.em) + '">' +
       '<label for="sx">Sexe (facultatif)</label><select id="sx"><option value="">Non précisé</option><option value="F">Femme</option><option value="H">Homme</option></select>' +
@@ -77,14 +103,20 @@
       '<div class="pot" aria-hidden="true"><label for="site">Site</label><input id="site" tabindex="-1" autocomplete="off"></div>' +
       '<label class="chk"><input type="checkbox" id="ac" required><span>J’accepte que ' + e(d.coach) + ' garde ces informations pour organiser mes cours.</span></label>' +
       '<button class="go">Réserver</button><p class="err" id="er" role="alert"></p><p class="muted">Confirmé tout de suite. Tu reçois un e-mail avec un lien pour annuler jusqu’à 24 h avant.</p></form>' : '';
-    m.innerHTML = '<h1>' + e(d.coach) + '</h1><p class="muted">' + e(d.club) + ' · réserver un cours</p>' +
-      '<div class="card"><label for="fo" style="margin:0">Formule</label><select id="fo">' + d.formules.map(function (x) { return '<option value="' + e(x.id) + '"' + (x.id === S.f ? ' selected' : '') + '>' + e(x.nom) + ' · ' + x.duree + ' min · ' + e(x.prix) + ' €</option>'; }).join('') + '</select></div>' +
-      '<div class="nav"><button id="pv" aria-label="Semaine précédente"' + (S.w ? '' : ' disabled') + '>‹</button><b>Semaine du ' + e(jour(lundi(S.w), { day: 'numeric', month: 'long' })) + '</b><button id="nx" aria-label="Semaine suivante"' + (S.w < 8 ? '' : ' disabled') + '>›</button></div>' +
-      '<div class="jours">' + jours + '</div>' + form;
-    document.getElementById('fo').onchange = function (x) { S.f = x.target.value; S.pick = null; dessine(); };
-    document.getElementById('pv').onclick = function () { S.w--; charge(); };
-    document.getElementById('nx').onclick = function () { S.w++; charge(); };
-    m.querySelectorAll('.slots button').forEach(function (b) { b.onclick = function () { garde(); S.pick = { d: b.dataset.d, t: +b.dataset.t }; dessine(); document.getElementById('f').scrollIntoView({ behavior: 'smooth' }); }; });
+    var titre = '<h1>' + e(d.coach) + '</h1><p class="muted">' + e(d.club) + ' · réserver un cours</p>';
+    if (S.pick) m.innerHTML = titre + form;
+    else m.innerHTML = titre +
+      '<div class="card"><p class="tit"><span class="num">1</span>Choisissez votre formule</p><div class="fos">' + d.formules.map(function (x) { return '<button type="button" class="fo" data-f="' + e(x.id) + '" aria-pressed="' + (x.id === S.f) + '"><span>' + e(x.nom) + '</span><small>' + (x.duree < 60 ? x.duree + ' min' : H(x.duree)) + '</small><b>' + x.prix + ' €</b></button>'; }).join('') + '</div></div>' +
+      '<div class="pose"><div class="card"><p class="tit"><span class="num">2</span>Choisissez un jour</p><div class="nav"><button id="pv" aria-label="Mois précédent"' + (S.w ? '' : ' disabled') + '>‹</button><b>' + e(new Date(de + 'T12:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })) + '</b><button id="nx" aria-label="Mois suivant"' + (S.w < 3 ? '' : ' disabled') + '>›</button></div><div class="cal">' + ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'].map(function (x) { return '<span class="dow">' + x + '</span>'; }).join('') + cases + '</div></div>' +
+      '<div class="card"><p class="tit"><span class="num">3</span>Choisissez un horaire</p>' + (ouvert ? '<p class="jr">' + e(jour(ouvert.d)) + '</p><p class="muted">Durée : ' + dur + '</p><div class="slots">' + slots + '</div>' : '<p class="muted">Aucun créneau libre ce mois-ci : essayez le mois suivant.</p>') + '</div></div>';
+    if (S.pick) document.getElementById('ret').onclick = function () { garde(); S.pick = null; dessine(); };
+    else {
+      m.querySelectorAll('.fo').forEach(function (b) { b.onclick = function () { S.f = b.dataset.f; dessine(); }; });
+      document.getElementById('pv').onclick = function () { S.w--; charge(); };
+      document.getElementById('nx').onclick = function () { S.w++; charge(); };
+      m.querySelectorAll('button.dj').forEach(function (b) { b.onclick = function () { S.jour = b.dataset.j; dessine(); }; });
+      m.querySelectorAll('.slots button').forEach(function (b) { b.onclick = function () { S.pick = { d: b.dataset.d, t: +b.dataset.t }; dessine(); window.scrollTo(0, 0); }; });
+    }
     var fm = document.getElementById('f');
     if (fm) fm.onsubmit = function (x) {
       x.preventDefault();

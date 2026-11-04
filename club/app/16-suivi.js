@@ -103,7 +103,16 @@ const resaCollectifs = (k, de, fin) =>
     })
     .join('');
 const resaHeure = n => Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).padStart(2, '0') : '');
-const resaLundi = w => isoIn(7 * w - ((REGLES.dowOf(TODAY) + 6) % 7), TODAY);
+/* le mois affiché : celui d'aujourd'hui, ou un des trois suivants */
+const resaMoisDe = m => {
+  const [y, mo] = TODAY.split('-').map(Number),
+    d = new Date(y, mo - 1 + m, 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
+};
+const resaNb = de => {
+  const [y, m] = de.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+};
 const RESA_FRAIS = 20000;
 setInterval(() => {
   if (view().v === 'resa' && !$('sheet') && !document.hidden) render(true);
@@ -121,9 +130,19 @@ function resaLoad(k, de) {
     // une plage annulée par l'enseignant redevient libre : on relit, en gardant l'affichage en attendant
     if (vieux) RESA[id].lu = Date.now();
     else RESA[id] = { wait: 1 };
-    fetch('/api/reservation/creneaux?c=' + encodeURIComponent(RAM.club) + '&k=' + encodeURIComponent(k) + '&de=' + de, {
-      credentials: 'include'
-    })
+    fetch(
+      '/api/reservation/creneaux?c=' +
+        encodeURIComponent(RAM.club) +
+        '&k=' +
+        encodeURIComponent(k) +
+        '&de=' +
+        de +
+        '&n=' +
+        resaNb(de),
+      {
+        credentials: 'include'
+      }
+    )
       .then(r => r.json().then(d => (r.ok ? d : Promise.reject(new Error(d.error || 'Réservation indisponible')))))
       .then(d => (RESA[id] = Object.assign(d, { lu: Date.now() })))
       .catch(e => (RESA[id] = { err: e.message }))
@@ -134,46 +153,100 @@ function resaLoad(k, de) {
 V.resa = k => {
   if (!(window.RAM && RAM.live))
     return `<div class="pad"><div class="card"><p>Démonstration : la réservation fonctionne dans l'appli de votre club.</p></div></div>`;
-  const w = Math.max(0, S.resaW || 0),
-    de = resaLundi(w),
+  const w = Math.max(0, Math.min(3, S.resaM || 0)),
+    de = resaMoisDe(w),
     c = resaLoad(k, de),
-    fin = isoIn(6, de);
+    fin = isoIn(resaNb(de) - 1, de);
   if (c.wait)
     return `<div class="pad"><div class="card"><p class="muted small">Chargement du planning…</p></div></div>`;
   if (c.err) return `<div class="pad">${empty('cal', 'Réservation indisponible', esc(c.err))}</div>`;
   if (!c.ouvert || !c.formules.length)
     return `<div class="pad">${empty('cal', 'Pas encore de réservation', 'Cet enseignant n’a pas encore ouvert ses créneaux.')}</div>`;
   const f = c.formules.find(x => x.id === S.resaF) || c.formules[0],
-    jours = c.jours
+    durTxt = f.duree < 60 ? f.duree + ' min' : resaHeure(f.duree),
+    heures = j => {
+      const l = [];
+      j.libres.forEach(p => {
+        for (let t = p.du; t + f.duree <= p.au; t += 30) l.push({ t, lieu: p.lieu });
+      });
+      return l;
+    },
+    dispo = new Set(c.jours.filter(j => heures(j).length).map(j => j.d));
+  // le jour ouvert : celui choisi s'il a encore de la place, sinon le premier disponible du mois
+  const jd = dispo.has(S.resaD)
+      ? S.resaD
+      : c.jours.map(j => j.d).find(d => dispo.has(d)) || (S.resaD >= de && S.resaD <= fin ? S.resaD : ''),
+    jour = c.jours.find(j => j.d === jd),
+    vide = (REGLES.dowOf(de) + 6) % 7,
+    titreMois = new Date(de + 'T12:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const cases =
+    Array.from({ length: vide }, () => '<span></span>').join('') +
+    c.jours
       .map(j => {
-        const lib = [];
-        j.libres.forEach(p => {
-          for (let t = p.du; t + f.duree <= p.au; t += 30) lib.push({ t, lieu: p.lieu });
-        });
-        const cases = lib
-          .map(x => ({
-            t: x.t,
-            h: `<button class="chip rsl" data-a="resaPick" data-k="${k}" data-d="${j.d}" data-t="${x.t}" data-l="${esc(x.lieu)}">${resaHeure(x.t)}</button>`
-          }))
-          .concat(j.pris.map(x => ({ t: x.du, h: resaPrisHtml(k, j.d, x, c) })))
-          .sort((a, b) => a.t - b.t)
-          .map(x => x.h)
-          .join('');
-        return `<section class="rsd${j.d === TODAY ? ' today' : ''}"><h3 class="kicker">${fmtD(j.d)}${j.d === TODAY ? " · aujourd'hui" : ''}</h3><div class="rss">${cases || '<span class="muted small">Rien de libre</span>'}</div></section>`;
+        const n = +j.d.slice(8),
+          on = dispo.has(j.d);
+        return on
+          ? `<button class="rsj${j.d === jd ? ' on' : ''}${j.d === TODAY ? ' today' : ''}" data-a="resaJour" data-d="${j.d}" aria-pressed="${j.d === jd}" aria-label="${fmtD(j.d)}">${n}</button>`
+          : `<span class="rsj off${j.d === TODAY ? ' today' : ''}">${n}</span>`;
       })
-      .join(''),
-    coll = resaCollectifs(k, de, fin),
+      .join('');
+  const creneaux = jour
+    ? heures(jour)
+        .map(x =>
+          +S.resaT === x.t && S.resaTd === jour.d
+            ? `<div class="rst2"><span>${resaHeure(x.t)}</span><button class="rsgo" data-a="resaPick" data-k="${k}" data-d="${jour.d}" data-t="${x.t}" data-l="${esc(x.lieu)}">Suivant</button></div>`
+            : `<button class="rst rsl" data-a="resaSel" data-d="${jour.d}" data-t="${x.t}">${resaHeure(x.t)}</button>`
+        )
+        .join('')
+    : '';
+  const pris =
+    jour && jour.pris.length
+      ? `<span class="kicker rsk">Déjà pris</span><div class="rss">${jour.pris.map(x => resaPrisHtml(k, jour.d, x, c)).join('')}</div>`
+      : '';
+  const coll = resaCollectifs(k, de, fin),
     mes = (c.mes || []).map(x => resaCoursHtml(x)).join('');
-  return `<div class="pad rsw">${mes ? `<div class="card"><span class="kicker">Mes cours avec ${esc(first(k))}</span><div class="list">${mes}</div></div>` : ''}<div class="card"><div class="fld"><label for="rs-f">Formule</label><select id="rs-f">${c.formules.map(x => `<option value="${esc(x.id)}" ${x.id === f.id ? 'selected' : ''}>${esc(x.nom)} · ${x.duree % 60 ? Math.floor(x.duree / 60) + ' h ' + (x.duree % 60) : x.duree / 60 + ' h'} · ${x.prix} €</option>`).join('')}</select></div><p class="small"><b>Durée : ${f.duree < 60 ? f.duree + ' min' : resaHeure(f.duree)}</b></p>${c.packs ? '<p class="muted small">Un pack déjà acheté chez cet enseignant se décompte tout seul.</p>' : ''}</div><div class="row" style="justify-content:space-between"><button class="ib rnd" data-a="resaWeek" data-n="-1" aria-label="Semaine précédente" ${w ? '' : 'disabled'}>${ic('back')}</button><span class="h3">Du ${fmtD(de, 1)} au ${fmtD(fin, 1)}</span><button class="ib rnd" style="rotate:180deg" data-a="resaWeek" data-n="1" aria-label="Semaine suivante" ${w < 8 ? '' : 'disabled'}>${ic('back')}</button></div><div class="rsj">${jours}</div>${coll ? `<div class="card"><span class="kicker">Collectifs de la semaine</span><div class="list">${coll}</div></div>` : ''}</div>`;
+  const qui = M[k] ? name(k) : '';
+  return `<div class="pad rsw">${mes ? `<div class="card"><span class="kicker">Mes cours avec ${esc(first(k))}</span><div class="list">${mes}</div></div>` : ''}
+<div class="card rshd">${M[k] ? av(k) : ''}<div class="grow"><span class="kicker">Votre enseignant</span><span class="h3">${esc(qui)}</span></div></div>
+<div class="card"><div class="rshead"><span class="rsnum">1</span><span class="rst-h">Choisissez votre formule</span></div><div class="rsfs">${c.formules
+    .map(
+      x =>
+        `<button class="rsf" data-a="resaFo" data-id="${esc(x.id)}" aria-pressed="${x.id === f.id}"><span class="nm">${esc(x.nom)}</span><span class="muted small">${x.duree % 60 ? Math.floor(x.duree / 60) + ' h ' + (x.duree % 60) : x.duree / 60 + ' h'}</span><b>${x.prix} €</b></button>`
+    )
+    .join(
+      ''
+    )}</div>${c.packs ? '<p class="muted small">Un pack déjà acheté chez cet enseignant se décompte tout seul.</p>' : ''}</div>
+<div class="rsb"><div class="card rscal"><div class="rshead"><span class="rsnum">2</span><span class="rst-h">Choisissez un jour</span></div><div class="rsm"><button class="ib rnd" data-a="resaMois" data-n="-1" aria-label="Mois précédent" ${w ? '' : 'disabled'}>${ic('back')}</button><b>${esc(titreMois)}</b><button class="ib rnd" style="rotate:180deg" data-a="resaMois" data-n="1" aria-label="Mois suivant" ${w < 3 ? '' : 'disabled'}>${ic('back')}</button></div><div class="rsg">${['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'].map(x => `<span class="rsdow">${x}</span>`).join('')}${cases}</div></div>
+<div class="card rsh"><div class="rshead"><span class="rsnum">3</span><span class="rst-h">Choisissez un horaire</span></div>${
+    jour
+      ? `<p class="rsday">${esc(new Date(jour.d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))}</p><p class="muted small">Durée : ${durTxt}</p><div class="rsts">${creneaux || '<p class="muted small">Plus de place ce jour-là.</p>'}</div>${pris}`
+      : '<p class="muted small">Aucun créneau libre ce mois-ci : essayez le mois suivant.</p>'
+  }</div></div>${coll ? `<div class="card"><span class="kicker">Collectifs du mois</span><div class="list">${coll}</div></div>` : ''}</div>`;
 };
 TITLES.resa = () => ['Réserver un cours', M[view().id] ? 'Avec ' + name(view().id) : ''];
 Object.assign(A, {
-  resaWeek(d) {
-    S.resaW = Math.max(0, Math.min(8, (S.resaW || 0) + +d.n));
+  resaMois(d) {
+    S.resaM = Math.max(0, Math.min(3, (S.resaM || 0) + +d.n));
+    S.resaD = S.resaT = S.resaTd = null;
+    render(true);
+  },
+  resaFo(d) {
+    S.resaF = d.id;
+    S.resaT = S.resaTd = null;
+    render(true);
+  },
+  resaJour(d) {
+    S.resaD = d.d;
+    S.resaT = S.resaTd = null;
+    render(true);
+  },
+  resaSel(d) {
+    S.resaT = +d.t;
+    S.resaTd = d.d;
     render(true);
   },
   resaPick(d) {
-    const c = RESA[view().id + '|' + resaLundi(Math.max(0, S.resaW || 0))],
+    const c = RESA[view().id + '|' + resaMoisDe(Math.max(0, Math.min(3, S.resaM || 0)))],
       f = c.formules.find(x => x.id === S.resaF) || c.formules[0],
       kids = ((M[ME()] && M[ME()].kids) || []).filter(k => M[k]);
     sheet(
@@ -181,11 +254,6 @@ Object.assign(A, {
       `<form class="body" id="rs-go" data-k="${d.k}" data-d="${d.d}" data-t="${d.t}" data-f="${esc(f.id)}"><p><b>${fmtD(d.d)} à ${resaHeure(+d.t)}</b><br>${esc(f.nom)} avec ${esc(name(d.k))} · ${f.prix} €${d.l ? ' · ' + esc(d.l) : ''}</p>${kids.length ? Who('rs-p', 'Pour', [ME(), ...kids]) : ''}${T('rs-o', 'Objectif de la séance', 'Ce que tu veux travailler', '')}<button class="btn full">Réserver</button><p class="muted small">Confirmé tout de suite : l’enseignant reçoit une notification et le cours arrive dans ton agenda. Tu peux annuler jusqu’à 24 h avant.</p>${f.url ? `<a class="btn sm ghost full" href="${esc(f.url)}" target="_blank" rel="noopener">${ic('euro')}Payer cette séance sur la boutique</a>` : ''}${(c.demandes || []).length ? `<button type="button" class="btn sm ghost full" data-a="resaAsk" data-k="${d.k}" data-d="${d.d}" data-t="${d.t}">${ic('users')}Chercher des partenaires sur ce créneau</button>` : ''}</form>`
     );
   }
-});
-document.addEventListener('change', e => {
-  if (e.target.id !== 'rs-f') return;
-  S.resaF = e.target.value;
-  render(true);
 });
 document.addEventListener('submit', e => {
   const f = e.target;
@@ -212,6 +280,7 @@ document.addEventListener('submit', e => {
     .then(r => r.json().then(x => ({ ok: r.ok, x })))
     .then(({ ok, x }) => {
       resaOublie();
+      S.resaT = S.resaTd = null;
       closeSheet();
       render(true);
       toast(ok ? 'Cours réservé le ' + fmtD(f.dataset.d) + ' à ' + x.h : x.error || 'Réservation impossible');
@@ -258,7 +327,7 @@ document.addEventListener('submit', e => {
 });
 Object.assign(A, {
   resaAsk(d) {
-    const c = RESA[view().id + '|' + resaLundi(Math.max(0, S.resaW || 0))],
+    const c = RESA[view().id + '|' + resaMoisDe(Math.max(0, Math.min(3, S.resaM || 0)))],
       kids = ((M[ME()] && M[ME()].kids) || []).filter(k => M[k]);
     sheet(
       'Chercher des partenaires',

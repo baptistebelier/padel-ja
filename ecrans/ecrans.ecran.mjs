@@ -1074,9 +1074,10 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await page.waitForFunction(() => view().v === 'resa', null, { timeout: 8000 });
   assert.equal(await page.locator('#zcarte .prof').evaluate(x => x.open).catch(() => false), false, 'réserver ne déplie pas la carte');
   await page.evaluate(() => { const d = document.querySelector('#zcarte'); if (d) d.remove(); });
-  await page.evaluate(k => { S.resaW = 2; A.open({ v: 'resa', id: k }); }, club.key);
+  await page.evaluate(k => { S.resaM = 1; A.open({ v: 'resa', id: k }); }, club.key);
   await page.waitForSelector('.rsl', { timeout: 8000 });
   await page.locator('.rsl').first().click();
+  await page.click('.rsgo');
   await page.click('[data-a="resaAsk"]');
   await page.waitForSelector('#rs-ask');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
@@ -1129,13 +1130,14 @@ test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et
   await page.goto(JA + '/club/index.html');
   await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
   await page.waitForTimeout(800);
-  // dans deux semaines : forcément à plus de 24 h, donc annulable
-  await page.evaluate(k => { S.resaW = 2; A.open({ v: 'resa', id: k }); }, club.key);
+  // le mois prochain : forcément à plus de 24 h, donc annulable
+  await page.evaluate(k => { S.resaM = 1; A.open({ v: 'resa', id: k }); }, club.key);
   await page.waitForSelector('.rsl', { timeout: 8000 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
   const n0 = await page.locator('.rsl').count();
   const first = page.locator('.rsl').first(), d = await first.getAttribute('data-d');
   await first.click();
+  await page.click('.rsgo');
   await page.waitForSelector('#rs-go');
   await page.click('#rs-go .btn.full');
   assert.ok(await page.locator('#rs-go').count(), 'objectif obligatoire');
@@ -1300,7 +1302,7 @@ test('Club : répondre à un commentaire, modifier sa recherche, glisser entre s
   await page.click('.stats [data-a="palmGo"]');
   await page.waitForSelector('#palmares');
   assert.equal(await page.evaluate(() => S.meTab), 'jeu');
-  assert.equal(await page.locator('.meshort .btn svg').count(), 4);
+  assert.equal(await page.locator('.meshort .btn svg').count(), 2);
   await page.evaluate(k => { M[k].fo = [ME()]; const j = Object.keys(M).find(x => x !== 'club' && x !== ME() && x !== k); M[j].fo = [k]; A.folList({ id: k }); }, await page.evaluate(() => window.kz));
   await page.waitForSelector('#sheet .menu [data-a="member"]');
   // bandeau : le logo touché ouvre la fiche de ce partenaire, avec son site
@@ -1573,3 +1575,68 @@ test('Club : l’écran de réservation relit les créneaux : une plage annulée
   await ctx.close();
 });
 
+test('Club : profil en section Club, classement en trois choix, agenda sans épingle sur grand écran, pictos d’annulation', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof A.rankMenu === 'function', { polling: 300 });
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); });
+  await page.waitForSelector('.meclub');
+  assert.ok(await page.evaluate(() => { const c = document.querySelector('.meclub'); return !!c.querySelector('.tcard') && (document.querySelector('.stats').compareDocumentPosition(c) & 4) && (c.compareDocumentPosition(document.querySelector('.me-tabs')) & 4); }), 'entre les statistiques et les onglets, avec les trophées');
+  assert.ok(await page.locator('.meclub [data-a="admin"] svg').count(), 'gestion en pictogramme');
+  assert.equal(await page.locator('.phero ~ .btn[data-a="admin"]').count(), 0, 'plus de gros bouton');
+  assert.equal(await page.locator('.meshort .btn').count(), 2, 'deux boutons');
+  assert.equal(await page.locator('.meshort [data-k="play"]').count(), 0);
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'rien ne déborde à 360 px');
+  await page.click('[data-a="rankMenu"]');
+  assert.equal(await page.locator('.menu [data-a="rank"]').count(), 3);
+  // changer le niveau ne touche pas le classement, et le titre annonce le bon
+  const r = await page.evaluate(() => { const me = M[ME()], pad = me.pad; A.rank({ k: 'niveau' }); const sel = document.getElementById('r-pl'); sel.value = sel.options[sel.selectedIndex === 3 ? 4 : 3].value; const pad2 = !!document.getElementById('r-pad'); document.getElementById('rank-form').requestSubmit(); return { pad, apres: me.pad, pad2, titre: posts[0].title, corps: posts[0].body }; });
+  assert.equal(r.pad2, false, 'pas de champ classement');
+  assert.equal(r.apres, r.pad);
+  assert.match(r.titre, /^Nouveau niveau de padel <em>pour /);
+  assert.match(r.corps, /→ niveau/);
+  assert.ok(await page.evaluate(() => !!I.ban && !!I.undo && !!I.swap && !!I.star), 'pictos présents dans le Club');
+  // agenda sur grand écran : la carte ne défile pas sur elle-même, le jour n'est pas épinglé
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await page.evaluate(() => { S.tab = 'agenda'; S.stack = []; S.plan.scope = 'me'; S.plan.mode = 'events'; render(); });
+  await page.waitForSelector('.plk .evday');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.evday')).position), 'static');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).maxHeight), 'none');
+  await page.setViewportSize({ width: 360, height: 780 });
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.evday')).position), 'sticky', 'épinglé sur téléphone');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+
+test('Club : section Club avec de vrais comptes, plusieurs clubs, club principal, code du club en bas', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [], t = Date.now();
+  page.on('pageerror', e => errs.push(e.message));
+  const post = async (url, data) => (await ctx.request.post(JA + url, { data })).json();
+  await post('/api/auth/signup', { email: `multi-${t}@exemple.test`, password: 'essai-' + t, first: 'Nina', last: 'Multi' });
+  const a = await post('/api/ram/clubs', { name: 'Club Alpha' }), b = await post('/api/ram/clubs', { name: 'Club Beta' });
+  await page.goto(JA + '/club/index.html');
+  await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000, polling: 300 });
+  const principal = (await (await ctx.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.main);
+  const autre = [a, b].find(c => !principal || c.id !== principal.id);
+  await page.evaluate(id => A.ramSwitch({ id }), autre.id);
+  await page.waitForFunction(id => RAM.club === id && RAM.live, autre.id, { timeout: 15000, polling: 300 });
+  // (le changement de club se termine en revenant à l'accueil : on rouvre le profil tant qu'il n'est pas affiché)
+  await page.waitForFunction(() => { if (!document.querySelector('.meclub')) { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); } return !!document.querySelector('.meclub') && RAM.code; }, null, { timeout: 15000, polling: 500 });
+  assert.match(await page.locator('.meclubh .h3').innerText(), new RegExp(autre.name || 'Club'));
+  assert.equal(await page.locator('.meclub [data-a="ramClubs"] svg').count(), 1, 'changer de club, en pictogramme');
+  assert.equal(await page.locator('.meclub [data-a="admin"] svg').count(), 1, 'gestion, en pictogramme');
+  assert.equal(await page.locator('.meclubh .tag').count(), 0, 'pas encore principal');
+  await page.click('.meclub [data-a="ramMain"]');
+  await page.waitForSelector('.meclubh .tag', { timeout: 8000 });
+  assert.match(await page.locator('.meclubh .tag').innerText(), /Club principal/i);
+  assert.equal(await page.locator('.meclub [data-a="ramMain"]').count(), 0, 'le bouton disparaît');
+  assert.equal(await page.locator('#sheet.open, #sheet .menu').count(), 0, 'pas de fenêtre ouverte en plus');
+  // le code du club : plus en haut, juste au-dessus de la déconnexion
+  await page.evaluate(() => { S.meTab = 'reglages'; render(); });
+  await page.waitForSelector('.logout');
+  assert.ok(await page.evaluate(() => { const l = document.querySelector('.logout'), c = [...document.querySelectorAll('.card')].find(x => /Code du club/.test(x.textContent)); return c && c.nextElementSibling === l && !!(document.querySelector('.phero').compareDocumentPosition(c) & 4); }), 'code du club au-dessus de la déconnexion');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
