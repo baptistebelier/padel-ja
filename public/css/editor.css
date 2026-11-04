@@ -242,6 +242,8 @@ details summary { cursor: pointer; margin-top: 12px; color: var(--ui-text-mut); 
 .toast.err { border-left-color: var(--ui-accent2); } .toast.out { opacity: 0; transform: translateX(20px); }
 
 @media (max-width: 999px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+/* dans une demi-colonne : des vignettes égales, jamais écrasées */
+.grid2 .tvviews { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
 @media (max-width: 1150px) { .pairform { grid-template-columns: 1fr; } .kpis { grid-template-columns: 1fr 1fr; } .draw-live { grid-template-columns: 1fr; } }
 
 /* ---------- compte / démo ---------- */
