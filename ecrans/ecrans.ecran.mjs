@@ -1472,3 +1472,34 @@ test('Club : collectif hors du mur et dans sa section, promu ; modifier un colle
   await ctx.close();
 });
 
+test('JA : en paysage, les pages passent sur plusieurs colonnes ; sur téléphone, une seule', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 } });
+  const { page, errors } = await openPage(ctx, JA + '/demo');
+  const colonnes = sel => page.evaluate(s => getComputedStyle(document.querySelector(s)).gridTemplateColumns.split(' ').length, sel);
+  const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
+  for (const t of ['direct', 'diffusion']) {
+    await page.locator('[data-tab="' + t + '"]').first().click();
+    await page.waitForTimeout(250);
+    assert.equal(await colonnes('#tab-' + t + ' .grid2'), 2, t);
+    assert.ok(await large(), t + ' sans débordement');
+    assert.ok(await page.evaluate(() => { const m = document.querySelector('main'); return m.scrollWidth <= m.clientWidth + 1; }), t + ' : rien ne dépasse');
+  }
+  const id = new URL(page.url()).pathname.split('/')[2];
+  await page.goto(JA + '/joueurs');
+  await page.waitForSelector('.g-2');
+  assert.equal(await colonnes('.g-2'), 2, 'joueurs');
+  await page.goto(JA + '/statistiques');
+  await page.waitForSelector('.st-grid');
+  assert.equal(await colonnes('.st-grid'), 3, 'statistiques');
+  assert.ok(await large());
+  await page.setViewportSize({ width: 390, height: 800 });
+  assert.equal(await colonnes('.st-grid'), 1, 'statistiques sur téléphone');
+  await page.goto(JA + '/t/' + id);
+  await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelector('[data-tab="direct"]').click());
+  await page.waitForTimeout(250);
+  assert.equal(await colonnes('#tab-direct .grid2'), 1, 'éditeur sur téléphone');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
