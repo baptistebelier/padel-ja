@@ -319,6 +319,48 @@ test('agenda : les cours confirmés vers Google, et ce qui est posé chez Google
   assert.equal((await a.occupe(['https://calendar.google.com/a'], '2026-07-01', '2026-07-01')).length, 1);
   const panne = Agenda.createAgenda({ fetchFn: async () => { throw new Error('panne'); } });
   assert.deepEqual(await panne.occupe(['https://calendar.google.com/a'], '2026-07-01', '2026-07-31'), [], 'injoignable : la réservation continue');
+  assert.deepEqual(await panne.verifier('https://calendar.google.com/a'), { ok: false, raison: 'injoignable' });
+});
+
+test('agenda relié : une adresse refusée par Google se voit au lieu de laisser tous les créneaux ouverts', async () => {
+  const repond = (ok, status, corps) => Agenda.createAgenda({ fetchFn: async () => ({ ok, status, text: async () => corps }) });
+  const u = 'https://calendar.google.com/calendar/ical/x/public/basic.ics';
+  assert.deepEqual(await repond(false, 404, '<html>').verifier(u), { ok: false, raison: 'privee' }, 'agenda privé : adresse publique refusée');
+  assert.deepEqual(await repond(true, 200, '<html>connexion</html>').verifier(u), { ok: false, raison: 'format' }, 'une page web n’est pas un agenda');
+  const bon = 'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART:20260701T073000Z\r\nDTEND:20260701T083000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n';
+  assert.deepEqual(await repond(true, 200, bon).verifier(u), { ok: true, evenements: 1 });
+  const { clean } = require('../lib/formules');
+  assert.equal(clean({ icals: [u, u] }).icals.length, 1, 'la même adresse deux fois : gardée une fois');
+});
+
+test('agenda relié : séries déplacées, plusieurs jours, mois et années', () => {
+  const ics = ev => ['BEGIN:VCALENDAR', ...ev.flatMap(e => ['BEGIN:VEVENT', ...e, 'END:VEVENT']), 'END:VCALENDAR'].join('\r\n');
+  const P = 'TZID=Europe/Paris';
+  /* une date de la série déplacée : l'ancienne heure se libère, la nouvelle est prise */
+  const deplace = ics([
+    ['UID:a', `DTSTART;${P}:20261102T100000`, `DTEND;${P}:20261102T110000`, 'RRULE:FREQ=WEEKLY;BYDAY=MO'],
+    ['UID:a', `RECURRENCE-ID;${P}:20261109T100000`, `DTSTART;${P}:20261109T150000`, `DTEND;${P}:20261109T160000`]
+  ]);
+  assert.deepEqual(Agenda.parseIcs(deplace, '2026-11-02', '2026-11-16'), [{ d: '2026-11-02', du: 600, au: 660 }, { d: '2026-11-16', du: 600, au: 660 }, { d: '2026-11-09', du: 900, au: 960 }]);
+  /* une date annulée seule : rien ce jour-là */
+  const annule = ics([
+    ['UID:b', `DTSTART;${P}:20261102T100000`, `DTEND;${P}:20261102T110000`, 'RRULE:FREQ=WEEKLY'],
+    ['UID:b', `RECURRENCE-ID;${P}:20261109T100000`, `DTSTART;${P}:20261109T100000`, `DTEND;${P}:20261109T110000`, 'STATUS:CANCELLED']
+  ]);
+  assert.deepEqual(Agenda.parseIcs(annule, '2026-11-09', '2026-11-09'), []);
+  /* sur plusieurs jours : chacun est pris, jusqu'à l'heure de fin */
+  assert.deepEqual(Agenda.parseIcs(ics([[`DTSTART;${P}:20261109T180000`, `DTEND;${P}:20261111T100000`]]), '2026-11-09', '2026-11-30'), [{ d: '2026-11-09', du: 1080, au: 1440 }, { d: '2026-11-10', du: 0, au: 1440 }, { d: '2026-11-11', du: 0, au: 600 }]);
+  /* un jour sur deux semaines, comptées depuis le lundi : le lundi suivant un mercredi de départ n'en est pas */
+  const deuxSemaines = ics([[`DTSTART;${P}:20261104T100000`, `DTEND;${P}:20261104T110000`, 'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE']]);
+  assert.deepEqual(Agenda.parseIcs(deuxSemaines, '2026-11-04', '2026-11-18').map(x => x.d), ['2026-11-04', '2026-11-16', '2026-11-18']);
+  /* tous les mois : le même jour, le 2e mardi, le dernier vendredi ; tous les ans */
+  const dates = (r, de, a) => Agenda.parseIcs(ics([[`DTSTART;${P}:${de}T100000`, `DTEND;${P}:${de}T110000`, r]]), '2026-11-01', a).map(x => x.d);
+  assert.deepEqual(dates('RRULE:FREQ=MONTHLY', '20261015', '2027-01-31'), ['2026-11-15', '2026-12-15', '2027-01-15']);
+  assert.deepEqual(dates('RRULE:FREQ=MONTHLY;BYDAY=2TU', '20261013', '2026-12-31'), ['2026-11-10', '2026-12-08']);
+  assert.deepEqual(dates('RRULE:FREQ=MONTHLY;BYDAY=-1FR', '20261030', '2026-12-31'), ['2026-11-27', '2026-12-25']);
+  assert.deepEqual(dates('RRULE:FREQ=YEARLY', '20241120', '2027-12-31'), ['2026-11-20', '2027-11-20']);
+  /* une exception posée en date seule */
+  assert.deepEqual(dates('RRULE:FREQ=WEEKLY\r\nEXDATE;VALUE=DATE:20261109', '20261102', '2026-11-16'), ['2026-11-02', '2026-11-16']);
 });
 
 test('page publique : l’élève sans compte reçoit un e-mail si l’enseignant annule ou déplace ; pas s’il annule lui-même', async () => {

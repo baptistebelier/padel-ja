@@ -61,7 +61,8 @@ setInterval(() => {
   if (+h === 18) taches.enqueue('veille', { d }, { key: 'veille:' + d });
 }, 600000).unref();
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
-const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, Mail, agenda: Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) }), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
+const agendaLu = Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) });
+const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
 const googleAgenda = require('./lib/google-agenda.js').createGoogleAgenda({ ram, store, coachTables, taches, log: m => console.warn('/RAM Coach : ' + m) });   // les séances écrites dans Google Agenda, en temps réel
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
@@ -1552,6 +1553,16 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/coach/agenda-lien' && req.method === 'GET') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       return json(res, 200, { lien: appUrl(req) + Agenda.lienIcs(u.id) });
+    }
+    /* ses agendas reliés : une adresse à essayer avant de la garder, ou l'état de celles qu'il a */
+    if (p === '/api/coach/agenda-verifier') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      if (req.method === 'POST') {
+        const url = Agenda.okIcal((await readBody(req)).url);
+        return json(res, 200, url ? await agendaLu.verifier(url) : { ok: false, raison: 'hote' });
+      }
+      if (req.method === 'GET') return json(res, 200, { agendas: await Promise.all(((await Formules.get(store, u.id)).icals || []).map(x => agendaLu.verifier(x))) });
+      return json(res, 405, { error: 'Méthode non permise' });
     }
     if (p === '/api/coach/google-agenda') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });

@@ -819,6 +819,25 @@ test('Coach : relier Google Agenda, les trois états du réglage', async () => {
   await page.close();
 });
 
+test('Coach : une adresse d’agenda refusée par Google n’est pas gardée, et un agenda illisible se voit', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.route('**/api/coach/agenda-verifier', r => r.fulfill({ json: { ok: false, raison: 'privee' } }));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof coCalTxt === 'function', null, { timeout: 8000 });
+  await page.evaluate(() => { window.RAM = window.RAM || {}; RAM.live = true; OFFRES.icals = []; A.coIcalAdd(); });
+  await page.fill('#co-ic', 'https://calendar.google.com/calendar/ical/x/public/basic.ics');
+  await page.click('#co-ical button');
+  await page.waitForFunction(() => document.querySelector('#co-ic-err').textContent.length > 0);
+  assert.match(await page.textContent('#co-ic-err'), /Adresse secrète/);
+  assert.equal(await page.evaluate(() => OFFRES.icals.length), 0, 'adresse non gardée');
+  assert.ok(await page.evaluate(() => document.querySelector('#sheet').scrollWidth <= innerWidth), 'rien ne dépasse à 360 px');
+  const carte = await page.evaluate(() => { closeSheet(); CO_CAL = [{ ok: false, raison: 'privee' }]; OFFRES.icals = ['https://calendar.google.com/a']; return coOutilsCard(); });
+  assert.match(carte, /Agenda 1 illisible/);
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
 test('Coach : participants d’une séance, Mes groupes, Suivi, formule d’un groupe, cycle sans dates, périodes en une fois', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
