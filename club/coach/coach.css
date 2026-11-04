@@ -2034,3 +2034,29 @@ button.copp:hover span:last-child {
 .cotip i.coprev {
   background: var(--muted);
 }
+/* l'objectif de la séance, demandé par l'élève à la réservation : il se voit tout de suite */
+.evl.cogoal {
+  font-weight: 700;
+  color: var(--fg);
+}
+.evl.cogoal > svg {
+  color: var(--accent-tx, var(--accent));
+}
+.cogoalc {
+  border-left: 5px solid var(--accent);
+}
+.cogoalc .kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cogoalc .kicker svg {
+  width: 16px;
+  height: 16px;
+}
+.cogoalc p {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+

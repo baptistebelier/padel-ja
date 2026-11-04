@@ -75,3 +75,17 @@ test('Calendly : la séance arrive dans le planning /RAM Coach, puis l’annulat
   assert.deepEqual((await groups())[0].cancel, ['2026-11-05']);
   assert.equal((await mcp.calendly.cancel(coach, Object.assign(Calendly.booking(hook('invitee.canceled')), { cal: 'inconnu' }))).introuvable, true);
 });
+
+test('Calendly : annuler depuis /RAM Coach appelle Calendly', async () => {
+  const { annuler } = require('../lib/calendly.js'), real = global.fetch, appels = [];
+  global.fetch = async (u, o) => { appels.push([String(u), o.method, JSON.parse(o.body).reason]); return { ok: true, status: 201, json: async () => ({}) }; };
+  try {
+    assert.equal(await annuler('jeton', 'https://api.calendly.com/scheduled_events/abc-123', 'Pluie'), true);
+    assert.match(appels[0][0], /scheduled_events\/abc-123\/cancellation$/);
+    assert.deepEqual(appels[0].slice(1), ['POST', 'Pluie']);
+    assert.equal(await annuler('', 'https://api.calendly.com/scheduled_events/abc', 'x'), false, 'sans jeton : rien');
+    assert.equal(await annuler('jeton', 'ram:r1', 'x'), false, 'pas une séance Calendly');
+    assert.equal(appels.length, 1);
+  } finally { global.fetch = real; }
+});
+

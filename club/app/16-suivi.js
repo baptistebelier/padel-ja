@@ -104,15 +104,28 @@ const resaCollectifs = (k, de, fin) =>
     .join('');
 const resaHeure = n => Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).padStart(2, '0') : '');
 const resaLundi = w => isoIn(7 * w - ((REGLES.dowOf(TODAY) + 6) % 7), TODAY);
+const RESA_FRAIS = 20000;
+setInterval(() => {
+  if (view().v === 'resa' && !$('sheet') && !document.hidden) render(true);
+}, RESA_FRAIS);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && view().v === 'resa' && !$('sheet')) {
+    Object.keys(RESA).forEach(k => RESA[k] && RESA[k].lu && (RESA[k].lu = 1));
+    render(true);
+  }
+});
 function resaLoad(k, de) {
-  const id = k + '|' + de;
-  if (!RESA[id]) {
-    RESA[id] = { wait: 1 };
+  const id = k + '|' + de,
+    vieux = RESA[id] && RESA[id].lu && Date.now() - RESA[id].lu > RESA_FRAIS;
+  if (!RESA[id] || vieux) {
+    // une plage annulée par l'enseignant redevient libre : on relit, en gardant l'affichage en attendant
+    if (vieux) RESA[id].lu = Date.now();
+    else RESA[id] = { wait: 1 };
     fetch('/api/reservation/creneaux?c=' + encodeURIComponent(RAM.club) + '&k=' + encodeURIComponent(k) + '&de=' + de, {
       credentials: 'include'
     })
       .then(r => r.json().then(d => (r.ok ? d : Promise.reject(new Error(d.error || 'Réservation indisponible')))))
-      .then(d => (RESA[id] = d))
+      .then(d => (RESA[id] = Object.assign(d, { lu: Date.now() })))
       .catch(e => (RESA[id] = { err: e.message }))
       .then(() => view().v === 'resa' && render(true));
   }

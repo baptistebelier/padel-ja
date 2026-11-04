@@ -92,3 +92,25 @@ test('/RAM JA : message d’inscription, de retrait, tournoi complet', () => {
   assert.deepEqual([m.app, m.url], ['ja', '/t/T1']);
 });
 
+test('boîte de notifications : gardée même sans appareil, et par appli', async () => {
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const { createStore } = require('../lib/store');
+  const { createWebPush, pourAppli } = require('../lib/webpush');
+  const saved = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY };
+  delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  const store = createStore(fs.mkdtempSync(path.join(os.tmpdir(), 'ram-inbox-')));
+  if (saved.url) process.env.SUPABASE_URL = saved.url;
+  if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
+  const push = createWebPush({ store });
+  await push.sendMany(['SANS'], { title: 'Club', body: 'Nouvelle réservation', url: '#/seance/r1.2031-01-01?club=C', app: 'coach' });
+  await push.sendMany(['SANS'], { title: 'Club', body: 'Publication', url: '#/post/p1?club=C' });
+  await push.sendMany(['SANS'], { title: '/RAM JA', body: 'Inscription', url: '/t/1', app: 'ja' });
+  const l = await push.boite('SANS', 0);
+  assert.equal(l.length, 3, 'un compte sans téléphone abonné les retrouve dans son panneau');
+  assert.deepEqual(pourAppli(l, 'coach').map(x => x.body), ['Nouvelle réservation']);
+  assert.deepEqual(pourAppli(l, 'club').map(x => x.body).sort(), ['Nouvelle réservation', 'Publication']);
+  assert.deepEqual(pourAppli(l, 'ja').map(x => x.body), ['Inscription']);
+  assert.equal((await push.boite('SANS', Date.now() + 1000)).length, 0, 'seulement ce qui est nouveau');
+  assert.equal((await push.boite('AUTRE', 0)).length, 0, 'chacun les siennes');
+});
+

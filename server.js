@@ -48,6 +48,12 @@ const taches = require('./lib/taches.js').createTaches({ store, log: m => consol
 const notifier = require('./lib/pushnotif.js').createNotifier({ ram, formules: u => require('./lib/formules.js').get(store, u), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
 taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
 taches.on('shopify-achat', o => reservation.achatShopify(o));
+/* une séance Calendly annulée dans /RAM Coach : annulée aussi chez Calendly, sinon les deux agendas se contredisent */
+ram.onOps((clubId, actor, changes) => {
+  if (!actor || !actor.client) return;
+  changes.filter(c => (c.coll === 'cours' || c.coll === 'group') && c.before && c.after && c.after.cal && !String(c.after.cal).startsWith('ram:') && (c.after.cancel || []).length > (c.before.cancel || []).length)
+    .forEach(c => require('./lib/calendly.js').annuler(process.env.CALENDLY_TOKEN, c.after.cal, 'Séance annulée par l’enseignant').catch(e => console.warn('/RAM Calendly : ' + e.message)));
+});
 /* chaque soir à 18 h (heure de Paris) : rappels des cours de groupe et résumé des enseignants, une seule fois par jour */
 taches.on('veille', p => notifier.veille(p.d));
 setInterval(() => {
@@ -1113,6 +1119,10 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { clubs: (await ram.myClubs(u.id)).map(c => { const cid = (sps.find(s => s.id === c.id) || {}).club_id || null; return Object.assign(c, { clubId: cid, main: !!cid && cid === main }); }) });
       }
       // notifications sur le téléphone : clé publique, abonnement de cet appareil, désabonnement
+      if (p === '/api/ram/notifs' && req.method === 'GET') {
+        const l = await push.boite(u.id, +url.searchParams.get('since') || 0);
+        return json(res, 200, { items: require('./lib/webpush.js').pourAppli(l, url.searchParams.get('app') === 'coach' ? 'coach' : 'club') });
+      }
       if (p === '/api/ram/push/key' && req.method === 'GET') return json(res, 200, { key: await push.publicKey() });
       if (p === '/api/ram/push/subscribe' && req.method === 'POST') {
         const b = await readBody(req);

@@ -102,10 +102,50 @@ function lookPrev() {
 
 function notify(type, by, txt, go, quiet) {
   if (!S.nset[type] || by === ME()) return;
+  // déjà arrivée par le serveur (panneau) : pas de doublon
+  if (go && NOTIFS.some(n => n.srv && n.go && n.go.v === go.v && n.go.id === go.id && Date.now() - n.at < 3e5)) return;
   NOTIFS.unshift({ by, txt, t: "À l'instant", n: 1, go, at: Date.now() });
   trimNotifs();
   if (!quiet) banner(NOTIFS[0]);
 }
+/* panneau de notifications : ajoute ce que le serveur a gardé pour ce compte, même reçu appli fermée */
+const notifGo = u => {
+  const m = String(u || '').match(/#\/([a-z]+)(?:\/([^/?#]+))?/i);
+  return m ? (m[2] ? { v: m[1], id: decodeURIComponent(m[2]) } : { v: m[1] }) : null;
+};
+window.ramNotifsMerge = items => {
+  let n = 0;
+  items
+    .slice()
+    .reverse()
+    .forEach(x => {
+      const id = 'srv-' + x.id;
+      if (NOTIFS.some(y => y.id === id)) return;
+      const go = notifGo(x.url),
+        cl = (String(x.url).match(/[?&]club=([\w-]+)/) || [])[1],
+        // la même chose déjà notée par cet appareil, appli ouverte : pas de doublon
+        deja = NOTIFS.some(
+          y => !y.srv && y.go && go && y.go.v === go.v && y.go.id === go.id && Math.abs((y.at || 0) - x.at) < 3e5
+        );
+      if (deja) return;
+      const ici = !cl || !window.RAM || cl === RAM.club;
+      NOTIFS.unshift({
+        id,
+        srv: 1,
+        by: 'club',
+        txt: (ici ? ': ' : 'de ' + x.title + ' : ') + x.body,
+        t: '',
+        n: 1,
+        at: x.at,
+        go,
+        url: x.url,
+        coach: 1
+      });
+      n++;
+    });
+  if (n) trimNotifs();
+  return n;
+};
 /* Historique des notifications : toutes celles des 7 derniers jours, et au moins les 20 dernières (même plus anciennes) */
 const NOTIF_DAYS = 7,
   NOTIF_MIN = 20,

@@ -1518,3 +1518,58 @@ test('JA : le bouton pour activer les notifications, et le service worker les re
   await ctx.close();
 });
 
+test('Coach : l’objectif de l’élève sur la carte et la séance ; le panneau garde ce que le serveur a reçu, sans doublon', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof coSesCard === 'function' && typeof window.ramNotifsMerge === 'function', { polling: 300 });
+  const id = await page.evaluate(() => {
+    document.querySelector('.ram-splash')?.remove();
+    const x = coSessions(TODAY, TODAY, 'me', 1)[0];
+    x.g.goal = 'Améliorer ma volée';
+    S.tab = 'today'; S.stack = []; render();
+    A.tab({ t: 'today' });
+    return sesKey(x.g, x.d);
+  });
+  await page.waitForSelector('.evl.cogoal');
+  assert.match(await page.locator('.evl.cogoal').first().innerText(), /Objectif : Améliorer ma volée/);
+  await page.evaluate(id => A.open({ v: 'seance', id }), id);
+  await page.waitForSelector('.cogoalc');
+  assert.match(await page.locator('.cogoalc').innerText(), /Améliorer ma volée/);
+  const r = await page.evaluate(() => {
+    const it = { id: 'x1', at: Date.now(), title: 'Club', body: 'Nouvelle réservation : Cours', url: '#/seance/g1.2031-01-01' };
+    const a = window.ramNotifsMerge([it]), b = window.ramNotifsMerge([it]);
+    // déjà notée par l'appareil, appli ouverte
+    NOTIFS.unshift({ by: 'club', txt: 'x', n: 1, at: Date.now(), go: { v: 'seance', id: 'g2.2031-01-02' } });
+    const c = window.ramNotifsMerge([{ id: 'x2', at: Date.now(), title: 'Club', body: 'y', url: '#/seance/g2.2031-01-02' }]);
+    return { a, b, c, vu: NOTIFS.filter(n => n.id === 'srv-x1').length, coach: NOTIFS.find(n => n.id === 'srv-x1').coach, go: NOTIFS.find(n => n.id === 'srv-x1').go };
+  });
+  assert.deepEqual([r.a, r.b, r.c, r.vu, r.coach], [1, 0, 0, 1, 1]);
+  assert.deepEqual(r.go, { v: 'seance', id: 'g1.2031-01-01' });
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('Club : l’écran de réservation relit les créneaux : une plage annulée par l’enseignant redevient disponible', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage();
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof resaLoad === 'function', { polling: 300 });
+  const r = await page.evaluate(async () => {
+    const appels = [], vrai = window.fetch;
+    window.fetch = async u => { appels.push(String(u)); return { ok: true, json: async () => ({ ouvert: true, n: appels.length }) }; };
+    window.RAM = window.RAM || { club: 'C' };
+    const c1 = resaLoad('k', '2031-01-06');
+    await new Promise(x => setTimeout(x, 20));
+    const n1 = appels.length, frais = resaLoad('k', '2031-01-06');
+    await new Promise(x => setTimeout(x, 20));
+    const n2 = appels.length;
+    frais.lu = 1; // lu il y a longtemps
+    const vieux = resaLoad('k', '2031-01-06');
+    await new Promise(x => setTimeout(x, 20));
+    window.fetch = vrai;
+    return { c1: !!c1.wait, n1, n2, n3: appels.length, gardé: !!vieux.ouvert };
+  });
+  assert.deepEqual(r, { c1: true, n1: 1, n2: 1, n3: 2, gardé: true }, 'relu une fois périmé, l’affichage restant en attendant');
+  await ctx.close();
+});
+

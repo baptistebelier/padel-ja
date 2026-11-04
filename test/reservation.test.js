@@ -205,7 +205,7 @@ test('collectif : rien tant que le minimum n’est pas atteint, puis le cours su
   const { coach, club, key, d } = await monte(14);
   const post = ins => ({ by: key, kind: 'niveaux', at: Date.now(), nv: { mode: 'cours', sport: 'Padel', theme: 'Volée', time: '18 h', dur: '1 h 30', price: '15 €', dates: [d], tiers: [{ id: 't1', nom: 'Débutants', lo: 1, hi: 3, places: 2, max: 3 }, { id: 't2', lo: 4, hi: 6, places: 2 }], ins: { [d + '|t1']: ins, [d + '|t2']: ['z1'] }, at: {} } });
   const seance = async () => (await coachTables.planning(coach, d, d)).seances[0];
-  const pose = async (ins, pret) => { await ram.ops(coach, club.id, [{ coll: 'post', id: 'pc', op: 'put', data: post(ins) }]); if (pret) await attend(async () => { const x = await seance(); return x && pret(x); }); else { await pause(); await pause(); } };
+  const pose = async (ins, pret) => { await ram.ops(coach, club.id, [{ coll: 'post', id: 'pc', op: 'put', data: post(ins) }]); if (pret) await attend(async () => { const x = await seance(); return x && pret(x); }); else { await repos(); await repos(); } };
   await pose(['a1']);
   assert.equal(await seance(), undefined, 'en attente : ni au planning, ni bloquant');
   await pose(['a1', 'a2'], x => x.eleves.length === 2);
@@ -247,7 +247,7 @@ test('demande d’élève : son niveau prévenu, aucun cours avant le minimum, p
   const m = envois.find(e => /de ton niveau/.test(e.msg.body));
   assert.deepEqual(m.uids, [v]);
   assert.ok(envois.some(e => e.msg.app === 'coach' && /Demande d'élève/.test(e.msg.body)));
-  await pause();
+  await repos();
   assert.deepEqual((await coachTables.planning(coach, d, d)).seances, [], 'pas au planning tant que le groupe n’est pas complet');
   assert.equal((await resa.creneaux(a, club.id, key, d)).jours[0].libres[0].du, 540, 'rien de bloqué');
   const p = (await ram.itemsOf(club.id, 'post')).find(x => x.id === r.id).data;
@@ -344,5 +344,70 @@ test('page publique : l’élève sans compte reçoit un e-mail si l’enseignan
   await ram.ops(coach, club.id, [{ coll: 'cours', id: 'rp', op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: d }] }]);
   await new Promise(r => setTimeout(r, 30));
   assert.equal(mails().length, 0, 'il a annulé lui-même');
+});
+
+/* ---------- le parcours complet, avec les vraies notifications ---------- */
+const { createNotifier } = require('../lib/pushnotif');
+const recus = [];
+createNotifier({ ram, push: { send: async (uid, msg) => { recus.push([uid, msg]); return 1; } } });
+const repos = () => new Promise(r => setTimeout(r, 40));
+const libre = async (club, key, a, d, t) => (await resa.creneaux(a, club.id, key, d)).jours[0].libres.some(p => t >= p.du && t + 60 <= p.au);
+
+test('parcours : l’élève réserve, le coach est prévenu avec l’objectif ; il annule, l’élève est prévenu, le créneau est de nouveau réservable', async () => {
+  const { coach, club, key, d, a, ka } = await monte(40);
+  assert.equal(await libre(club, key, a, d, 570), true);
+  await repos();
+  recus.length = 0;
+  const r = await resa.reserver(a, club.id, key, { d, t: 570, formule: 'f1', objectif: 'Améliorer ma volée' });
+  await repos();
+  const c = recus.find(x => x[0] === coach);
+  assert.ok(c, 'le coach est prévenu');
+  assert.equal(c[1].app, 'coach');
+  assert.match(c[1].body, /Nouvelle réservation : Cours individuel .* avec .*Objectif : Améliorer ma volée/);
+  assert.deepEqual(recus.filter(x => x[0] === a).map(x => x[1].body), [], 'l’élève n’est pas notifié de son propre geste');
+  assert.equal(await libre(club, key, a, d, 570), false, 'pris');
+  const it = (await ram.itemsOf(club.id, 'cours')).find(x => x.id === r.id);
+  assert.equal(it.data.goal, 'Améliorer ma volée');
+  // le coach annule dans /RAM Coach
+  recus.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: r.id, op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: d }] }], { client: true });
+  await repos();
+  assert.deepEqual(recus.map(x => [x[0], x[1].body]).filter(x => x[0] !== a), [], 'l’élève, pas le coach');
+  assert.match(recus[0][1].body, /Cours annulé : Cours individuel/);
+  assert.equal(await libre(club, key, a, d, 570), true, 'le créneau est libre de nouveau');
+  const r2 = await resa.reserver(a, club.id, key, { d, t: 570, formule: 'f1', objectif: 'Deuxième essai' });
+  assert.notEqual(r2.id, r.id, 'et se réserve');
+  await repos();
+  // le coach déplace le nouveau cours : l'élève est prévenu, l'ancien créneau se libère
+  recus.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: r2.id, op: 'patch', patch: [{ p: ['h'], t: 'set', v: '11 h' }] }], { client: true });
+  await repos();
+  assert.deepEqual(recus.map(x => x[0]), [a]);
+  assert.match(recus[0][1].body, /Cours déplacé : Cours individuel, .* à 11 h/);
+  assert.equal(await libre(club, key, a, d, 570), true);
+  assert.equal(await libre(club, key, a, d, 660), false);
+  // l'élève annule : le coach apprend qui
+  recus.length = 0;
+  await resa.annuler(a, club.id, r2.id);
+  await repos();
+  assert.deepEqual(recus.map(x => x[0]), [coach]);
+  assert.match(recus[0][1].body, /Élève annule : Cours individuel/);
+  assert.equal(await libre(club, key, a, d, 660), true);
+  void ka;
+});
+
+test('Calendly et /RAM Club : une réservation Calendly bloque le créneau, son annulation le rend ; jamais deux cours au même moment', async () => {
+  const { coach, club, key, d, a, ka } = await monte(41);
+  const g = { type: 'train', name: 'Cours Academy', once: d, h: '9 h', dur: '1 h', coach: key, mem: [ka], cal: 'https://api.calendly.com/scheduled_events/E1', day: REGLES.dowOf(d) };
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'gcal', op: 'put', data: g }]);
+  assert.equal(await libre(club, key, a, d, 540), false, 'pris par Calendly');
+  await assert.rejects(resa.reserver(a, club.id, key, { d, t: 540, formule: 'f1', objectif: 'Volée' }), /vient d’être pris/);
+  assert.equal(await libre(club, key, a, d, 600), true, 'l’heure suivante reste libre');
+  const r = await resa.reserver(a, club.id, key, { d, t: 600, formule: 'f1', objectif: 'Volée' });
+  // ce qui part vers Google (et que Calendly lit) : le cours /RAM, pas la réservation Calendly (Calendly l'écrit lui-même)
+  const { seances } = await coachTables.pourAgenda(coach, d, d);
+  assert.deepEqual(seances.map(s => s.groupe), [r.id]);
+  await ram.ops(coach, club.id, [{ coll: 'cours', id: 'gcal', op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: d }] }]);
+  assert.equal(await libre(club, key, a, d, 540), true, 'annulée : le créneau revient');
 });
 

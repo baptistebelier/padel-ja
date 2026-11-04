@@ -1030,6 +1030,35 @@
         ? { v: 'rec', id: ref.slice(2) }
         : { v: 'post', id: ref.slice(2) };
   const known = k => k === 'club' || !!M[k];
+  /* panneau de notifications : ce que le serveur a gardé pour ce compte, même reçu appli fermée */
+  const NAPP = window.RAM_APP === 'coach' ? 'coach' : 'club',
+    NSINCE = 'ram-notif-since-' + NAPP;
+  let notifT = 0;
+  function pullNotifs() {
+    if (!R.key || Date.now() - notifT < 15000) return;
+    notifT = Date.now();
+    let since = 0;
+    try {
+      since = +localStorage.getItem(NSINCE) || 0;
+    } catch (e) {}
+    since = since || Date.now() - 7 * 864e5;
+    fetch('/api/ram/notifs?app=' + NAPP + '&since=' + since, { credentials: 'include' })
+      .then(r => (r.ok ? r.json() : { items: [] }))
+      .then(d => {
+        if (!d.items || !d.items.length) return;
+        try {
+          localStorage.setItem(NSINCE, String(Math.max(...d.items.map(x => x.at))));
+        } catch (e) {}
+        if (window.ramNotifsMerge(d.items) && !$('sheet')) render(true);
+      })
+      .catch(() => {});
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      notifT = 0;
+      pullNotifs();
+    }
+  });
   function notifyDiff(coll, id, a, b) {
     if (!b) return;
     const me = R.key,
@@ -1046,7 +1075,7 @@
           notify(
             'resa',
             'club',
-            `: nouvelle réservation, ${String(b.name).toLowerCase()} ${when}${who(b).length ? ' avec ' + who(b).map(nm).join(', ') : ''}`,
+            `: nouvelle réservation, ${String(b.name).toLowerCase()} ${when}${who(b).length ? ' avec ' + who(b).map(nm).join(', ') : ''}${b.goal ? '. Objectif : ' + b.goal : ''}`,
             go
           )
         );
@@ -1681,6 +1710,7 @@
         }
       }
     });
+    pullNotifs();
     // tout ce qui me concerne dans ce qui a changé : likes, commentaires, réactions, inscriptions, convocations…
     d.items.forEach(it => {
       // un événement où je me suis positionné est supprimé
