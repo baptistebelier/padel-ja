@@ -193,6 +193,25 @@ function ecoleBody(t) {
         : empty('ball', 'Aucun stage prévu', '')) +
       (staff ? `<button class="btn full ghost" data-a="newPost" data-k="stage">Créer un stage</button>` : '');
   }
+  // séances collectives et parties dirigées à venir, pour chacun celles de son niveau
+  if (t === 'coll') {
+    const prem = p => (p.nv.dates || []).find(d => d >= TODAY),
+      l = posts
+        .filter(p => p.kind === 'niveaux' && p.nv && canSee(p) && prem(p))
+        .sort((x, y) => prem(x).localeCompare(prem(y)));
+    b =
+      `<div class="feed">${l.map(postHTML).join('')}</div>` +
+      (l.length
+        ? ''
+        : empty(
+            'users',
+            'Aucun collectif à venir',
+            'Les séances collectives et parties dirigées de ton niveau apparaîtront ici.'
+          )) +
+      (staff
+        ? `<div class="ctl"><button class="btn grow" data-a="nvNew" data-m="cours">${ic('school')}Séance collective</button><button class="btn grow ghost" data-a="nvNew" data-m="partie">${ic('users')}Partie dirigée</button></div>`
+        : '');
+  }
   // Mes groupes : les groupes tout de suite ; les séances sont dans l'Agenda, la création de stage dans Stages
   if (t === 'manage') {
     const gs = GROUPS.filter(g => g.type === 'train' && (coach ? g.coach === me : true)).filter(grpLive);

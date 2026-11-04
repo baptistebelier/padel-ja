@@ -174,6 +174,25 @@ test('rappels : un élève annoncé absent n’en reçoit pas ; un cours déplac
   assert.deepEqual(n.map(x => x.p.h), ['11 h', '11 h'], 'les rappels suivent le cours');
 });
 
+test('collectif modifié : le cours change d’heure, une date retirée ne reste pas au planning', async () => {
+  const { coach, club, key, d } = await monte(32);
+  const j = await Promise.all(['X', 'Y'].map(async n => { const r = await ram.join({ id: n + '32', name: 'Joueur ' + n }, club.code); await ram.ops(coach, club.id, [{ coll: 'member', id: r.key, op: 'put', data: { n: 'Joueur ' + n, valid: 'S', pl: 5 } }]); return r.key; }));
+  const nv = { mode: 'cours', sport: 'Padel', theme: 'Volée', time: '18 h', dur: '1 h', dates: [d], tiers: [{ id: 't1', lo: 1, hi: 10, places: 2 }], ins: { [d + '|t1']: j }, at: {} };
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pm', op: 'put', data: { by: key, kind: 'niveaux', nv } }]);
+  const cours = async () => (await ram.itemsOf(club.id, 'cours')).filter(c => c.data.nv === 'pm');
+  for (let i = 0; i < 40 && !(await cours()).length; i++) await new Promise(r => setTimeout(r, 25));
+  assert.equal((await cours()).length, 1);
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pm', op: 'patch', patch: [{ p: ['nv', 'time'], t: 'set', v: '19 h' }] }]);
+  for (let i = 0; i < 40 && (await cours())[0].data.h !== '19 h'; i++) await new Promise(r => setTimeout(r, 25));
+  assert.equal((await cours())[0].data.h, '19 h');
+  const d2 = REGLES.addDays(d, 7);
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pm', op: 'patch', patch: [{ p: ['nv', 'dates'], t: 'set', v: [d2] }, { p: ['nv', 'ins'], t: 'set', v: { [d2 + '|t1']: j } }] }]);
+  for (let i = 0; i < 40 && !(await cours()).some(c => (c.data.cancel || []).includes(d)); i++) await new Promise(r => setTimeout(r, 25));
+  const l = await cours();
+  assert.ok(l.find(c => c.data.once === d).data.cancel.includes(d), 'l’ancienne date est annulée');
+  assert.ok(l.find(c => c.data.once === d2), 'la nouvelle est au planning');
+});
+
 test('annuler : l’élève qui annule est noté, pour dire à l’enseignant de qui ça vient', async () => {
   const { club, key, d, a, ka } = await monte(31);
   const r = await resa.reserver(a, club.id, key, { d, t: 570, formule: 'f1', objectif: 'Volée' });

@@ -67,7 +67,7 @@ canSee = p => {
   return !!nvMyTier(p.nv, ME());
 };
 const nvPostBody = postBody;
-postBody = p => (p.kind === 'niveaux' ? nvBody(p) : nvPostBody(p));
+postBody = p => (p.kind === 'niveaux' ? promoBtn(p) + nvBody(p) : nvPostBody(p));
 
 function nvBody(p) {
   const nv = p.nv,

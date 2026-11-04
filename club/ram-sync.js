@@ -1081,6 +1081,18 @@
           ap.filter(k => !av.includes(k) && k !== me && known(k)).forEach(k =>
             once(`abs/${id}/${d}/${k}`, () => notify('resa', k, `sera absent : ${b.name}, ${fmtD(d)}`, lieu))
           );
+          Object.keys((b.resp || {})[d] || {})
+            .filter(
+              k =>
+                b.resp[d][k] === 'ok' &&
+                ((a.resp || {})[d] || {})[k] !== 'ok' &&
+                !av.includes(k) &&
+                k !== me &&
+                known(k)
+            )
+            .forEach(k =>
+              once(`pres/${id}/${d}/${k}`, () => notify('resa', k, `sera présent : ${b.name}, ${fmtD(d)}`, lieu))
+            );
           av.filter(k => !ap.includes(k) && k !== me && known(k)).forEach(k =>
             once(`absok/${id}/${d}/${k}`, () => notify('resa', k, `sera finalement là : ${b.name}, ${fmtD(d)}`, lieu))
           );
@@ -1106,6 +1118,10 @@
             k !== me &&
             known(k) &&
             once(`like/${id}/${k}`, () => notify('mine', k, 'aime ta publication' + quoted(b), go))
+        );
+      if (b.kind === 'event' && !mine && a.date !== b.date && ['yes', 'wait', 'maybe'].includes((b.myBy || {})[me]))
+        once(`evmod/${id}/${b.date}`, () =>
+          notify('club', known(b.by) ? b.by : 'club', `a modifié${quoted(b)} : ${b.date}`, go)
         );
       if (mine || clubEv) {
         const ma = a.myBy || {},

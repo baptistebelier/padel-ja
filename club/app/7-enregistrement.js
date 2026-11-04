@@ -473,6 +473,18 @@ document.addEventListener('submit', e => {
       pid: ext ? null : val('pr-mate') || null,
       ext: ext ? g('pr-ext') : null
     };
+    if (f.dataset.edit) {
+      const p = posts.find(x => x.id === f.dataset.edit),
+        old = p.pres,
+        hors = l => (l || []).filter(x => !memePres(x, old));
+      me.pres = [r].concat(hors(me.pres));
+      if (old.pid && M[old.pid]) M[old.pid].pres = hors(M[old.pid].pres);
+      if (r.pid) (M[r.pid].pres = M[r.pid].pres || []).unshift({ ...r, pid: ME(), ext: null });
+      p.pres = r;
+      closeSheet();
+      render(true);
+      return toast('Résultat modifié');
+    }
     (me.pres = me.pres || []).unshift(r);
     if (r.pid) {
       const m2 = M[r.pid];
@@ -533,6 +545,16 @@ document.addEventListener('submit', e => {
         perf,
         fin: !!($('r-fin') && $('r-fin').checked)
       };
+    if (f.dataset.edit) {
+      const p = posts.find(x => x.id === f.dataset.edit),
+        i = me.res.findIndex(x => memeRes(x, p.res));
+      if (i >= 0) me.res[i] = r;
+      else me.res.unshift(r);
+      p.res = r;
+      closeSheet();
+      render(true);
+      return toast('Résultat modifié');
+    }
     me.res.unshift(r);
     posts.unshift({ id: 'p' + Date.now(), by: ME(), t: "À l'instant", kind: 'perf', res: r, likes: 0, com: [] });
     home(perf ? `Perf à ${or} publiée · ${me.fol} abonnés notifiés` : `Résultat publié · ${me.fol} abonnés notifiés`);

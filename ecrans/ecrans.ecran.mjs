@@ -1364,8 +1364,8 @@ test('Club : agenda du club réduit aux événements, sans vue Liste ; raccourci
     return { cats: [...cats], mode: S.plan.mode, filtres: planCatsOf().map(x => x[0]) };
   });
   assert.equal(r.mode, 'events', 'une ancienne vue Liste retombe sur Événements');
-  assert.deepEqual(r.filtres, ['ani', 'tour']);
-  assert.deepEqual(r.cats.filter(c => !['ani', 'tour'].includes(c)), []);
+  assert.deepEqual(r.filtres, ['ani', 'tour', 'eq']);
+  assert.deepEqual(r.cats.filter(c => !['ani', 'tour', 'eq'].includes(c)), []);
   await page.evaluate(() => { const g = GROUPS.find(x => x.type === 'train' && !x.once); document.getElementById('main').insertAdjacentHTML('afterbegin', sessCard(g, TODAY, null, 1)); });
   assert.equal(await page.locator('.ecact svg').count(), 4);
   assert.ok(await page.locator('.ecact.del [d*="M4 7h16"]').count(), 'une corbeille pour supprimer');
@@ -1404,6 +1404,70 @@ test('Club : revenir sur le mur par le glissement retrouve toute la page, à la 
   assert.equal(r.tr, '', 'plus de décalage ni de calque restant');
   assert.ok(!/swipe|pg-|sg-/.test(r.cl), r.cl);
   assert.equal(r.plats, 0);
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('Club : collectif hors du mur et dans sa section, promu ; modifier un collectif et un résultat', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  page.on('dialog', d => d.accept());
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof nvEdit === 'function', { polling: 300 });
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.role = 'coach'; S.tab = 'home'; S.stack = []; render(); A.nvNew({ m: 'cours' }); });
+  await page.waitForSelector('#nv-form');
+  await page.fill('#nv-theme', 'Jeu au filet');
+  await page.selectOption('#a-h1', '19 h');
+  await page.click('#nv-form > button:not([type=button])');
+  await page.waitForFunction(() => view().v === 'post');
+  const pid = await page.evaluate(() => view().id);
+  assert.equal(await page.evaluate(id => posts.find(p => p.id === id).mur, pid), false, 'hors du mur');
+  assert.ok(await page.locator('[data-a="promo"]').count(), 'bouton Promouvoir');
+  assert.ok(!(await page.evaluate(id => { S.stack = []; S.tab = 'home'; render(); return !!document.querySelector('[data-a="pmenu"][data-id="' + id + '"]'); }, pid)), 'absent du mur');
+  await page.evaluate(() => { S.tab = 'ecole'; S.ecTab = 'coll'; render(); });
+  assert.ok(await page.locator('[data-a="pmenu"][data-id="' + pid + '"]').count(), 'dans la section Collectifs');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'rien ne déborde');
+  // modifier : formulaire rempli, inscrits gardés sur la date déplacée
+  await page.evaluate(id => { const p = posts.find(x => x.id === id), k = Object.keys(M).find(x => x !== 'club' && x !== ME()); p.nv.ins = { [p.nv.dates[0] + '|t1']: [k] }; A.pmenu({ id }); }, pid);
+  await page.click('.menu [data-a="pedit"]');
+  await page.waitForSelector('#nv-form');
+  assert.equal(await page.inputValue('#nv-theme'), 'Jeu au filet');
+  assert.equal(await page.inputValue('#a-h1'), '19 h');
+  const d2 = await page.evaluate(() => isoIn(21));
+  await page.fill('#a-d1', d2);
+  await page.selectOption('#a-h1', '20 h');
+  await page.click('#nv-form > button:not([type=button])');
+  await page.waitForFunction(() => !document.querySelector('#nv-form'));
+  const nv = await page.evaluate(id => posts.find(x => x.id === id).nv, pid);
+  assert.equal(nv.time, '20 h');
+  assert.deepEqual(nv.dates, [d2]);
+  assert.equal(nv.ins[d2 + '|t1'].length, 1, 'l’inscrit suit la date');
+  // promouvoir
+  await page.evaluate(id => { S.stack = [{ v: 'post', id }]; render(); }, pid);
+  await page.click('[data-a="promo"]');
+  await page.evaluate(() => { S.stack = []; S.tab = 'home'; render(); });
+  assert.ok(await page.locator('[data-a="pmenu"][data-id="' + pid + '"]').count(), 'sur le mur');
+  // résultat de tennis
+  const rid = await page.evaluate(() => { const r = { w: 1, opp: 'Paul', or: '15/2', sc: '6-3 6-4', ctx: 'Tournoi · Open', perf: false, fin: false }; M[ME()].res.unshift(r); posts.unshift({ id: 'prz', by: ME(), t: 'x', kind: 'perf', res: r, likes: 0, com: [] }); render(); A.pmenu({ id: 'prz' }); return 'prz'; });
+  await page.click('.menu [data-a="pedit"]');
+  await page.waitForSelector('#res-form');
+  assert.equal(await page.inputValue('#r-opp'), 'Paul');
+  assert.equal(await page.inputValue('#s2b'), '4');
+  assert.equal(await page.inputValue('#r-name'), 'Open');
+  await page.fill('#r-opp', 'Paul Martin');
+  const n0 = await page.evaluate(() => M[ME()].res.length);
+  await page.click('#res-form > button:not([type=button])');
+  await page.waitForFunction(() => !document.querySelector('#res-form'));
+  assert.deepEqual(await page.evaluate(id => [posts.find(x => x.id === id).res.opp, M[ME()].res[0].opp, M[ME()].res.length], rid), ['Paul Martin', 'Paul Martin', n0], 'corrigé sans doublon');
+  // résultat de padel
+  await page.evaluate(() => { const r = { place: '1er', cat: 'P100', pub: 'Adultes', age: '', d: isoIn(-3), club: 'Tulle', pid: null, ext: 'Julien' }; M[ME()].pres = [r]; posts.unshift({ id: 'ppz', by: ME(), t: 'x', kind: 'padel', sport: 'Padel', pres: r, likes: 0, com: [] }); render(); A.pmenu({ id: 'ppz' }); });
+  await page.click('.menu [data-a="pedit"]');
+  await page.waitForSelector('#pres-form');
+  assert.equal(await page.inputValue('#pr-ext'), 'Julien');
+  await page.selectOption('#pr-place', '2e');
+  await page.click('#pres-form > button:not([type=button])');
+  await page.waitForFunction(() => !document.querySelector('#pres-form'));
+  assert.deepEqual(await page.evaluate(() => [posts[0].pres.place, M[ME()].pres.length]), ['2e', 1]);
   assert.deepEqual(errs, []);
   await ctx.close();
 });

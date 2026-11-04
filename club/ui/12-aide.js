@@ -79,7 +79,7 @@ const AIDE = [
     q: [
       [
         'Mon agenda et l’Agenda du club',
-        "<b>Mon agenda</b> réunit tout ce où tu es inscrit : cours, parties, séances, événements, tournois (avec l'heure de ton match), rencontres d'équipe, repas réservés au bar. L'<b>Agenda du club</b> montre ce que le club organise : événements, stages, animations et tournois."
+        "<b>Mon agenda</b> réunit tout ce où tu es inscrit : cours, parties, séances, événements, tournois (avec l'heure de ton match), rencontres d'équipe, repas réservés au bar. L'<b>Agenda du club</b> montre ce que le club organise : événements, stages, animations, tournois et rencontres d'équipes."
       ],
       [
         'Changer de vue et filtrer',

@@ -96,7 +96,8 @@ const V = {
         ['mine', 'Mes cours', 'cal'],
         ['perso', 'Mon espace', 'user'],
         ['profs', 'Enseignants', 'school'],
-        ['stages', 'Stages', 'ball']
+        ['stages', 'Stages', 'ball'],
+        ['coll', 'Collectifs', 'users']
       ].concat(staff ? [['manage', coach ? 'Mes groupes' : 'Gestion', 'edit']] : []);
     if (!tabs.some(t => t[0] === S.ecTab)) S.ecTab = 'mine';
     return segs('ecTab', tabs) + `<div class="pad">${ecoleBody(S.ecTab)}</div>`;

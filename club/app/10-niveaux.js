@@ -125,12 +125,54 @@ document.addEventListener('submit', e => {
     weeks = cours ? +(val('nv-rep').match(/(\d+) semaines/) || [0, 1])[1] : 1,
     d0 = val('a-d1') || isoIn(1);
   if (!tiers.length) return toast('Ajoute au moins une fourchette de niveau');
+  if (f.dataset.edit) {
+    const p = posts.find(x => x.id === f.dataset.edit),
+      o = p.nv,
+      dates = Array.from({ length: weeks }, (_, i) => isoIn(7 * i, d0)),
+      prises = Object.entries(o.ins || {}).filter(([, l]) => (l || []).length);
+    // une fourchette ou une date qui a des inscrits ne disparaît pas ; une date déplacée les garde
+    if (prises.some(([q]) => !tiers.some(t => t.id === q.split('|')[1])))
+      return toast('Une fourchette retirée a des inscrits : garde-la');
+    if (prises.some(([q]) => o.dates.indexOf(q.split('|')[0]) >= dates.length))
+      return toast('Une date retirée a des inscrits : garde-la');
+    if (prises.length && sport !== o.sport) return toast('Il y a des inscrits : le sport ne change plus');
+    const versNew = d => dates[o.dates.indexOf(d)] || d,
+      ins = {},
+      at = {};
+    Object.entries(o.ins || {}).forEach(([q, l]) => {
+      const [d, t] = q.split('|');
+      ins[versNew(d) + '|' + t] = l;
+    });
+    Object.entries(o.at || {}).forEach(([k, m]) => {
+      at[k] = {};
+      Object.entries(m || {}).forEach(([d, v]) => (at[k][versNew(d)] = v));
+    });
+    p.nv = Object.assign({}, o, {
+      sport,
+      theme: cours ? val('nv-theme') : '',
+      body: val('nv-body'),
+      fmt: cours ? '' : val('nv-fmt'),
+      time: val('a-h1'),
+      dur: val('a-dur'),
+      place: val('nv-place'),
+      price: val('nv-price'),
+      dates,
+      tiers,
+      ins,
+      at
+    });
+    closeSheet();
+    render(true);
+    return toast('Modifié · les inscrits sont prévenus');
+  }
+  const newId = 'p' + Date.now();
   posts.unshift({
-    id: 'p' + Date.now(),
+    id: newId,
     by: ME(),
     t: "À l'instant",
     at: Date.now(),
     kind: 'niveaux',
+    mur: false, // dans sa section (École, Collectifs) ; le bouton « Promouvoir sur le mur » l'y met
     likes: 0,
     com: [],
     nv: {
@@ -151,10 +193,41 @@ document.addEventListener('submit', e => {
   });
   const n = adults().filter(k => k !== ME() && tiers.some(t => nvFits(t, k, sport))).length;
   closeSheet();
-  S.tab = typeof coPlanning === 'function' ? 'planning' : 'home'; // /RAM Coach : retour au planning
   S.stack = [];
+  // /RAM Coach : retour au planning ; /RAM Club : sa page, avec le bouton pour la promouvoir
+  if (typeof coPlanning === 'function') S.tab = 'planning';
+  else {
+    S.tab = 'ecole';
+    S.ecTab = 'coll';
+    S.stack.push({ v: 'post', id: newId });
+  }
   render();
   toast(
-    `${cours ? 'Séance proposée' : 'Recherche publiée'} · visible par ${n} adhérent${n > 1 ? 's' : ''} des fourchettes choisies`
+    `${cours ? 'Séance proposée' : 'Partie proposée'} · visible par ${n} adhérent${n > 1 ? 's' : ''} des fourchettes choisies, à toi de la promouvoir sur le mur`
   );
 });
+/* modifier une séance collective ou une partie dirigée : son formulaire, déjà rempli */
+function nvEdit(p) {
+  const nv = p.nv,
+    cours = nv.mode === 'cours',
+    put = (id, v) => $(id) && v != null && ($(id).value = v);
+  A.nvNew({ m: nv.mode });
+  const f = $('nv-form');
+  if (!f) return;
+  f.dataset.edit = p.id;
+  put('nv-theme', nv.theme);
+  put('nv-body', nv.body);
+  put('nv-sport', nv.sport);
+  put('nv-fmt', nv.fmt);
+  put('a-d1', (nv.dates || [])[0]);
+  put('a-h1', nv.time);
+  put('a-dur', nv.dur);
+  put('nv-place', nv.place);
+  put('nv-price', nv.price);
+  if (cours && (nv.dates || []).length > 1) put('nv-rep', 'Chaque semaine · ' + nv.dates.length + ' semaines');
+  nvTiers(nv.sport, nv.tiers);
+  if (Object.values(nv.ins || {}).some(l => (l || []).length)) $('nv-sport').disabled = true;
+  f.querySelector('button:not([type=button])').textContent = 'Enregistrer';
+  const h = document.querySelector('#sheet header h2, #sheet header .h');
+  if (h) h.textContent = 'Modifier';
+}

@@ -1,9 +1,9 @@
 /* /RAM Club — ui/4-agenda.js : Planning et agenda du club : semaine, jour, liste.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- planning ---------- */
-/* l'agenda du club : ce que le club organise (événements, stages, animations, tournois) ;
-   cours, séances collectives, parties dirigées et rencontres sont dans « Mon agenda » de ceux qui y participent */
-const CLUB_CATS = ['ani', 'tour'];
+/* l'agenda du club : ce que le club organise (événements, stages, animations, tournois, rencontres d'équipes) ;
+   cours, séances collectives et parties dirigées sont dans « Mon agenda » de ceux qui y participent */
+const CLUB_CATS = ['ani', 'tour', 'eq'];
 function planItems(iso) {
   const [y, m, d] = iso.split('-').map(Number),
     wd = new Date(y, m - 1, d).getDay(),
@@ -317,7 +317,7 @@ const planCard = i =>
       (i.tg1 || '')
   });
 /* Événements de l'agenda du club : ce qu'organise le club (événements, stages, animations,
-   tournois du club, tournois et animations /RAM JA),
+   tournois du club, tournois et animations /RAM JA, rencontres d'équipes),
    à venir sur 4 mois, une seule fois chacun (un stage sur plusieurs jours apparaît à son premier jour) */
 function eventsView() {
   const me = S.plan.scope === 'me',
@@ -327,7 +327,9 @@ function eventsView() {
     const iso = isoIn(n, TODAY),
       // mon agenda : tout ce où je suis positionné (cours, rencontres, repas compris), chaque jour ;
       // agenda du club : ce qui est publié sur le mur, une fois chacun
-      l = planItems(iso).filter(i => (me ? !seen.has(i.v + i.id + iso) : i.v === 'post' && !seen.has(i.id)));
+      l = planItems(iso).filter(i =>
+        me ? !seen.has(i.v + i.id + iso) : (i.v === 'post' || i.v === 'rec') && !seen.has(i.id)
+      );
     l.forEach(i => seen.add(me ? i.v + i.id + iso : i.id));
     if (l.length) days.push([iso, l]);
   }
@@ -348,7 +350,7 @@ function eventsView() {
         : empty(
             'cal',
             'Aucun événement à venir',
-            'Les événements, stages, animations et tournois du club apparaîtront ici.'
+            'Les événements, stages, animations, tournois et rencontres du club apparaîtront ici.'
           )
   }</div>`;
 }

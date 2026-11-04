@@ -313,3 +313,51 @@ function playLu(val) {
   };
 }
 const paLu = val => ({ url: toUrl(val('pa-url')), tel: val('pa-tel'), mail: val('pa-mail') });
+/* modifier un résultat publié : le formulaire de sa création, déjà rempli */
+const brut = s => {
+  const t = document.createElement('textarea');
+  t.innerHTML = s == null ? '' : s;
+  return t.value;
+};
+function resEdit(p) {
+  const r = p.res,
+    put = (id, v) => $(id) && v != null && ($(id).value = v);
+  A.resultT({ titre: 'Modifier le résultat' });
+  const f = $('res-form');
+  f.dataset.edit = p.id;
+  const [ctx, ...nm] = String(r.ctx || '').split(' · ');
+  put('r-opp', r.opp);
+  put('r-rank', r.or);
+  put('r-ctx', ctx);
+  put('r-name', nm.join(' · '));
+  if ($('r-fin')) $('r-fin').checked = !!r.fin;
+  String(r.sc || '')
+    .split(' ')
+    .forEach((s, i) => {
+      const [x, y] = s.split('-');
+      put('s' + (i + 1) + 'a', x);
+      put('s' + (i + 1) + 'b', y);
+    });
+  f.querySelector('button:not([type=button])').textContent = 'Enregistrer';
+}
+function presEdit(p) {
+  const r = p.pres,
+    put = (id, v) => $(id) && v != null && ($(id).value = v);
+  A.resultP({ titre: 'Modifier le résultat' });
+  const f = $('pres-form');
+  f.dataset.edit = p.id;
+  put('pr-place', r.place);
+  put('pr-cat', r.cat);
+  put('pr-pub', r.pub);
+  put('pr-age', brut(r.age));
+  put('pr-d', r.d);
+  put('pr-club', brut(r.club));
+  const radio = $(r.ext ? 'pt-ext' : 'pt-club');
+  radio.checked = true;
+  radio.dispatchEvent(new Event('change', { bubbles: true }));
+  put('pr-mate', r.pid);
+  put('pr-ext', brut(r.ext));
+  f.querySelector('button:not([type=button])').textContent = 'Enregistrer';
+}
+const memeRes = (x, y) => ['opp', 'or', 'sc', 'ctx'].every(k => x[k] === y[k]);
+const memePres = (x, y) => ['place', 'cat', 'd', 'club'].every(k => x[k] === y[k]);

@@ -245,3 +245,27 @@ test('collectif : l’enseignant voit arriver et partir les inscrits avant le mi
   assert.match(sent.filter(x => x[1].app === 'coach')[0][1].body, /Nina se désinscrit : Volée/);
 });
 
+test('présence confirmée : l’enseignant est prévenu ; événement et collectif modifiés : les inscrits aussi', async () => {
+  const { coach, club, key, el, ek } = await clubCours(9);
+  await ram.ops(coach, club.id, [
+    { coll: 'cours', id: 'r1', op: 'put', data: { type: 'train', name: 'Cours', once: D, h: '9 h', coach: key, mem: [ek] } },
+    { coll: 'post', id: 'ev', op: 'put', data: { by: 'club', kind: 'event', mur: false, title: 'Tournoi interne', d: D, h1: '10 h', h2: '12 h', date: 'mar. 4 mars · 10 h – 12 h', place: 'Club', myBy: { [ek]: 'yes' } } },
+    { coll: 'post', id: 'pc', op: 'put', data: { by: key, kind: 'niveaux', mur: false, nv: { mode: 'cours', sport: 'Padel', theme: 'Volée', time: '18 h', dur: '1 h', dates: [D], tiers: [{ id: 't1', places: 4 }], ins: { [D + '|t1']: [ek] } } } }
+  ]);
+  await settle(); sent.length = 0;
+  await ram.ops(el, club.id, [{ coll: 'cours', id: 'r1', op: 'patch', patch: [{ p: ['resp', D, ek], t: 'set', v: 'ok' }] }]);
+  await settle();
+  assert.deepEqual(dernier().map(x => x.slice(0, 2)), [[coach, 'coach']]);
+  assert.match(sent[0][1].body, /Nina sera présent : Cours/);
+  sent.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'ev', op: 'patch', patch: [{ p: ['d'], t: 'set', v: D2 }, { p: ['date'], t: 'set', v: 'mar. 11 mars · 10 h – 12 h' }] }]);
+  await settle();
+  assert.deepEqual(to(), [el]);
+  assert.match(sent[0][1].body, /Modifié : Tournoi interne, mar\. 11 mars/);
+  sent.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pc', op: 'patch', patch: [{ p: ['nv', 'time'], t: 'set', v: '19 h' }] }]);
+  await settle();
+  assert.deepEqual(to(), [el]);
+  assert.match(sent[0][1].body, /Modifié : Volée, .* à 19 h/);
+});
+
