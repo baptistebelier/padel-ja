@@ -2581,7 +2581,7 @@
         () =>
           `<div class="card"><span class="kicker">Code du club</span><p><b style="font-size:22px;letter-spacing:.06em">${e(R.code)}</b></p><p class="muted small">Donne ce code aux adhérents : ils l'entrent dans l'appli, puis tu valides leur demande.</p><button class="btn sm ghost" data-a="ramCopy">Copier l'invitation</button></div><button class="btn ghost full logout"`
       );
-    if (id !== ME() && isBureau() && !isMinor(id) && R.roles[id]) {
+    if (isBureau() && !isMinor(id) && R.roles[id]) {
       const r = R.roles[id],
         f = (M[id] || {}).role,
         cur =
@@ -2595,8 +2595,12 @@
                   'bureau',
         chip = (v, l) =>
           `<button class="chip" data-a="ramRole" data-id="${id}" data-r="${v}" aria-pressed="${cur === v}">${l}</button>`;
+      // mon propre profil : je choisis ma fonction au bureau (je ne peux pas m'en retirer moi-même)
+      const moi = id === ME();
       // juste sous l'en-tête du profil : c'est ce que le bureau vient y chercher
-      const carte = `<div class="card"><span class="kicker">Rôle dans le club</span><div class="chips">${chip('mem', 'Adhérent')}${chip('coach', 'Enseignant')}${chip('animateur', 'Animateur')}${chip('bureau', 'Membre du bureau')}${chip('president', 'Président')}${chip('gerant', 'Gérant')}${chip('tresorier', 'Trésorier')}${chip('secretaire', 'Secrétaire')}</div><p class="muted small">Bureau, président, gérant, trésorier et secrétaire gèrent tout le club. Un enseignant gère les groupes, les stages, les niveaux et publie au nom du club ; il ne supprime que ses publications. Un animateur publie au nom du club et modère le mur et les messages, sans accès aux réglages ni aux adhésions. Le capitaine d'une équipe se choisit dans l'équipe.</p><button class="btn sm ghost" style="color:var(--hot-tx)" data-a="ramRemove" data-id="${id}">Retirer du club</button></div>`;
+      const carte = moi
+        ? `<div class="card"><span class="kicker">Ma fonction au bureau</span><div class="chips">${chip('bureau', 'Membre du bureau')}${chip('president', 'Président')}${chip('gerant', 'Gérant')}${chip('tresorier', 'Trésorier')}${chip('secretaire', 'Secrétaire')}</div><p class="muted small">Elle s'affiche en étiquette sous ton nom, partout dans l'appli. Pour quitter le bureau, un autre membre du bureau change ton rôle depuis ton profil.</p></div>`
+        : `<div class="card"><span class="kicker">Rôle dans le club</span><div class="chips">${chip('mem', 'Adhérent')}${chip('coach', 'Enseignant')}${chip('animateur', 'Animateur')}${chip('bureau', 'Membre du bureau')}${chip('president', 'Président')}${chip('gerant', 'Gérant')}${chip('tresorier', 'Trésorier')}${chip('secretaire', 'Secrétaire')}</div><p class="muted small">Bureau, président, gérant, trésorier et secrétaire gèrent tout le club. Un enseignant gère les groupes, les stages, les niveaux et publie au nom du club ; il ne supprime que ses publications. Un animateur publie au nom du club et modère le mur et les messages, sans accès aux réglages ni aux adhésions. Le capitaine d'une équipe se choisit dans l'équipe.</p><button class="btn sm ghost" style="color:var(--hot-tx)" data-a="ramRemove" data-id="${id}">Retirer du club</button></div>`;
       const i = h.indexOf('<div class="phero">'),
         balise = /<(\/?)div\b[^>]*>/g;
       let n = 0,

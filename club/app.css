@@ -593,9 +593,10 @@ details.more .fld input,details.more .fld select{background:var(--card)}
 .nban .bk{font-family:var(--f-sub);text-transform:uppercase;letter-spacing:.08em}
 /* petits messages de confirmation : sombres et discrets, plus de grand encart blanc */
 .toast{top:calc(10px + env(safe-area-inset-top,0px));bottom:auto;left:10px;right:10px;max-height:none;height:auto;background:color-mix(in srgb,var(--card) 94%,transparent);color:var(--fg);border:1px solid var(--line);border-radius:20px;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);font-size:14px;padding:12px 16px;z-index:41}
-/* iPhone : le bandeau laisse la place à l heure, au réseau et à la batterie ; un cache garde cette zone propre quand on fait défiler */
+/* iPhone : le bandeau laisse la place à l heure, au réseau et à la batterie ; un cache garde cette zone propre quand on fait défiler.
+   Il descend 10 px sous la zone de l heure (la marge du haut du bandeau) : iOS floute aussi cette bande, et le texte qui y passait restait visible, flou */
 .top{padding-top:calc(10px + env(safe-area-inset-top,0px))}
-.phone::before{content:"";position:absolute;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:7;pointer-events:none}
+.phone::before{content:"";position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 10px);background:var(--bg);z-index:7;pointer-events:none}
 /* plus le cadre est épais, plus on l éloigne du nom à côté */
 .medal.fr1{box-shadow:0 0 0 2px var(--card),0 0 0 4px #C8834B}
 .medal.fr2{box-shadow:0 0 0 2px var(--card),0 0 0 4px #DDE3EA,0 0 0 6px #8E99A6}
