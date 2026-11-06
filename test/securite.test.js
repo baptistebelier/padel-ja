@@ -86,6 +86,10 @@ test('textes nettoyés : rien ne devient du code, le texte reste lisible', async
   assert.equal(cleanText('<script>alert(1)</script>'), '&lt;script>alert(1)&lt;/script>');
   assert.equal(cleanText('" onmouseover="alert(1)'), '" onmouseover&#61;"alert(1)');
   assert.equal(cleanText('javascript:alert(1)'), 'javascript&#58;alert(1)');
+  // mise en forme que l'appli met elle-même dans ses titres : gardée ; neutralisée par erreur avant : rétablie
+  assert.equal(cleanText('Nouveau niveau <em>pour Baptiste</em>'), 'Nouveau niveau <em>pour Baptiste</em>');
+  assert.equal(cleanText('Nouveau niveau &lt;em>pour Baptiste&lt;/em>'), 'Nouveau niveau <em>pour Baptiste</em>');
+  assert.equal(cleanText('<em onclick=x>a</em>'), '&lt;em onclick&#61;x>a</em>', 'avec un attribut : neutralisée');
   assert.equal(cleanText('Je t’aime <3, a > b, score 6-4 : bravo !'), 'Je t’aime <3, a > b, score 6-4 : bravo !');
   assert.equal(cleanText(cleanText('<b onclick=x>')), cleanText('<b onclick=x>'), 'nettoyer deux fois ne change rien');
   const img = 'data:image/png;base64,iVBORw0KGgo=';
