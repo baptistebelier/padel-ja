@@ -156,7 +156,7 @@ function render(keep) {
       ? `<img class="toplogo${S.stack.length ? ' sub' : ''}" src="${clubLogo()}" alt="${esc(club().name)}">`
       : '') +
     `<h1>${t}<span class="sub">${sub}</span></h1>${v.v === 'chan' && chans.some(c => c.id === v.id) && typeof chanCfgBtn === 'function' ? chanCfgBtn(chans.find(c => c.id === v.id)) : ''}${typeof favHere === 'function' && favHere() ? `<button class="ib favb" data-a="fav" aria-pressed="${isFav(favHere())}" aria-label="${isFav(favHere()) ? 'Retirer de mes favoris' : 'Ajouter à mes favoris'}">${ic('star')}</button>` : ''}<button class="ib${v.v === 'chan' ? ' nochan' : ''}${typeof fxBellCls === 'function' ? fxBellCls() : ''}" style="${typeof fxBellStyle === 'function' ? fxBellStyle() : ''}" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending() && NOTIFS.some(n => n.n && nVis(n)) ? '<span class="dot"></span>' : ''}</button>`;
-  const strips = '.seg,.chips,.stories',
+  const strips = '.seg,.chips,.stories,.fpath',
     sx = key === lastKey ? [...main.querySelectorAll(strips)].map(e => e.scrollLeft) : [];
   const oldSeg =
     main.querySelector(':scope > .seg:not(.haut)') || subNav().querySelector(':scope > .seg:not(.seg-out)');
@@ -164,6 +164,12 @@ function render(keep) {
   main.querySelectorAll(strips).forEach((e, i) => {
     if (sx[i]) e.scrollLeft = sx[i];
   });
+  // chemin des cadres (trophées) : à l'ouverture, l'étape en cours au milieu de l'écran
+  if (key !== lastKey)
+    main.querySelectorAll('.fpath').forEach(e => {
+      const c = e.querySelector('.fp-st.now') || [...e.querySelectorAll('.fp-st.got')].pop();
+      if (c) e.scrollLeft = Math.max(0, c.offsetLeft + c.offsetWidth / 2 - e.clientWidth / 2);
+    });
   const foot = $('foot'),
     tabs = $('tabs'),
     liveRec = v.v === 'rec' && recs.find(r => r.id === v.id).st === 'live',

@@ -416,6 +416,29 @@ button.tro{width:100%;text-align:left}
 .fx{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:10px;text-align:center}
 .fx b{font-size:13px}.fx small{color:var(--muted);font-size:12px;margin-top:-6px}
 .fx.lock{opacity:.45}
+/* chemin des cadres : étapes sur une barre de progression (défile sur téléphone) */
+.fpath{overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;margin:6px -16px 18px;padding:0 16px;scrollbar-width:none}
+.fpath::-webkit-scrollbar{display:none}
+.fp-in{position:relative;display:grid;grid-template-columns:repeat(var(--n),104px);gap:0 10px;width:max-content;padding:8px 6px 4px}
+.fp-st{display:grid;grid-template-rows:132px 30px auto;justify-items:center;scroll-snap-align:center}
+.fp-card{position:relative;width:100%;height:120px;align-self:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-radius:16px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 34%,var(--card2)),var(--card2));border:2px solid color-mix(in srgb,var(--c) 70%,transparent);box-shadow:0 4px 0 color-mix(in srgb,var(--c) 45%,#000)}
+.fp-card .av{width:52px;height:52px;font-size:19px}
+.fp-card b{font-family:var(--f-sub);font-size:14px;letter-spacing:.02em;text-transform:uppercase;line-height:1}
+.fp-st.lock .fp-card{background:var(--card2);border-color:var(--line);box-shadow:0 4px 0 #000}
+.fp-st.lock .fp-card .av{filter:grayscale(1) brightness(.75)}
+.fp-st.now .fp-card{border-color:var(--accent);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 45%,#000),0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
+.fp-lock{position:absolute;top:-9px;right:-7px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:2px solid var(--line);color:var(--muted)}
+.fp-lock svg{width:15px;height:15px}
+.fp-st.now .fp-lock{color:var(--accent);border-color:var(--accent)}
+.fp-dia{width:20px;height:20px;transform:rotate(45deg);border-radius:4px;background:var(--card2);border:2px solid var(--line);z-index:1;align-self:center}
+.fp-st.got .fp-dia{background:var(--c);border-color:color-mix(in srgb,var(--c) 60%,#fff)}
+.fp-st.now .fp-dia{border-color:var(--accent)}
+.fp-st small{font-size:12px;font-weight:600;color:var(--muted);margin-top:2px}
+.fp-st.got small{color:var(--fg)}
+.fp-rail{position:absolute;left:58px;right:58px;top:150px;height:10px;border-radius:6px;background:var(--card2);box-shadow:inset 0 0 0 1px var(--line)}
+.fp-rail i{position:absolute;inset:0 auto 0 0;border-radius:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 70%,#000),var(--accent));box-shadow:0 0 10px color-mix(in srgb,var(--accent) 40%,transparent)}
+.fp-me{position:absolute;top:50%;transform:translate(-50%,-50%);z-index:2;padding:3px 9px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-family:var(--f-sub);font-weight:700;font-size:12px;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.4)}
+@media (prefers-reduced-motion:no-preference){.fp-rail i{transition:width .6s ease}}
 .item .rank{width:20px;text-align:center;color:var(--muted)}
 .nban.troph{background:color-mix(in srgb,var(--card) 94%,transparent);border-color:#F2C230}
 .nban.troph.on{max-height:130px}

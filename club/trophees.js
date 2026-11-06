@@ -250,6 +250,28 @@ const RARES = [
   }
 ];
 const RAR = ['Courant', 'Peu courant', 'Rare', 'Très rare'];
+/* Chemin des cadres : chaque cadre est une étape posée sur une barre de progression,
+   remplie jusqu'au score de l'adhérent (entre deux étapes, au prorata des points) */
+const FR_COUL = ['#8A8A8A', '#C8834B', '#C9D1D9', '#F2C230', '#5FD3C6', '#7FB4FF'];
+const CADENAS =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="4.5" y="10" width="15" height="11" rx="2.5" fill="currentColor"/><circle cx="12" cy="15.5" r="1.7" fill="var(--card)"/></svg>';
+function framePath(id) {
+  const sc = score(id),
+    L = lvlOf(id),
+    n = FRAMES.length,
+    N = FRAMES[L + 1],
+    pos = N ? L + Math.max(0, Math.min(1, (sc - FRAMES[L].min) / (N.min - FRAMES[L].min))) : n - 1,
+    pc = (pos / (n - 1)) * 100,
+    photo = M[id] && M[id].photo;
+  const etape = (f, i) => {
+    const st = i <= L ? 'got' : i === L + 1 ? 'now' : 'lock',
+      avatar = photo
+        ? `<span class="av${i ? ' fr' + i : ''}" style="background-image:url(${photo})"></span>`
+        : `<span class="av${i ? ' fr' + i : ''}" style="--h:${hue(id)}">${ini(id)}</span>`;
+    return `<div class="fp-st ${st}" role="listitem" style="--c:${FR_COUL[i]}" aria-label="Cadre ${f.n}, ${f.min} points${st === 'got' ? ', débloqué' : ', à débloquer'}"><span class="fp-card">${st === 'got' ? '' : `<span class="fp-lock">${CADENAS}</span>`}${avatar}<b>${f.n}</b></span><span class="fp-dia"></span><small>${f.min} pts</small></div>`;
+  };
+  return `<div class="fpath tsec" role="list" aria-label="Chemin des cadres d'avatar"><div class="fp-in" style="--n:${n}"><div class="fp-rail"><i style="width:${pc.toFixed(1)}%"></i><span class="fp-me" style="left:${pc.toFixed(1)}%">${sc} pts</span></div>${FRAMES.map(etape).join('')}</div></div>`;
+}
 /* Cadres autour de l'avatar, débloqués par le score d'investissement */
 const FRAMES = [
   { n: 'Sans cadre', min: 0 },
@@ -562,7 +584,7 @@ function trophiesView(id) {
     nc = CLAIMS.filter(c => c.st === 'wait').length;
   return `<div class="pad">${self && staff() && nc ? `<button class="note" data-a="open" data-v="claims" style="width:100%;text-align:left"><b>${nc} demande${nc > 1 ? 's' : ''} de trophée</b> à examiner</button>` : ''}<div class="thero tsec">${av(id, 'xl')}<div class="grow"><span class="kicker">Score d'investissement${pron(id)}</span><span class="tscore">${sc}<small> pts</small></span><span class="muted small">${ptsOf(id)} pts de trophées · ${ST(id).c.ap || 0} pts d'activité${XP[id] ? ` · ${XP[id]} pts des saisons passées` : ''}</span><span class="muted small">${got} trophées sur ${TROPHIES.length + RARES.length} · cadre ${FRAMES[L].n.toLowerCase()}</span>${nx ? `<span class="bar"><i style="width:${nx.pc}%"></i></span><span class="muted small">Encore ${nx.need} pts pour le cadre ${nx.n.toLowerCase()}</span>` : '<span class="muted small">Le plus beau cadre du club.</span>'}</div></div>
  ${!self && staff() ? `<div class="note">Touche un trophée pour le décerner à ${first(id)}.</div>` : self ? '<p class="muted small">Chaque action rapporte 1 point d\'activité : like, commentaire, message, réaction, inscription, vote, présence, bénévolat, rencontre jouée, tournoi terminé. Annuler l\'action retire le point. Par jour, comptent au plus ' + CAPS.msg + ' messages, ' + CAPS.com + ' commentaires et ' + CAPS.like + ' likes. Les trophées rapportent beaucoup plus : touche-en un pour voir ses paliers, ou le réclamer au club.</p>' : ''}
- ${self ? `<span class="kicker">Les cadres d'avatar</span><div class="frames tsec">${FRAMES.map((f, i) => `<span class="fx ${i > L ? 'lock' : ''}"><span class="av sm${i ? ' fr' + i : ''}" style="--h:${hue(id)}">${ini(id)}</span><b>${f.n}</b><small>${f.min} pts</small></span>`).join('')}</div>` : ''}
+ ${self ? `<span class="kicker">Les cadres d'avatar</span>${framePath(id)}` : ''}
  <span class="kicker">Trophées à paliers</span><div class="tsec">${tiered}</div>
  <span class="kicker">Trophées rares</span><div class="tsec">${rares}</div>
  ${self ? boardSection(mode, board, hidden) : ''}</div>`;
