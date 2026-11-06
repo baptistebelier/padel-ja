@@ -65,6 +65,7 @@ const TITLES = {
   actusl: () => ['Actus', club().name],
   comml: () => ['Commissions', club().name],
   reports: () => ['Signalements', 'Modération'],
+  journal: () => ['Journal du club', 'Bureau'],
   legal: () => ['Mentions', club().name],
   aide: () => ['Aide', 'Guide de l’appli'],
   post: () => ['Publication', club().name],

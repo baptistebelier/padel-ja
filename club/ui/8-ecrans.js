@@ -172,7 +172,7 @@ const V = {
     ''
   )}${it('newPost', 'plus', 'Créer un championnat', 'Puis ajoute ses équipes, leurs capitaines et leur calendrier', 'data-k="champ"')}</div>
   <div class="card adm-sec"><span class="kicker">Groupes</span>${grps('train')}${S.role === 'coach' || S.super ? it('newPost', 'plus', "Créer un groupe d'entraînement", 'Jour, heure, lieu et critères', 'data-k="train"') : ''}${it('newPost', 'chat', 'Créer un groupe de discussion', 'Covoiturage, petites annonces, bénévoles…', 'data-k="chan"')}</div>
-  <div class="card adm-sec"><span class="kicker">Le club</span>${it('open', 'info', 'Aide · guide du bureau', 'Tout ce que fait l’appli, rubrique par rubrique', 'data-v="aide"') + it('open', 'flag', 'Signalements', REPORTS.length ? `${REPORTS.length} contenu${REPORTS.length > 1 ? 's' : ''} à examiner` : 'Aucun contenu signalé', 'data-v="reports"')}${it('clubInfo', 'info', 'Infos du club', 'Courts, horaires, adresse, tarifs, liens, modules')}${
+  <div class="card adm-sec"><span class="kicker">Le club</span>${it('open', 'info', 'Aide · guide du bureau', 'Tout ce que fait l’appli, rubrique par rubrique', 'data-v="aide"') + it('open', 'flag', 'Signalements', REPORTS.length ? `${REPORTS.length} contenu${REPORTS.length > 1 ? 's' : ''} à examiner` : 'Aucun contenu signalé', 'data-v="reports"') + (isBureau() ? it('open', 'clock', 'Journal du club', 'Qui a supprimé, validé, changé un rôle ou un classement', 'data-v="journal"') : '')}${it('clubInfo', 'info', 'Infos du club', 'Courts, horaires, adresse, tarifs, liens, modules')}${
     CLUBINFO.mods.comm && isBureau()
       ? it(
           'goClub',
@@ -253,6 +253,26 @@ const V = {
       : empty('users', 'Aucun adhérent ne correspond', 'Élargis à tout le club.')
   }</div></div>`;
     return h;
+  },
+  /* journal des actions sensibles : le plus récent en haut, regroupé par jour */
+  journal() {
+    const l = JOURNAL.slice().sort((a, b) => (b.at || 0) - (a.at || 0)),
+      jour = t => new Date(t).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
+      heure = t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', ' h '),
+      qui = k => (k && M[k] ? esc(M[k].n) : 'Ancien membre');
+    let h =
+        '<div class="pad"><div class="note">Le journal garde la trace des actions sensibles : suppression de ce qui n’appartient pas à son auteur, validation d’une adhésion, changement de rôle ou de classement, trophée décerné, retrait d’un adhérent. Seul le bureau le voit ; personne ne peut le modifier.</div>',
+      cur = '';
+    if (!l.length) return h + '<p class="muted">Aucune action enregistrée pour le moment.</p></div>';
+    l.forEach(x => {
+      const j = jour(x.at || 0);
+      if (j !== cur) {
+        h += `<span class="kicker" style="display:block;margin:14px 0 6px">${j}</span>`;
+        cur = j;
+      }
+      h += `<div class="item cv"><span class="tile">${ic(x.act === 'suppr' ? 'trash' : x.act === 'valid' ? 'check' : x.act === 'role' ? 'shield' : x.act === 'trophee' ? 'diploma' : x.act === 'retrait' ? 'ban' : 'chart')}</span><span class="grow"><b>${qui(x.by)}</b> ${esc(x.txt || '')}${x.who ? ' · ' + qui(x.who) : ''}${x.ex ? `<br><span class="muted small">« ${esc(x.ex)} »${x.auteur ? ' · de ' + qui(x.auteur) : ''}</span>` : ''}</span><span class="muted small">${heure(x.at || 0)}</span></div>`;
+    });
+    return h + '</div>';
   },
   reports() {
     const K = { post: 'Publication', msg: 'Message', com: 'Commentaire' };

@@ -515,6 +515,7 @@
     comm: () => COMMS,
     rec: () => recs,
     report: () => REPORTS,
+    journal: () => JOURNAL,
     claim: () => (typeof CLAIMS !== 'undefined' ? CLAIMS : []),
     bar: () => BAR,
     order: () => ORDERS,
@@ -781,7 +782,7 @@
     });
     const mem = Object.keys(M).filter(k => k !== 'club');
     CLUBINFO.joined = mem.filter(
-      k => VALID[k] === S.season || R.roles[k] === 'bureau' || R.roles[k] === 'coach'
+      k => VALID[k] === S.season || R.roles[k] === 'bureau' || R.roles[k] === 'coach' || R.roles[k] === 'anim'
     ).length;
     if (!(CLUBINFO.members >= CLUBINFO.joined)) CLUBINFO.members = CLUBINFO.joined;
     // rôle dans l'appli : bureau → gestion complète, enseignant, capitaine d'une équipe, adhérent
@@ -793,7 +794,8 @@
           : GROUPS.some(g => g.type === 'team' && g.cap === R.key)
             ? 'cap'
             : 'mem';
-    if (R.role === 'bureau' || R.role === 'coach') VALID[R.key] = S.season;
+    S.anim = R.role === 'anim';
+    if (R.role === 'bureau' || R.role === 'coach' || R.role === 'anim') VALID[R.key] = S.season;
     const read = (R.prefs && R.prefs.read) || {},
       mute = (R.prefs && R.prefs.mute) || [];
     chans.forEach(c => {
@@ -836,7 +838,9 @@
         return R.role === 'bureau';
       case 'post':
         return (
-          staff ||
+          R.role === 'bureau' ||
+          R.role === 'anim' ||
+          (staff && d.by === 'club') ||
           d.by === k ||
           (d.by === 'club' &&
             (d.kind === 'result' || d.kind === 'match') &&
@@ -847,7 +851,7 @@
           (d.by === 'club' && d.kind === 'teamfinal' && capOf(d.tid))
         );
       case 'msg':
-        return staff || d.by === k;
+        return staff || R.role === 'anim' || d.by === k;
       case 'chan':
       case 'champ':
       case 'art':
@@ -1851,11 +1855,25 @@
 
   /* ---------- démarrage dans un vrai club ---------- */
   function wipe() {
-    [posts, chans, GROUPS, CHAMPS, OLDG, OLDC, recs, arts, PARTNERS, COMMS, REPORTS, NOTIFS, JOINREQ, FORM].forEach(
-      l => {
-        l.length = 0;
-      }
-    );
+    [
+      posts,
+      chans,
+      GROUPS,
+      CHAMPS,
+      OLDG,
+      OLDC,
+      recs,
+      arts,
+      PARTNERS,
+      COMMS,
+      REPORTS,
+      JOURNAL,
+      NOTIFS,
+      JOINREQ,
+      FORM
+    ].forEach(l => {
+      l.length = 0;
+    });
     Object.keys(M).forEach(k => {
       if (k !== 'club') delete M[k];
     });
@@ -2552,12 +2570,14 @@
             ? 'mem'
             : r === 'coach'
               ? 'coach'
-              : { Président: 'president', Gérant: 'gerant', Trésorier: 'tresorier', Secrétaire: 'secretaire' }[f] ||
-                'bureau',
+              : r === 'anim'
+                ? 'animateur'
+                : { Président: 'president', Gérant: 'gerant', Trésorier: 'tresorier', Secrétaire: 'secretaire' }[f] ||
+                  'bureau',
         chip = (v, l) =>
           `<button class="chip" data-a="ramRole" data-id="${id}" data-r="${v}" aria-pressed="${cur === v}">${l}</button>`;
       // juste sous l'en-tête du profil : c'est ce que le bureau vient y chercher
-      const carte = `<div class="card"><span class="kicker">Rôle dans le club</span><div class="chips">${chip('mem', 'Adhérent')}${chip('coach', 'Enseignant')}${chip('bureau', 'Membre du bureau')}${chip('president', 'Président')}${chip('gerant', 'Gérant')}${chip('tresorier', 'Trésorier')}${chip('secretaire', 'Secrétaire')}</div><p class="muted small">Bureau, président, gérant, trésorier et secrétaire gèrent tout le club. Un enseignant gère les groupes, les stages et publie au nom du club. Le capitaine d'une équipe se choisit dans l'équipe.</p><button class="btn sm ghost" style="color:var(--hot-tx)" data-a="ramRemove" data-id="${id}">Retirer du club</button></div>`;
+      const carte = `<div class="card"><span class="kicker">Rôle dans le club</span><div class="chips">${chip('mem', 'Adhérent')}${chip('coach', 'Enseignant')}${chip('animateur', 'Animateur')}${chip('bureau', 'Membre du bureau')}${chip('president', 'Président')}${chip('gerant', 'Gérant')}${chip('tresorier', 'Trésorier')}${chip('secretaire', 'Secrétaire')}</div><p class="muted small">Bureau, président, gérant, trésorier et secrétaire gèrent tout le club. Un enseignant gère les groupes, les stages, les niveaux et publie au nom du club ; il ne supprime que ses publications. Un animateur publie au nom du club et modère le mur et les messages, sans accès aux réglages ni aux adhésions. Le capitaine d'une équipe se choisit dans l'équipe.</p><button class="btn sm ghost" style="color:var(--hot-tx)" data-a="ramRemove" data-id="${id}">Retirer du club</button></div>`;
       const i = h.indexOf('<div class="phero">'),
         balise = /<(\/?)div\b[^>]*>/g;
       let n = 0,

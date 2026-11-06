@@ -1187,6 +1187,8 @@ const NOTIFS = [
   { by: 'sarah', txt: 'a écrit dans Adultes compétition', t: 'Dim.', go: { v: 'chan', id: 'compet' } }
 ];
 const REPORTS = [];
+/* journal des actions sensibles du club (écrit par le serveur, lu par le bureau) */
+const JOURNAL = [];
 
 /* État de l'appli. role : admin (bureau), cap (capitaine), mem (adhérent), kid (compte jeune de Léo) */
 const S = {
@@ -1258,6 +1260,9 @@ const ME = () =>
 /* L'enseignant a les pouvoirs du bureau, sauf les commissions ; le bureau seul gère les commissions */
 const isAdmin = () => S.role === 'admin' || S.role === 'coach';
 const isBureau = () => S.role === 'admin';
+/* animateur : publie au nom du club et modère publications et messages (sans réglages ni adhésions) */
+const isAnim = () => !!S.anim;
+const canModerate = () => isBureau() || isAnim();
 const canTeam = g => isAdmin() || (!!g && g.cap === ME() && (S.role === 'cap' || !!window.RAM_KEY));
 const name = id => (id === 'club' ? club().name : M[id].n);
 const first = id => name(id).split(' ')[0];

@@ -255,7 +255,7 @@ const A = {
     const mine = c.by === ME(),
       at = `data-id="${p.id}" data-i="${d.i}"`,
       items = [
-        (mine || isAdmin()) && ['trash', 'Supprimer le commentaire', 'cdel', at, 1],
+        (mine || isAdmin() || isAnim()) && ['trash', 'Supprimer le commentaire', 'cdel', at, 1],
         !mine && ['flag', 'Signaler ce commentaire', 'creport', at],
         !mine && c.by !== 'club' && ['block', 'Bloquer ' + first(c.by), 'block', `data-id="${c.by}"`, 1]
       ].filter(Boolean);
@@ -632,7 +632,7 @@ const A = {
       toast('Tu pourras publier dès que le club aura validé ton accès');
       return;
     }
-    const st = isAdmin(),
+    const st = isAdmin() || isAnim(),
       coach = S.role === 'coach' || !!S.super,
       // rangés par rubriques : ce qu'on joue, ce qu'on annonce, la vie du club
       groups = [
@@ -704,11 +704,12 @@ const A = {
         p.reg !== 'ext' && ['check', p.closed ? 'Rouvrir les inscriptions' : 'Clore les inscriptions', 'evClose', at],
       ev && ['image', "Terminer l'événement", 'evDone', at],
       adm && p.kind !== 'ad' && ['flag', p.pin ? 'Détacher du haut du mur' : 'Épingler en haut du mur', 'pin', at],
-      (mine || adm) &&
+      (mine || canModerate() || (adm && p.by === 'club')) &&
         ['annonce', 'event', 'cta', 'poll', 'comm', 'play', 'niveaux'].includes(p.kind) &&
         !p.arch && ['edit', 'Modifier', 'pedit', at],
       mine && ['perf', 'padel'].includes(p.kind) && !p.arch && ['edit', 'Modifier', 'pedit', at],
-      (mine || adm) && ['trash', 'Supprimer', 'pdel', at, 1],
+      // un enseignant ne supprime que ses publications ; le bureau et l'animateur modèrent tout le mur
+      (mine || canModerate()) && ['trash', 'Supprimer', 'pdel', at, 1],
       !mine && ['flag', 'Signaler cette publication', 'preport', at],
       !mine && p.by !== 'club' && ['block', 'Bloquer ' + first(p.by), 'block', `data-id="${p.by}"`, 1]
     ]);
@@ -829,7 +830,7 @@ const A = {
       items = [
         ['com', 'Répondre', 'reply', at],
         mine && ['info', 'Infos du message', 'msgInfo', at],
-        (mine || isAdmin()) && ['trash', 'Supprimer le message', 'mdel', at, 1],
+        (mine || isAdmin() || isAnim()) && ['trash', 'Supprimer le message', 'mdel', at, 1],
         !mine && ['flag', 'Signaler ce message', 'mreport', at],
         !mine && m.by !== 'club' && ['block', 'Bloquer ' + first(m.by), 'block', `data-id="${m.by}"`, 1]
       ].filter(Boolean);
