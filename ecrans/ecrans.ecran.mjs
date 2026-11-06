@@ -1737,3 +1737,72 @@ test('Club : le bureau voit combien d’adhérents reçoivent les notifications 
   assert.deepEqual(errs, []);
   await c2.close();
 });
+
+test('Club : classement « Cette saison / Depuis toujours », nouveaux trophées, ne pas apparaître dans le classement', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof A.boardMode === 'function' && typeof A.noRank === 'function', { polling: 300 });
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = [{ v: 'trophies' }]; render(); });
+  await page.waitForSelector('.board-mode');
+  // deux choix, « Cette saison » par défaut
+  assert.deepEqual(await page.locator('.board-mode .chip').allInnerTexts(), ['Cette saison', 'Depuis toujours']);
+  assert.equal(await page.locator('.board-mode [data-k="saison"]').getAttribute('aria-pressed'), 'true');
+  const pts = () => page.evaluate(() => [...document.querySelectorAll('.tboard .item')].map(b => [b.dataset.id, parseInt(b.querySelector(':scope > b:last-child').textContent, 10)]));
+  const saison = await pts();
+  assert.ok(saison.length >= 3, 'des adhérents au classement');
+  await page.click('.board-mode [data-k="toujours"]');
+  assert.equal(await page.locator('.board-mode [data-k="toujours"]').getAttribute('aria-pressed'), 'true');
+  const toujours = await pts();
+  // depuis toujours, l'historique des saisons passées s'ajoute : chacun a au moins autant de points
+  const s = Object.fromEntries(saison);
+  toujours.forEach(([k, p]) => { if (k in s) assert.ok(p >= s[k], `${k} : ${p} >= ${s[k]}`); });
+  assert.notDeepEqual(toujours, saison, 'les deux classements diffèrent');
+  // trophées du jeu réel dans la liste
+  const txt = await page.textContent('#main');
+  ['Toujours sur le court', 'Compétiteur', 'Habitué des tournois'].forEach(n => assert.ok(txt.includes(n), n));
+  assert.match(txt, /Par jour, comptent au plus 20 messages/);
+  // textes lisibles : 12 px au moins
+  const tailles = await page.evaluate(() => [...document.querySelectorAll('.board-mode .chip, .tboard .item .small, .tboard .item b, .board-mode + p')].map(e => parseFloat(getComputedStyle(e).fontSize)));
+  assert.ok(tailles.length && tailles.every(t => t >= 12), 'tailles : ' + tailles.join(', '));
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'rien ne déborde à 360 px');
+  // le profil, onglet Mes infos : l'interrupteur, puis je disparais du classement en gardant mes trophées
+  const avant = await page.evaluate(() => gotList(ME()).length);
+  await page.evaluate(() => { S.stack = []; S.meTab = 'infos'; render(); });
+  const tg = page.locator('[data-a="noRank"]');
+  assert.equal(await tg.getAttribute('aria-checked'), 'false');
+  await tg.click();
+  assert.equal(await page.locator('[data-a="noRank"]').getAttribute('aria-checked'), 'true');
+  assert.equal(await page.evaluate(() => M[ME()].noRank), true);
+  await page.evaluate(() => { S.stack = [{ v: 'trophies' }]; render(); });
+  await page.waitForSelector('.board-mode');
+  assert.ok(!(await pts()).some(([k]) => k === 'me'), 'absent du classement');
+  assert.match(await page.textContent('#main'), /Tu n'apparais pas dans le classement/);
+  assert.equal(await page.evaluate(() => gotList(ME()).length), avant, 'trophées gardés');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('Club servi : le serveur envoie les classements de la saison et retire celui qui ne veut pas y apparaître', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [], t = Date.now();
+  page.on('pageerror', e => errs.push(e.message));
+  const post = async (url, data) => (await ctx.request.post(JA + url, { data })).json();
+  await post('/api/auth/signup', { email: `classement-${t}@exemple.test`, password: 'essai-' + t, first: 'Zoé', last: 'Classement' });
+  const club = await post('/api/ram/clubs', { name: 'Club Saison' });
+  await page.goto(JA + '/club/index.html');
+  await page.waitForFunction(() => window.RAM && RAM.live && RAM.board, null, { timeout: 15000, polling: 300 });
+  if (club && club.id) {
+    await page.evaluate(id => (RAM.club === id ? null : A.ramSwitch({ id })), club.id);
+    await page.waitForFunction(id => RAM.club === id && RAM.live && RAM.board, club.id, { timeout: 15000, polling: 300 });
+  }
+  const b = await page.evaluate(() => ({ season: RAM.board.season, moi: RAM.key in RAM.board.saison && RAM.key in RAM.board.toujours, profil: (RAM.profils || []).includes(RAM.key) }));
+  assert.match(b.season, /^\d{4}-\d{4}$/);
+  assert.ok(b.moi, 'je suis dans les deux classements');
+  assert.equal(b.profil, false, 'profil pas encore complet');
+  await page.waitForFunction(() => { if (!document.querySelector('[data-a="noRank"]')) { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'infos'; render(); } return !!document.querySelector('[data-a="noRank"]'); }, null, { timeout: 15000, polling: 500 });
+  await page.click('[data-a="noRank"]');
+  // le choix part au serveur, qui renvoie des classements sans moi
+  await page.waitForFunction(() => RAM.board && !(RAM.key in RAM.board.toujours) && !(RAM.key in RAM.board.saison), null, { timeout: 20000, polling: 500 });
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});

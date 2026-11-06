@@ -138,6 +138,9 @@ function meTabBody(T, id, m, kid) {
     return `<div class="meshort"><button class="btn" data-a="result">${ic('score')}Ajouter un résultat</button>${kid ? '' : `<button class="btn ghost" data-a="rankMenu">${ic('chart')}Changer mon classement</button>`}</div><div class="stack" id="palmares"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
   if (T === 'infos') {
     h = contact(id);
+    // classement du club : on peut ne pas y apparaître, en gardant ses trophées et son score
+    if (!kid)
+      h += `<div class="card"><span class="kicker">Classement du club</span><div class="ct">${ic('trophy')}<span class="grow">Ne pas apparaître dans le classement<br><span class="muted small">Tu gardes tes trophées et ton score, mais les autres adhérents ne te voient plus dans le classement du club.</span></span><button class="tg" role="switch" aria-checked="${m.noRank === true}" aria-label="Ne pas apparaître dans le classement" data-a="noRank"></button></div></div>`;
     if (!kid)
       h += `<div class="card"><span class="kicker">Ma famille</span>${(m.kids || []).map(k => `<button class="item" data-a="member" data-id="${k}">${av(k, 'sm')}<span class="grow"><span class="nm">${M[k].n}</span> ${bd(k)}<br><span class="muted small">${catOf(k)} · ${M[k].team}</span></span></button>`).join('')}<button class="btn sm ghost" data-a="addKid">Ajouter un enfant</button></div>`;
     // mes clubs et mon compte /RAM : remplis par ram-sync.js dans la vraie appli
