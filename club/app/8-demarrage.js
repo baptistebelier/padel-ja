@@ -377,6 +377,147 @@ A.pushOn = async () => {
 // déjà autorisées sur ce téléphone : l'abonnement est renouvelé et rattaché au compte connecté
 window.addEventListener('load', () => setTimeout(() => window.RAM && pushSubscribe(false), 4000));
 
+/* ---------- Notification d'essai : une vraie notification, envoyée par le serveur à ce téléphone seulement ----------
+   iPhone hors écran d'accueil ou iOS plus ancien que 16.4 : le guide pas à pas plutôt qu'un échec muet */
+function enLigne() {
+  return !!(window.RAM && RAM.club);
+}
+const iosVersion = () => {
+  const m = navigator.userAgent.match(/OS (\d+)[_.](\d+)/);
+  return isIOS() && m ? [+m[1], +m[2]] : null;
+};
+const iosTropAncien = () => {
+  const v = iosVersion();
+  return !!v && (v[0] < 16 || (v[0] === 16 && v[1] < 4));
+};
+A.pushTest = async () => {
+  if (isIOS() && (iosTropAncien() || !standalone() || !pushReady())) return installGuide(true);
+  if (!pushReady()) return toast('Ce navigateur ne gère pas les notifications push');
+  if (!enLigne()) return toast("La notification d'essai part de l'appli du club, une fois connecté");
+  const sub = await pushSubscribe(true);
+  if (!sub)
+    return toast(
+      Notification.permission === 'denied'
+        ? 'Notifications refusées : autorise-les dans les réglages du téléphone, puis réessaie'
+        : "Les notifications n'ont pas pu être activées, réessaie dans un instant"
+    );
+  try {
+    const r = await fetch('/api/ram/push/essai', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint, app: window.RAM_APP === 'coach' ? 'coach' : 'club' })
+    });
+    const j = await r.json().catch(() => ({}));
+    toast(
+      r.ok && j.n
+        ? "Notification d'essai envoyée : elle arrive dans quelques secondes"
+        : "L'essai n'est pas parti : touche « Activer » puis réessaie"
+    );
+  } catch (e) {
+    toast("Pas de connexion : l'essai n'a pas pu partir");
+  }
+};
+
+/* ---------- Heures calmes : de 22 h à 7 h par défaut (heure de Paris), réglées par chacun ----------
+   Le téléphone ne sonne pas ; tout arrive au réveil, regroupé. Les urgences passent (cours annulé ou déplacé dans les 2 h).
+   Gardées par le serveur (pour tous les appareils du compte) et sur ce téléphone */
+S.calme = S.calme || { on: true, de: 22, a: 7 };
+try {
+  const c = JSON.parse(localStorage.getItem('club-calme') || 'null');
+  if (c && typeof c === 'object') Object.assign(S.calme, c);
+} catch (e) {}
+function hLib(h) {
+  return +h === 0 ? 'minuit' : +h === 12 ? 'midi' : h + ' h';
+}
+function calmeReglage() {
+  const c = S.calme || { on: true, de: 22, a: 7 },
+    opts = v =>
+      Array.from(
+        { length: 24 },
+        (_, h) => `<option value="${h}"${h === +v ? ' selected' : ''}>${hLib(h)}</option>`
+      ).join('');
+  return `<div class="ct"><span class="grow">Heures calmes<br><span class="muted small">Le téléphone ne sonne pas : tout arrive au réveil, regroupé. Les urgences passent (cours annulé ou déplacé dans les 2 h). La cloche de l'appli reste à jour.</span></span><button class="tg" role="switch" aria-checked="${!!c.on}" aria-label="Heures calmes" data-a="calmeOn"></button></div>${
+    c.on
+      ? `<div class="ct calme-h"><label>De <select id="calme-de" aria-label="Début des heures calmes">${opts(c.de)}</select></label><label>à <select id="calme-a" aria-label="Fin des heures calmes">${opts(c.a)}</select></label><span class="muted small">heure de Paris</span></div>`
+      : ''
+  }`;
+}
+function calmeEnregistrer() {
+  try {
+    localStorage.setItem('club-calme', JSON.stringify(S.calme));
+  } catch (e) {}
+  if (enLigne())
+    fetch('/api/ram/push/calme', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(S.calme)
+    }).catch(() => {});
+}
+A.calmeOn = () => {
+  S.calme.on = !S.calme.on;
+  calmeEnregistrer();
+  render(true);
+  toast(S.calme.on ? `Heures calmes : de ${hLib(S.calme.de)} à ${hLib(S.calme.a)}` : 'Heures calmes coupées');
+};
+document.addEventListener('change', e => {
+  if (e.target.id !== 'calme-de' && e.target.id !== 'calme-a') return;
+  S.calme[e.target.id === 'calme-de' ? 'de' : 'a'] = +e.target.value;
+  calmeEnregistrer();
+  toast(`Heures calmes : de ${hLib(S.calme.de)} à ${hLib(S.calme.a)}`);
+});
+// le réglage du compte (fait peut-être sur un autre appareil)
+window.addEventListener('load', () =>
+  setTimeout(async () => {
+    if (!enLigne()) return;
+    try {
+      const r = await fetch('/api/ram/push/calme', { credentials: 'include' });
+      if (!r.ok) return;
+      Object.assign(S.calme, await r.json());
+      localStorage.setItem('club-calme', JSON.stringify(S.calme));
+      if (S.tab === 'me') render(true);
+    } catch (e) {}
+  }, 3000)
+);
+
+/* ---------- Pour le bureau : combien d'adhérents reçoivent les notifications sur leur téléphone ---------- */
+async function pushSuiviCharger() {
+  if (pushSuiviCharger.en) return;
+  pushSuiviCharger.en = true;
+  const club = RAM.club;
+  try {
+    const r = await fetch('/api/ram/push/suivi?club=' + encodeURIComponent(club), { credentials: 'include' }),
+      j = await r.json().catch(() => ({}));
+    S.pushSuivi = Object.assign(r.ok ? j : { err: true }, { club, at: Date.now() });
+  } catch (e) {
+    S.pushSuivi = { err: true, club, at: Date.now() };
+  }
+  pushSuiviCharger.en = false;
+  if (view().v === 'admin' || $('adm-push')) render(true);
+}
+function pushSuiviLigne() {
+  const ligne = (t, s) =>
+    `<div class="item" id="adm-push"><span class="tile">${ic('bell')}</span><span class="grow"><span class="nm">${t}</span><br><span class="muted small">${s}</span></span></div>`;
+  const pl = (n, un, des) => (n > 1 ? des : un);
+  if (!enLigne()) {
+    const m = Object.keys(M).length,
+      n = Math.round(m * 0.88);
+    return ligne(
+      `${n} ${pl(n, 'adhérent reçoit', 'adhérents reçoivent')} les notifications sur ${m}`,
+      'Exemple de la démo · sur leur téléphone, appli fermée'
+    );
+  }
+  const s = S.pushSuivi && S.pushSuivi.club === RAM.club ? S.pushSuivi : null;
+  if (!s || Date.now() - s.at > 600000) pushSuiviCharger();
+  if (!s) return ligne('Notifications sur le téléphone', 'Comptage en cours…');
+  if (s.err) return '';
+  return ligne(
+    `${s.n} ${pl(s.n, 'adhérent reçoit', 'adhérents reçoivent')} les notifications sur ${s.m}`,
+    `Sur leur téléphone, appli fermée${s.sansCompte ? ` · ${s.sansCompte} sans compte dans l'appli` : ''}`
+  );
+}
+
 /* L'appli installable (index.html, avec manifeste) enregistre le service worker ; la version de démo n'en a pas */
 const isPWAPage = !!document.querySelector('link[rel="manifest"]');
 
@@ -396,10 +537,15 @@ function installGuide(force) {
   d.id = 'sheet';
   d.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Installer l'appli du club" tabindex="-1"><div class="body ig">
  <span class="crest ig-crest ${club().logo ? 'logo' : ''}" ${club().logo ? `style="background-image:url(${club().logo})"` : ''}>${club().logo ? '' : club().short}</span>
- <h2 class="h3">Installer l'appli du club</h2><p class="muted">Sur iPhone, les notifications (messages, convocations, scores en direct) n'arrivent que si l'appli est ajoutée à l'écran d'accueil. Ça prend dix secondes :</p>
- <ol class="ig-steps"><li><span class="ig-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Touche le bouton <b>Partager</b> en bas de Safari.</span></li>
+ <h2 class="h3">Installer l'appli du club</h2><p class="muted">Sur iPhone, les notifications (messages, convocations, scores en direct) n'arrivent que si l'appli est ajoutée à l'écran d'accueil${iosTropAncien() ? ', avec iOS 16.4 ou plus récent' : ''}. Ça prend dix secondes :</p>
+ <ol class="ig-steps">${
+   iosTropAncien()
+     ? `<li class="ig-maj"><span class="ig-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>D'abord, mets l'iPhone à jour : <b>Réglages</b>, <b>Général</b>, <b>Mise à jour logicielle</b> (iOS ${iosVersion().join('.')} aujourd'hui, il faut 16.4 au moins).</span></li>`
+     : ''
+ }<li><span class="ig-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Touche le bouton <b>Partager</b> en bas de Safari.</span></li>
  <li><span class="ig-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Fais défiler et choisis <b>Sur l'écran d'accueil</b>.</span></li>
- <li><span class="ig-ic">${ic('check')}</span><span>Touche <b>Ajouter</b>, puis ouvre l'appli depuis son icône.</span></li></ol>
+ <li><span class="ig-ic">${ic('check')}</span><span>Touche <b>Ajouter</b>, puis ouvre l'appli depuis son icône.</span></li>
+ <li><span class="ig-ic">${ic('bell')}</span><span>Dans <b>Profil</b>, « Mes notifications » : touche <b>Activer</b>, puis <b>M'envoyer une notification d'essai</b>.</span></li></ol>
  <div class="ig-demo" aria-hidden="true"><span class="ig-bar"><i></i><i class="hl"></i><i></i></span><span class="ig-arrow">↓</span></div>
  <button class="btn full ghost" data-a="installLater">Plus tard</button></div></div>`;
   $('layer').appendChild(d);

@@ -1659,3 +1659,81 @@ test('Club : section Club avec de vrais comptes, plusieurs clubs, club principal
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+/* ---------- Notifications : essai, guide iPhone, heures calmes, suivi du bureau ---------- */
+const ouvrirReglages = page => page.evaluate(() => { S.tab = 'me'; S.stack = []; S.meTab = 'reglages'; render(); });
+
+test('Club : réglages des notifications, bouton d’essai et heures calmes (22 h à 7 h par défaut), lisibles sur 360 px', async () => {
+  const ctx = await phone();
+  const { page, errors } = await openPage(ctx, DEMO + '/index.html');
+  await page.evaluate(() => document.getElementById('sheet')?.remove());
+  await ouvrirReglages(page);
+  await page.waitForSelector('[data-a="pushTest"]');
+  assert.match(await page.locator('[data-a="pushTest"]').innerText(), /M'envoyer une notification d'essai/);
+  assert.equal(await page.locator('[data-a="calmeOn"]').getAttribute('aria-checked'), 'true');
+  assert.equal(await page.locator('#calme-de').inputValue(), '22');
+  assert.equal(await page.locator('#calme-a').inputValue(), '7');
+  assert.match(await page.locator('.calme-h').innerText(), /heure de Paris/);
+  // tout texte du réglage fait au moins 12 px, rien ne déborde
+  const petits = await page.evaluate(() => [...document.querySelectorAll('.calme-h, .calme-h *, [data-a="pushTest"]')].filter(e => parseFloat(getComputedStyle(e).fontSize) < 12).length);
+  assert.equal(petits, 0);
+  assert.ok(await overflow(page) <= 1, 'la page déborde');
+  // régler : de 23 h à 6 h, gardé sur le téléphone ; couper : les heures disparaissent
+  await page.selectOption('#calme-de', '23');
+  await page.selectOption('#calme-a', '6');
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('club-calme'))), { on: true, de: 23, a: 6 });
+  await page.click('[data-a="calmeOn"]');
+  await page.waitForFunction(() => !document.getElementById('calme-de'));
+  assert.equal(await page.locator('[data-a="calmeOn"]').getAttribute('aria-checked'), 'false');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('club-calme')).on), false);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('Club : essai sur un iPhone sans l’appli installée, guide pas à pas en pictos ; iOS trop ancien, la mise à jour d’abord', async () => {
+  for (const [ios, ancien] of [['17_4', false], ['15_6', true]]) {
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 760 }, isMobile: true, hasTouch: true,
+      userAgent: `Mozilla/5.0 (iPhone; CPU iPhone OS ${ios} like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${ios.split('_')[0]}.0 Mobile/15E148 Safari/604.1` });
+    const { page, errors } = await openPage(ctx, DEMO + '/index.html');
+    await page.evaluate(() => { localStorage.setItem('club-install-later', '1'); document.getElementById('sheet')?.remove(); });
+    await ouvrirReglages(page);
+    await page.click('[data-a="pushTest"]');
+    await page.waitForSelector('#sheet .ig-steps');
+    const etapes = page.locator('#sheet .ig-steps li');
+    assert.equal(await etapes.count(), ancien ? 5 : 4);
+    assert.equal(await page.locator('#sheet .ig-steps li .ig-ic svg').count(), await etapes.count(), 'chaque étape a son picto SVG');
+    const txt = await page.locator('#sheet .ig-steps').innerText();
+    assert.match(txt, /Partager/);
+    assert.match(txt, /Sur l'écran d'accueil/);
+    assert.match(txt, /notification d'essai/);
+    if (ancien) assert.match(txt, /Mise à jour logicielle.*iOS 15\.6.*16\.4/s);
+    else assert.doesNotMatch(txt, /Mise à jour logicielle/);
+    assert.doesNotMatch(txt, /\p{Extended_Pictographic}/u, 'pas d’emoji');
+    assert.ok(await overflow(page) <= 1, 'le guide déborde');
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+});
+
+test('Club : le bureau voit combien d’adhérents reçoivent les notifications (démo, puis vrai compte)', async () => {
+  const ctx = await phone();
+  const { page, errors } = await openPage(ctx, DEMO + '/index.html');
+  await page.evaluate(() => { document.getElementById('sheet')?.remove(); S.role = 'admin'; S.stack = [{ v: 'admin' }]; render(); });
+  await page.waitForSelector('#adm-push');
+  assert.match(await page.locator('#adm-push').innerText(), /\d+ adhérents reçoivent les notifications sur \d+/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+
+  // vrai club : le compte qui le crée est au bureau ; personne n'a encore de téléphone abonné
+  const c2 = await browser.newContext({ viewport: { width: 360, height: 780 } }), p2 = await c2.newPage(), errs = [], t = Date.now();
+  p2.on('pageerror', e => errs.push(e.message));
+  const post = async (url, data) => (await c2.request.post(JA + url, { data })).json();
+  await post('/api/auth/signup', { email: `suivi-${t}@exemple.test`, password: 'essai-' + t, first: 'Bea', last: 'Bureau' });
+  await post('/api/ram/clubs', { name: 'Club Suivi' });
+  await p2.goto(JA + '/club/index.html');
+  await p2.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000, polling: 300 });
+  await p2.waitForFunction(() => { if (!document.getElementById('adm-push')) { document.querySelector('.ram-splash')?.remove(); S.stack = [{ v: 'admin' }]; render(); } const e = document.getElementById('adm-push'); return e && /sur \d/.test(e.textContent); }, null, { timeout: 15000, polling: 500 });
+  assert.match(await p2.locator('#adm-push').innerText(), /0 adhérent reçoit les notifications sur 1/);
+  assert.deepEqual(errs, []);
+  await c2.close();
+});
