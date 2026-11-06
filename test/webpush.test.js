@@ -45,6 +45,7 @@ test('appareils : l’enseignement va à l’appli /RAM Coach, le reste à /RAM 
   if (saved.url) process.env.SUPABASE_URL = saved.url;
   if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
   const push = createWebPush({ store }), hits = [], real = global.fetch;
+  await push.setCalme('U', { on: false });   // hors heures calmes, quelle que soit l'heure du test
   const ua = crypto.createECDH('prime256v1'); ua.generateKeys();
   const sub = n => ({ endpoint: 'https://push.test/' + n, keys: { p256dh: b64u(ua.getPublicKey()), auth: b64u(crypto.randomBytes(16)) } });
   await push.subscribe('U', sub('club'), 'Chrome', 'club');
@@ -67,6 +68,7 @@ test('/RAM JA : l’abonnement est reconnu, et son message ne part pas sur les a
   if (saved.url) process.env.SUPABASE_URL = saved.url;
   if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
   const push = createWebPush({ store }), hits = [], real = global.fetch;
+  await push.setCalme('U', { on: false });   // hors heures calmes, quelle que soit l'heure du test
   const ua = crypto.createECDH('prime256v1'); ua.generateKeys();
   const sub = n => ({ endpoint: 'https://push.test/' + n, keys: { p256dh: b64u(ua.getPublicKey()), auth: b64u(crypto.randomBytes(16)) } });
   global.fetch = async u => { hits.push(String(u).split('/').pop()); return { ok: true, status: 201 }; };
