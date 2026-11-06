@@ -1,5 +1,78 @@
 /* /RAM Club — ui/8-ecrans.js : Table des écrans (V) : chaque écran de l'appli et son contenu.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
+/* ---------- colonne de droite du mur (ordinateur, iPad en paysage) ----------
+   Ce qui est à suivre, sans quitter le mur : le direct, ma prochaine séance, les prochains événements
+   du club et les discussions non lues. Sur téléphone, elle n'existe pas : le mur ne change pas. */
+const MUR_LARGE = matchMedia('(min-width: 1100px)');
+MUR_LARGE.addEventListener('change', () => typeof S !== 'undefined' && S.tab === 'home' && render(true));
+function murSide() {
+  if (!MUR_LARGE.matches) return '';
+  try {
+    const me = ME(),
+      now = new Date(),
+      nowMin = now.getHours() * 60 + now.getMinutes(),
+      // l'agenda, sans les filtres choisis dans l'onglet Agenda
+      items = (scope, days) => {
+        const keep = S.plan,
+          out = [];
+        S.plan = { ...keep, scope, mine: false, cat: {}, sp: new Proxy({}, { get: () => true }) };
+        try {
+          for (let i = 0; i < days; i++) {
+            const d = isoIn(i);
+            planItems(d).forEach(x => {
+              if (x.cx || (i === 0 && x.t && hMin(x.t) + (x.dur || 60) < nowMin)) return;
+              out.push({ ...x, d });
+            });
+          }
+        } finally {
+          S.plan = keep;
+        }
+        return out;
+      },
+      when = x =>
+        (x.d === TODAY ? "Aujourd'hui" : x.d === isoIn(1) ? 'Demain' : fmtD(x.d)) + (x.t ? ' · ' + hhmm(x.t) : ''),
+      row = (x, pic) =>
+        `<button class="msi" data-a="open" data-v="${x.v}" data-id="${x.id}">${ic(pic)}<span class="grow"><b>${esc(x.title)}</b><small>${when(x)}</small></span></button>`,
+      bloc = (titre, pic, corps) =>
+        corps ? `<section class="card msb"><h3 class="kicker">${ic(pic)}${titre}</h3>${corps}</section>` : '';
+    const live = recs.filter(r => r.st === 'live' && !r.arch),
+      mine = items('me', 14).filter(x => x.cat === 'ens' || x.v === 'grp' || x.v === 'ginfo' || x.v === 'chan')[0],
+      evs = items('club', 30)
+        .filter(x => CLUB_CATS.includes(x.cat))
+        .slice(0, 4),
+      unread = chans.filter(c => chanOk(c) && c.un && !c.mute).slice(0, 5);
+    return `<aside class="murside" aria-label="À suivre">${bloc(
+      'En direct',
+      'score',
+      live
+        .map(
+          r =>
+            `<button class="msi" data-a="open" data-v="rec" data-id="${r.id}"><span class="live"><i></i>Direct</span><span class="grow"><b>${esc(teamName(grp(r.tid)))}</b><small>contre ${esc(r.opp)}</small></span><b class="msc" data-live="${r.id}">${teamScore(r).join(' - ')}</b></button>`
+        )
+        .join('')
+    )}${bloc('Ma prochaine séance', 'clock', mine ? row(mine, 'racket') : '<p class="muted small">Aucune séance prévue dans les deux semaines.</p>')}${bloc(
+      'Prochains événements',
+      'cal',
+      evs.length
+        ? evs.map(x => row(x, x.cat === 'eq' ? 'users' : 'cal')).join('') +
+            '<button class="msmore" data-a="tab" data-t="agenda">Tout l\'agenda</button>'
+        : '<p class="muted small">Rien de prévu pour le moment.</p>'
+    )}${bloc(
+      'Discussions non lues',
+      'chat',
+      unread.length
+        ? unread
+            .map(
+              c =>
+                `<button class="msi" data-a="open" data-v="chan" data-id="${c.id}">${ic(c.g === 'team' ? 'users' : 'chat')}<span class="grow"><b>${esc(c.name)}</b></span><span class="mscnt">${c.un}</span></button>`
+            )
+            .join('')
+        : '<p class="muted small">Tout est lu.</p>'
+    )}</aside>`;
+  } catch (e) {
+    return '';
+  }
+}
 /* ---------- écrans ---------- */
 const V = {
   home() {
@@ -7,7 +80,8 @@ const V = {
       feed = posts.filter(p => canSee(p) && p.mur !== false).sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0));
     const st = (a, attrs, inner, l, cls) =>
       `<button class="story" data-a="${a}" ${attrs}><span class="ring ${cls || ''}"><span>${inner}</span></span><span class="sl">${l}</span></button>`;
-    return `<div class="stories">${recs
+    // ordinateur et iPad en paysage : le mur à gauche, une colonne « à suivre » à droite (cachée sur téléphone)
+    return `<div class="murg"><div class="murc"><div class="stories">${recs
       .filter(r => r.st === 'live' && !r.arch)
       .map(r =>
         st(
@@ -41,7 +115,7 @@ const V = {
       );
     })()}</div>
   ${isAdmin() && CLUBINFO.joined < CLUBINFO.members ? `<div class="pad" style="padding-bottom:4px"><button class="note" data-a="open" data-v="join" style="width:100%;text-align:left">${CLUBINFO.joined} adhérents sur ${CLUBINFO.members} ont rejoint l'appli. <b style="color:var(--accent)">Inviter les autres</b></button></div>` : ''}
-  <div class="feed">${feed.length ? feed.map(postHTML).join('') : emptyCard('home', 'Le mur est vide', 'Les annonces et les résultats du club apparaîtront ici.')}</div>${window.RAM && RAM.postsBefore ? '<div class="pad"><button class="btn ghost full" data-a="ramOlderPosts">Publications plus anciennes</button></div>' : ''}`;
+  <div class="feed">${feed.length ? feed.map(postHTML).join('') : emptyCard('home', 'Le mur est vide', 'Les annonces et les résultats du club apparaîtront ici.')}</div>${window.RAM && RAM.postsBefore ? '<div class="pad"><button class="btn ghost full" data-a="ramOlderPosts">Publications plus anciennes</button></div>' : ''}</div>${murSide()}</div>`;
   },
   chans() {
     const list = chans.filter(c => c.g === S.chanTab && chanOk(c));

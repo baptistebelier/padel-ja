@@ -1546,7 +1546,9 @@ test('Coach : l’objectif de l’élève sur la carte et la séance ; le pannea
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coSesCard === 'function' && typeof window.ramNotifsMerge === 'function', { polling: 300 });
   const id = await page.evaluate(() => {
     document.querySelector('.ram-splash')?.remove();
-    const x = coSessions(TODAY, TODAY, 'me', 1)[0];
+    // la démo suit le vrai jour : on se place sur le prochain jour où l'enseignant a cours
+    const x = coSessions(TODAY, isoIn(6), 'me', 1)[0];
+    TODAY = x.d;
     x.g.goal = 'Améliorer ma volée';
     S.tab = 'today'; S.stack = []; render();
     A.tab({ t: 'today' });
@@ -1658,4 +1660,72 @@ test('Club : section Club avec de vrais comptes, plusieurs clubs, club principal
   assert.ok(await page.evaluate(() => { const l = document.querySelector('.logout'), c = [...document.querySelectorAll('.card')].find(x => /Code du club/.test(x.textContent)); return c && c.nextElementSibling === l && !!(document.querySelector('.phero').compareDocumentPosition(c) & 4); }), 'code du club au-dessus de la déconnexion');
   assert.deepEqual(errs, []);
   await ctx.close();
+});
+
+/* ---------- lisibilité : aucun texte sous 12 px, dans les trois applis ---------- */
+// textes visibles plus petits que 12 px (un élément caché, un texte à 0 px ou réservé aux lecteurs d'écran ne compte pas)
+const petitsTextes = page => page.evaluate(() => {
+  const out = [];
+  for (const el of document.querySelectorAll('body *')) {
+    if (!(el instanceof HTMLElement) && !(el instanceof SVGTextElement)) continue;
+    if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+    const cs = getComputedStyle(el), fs = parseFloat(cs.fontSize);
+    if (!(fs > 0) || fs >= 11.95 || cs.visibility === 'hidden') continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2 || !el.getClientRects().length) continue;
+    // texte d'un graphique mis à l'échelle : seule compte la taille réellement affichée
+    if (el instanceof SVGTextElement && r.height >= 11) continue;
+    const id = el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/)[0] : el.tagName.toLowerCase();
+    out.push(`${fs}px ${id} « ${el.textContent.trim().slice(0, 24)} »`);
+  }
+  return [...new Set(out)].slice(0, 15);
+});
+
+test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA (téléphone et ordinateur)', async () => {
+  const trop = [];
+  for (const [w, h] of [[360, 780], [1280, 860]]) {
+    const mob = w < 500;
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: mob, hasTouch: mob });
+    const page = await ctx.newPage(), errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    const note = async nom => { const p = await petitsTextes(page); if (p.length) trop.push(`${nom} (${w} px) : ${p.join(' ; ')}`); };
+    // /RAM Club : chaque onglet, puis la page des trophées
+    await page.goto(DEMO + '/index.html');
+    await page.waitForFunction(() => typeof A !== 'undefined' && typeof trophyCard === 'function', null, { polling: 300 });
+    for (const t of ['home', 'chans', 'agenda', 'ecole', 'club', 'me']) {
+      await page.evaluate(t => { document.querySelector('.ram-splash')?.remove(); S.stack = []; S.tab = t; render(); }, t);
+      await page.waitForTimeout(250);
+      await note('Club ' + t);
+    }
+    await page.evaluate(() => { S.tab = 'me'; S.stack = []; render(); document.querySelector('.tcard')?.click(); });
+    await page.waitForTimeout(300);
+    await note('Club trophées');
+    // /RAM Coach : chaque onglet du menu (planning compris), et les paiements
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
+    for (const t of await page.evaluate(() => TABBAR.map(x => x[0]))) {
+      await page.evaluate(t => { document.querySelectorAll('.ram-splash').forEach(x => x.remove()); S.stack = []; A.tab({ t }); }, t);
+      await page.waitForTimeout(250);
+      await note('Coach ' + t);
+    }
+    await page.evaluate(() => { S.dashTab = 'pay'; S.stack = []; A.tab({ t: 'dash' }); });
+    await page.waitForTimeout(250);
+    await note('Coach paiements');
+    // /RAM JA : chaque section de l'éditeur, puis les pages du compte
+    await page.goto(JA + '/demo');
+    await page.waitForSelector('#nav [data-tab]', { state: 'attached' });
+    for (const t of ['tournoi', 'inscriptions', 'tirage', 'tableaux', 'programmation', 'direct', 'diffusion']) {
+      await page.evaluate(t => document.querySelector(`#nav [data-tab="${t}"]`).click(), t);
+      await page.waitForTimeout(250);
+      await note('JA ' + t);
+    }
+    for (const p of ['/dashboard', '/app', '/calendrier', '/joueurs', '/statistiques', '/profil']) {
+      await page.goto(JA + p);
+      await page.waitForTimeout(500);
+      await note('JA ' + p);
+    }
+    assert.deepEqual(errs, [], `erreurs JavaScript (${w} px)`);
+    await ctx.close();
+  }
+  assert.deepEqual(trop, [], 'des textes font moins de 12 px');
 });

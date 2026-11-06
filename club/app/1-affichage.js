@@ -157,7 +157,8 @@ function render(keep) {
     `<h1>${t}<span class="sub">${sub}</span></h1>${v.v === 'chan' && chans.some(c => c.id === v.id) && typeof chanCfgBtn === 'function' ? chanCfgBtn(chans.find(c => c.id === v.id)) : ''}${typeof favHere === 'function' && favHere() ? `<button class="ib favb" data-a="fav" aria-pressed="${isFav(favHere())}" aria-label="${isFav(favHere()) ? 'Retirer de mes favoris' : 'Ajouter à mes favoris'}">${ic('star')}</button>` : ''}<button class="ib${v.v === 'chan' ? ' nochan' : ''}${typeof fxBellCls === 'function' ? fxBellCls() : ''}" style="${typeof fxBellStyle === 'function' ? fxBellStyle() : ''}" data-a="notifs" aria-label="Notifications">${ic('bell')}${!pending() && NOTIFS.some(n => n.n && nVis(n)) ? '<span class="dot"></span>' : ''}</button>`;
   const strips = '.seg,.chips,.stories',
     sx = key === lastKey ? [...main.querySelectorAll(strips)].map(e => e.scrollLeft) : [];
-  const oldSeg = main.querySelector(':scope > .seg') || subNav().querySelector(':scope > .seg:not(.seg-out)');
+  const oldSeg =
+    main.querySelector(':scope > .seg:not(.haut)') || subNav().querySelector(':scope > .seg:not(.seg-out)');
   main.innerHTML = pending() && !lockOk(v) ? lockView(v) : V[v.v](v.id);
   main.querySelectorAll(strips).forEach((e, i) => {
     if (sx[i]) e.scrollLeft = sx[i];
@@ -199,12 +200,12 @@ function render(keep) {
   }
   if (pending() && !lockOk(v)) foot.hidden = true;
   $('phone').classList.toggle('notabs', tabs.hidden);
-  $('phone').classList.toggle('hassub', !!main.querySelector(':scope > .seg'));
+  $('phone').classList.toggle('hassub', !!main.querySelector(':scope > .seg:not(.haut)'));
   ramRail(t);
   $('phone').classList.toggle('withfoot', !foot.hidden);
   /* ordinateur : les pages ne glissent pas ; seul le sous-menu glisse, quand il apparaît ou disparaît (pas entre deux pages qui en ont un) */
   const wide = matchMedia('(min-width: 1024px)').matches,
-    newSeg = main.querySelector(':scope > .seg'),
+    newSeg = main.querySelector(':scope > .seg:not(.haut)'),
     nav = subNav();
   /* sur grand écran, le sous-menu (colonne fixe) vit hors de la zone qui défile : sur iPad, Safari effaçait un
      élément fixe resté dans #main dès que la page défilait (vues Jour et Liste de l'Agenda, École, Club) */

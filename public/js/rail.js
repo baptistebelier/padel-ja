@@ -123,7 +123,8 @@
     if (!nav || !document.body.classList.contains('editor-page')) return;
     const bar = nav.closest('.side') || nav;
     const ind = document.createElement('i'); ind.className = 'nav-ind'; nav.prepend(ind);
-    const btns = () => [...nav.querySelectorAll('button[data-tab]')];
+    // onglets visibles seulement : sur téléphone, certaines sections sont rangées dans « Plus »
+    const btns = () => [...nav.querySelectorAll('button[data-tab], button[data-plus]')].filter(b => getComputedStyle(b).display !== 'none');
     const mobile = () => matchMedia('(max-width: 720px)').matches;
     const size = () => { const b = btns(), w = nav.clientWidth / b.length; ind.style.width = (w - 8) + 'px'; return w; };
     const place = i => { const w = size(); ind.style.transform = `translateX(${i * w + 4}px)`; };

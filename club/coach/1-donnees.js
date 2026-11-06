@@ -314,8 +314,8 @@ const durMin = REGLES.durMin; // regles.js, comme le serveur
       parents: M[k].bd && M[k].bd > '2008' ? [{ n: 'Camille Roux', tel: '06 12 34 56 78' }] : [],
       tech,
       lvlH: [
-        { d: '2026-09-08', lvl: lv - 1 },
-        { d: '2026-10-05', lvl: lv }
+        { d: DD('2026-09-08'), lvl: lv - 1 },
+        { d: DD('2026-10-05'), lvl: lv }
       ]
     });
   });
@@ -353,7 +353,7 @@ const durMin = REGLES.durMin; // regles.js, comme le serveur
       by: 'sarah',
       k: 'msg',
       txt: 'Thomas, comment va ton épaule ? On adapte la séance de lundi si besoin.',
-      at: at('2026-10-11', 10)
+      at: at(DD('2026-10-11'), 10)
     },
     {
       id: 'sv9',
@@ -361,7 +361,7 @@ const durMin = REGLES.durMin; // regles.js, comme le serveur
       by: 'thomas',
       k: 'msg',
       txt: 'Ça va mieux, merci ! Je peux faire des smashs légers.',
-      at: at('2026-10-12', 21)
+      at: at(DD('2026-10-12'), 21)
     },
     {
       id: 'sv10',
@@ -370,7 +370,7 @@ const durMin = REGLES.durMin; // regles.js, comme le serveur
       k: 'video',
       url: 'https://youtu.be/exemple2',
       txt: 'Ma bandeja en match dimanche : je la sors trop tard ?',
-      at: at('2026-10-12', 21)
+      at: at(DD('2026-10-12'), 21)
     },
     {
       id: 'sv11',
@@ -379,7 +379,7 @@ const durMin = REGLES.durMin; // regles.js, comme le serveur
       k: 'contenu',
       txt: 'Vidéo à regarder avant jeudi : les 3 placements au filet en double.',
       url: 'https://youtu.be/exemple3',
-      at: at('2026-10-09', 12)
+      at: at(DD('2026-10-09'), 12)
     }
   );
 })();

@@ -991,10 +991,11 @@ const coActRows = (rows, sort) => {
 function coDash() {
   const live = !!(window.RAM && RAM.live),
     srv = live ? coDashServer(coSeasonStart()) : null,
+    // sur ordinateur, onglets en haut de la page (et non un second menu de côté, après le rail)
     tabs = segs('dashTab', [
       ['act', 'Activité', 'chart'],
       ['pay', 'Paiements', 'euro']
-    ]);
+    ]).replace('class="seg', 'class="seg haut');
   if (srv && !srv.data && !srv.err)
     return `${tabs}<div class="pad cowide">${coClubChips()}<div class="card"><p class="muted small">Calcul des statistiques…</p></div></div>`;
   const fromServer = !!(srv && srv.data),
