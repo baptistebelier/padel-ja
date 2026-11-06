@@ -13,6 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
 const Ani = require('./public/js/animation.js');
+const Securite = require('./lib/securite.js');   // en-têtes de sécurité des pages, nettoyage des textes reçus
 const Agenda = require('./lib/agenda.js');   // /RAM Réservation : lien vers Google Agenda et agendas reliés
 const Formules = require('./lib/formules.js');   // /RAM Coach : formules, packs et abonnements de chaque enseignant
 const Echelles = require('./lib/echelles.js');   // /RAM Coach : échelles de niveaux de chaque enseignant   // animations : americano, mexicano, par équipes, montée-descente
@@ -122,7 +123,9 @@ function json(res, code, obj, headers) {
    et compression gardée en mémoire tant que le fichier ne change pas */
 function sendStatic(res, file, data, headers) {
   const tag = '"' + crypto.createHash('md5').update(data).digest('base64url').slice(0, 16) + '"';
-  const h = Object.assign({ ETag: tag }, headers);
+  const page = String((headers || {})['Content-Type'] || '').startsWith('text/html'), extra = (headers || {})._csp;
+  const h = Object.assign({ ETag: tag }, headers, page ? Securite.pageHeaders(file, data, extra) : {});
+  delete h._csp;
   if (String((res._req && res._req.headers['if-none-match']) || '') === tag) { res.writeHead(304, h); return res.end(); }
   return Compress.send(res._req, res, 200, h, data, file + tag);
 }
@@ -199,7 +202,7 @@ function sendClub(res, rel, logged) {
     if (/\/(index|coach)\.html$/.test(rel)) data = bundler.page(rel, data);
     const longCache = /\.(png|webp|jpg|woff2)$/.test(ext) && !/icon|favicon/.test(rel);
     // l'appli elle-même : le service worker ne garde en cache (hors ligne) que cette page, jamais la présentation ni la connexion
-    sendStatic(res, file, data, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, /\/(index|coach)\.html$/.test(rel) ? { 'X-Club-Page': 'appli' } : {}));
+    sendStatic(res, file, data, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, /\/(index|coach)\.html$/.test(rel) ? { 'X-Club-Page': 'appli', _csp: bundler.empreintes(data) } : {}));
   });
 }
 function lanAddresses() {
@@ -750,6 +753,7 @@ taches.on('calendly', async b => {
 });
 const server = http.createServer(async (req, res) => {
   res._req = req;   // pour la compression des réponses (json, fichiers)
+  Securite.baseHeaders(res);   // nosniff, provenance des liens : sur toutes les réponses
   Mesures.track(req, res, m => console.warn('Mesures : ' + m));   // temps et taille de chaque route (/api/admin/mesures)
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
