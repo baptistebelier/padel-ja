@@ -43,11 +43,13 @@ const progression = require('./lib/progression.js').createProgression({ store, r
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
 const coachTables = require('./lib/coach-tables.js').createCoachTables({ ram, store });
 const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
-const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m) });   // notifications sur le téléphone
+// notifications sur le téléphone ; heures calmes : ce qui attend part au réveil, par la file de tâches (une seule fois par nuit et par compte)
+const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m), planifier: (uid, at) => taches.enqueue('push-reveil', { uid }, { at, key: 'reveil:' + uid + ':' + at }) });
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
 // une notification passe par la file : un redémarrage du serveur ne la perd pas
 const notifier = require('./lib/pushnotif.js').createNotifier({ ram, formules: u => require('./lib/formules.js').get(store, u), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
 taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
+taches.on('push-reveil', p => push.reveil(p.uid));
 taches.on('shopify-achat', o => reservation.achatShopify(o));
 /* une séance Calendly annulée dans /RAM Coach : annulée aussi chez Calendly, sinon les deux agendas se contredisent */
 ram.onOps((clubId, actor, changes) => {
@@ -1136,6 +1138,20 @@ const server = http.createServer(async (req, res) => {
       if (p === '/api/ram/push/unsubscribe' && req.method === 'POST') {
         const b = await readBody(req);
         return push.unsubscribe(String(b.endpoint || '')).then(() => json(res, 200, { ok: true }), fail);
+      }
+      // notification d'essai : à cet appareil seulement, tout de suite (même pendant les heures calmes)
+      if (p === '/api/ram/push/essai' && req.method === 'POST') {
+        const b = await readBody(req);
+        return push.essai(u.id, String(b.endpoint || ''), b.app === 'coach' ? 'coach' : 'club').then(r => json(res, 200, r), fail);
+      }
+      // heures calmes de ce compte (22 h à 7 h par défaut, heure de Paris)
+      if (p === '/api/ram/push/calme' && req.method === 'GET') return json(res, 200, await push.calme(u.id));
+      if (p === '/api/ram/push/calme' && req.method === 'POST') return push.setCalme(u.id, await readBody(req)).then(r => json(res, 200, r), fail);
+      // pour le bureau : combien d'adhérents reçoivent les notifications
+      if (p === '/api/ram/push/suivi' && req.method === 'GET') {
+        const au = await ram.audience(String(url.searchParams.get('club') || ''));
+        if (!au || !au.bureau.some(k => au.user[k] === u.id)) return json(res, 403, { error: 'Réservé au bureau du club' });
+        return json(res, 200, await require('./lib/pushnotif.js').suiviNotifs(au, push));
       }
       // classements inter-clubs de la saison
       if (p === '/api/ram/classements' && req.method === 'GET') {

@@ -5,6 +5,10 @@ const VERSION = '2026-11-04-carnet39';
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
 const CACHE = 'appli-' + APP + '-' + VERSION;
+/* regroupement des notifications d'une même discussion (FIL_NOTIF) */
+try {
+  importScripts('fil-notif.js');
+} catch (_) {}
 /* Fichiers de l'appli mis en cache dès l'installation */
 const CORE = [
   'index.html',
@@ -17,6 +21,7 @@ const CORE = [
   'icon-192.png',
   'logo.js',
   'regles.js',
+  'fil-notif.js',
   'data.js',
   'ui/1-briques.js',
   'ui/2-publications.js',
@@ -158,17 +163,28 @@ self.addEventListener('push', e => {
   } catch (_) {
     d = { body: e.data ? e.data.text() : '' };
   }
-  e.waitUntil(
-    self.registration.showNotification(d.title || (APP === 'coach' ? '/RAM Coach' : '/RAM Club'), {
-      body: d.body || '',
-      icon: APP === 'coach' ? 'coach-v2-icon-180.png' : 'icon-180.png',
-      badge: APP === 'coach' ? 'coach-v2-icon-180.png' : 'icon-180.png',
-      tag: d.tag,
-      data: { url: d.url || '' },
-      renotify: !!d.tag
-    })
-  );
+  e.waitUntil(montrer(d));
 });
+/* une discussion : la notification encore affichée est remplacée (« 5 nouveaux messages dans Équipe 1 »), voir fil-notif.js */
+async function montrer(d) {
+  let prev = null;
+  if (d.fil && d.tag && self.registration.getNotifications)
+    try {
+      const l = await self.registration.getNotifications({ tag: d.tag });
+      prev = l.length ? l[l.length - 1].data : null;
+    } catch (_) {}
+  const f = self.FIL_NOTIF
+    ? self.FIL_NOTIF.filNotif(prev, d)
+    : { body: d.body || '', data: { url: d.url || '' }, renotify: !!d.tag };
+  return self.registration.showNotification(d.title || (APP === 'coach' ? '/RAM Coach' : '/RAM Club'), {
+    body: f.body,
+    icon: APP === 'coach' ? 'coach-v2-icon-180.png' : 'icon-180.png',
+    badge: APP === 'coach' ? 'coach-v2-icon-180.png' : 'icon-180.png',
+    tag: d.tag,
+    data: f.data,
+    renotify: f.renotify
+  });
+}
 
 /* Toucher la notification : on remet l'appli au premier plan (ou on l'ouvre) sur le bon écran */
 self.addEventListener('notificationclick', e => {

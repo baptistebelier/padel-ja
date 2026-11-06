@@ -218,11 +218,15 @@ const AIDE = [
     q: [
       [
         'Recevoir les notifications sur mon téléphone',
-        "Dans Profil, « Mes notifications », puis « Activer » sous « Notifications sur ce téléphone ». Tu es prévenu même appli fermée. Sur iPhone, installe d'abord l'appli sur l'écran d'accueil (iOS 16.4 ou plus récent)."
+        "Dans Profil, « Mes notifications », puis « Activer » sous « Notifications sur ce téléphone ». Tu es prévenu même appli fermée. Sur iPhone, installe d'abord l'appli sur l'écran d'accueil (iOS 16.4 ou plus récent). Pour vérifier, touche « M'envoyer une notification d'essai » : elle arrive en quelques secondes."
       ],
       [
         'Choisir ce que je reçois',
-        'Dans Profil, « Mes notifications » : le club, les adhérents suivis, les groupes, mon équipe, les parties, mes publications. Chaque groupe peut aussi être mis en sourdine.'
+        'Dans Profil, « Mes notifications » : le club, les adhérents suivis, les groupes, mon équipe, les parties, mes publications. Chaque groupe peut aussi être mis en sourdine. Plusieurs messages d’une même discussion n’en font qu’une, qui se met à jour (« 5 nouveaux messages dans Équipe 1 »).'
+      ],
+      [
+        'Heures calmes',
+        'De 22 h à 7 h par défaut, le téléphone ne sonne pas : tout arrive au réveil, regroupé. Les urgences passent quand même, par exemple un cours annulé ou déplacé qui commence dans les 2 h. La cloche de l’appli et les e-mails ne changent pas. Les heures se règlent dans Profil, « Mes notifications ».'
       ],
       [
         'Sons et vibrations',
