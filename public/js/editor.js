@@ -22,12 +22,16 @@
   function setTab(t) {
     if (!TABS.includes(t)) t = 'tournoi';
     tab = t;
-    $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    $$('#nav button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    // téléphone : une section rangée dans « Plus » allume le bouton « Plus »
+    const plusOn = !!$('#nav button.m-plus[data-tab="' + t + '"]');
+    $$('#nav [data-plus]').forEach(b => b.classList.toggle('on', plusOn));
+    $$('#moreSheet [data-goto]').forEach(b => b.classList.toggle('on', b.dataset.goto === t));
     $$('.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + t));
     try { localStorage.setItem('padelja-tab', t); } catch (e) {}
     render();
   }
-  $$('#nav button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+  $$('#nav button[data-tab]').forEach(b => b.onclick = () => setTab(b.dataset.tab));
 
   // état de la connexion : barre latérale + pastille visible partout (téléphone compris) quand on est hors ligne
   const offPill = document.createElement('div'); offPill.className = 'offline-pill'; offPill.hidden = true; document.body.appendChild(offPill);
@@ -834,10 +838,17 @@
     const wrap = $('#tsecs'), tabs = $('#tsecTabs');
     if (!wrap) return;
     const secs = $$('.tsec', wrap), KEY = 'padelja-sec-', TAB = 'padelja-sec-tab';
-    const tabMode = () => matchMedia('(hover: hover) and (pointer: fine) and (min-width: 721px)').matches;
+    // onglets : ordinateur, et tout écran assez large (iPad en paysage), même au doigt
+    const tabMode = () => matchMedia('(hover: hover) and (pointer: fine) and (min-width: 721px), (min-width: 1101px)').matches;
+    // grand écran : ces onglets passent dans la colonne de gauche, sous « Tournoi » (deux niveaux de menu, pas trois)
+    const sub = document.createElement('div');
+    sub.className = 'subnav'; sub.id = 'tsecNav'; sub.setAttribute('aria-label', 'Parties de la fiche tournoi');
+    const navT = $('#nav button[data-tab="tournoi"]');
+    if (navT) navT.after(sub);
     const pick = id => {
       secs.forEach(c => c.classList.toggle('cur', c.dataset.sec === id));
       $$('.tsec-tab', tabs).forEach(b => b.classList.toggle('on', b.dataset.sec === id));
+      $$('button', sub).forEach(b => b.classList.toggle('on', b.dataset.sec === id));
       try { localStorage.setItem(TAB, id); } catch (e) {}
     };
     if (window.Pictos) Pictos.decorate(wrap);   // pictogrammes à la place des numéros 01, 02…
@@ -866,8 +877,10 @@
         try { localStorage.setItem(KEY + id, o ? '1' : '0'); } catch (e) {}
       });
       tabs.insertAdjacentHTML('beforeend', `<button type="button" role="tab" class="tsec-tab" data-sec="${id}"><span>${(card.querySelector('h3 .pic') || {}).outerHTML || ''}</span>${card.dataset.label}</button>`);
+      sub.insertAdjacentHTML('beforeend', `<button type="button" data-sec="${id}">${card.dataset.label}</button>`);
     });
     $$('.tsec-tab', tabs).forEach(b => b.onclick = () => pick(b.dataset.sec));
+    $$('button', sub).forEach(b => b.onclick = () => { if (tab !== 'tournoi') setTab('tournoi'); pick(b.dataset.sec); scrollTo({ top: 0 }); });
     let cur = ''; try { cur = localStorage.getItem(TAB) || ''; } catch (e) {}
     pick(secs.some(c => c.dataset.sec === cur) ? cur : secs[0].dataset.sec);
   })();
@@ -1164,10 +1177,14 @@
   /* ---------- barre d'application (téléphone) + menu « ⋯ » ---------- */
   const sheet = $('#moreSheet');
   const closeSheet = () => { sheet.classList.remove('open'); setTimeout(() => { sheet.hidden = true; }, 220); };
-  $('#abMore').onclick = () => { sheet.hidden = false; requestAnimationFrame(() => sheet.classList.add('open')); };
+  const openSheet = () => { sheet.hidden = false; requestAnimationFrame(() => sheet.classList.add('open')); };
+  $('#abMore').onclick = openSheet;
+  $$('#nav [data-plus]').forEach(b => b.onclick = openSheet);   // téléphone : « Plus » ouvre les sections rangées
   $('#abTv').onclick = () => $('#btnTv').click();
   sheet.addEventListener('click', e => {
     if (e.target === sheet) return closeSheet();
+    const g = e.target.closest('[data-goto]');
+    if (g) { closeSheet(); return setTab(g.dataset.goto); }
     const b = e.target.closest('[data-act]'); if (!b) return;
     closeSheet();
     if (b.dataset.act !== 'close') setTimeout(() => $('#' + b.dataset.act).click(), 60);

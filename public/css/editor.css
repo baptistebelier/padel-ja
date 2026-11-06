@@ -11,6 +11,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 400; }
 h3 { font-family: var(--display); font-size: 24px; text-transform: uppercase; letter-spacing: .01em; line-height: 1; margin: 2px 0 14px; }
 h3 small { font-family: var(--body); text-transform: none; font-size: 12.5px; letter-spacing: 0; }
 h4 { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--ui-accent-text); margin: 18px 0 10px; }
+h4 small { font-size: 12px; }
 .eyebrow { display: block; font-family: var(--label); font-weight: 700; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--ui-accent2); }
 .ptitle { font-family: var(--display); font-size: 54px; line-height: .95; text-transform: uppercase; transform: rotate(-1.5deg); transform-origin: left; margin: 6px 0 26px; }
 
@@ -145,7 +146,7 @@ kbd { background: var(--ui-sunken); border: 2px solid var(--ui-border-2); border
 .mm:hover { border-color: var(--ui-accent-text); transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ui-accent); }
 .mm.bye-m { opacity: .4; cursor: default; box-shadow: none; transform: none; border-color: var(--ui-border); }
 .mm.st-live { border-color: var(--ui-accent2); box-shadow: 4px 4px 0 var(--ui-accent2); }
-.mhead { display: flex; justify-content: space-between; font-family: var(--label); font-weight: 700; font-size: 11.5px; letter-spacing: .06em; color: var(--ui-text-mut); padding: 2px 9px; background: color-mix(in srgb, var(--ui-text) 3%, transparent); text-transform: uppercase; }
+.mhead { display: flex; justify-content: space-between; font-family: var(--label); font-weight: 700; font-size: 12px; letter-spacing: .06em; color: var(--ui-text-mut); padding: 2px 9px; background: color-mix(in srgb, var(--ui-text) 3%, transparent); text-transform: uppercase; }
 .mrow { display: flex; align-items: center; gap: 6px; padding: 5px 9px; font-size: 13px; }
 .mrow .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .mrow.win { color: var(--ui-accent-text); font-weight: 700; } .mrow.bye { color: var(--ui-text-mut); font-style: italic; }
@@ -171,7 +172,7 @@ kbd { background: var(--ui-sunken); border: 2px solid var(--ui-border-2); border
 .ball { color: var(--ui-accent-text); margin-right: 6px; }
 .lsets { display: flex; gap: 6px; align-items: center; min-height: 44px; }
 .lsets span { min-width: 36px; height: 42px; display: grid; place-items: center; background: var(--ui-surface-2); font-family: var(--display); font-size: 24px; color: var(--ui-text-mut); position: relative; }
-.lsets span.w { color: var(--ui-text); } .lsets span sup { position: absolute; top: 1px; right: 3px; font-size: 11px; font-family: var(--label); }
+.lsets span.w { color: var(--ui-text); } .lsets span sup { position: absolute; top: 1px; right: 3px; font-size: 12px; font-family: var(--label); }
 .lsets .g { background: color-mix(in srgb, var(--ui-text) 13%, transparent); color: var(--ui-text); } .lsets .p { background: var(--ui-accent); color: var(--ui-on-accent); min-width: 56px; }
 .flag { font-family: var(--label); font-size: 13px; font-weight: 800; letter-spacing: .12em; color: var(--ui-accent2); }
 .hot { color: var(--ui-accent2); }
@@ -313,7 +314,7 @@ nav button .sh { display: none; }
   .side { width: 92px; padding: 14px 0; }
   .brand { flex-direction: column; gap: 4px; padding: 0 6px 14px; text-align: center; }
   .brand img { height: 34px; } .brand b { font-size: 16px; } .brand small { display: none; }
-  .back { margin: -4px 6px 12px; font-size: 11px; text-align: center; }
+  .back { margin: -4px 6px 12px; font-size: 12px; text-align: center; }
   nav button { flex-direction: column; gap: 2px; padding: 10px 4px; text-align: center; font-size: 12px; letter-spacing: .04em; }
   nav button i { width: auto; font-size: 15px; font-family: var(--display); font-style: normal; color: var(--ui-text-mut); }
   nav button .lg { display: none; } nav button .sh { display: block; }
@@ -321,7 +322,7 @@ nav button .sh { display: none; }
   .side-foot { padding: 0 6px; }
   .conn { font-size: 0; justify-content: center; padding: 8px; } .conn::before { width: 10px; height: 10px; }
   .side-btns { grid-template-columns: 1fr; }
-  .side-btns button, a.btnlike { font-size: 10.5px; padding: 6px 2px; }
+  .side-btns button, a.btnlike { font-size: 12px; padding: 6px 2px; }
   main { padding: 0 18px 40px; }
   .ptitle { font-size: 44px; }
   .tvviews { grid-template-columns: repeat(3, 1fr); }
@@ -331,12 +332,12 @@ nav button .sh { display: none; }
 /* ---------- téléphone : navigation en bas de l'écran ---------- */
 @media (max-width: 720px) {
   body { font-size: 15px; }
-  .annonce { height: 26px; font-size: 11px; }
+  .annonce { height: 26px; font-size: 12px; }
   .shell { flex-direction: column; }
   .side { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; width: auto; height: 64px; padding: 0; flex-direction: row; border-right: 0; border-top: 2px solid var(--ui-border); }
   .brand, .back, .side-foot { display: none; }
   nav { display: flex; width: 100%; }
-  nav button { flex: 1; min-width: 0; padding: 8px 2px; font-size: 10.5px; margin: 0; border-radius: 0; }
+  nav button { flex: 1; min-width: 0; padding: 8px 2px; font-size: 12px; margin: 0; border-radius: 0; }
   nav button i { font-size: 16px; }
   main { padding: 0 12px 84px; }
   .top { flex-wrap: wrap; gap: 8px; padding: 10px 0; }
@@ -393,7 +394,7 @@ fieldset input { min-width: 0; width: 100%; }
 .ord.main .ord-l { color: var(--ui-accent-text); }
 .ord-w { font-size: 12px; color: var(--ui-text-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ord-btn { display: flex; flex-direction: column; gap: 2px; }
-.ord-btn button { padding: 0 6px; font-size: 10px; line-height: 1.4; }
+.ord-btn button { padding: 0 6px; font-size: 12px; line-height: 1.4; }
 .ord.bad { border-color: var(--warn); }
 .ord.st-done { opacity: .5; } .ord.st-live { border-color: var(--ui-accent2); }
 @media (max-width: 720px) { .order-list { grid-template-columns: 1fr; } }
@@ -405,11 +406,11 @@ fieldset input { min-width: 0; width: 100%; }
 .sg { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid color-mix(in srgb, var(--ui-text) 6%, transparent); font-size: 13.5px; }
 .sg b { font-family: var(--label); letter-spacing: .04em; }
 .sg span { grid-column: 1 / 3; color: var(--ui-text-mut); font-size: 12px; }
-.sg em { grid-row: 1 / 3; grid-column: 3; align-self: center; font-style: normal; font-family: var(--label); font-weight: 700; text-transform: uppercase; font-size: 11.5px; color: var(--ui-accent-text); }
+.sg em { grid-row: 1 / 3; grid-column: 3; align-self: center; font-style: normal; font-family: var(--label); font-weight: 700; text-transform: uppercase; font-size: 12px; color: var(--ui-accent-text); }
 .sg.on, .sg:hover { background: color-mix(in srgb, var(--ui-accent) 9%, transparent); }
 .pl-link { cursor: pointer; border-bottom: 1px dashed color-mix(in srgb, var(--ui-text) 25%, transparent); }
 .pl-link:hover { color: var(--ui-accent-text); border-color: var(--ui-accent-text); }
-.known-dot { color: var(--ui-accent-text); font-size: 10px; }
+.known-dot { color: var(--ui-accent-text); font-size: 12px; }
 
 /* ---------- tournoi clôturé ---------- */
 .closed-bar { position: relative; z-index: 3; background: var(--ui-inverse); color: var(--ui-on-inverse); text-align: center; padding: 7px 12px; font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
@@ -451,14 +452,14 @@ nav .ic { display: none; width: 22px; height: 22px; }
   .ab-back .ic, .ab-btn .ic { display: block; width: 24px; height: 24px; }
   .ab-title { min-width: 0; text-align: center; line-height: 1.1; }
   .ab-title b { display: block; font-family: var(--display); font-weight: 400; font-size: 19px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ab-title small { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--ui-accent2); }
+  .ab-title small { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--ui-accent2); }
   .ab-btn { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border: 0; background: transparent; color: var(--ui-text); box-shadow: none; }
   .ab-btn:active { background: color-mix(in srgb, var(--ui-text) 8%, transparent); }
 
   /* barre d'onglets du bas, style application */
   .side { height: calc(62px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
     background: color-mix(in srgb, var(--ui-bg) 94%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid color-mix(in srgb, var(--ui-text) 10%, transparent); }
-  nav button { padding: 7px 0 6px; color: var(--ui-text-mut); font-size: 10px; letter-spacing: .02em; text-transform: none; font-family: var(--body); font-weight: 600; position: relative; }
+  nav button { padding: 7px 0 6px; color: var(--ui-text-mut); font-size: 12px; letter-spacing: .02em; text-transform: none; font-family: var(--body); font-weight: 600; position: relative; }
   nav button .ic { width: 23px; height: 23px; margin-bottom: 3px; }
   nav button.on { color: var(--ui-accent-text); }
   nav button.on::before { inset: 0 28% auto; height: 3px; transform: none; background: var(--ui-accent); }

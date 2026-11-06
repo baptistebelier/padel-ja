@@ -177,7 +177,7 @@
 .bub .hd { gap: 6px; margin-bottom: 1px; }
 .bub .hd .nm { color: var(--accent); font-weight: 700; }
 .bub .tx { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.4; }
-.bub time { align-self: flex-end; font-size: 11px; line-height: 1; color: var(--muted); margin-top: 1px; }
+.bub time { align-self: flex-end; font-size: 12px; line-height: 1; color: var(--muted); margin-top: 1px; }
 .bub .quote { margin-top: 0; }
 .bub .mph { margin-top: 2px; width: 230px; }
 .msg.me .bub { background: var(--accent); color: var(--on-accent); border-color: transparent; box-shadow: 3px 3px 0 var(--accent2, var(--hot)); }
@@ -390,7 +390,7 @@ html, body { background: var(--bg); }
   .tabs .pill { display: none !important; }
   .tabs button {
     flex-direction: column; justify-content: center; gap: 5px; width: 72px; min-height: 60px; padding: 8px 2px; position: relative;
-    font-family: var(--f-body); font-weight: 600; font-size: 11px; letter-spacing: 0; text-transform: none; color: rgba(255, 255, 255, .62); background: transparent;
+    font-family: var(--f-body); font-weight: 600; font-size: 12px; letter-spacing: 0; text-transform: none; color: rgba(255, 255, 255, .62); background: transparent;
   }
   .tabs button svg { width: 22px; height: 22px; }
   .tabs button:hover { color: #fff; background: rgba(255, 255, 255, .06); }
@@ -400,7 +400,7 @@ html, body { background: var(--bg); }
   .tabs .cnt { position: absolute; top: 4px; right: 10px; margin: 0; }
   /* bouton « Ajouter du contenu » : en bas du menu, pictogramme et libellé */
   .addfab { left: calc(10px + env(safe-area-inset-left, 0px)) !important; width: 72px !important; right: auto !important; bottom: calc(18px + env(safe-area-inset-bottom, 0px)) !important;
-    flex-direction: column; gap: 4px; min-height: 66px; padding: 8px 4px; font-size: 10px; line-height: 1.1; text-align: center; white-space: normal; }
+    flex-direction: column; gap: 4px; min-height: 66px; padding: 8px 4px; font-size: 12px; line-height: 1.1; text-align: center; white-space: normal; }
   /* barre du haut : logo du club au centre */
   .top { position: absolute; }
   .toplogo, .toplogo.sub { display: block !important; position: absolute; left: 50%; top: calc(50% + env(safe-area-inset-top, 0px) / 2); transform: translate(-50%, -50%); height: 44px; max-width: 200px; margin: 0; }
@@ -472,7 +472,7 @@ html, body { background: var(--bg); }
   /* .rbot est hors de la barre d'onglets : sans display:flex ici, ses icônes restaient collées à gauche */
   .tabs button, .rbot button {
     display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 4px; width: 68px; min-height: 58px; padding: 7px 2px; border: 0; position: relative;
-    font: 600 10.5px/1.15 var(--f-body); letter-spacing: 0; text-transform: none; text-align: center; color: rgba(255, 255, 255, .66); background: transparent; box-shadow: none;
+    font: 600 12px/1.15 var(--f-body); letter-spacing: 0; text-transform: none; text-align: center; color: rgba(255, 255, 255, .66); background: transparent; box-shadow: none;
     transition: background .15s, color .15s;
   }
   .tabs button svg, .rbot button svg { width: 22px; height: 22px; color: inherit; }
@@ -493,7 +493,7 @@ html, body { background: var(--bg); }
     background: color-mix(in srgb, var(--fg) 5%, var(--bg)) !important; -webkit-mask-image: none !important; mask-image: none !important;
   }
   :is(#main, #subnav) > .seg .segt { display: grid; gap: 3px; margin: 0 0 18px; padding: 14px 14px 12px; background: color-mix(in srgb, var(--fg) 6%, transparent); min-width: 0; }
-  :is(#main, #subnav) > .seg .segt span { font-family: var(--f-sub); font-weight: 700; text-transform: uppercase; letter-spacing: .2em; font-size: 10.5px; color: var(--accent2, var(--hot)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :is(#main, #subnav) > .seg .segt span { font-family: var(--f-sub); font-weight: 700; text-transform: uppercase; letter-spacing: .2em; font-size: 12px; color: var(--accent2, var(--hot)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   :is(#main, #subnav) > .seg .segt b { font-family: var(--f-display); font-weight: 400; font-style: italic; text-transform: uppercase; font-size: 22px; line-height: 1.02; color: var(--fg); overflow-wrap: anywhere; }
   :is(#main, #subnav) > .seg button {
     min-height: 0; padding: 11px 14px; gap: 13px; border: 1px solid transparent !important;
@@ -654,7 +654,7 @@ html, body { background: var(--bg); }
 .msg.me .bub.tail::after { background: var(--mebub); }
 /* 3. séparateur de jour discret, collé sous la barre du haut pendant le défilement */
 .daysep { position: sticky; top: var(--segt, 0px); z-index: 3; margin: 12px 0 6px; pointer-events: none; }
-.daysep span { border: 0; box-shadow: none; font-size: 11px; padding: 3px 10px; background: color-mix(in srgb, var(--fg) 10%, var(--bg)); }
+.daysep span { border: 0; box-shadow: none; font-size: 12px; padding: 3px 10px; background: color-mix(in srgb, var(--fg) 10%, var(--bg)); }
 /* 4. réactions compactes : une petite étiquette à cheval sur le bas de la bulle (le menu de l'appui long,
       .reacts.big, ne change pas) ; la bulle garde de la place en bas pour que l'heure ne soit jamais cachée */
 .msg.hasre .bub { padding-bottom: 14px; }
@@ -709,3 +709,57 @@ html, body { background: var(--bg); }
 .info-sec > .kicker { display: flex; align-items: center; gap: 6px; }
 .info-sec > .kicker svg { width: 16px; height: 16px; }
 .info-sec > .kicker .rd, .info-sec > .kicker:has(.rd) svg { color: #2F9BFF; }
+
+/* =========================================================================
+   Onglets « en haut » (Statistiques de /RAM Coach : Activité, Paiements)
+   Sur ordinateur, ils restent en haut de la page, comme des onglets de classeur,
+   au lieu de former un second menu de côté après le rail.
+   ========================================================================= */
+@media (min-width: 1024px) {
+  #main > .seg.haut {
+    position: sticky !important; top: 0 !important; left: auto; bottom: auto; width: auto; z-index: 3;
+    display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; margin: 0; padding: 10px 24px !important; overflow: visible;
+    -webkit-mask-image: none; mask-image: none;
+  }
+  #main > .seg.haut button {
+    width: auto; min-height: 44px; padding: 0 18px; gap: 9px;
+    font-family: var(--f-sub); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase;
+  }
+  #main > .seg.haut button[aria-selected="true"]::before { display: none; }
+  #main > .seg.haut + * { margin-top: 0; border-top: 0; }
+}
+
+/* =========================================================================
+   Mur du Club sur grand écran
+   - téléphone : rien ne change (les enveloppes .murg et .murc s'effacent, la colonne est cachée)
+   - ordinateur et iPad en paysage : le mur à gauche, une colonne « à suivre » à droite
+   - les raccourcis passent à la ligne au lieu d'être coupés sans signe qu'ils défilent
+   ========================================================================= */
+.murg, .murc { display: contents; }
+.murside { display: none; }
+@media (min-width: 1024px) {
+  .stories { flex-wrap: wrap; overflow: visible; row-gap: 14px; -webkit-mask-image: none; mask-image: none; padding-right: 16px; }
+  .stories::after { display: none; }
+}
+@media (min-width: 1100px) {
+  #main > .murg { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; max-width: 1180px; padding: 0 24px; }
+  .murc { display: block; min-width: 0; }
+  .murc .feed { padding-left: 0; padding-right: 0; }
+  .murc .stories { padding-left: 0; }
+  .murc > .pad { padding-left: 0; padding-right: 0; }
+  .murside { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; padding: 20px 0 40px; }
+  .msb { gap: 4px; padding: 14px 16px; border: 1px solid var(--line); box-shadow: 4px 4px 0 var(--ram-hard); }
+  .msb > h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; }
+  .msb > h3 svg { width: 16px; height: 16px; color: var(--accent); }
+  .msi { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 0; border: 0; border-top: 1px solid var(--line); background: none; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+  .msb > h3 + .msi { border-top: 0; }
+  .msi > svg { flex: none; width: 20px; height: 20px; color: var(--muted); }
+  .msi .grow { min-width: 0; flex: 1; }
+  .msi b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msi small { display: block; font-size: 13px; color: var(--muted); }
+  .msi:hover b { color: var(--accent-tx, var(--accent)); }
+  .msi .live { flex: none; padding: 2px 8px; }
+  .msc { flex: none; font-family: var(--f-display, inherit); font-size: 20px; font-variant-numeric: tabular-nums; }
+  .mscnt { flex: none; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; display: grid; place-items: center; background: var(--hot); color: var(--on-hot); font-size: 12px; font-weight: 700; }
+  .msmore { align-self: flex-start; margin-top: 6px; padding: 6px 0; border: 0; background: none; color: var(--accent-tx, var(--accent)); font-family: var(--f-sub); font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+}

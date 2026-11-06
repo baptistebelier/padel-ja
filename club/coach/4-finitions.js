@@ -377,7 +377,7 @@ if (
     max: 8,
     tarif: { mode: 'seance', prix: 90 }
   });
-  ['2026-10-03', '2026-10-10'].forEach(d =>
+  [DD('2026-10-03'), DD('2026-10-10')].forEach(d =>
     SEANCES.push({
       id: 'pab.' + d,
       _club: 'arena',
@@ -388,10 +388,10 @@ if (
     })
   );
   SEANCES.push({
-    id: 'pab.2026-10-17',
+    id: 'pab.' + DD(DD('2026-10-17')),
     _club: 'arena',
     g: 'pab',
-    d: '2026-10-17',
+    d: DD('2026-10-17'),
     theme: 'Bandeja : préparation et placement'
   });
   keys.forEach((k, i) =>

@@ -822,7 +822,7 @@ function ramRail(title) {
     me = ME(),
     cur = S.tab === 'me' && !S.stack.length;
   rb.innerHTML = `<i class="sep"></i><button data-a="ramMode">${ic(dk ? 'sun' : 'moon')}<span>${dk ? 'Mode jour' : 'Mode nuit'}</span></button><button data-a="tab" data-t="me" ${cur ? 'aria-current="page"' : ''}>${M[me] ? av(me, 'sm') : ic('user')}<span>Profil</span></button><button data-a="logout">${ic('logout')}<span>Sortir</span></button>`;
-  const seg = $('main').querySelector(':scope > .seg');
+  const seg = $('main').querySelector(':scope > .seg:not(.haut)');
   if (seg && !seg.querySelector('.segt'))
     seg.insertAdjacentHTML(
       'afterbegin',

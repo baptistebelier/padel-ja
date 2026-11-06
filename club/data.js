@@ -54,7 +54,23 @@ const I = {
 const ic = n =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n] || ''}</svg>`;
 
-let TODAY = '2026-10-13';
+/* Démonstration : ses données ont été écrites pour la semaine du lundi 12 octobre 2026. Elles sont décalées
+   d'un nombre entier de semaines pour tomber sur la semaine en cours (chaque cours garde son jour), et
+   « aujourd'hui » est vraiment aujourd'hui. Toute date écrite dans la démo passe par DD(). */
+const DEMO_SHIFT = (() => {
+  const now = new Date(),
+    lundi = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+  return Math.round((lundi - new Date(2026, 9, 12)) / 864e5 / 7) * 7;
+})();
+const DD = iso => {
+  const [y, m, d] = iso.split('-').map(Number),
+    x = new Date(y, m - 1, d + DEMO_SHIFT);
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+};
+let TODAY = (() => {
+  const x = new Date();
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+})();
 const RANKS = REGLES.RANKS;
 const LV = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => 'Niveau ' + n);
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'],
@@ -269,8 +285,8 @@ const M = {
 };
 /* Palmarès padel : des places en tournoi, avec un partenaire du club ou extérieur */
 M.me.pres = [
-  { place: '3e', cat: 'P100', pub: 'Adultes', age: '', d: '2026-09-27', club: 'Padel Club Tulle', pid: 'nathan' },
-  { place: '1er', cat: 'P25', pub: 'Adultes', age: '', d: '2026-09-06', club: 'TPC Les Tilleuls', pid: 'paul' }
+  { place: '3e', cat: 'P100', pub: 'Adultes', age: '', d: DD('2026-09-27'), club: 'Padel Club Tulle', pid: 'nathan' },
+  { place: '1er', cat: 'P25', pub: 'Adultes', age: '', d: DD('2026-09-06'), club: 'TPC Les Tilleuls', pid: 'paul' }
 ];
 M.paul.pres = [
   {
@@ -278,14 +294,14 @@ M.paul.pres = [
     cat: 'P250',
     pub: 'Adultes',
     age: '',
-    d: '2026-10-04',
+    d: DD('2026-10-04'),
     club: 'Padel Arena Limoges',
     ext: 'Julien Masson'
   },
-  { place: '1er', cat: 'P25', pub: 'Adultes', age: '', d: '2026-09-06', club: 'TPC Les Tilleuls', pid: 'me' }
+  { place: '1er', cat: 'P25', pub: 'Adultes', age: '', d: DD('2026-09-06'), club: 'TPC Les Tilleuls', pid: 'me' }
 ];
 M.nathan.pres = [
-  { place: '3e', cat: 'P100', pub: 'Adultes', age: '', d: '2026-09-27', club: 'Padel Club Tulle', pid: 'me' }
+  { place: '3e', cat: 'P100', pub: 'Adultes', age: '', d: DD('2026-09-27'), club: 'Padel Club Tulle', pid: 'me' }
 ];
 M.mehdi.pres = [
   {
@@ -293,7 +309,7 @@ M.mehdi.pres = [
     cat: 'P500',
     pub: 'Adultes',
     age: '',
-    d: '2026-09-20',
+    d: DD('2026-09-20'),
     club: 'Padel Center Bordeaux',
     ext: 'Lucas Ferrer'
   }
@@ -375,8 +391,8 @@ const GROUPS = [
     id: 'compet',
     type: 'train',
     defLoc: 'Extérieur',
-    loc: { '2026-10-13': 'En salle' },
-    resp: { '2026-10-13': { ines: 'ok', thomas: 'ok', nathan: 'no' } },
+    loc: { [DD(DD('2026-10-13'))]: 'En salle' },
+    resp: { [DD(DD('2026-10-13'))]: { ines: 'ok', thomas: 'ok', nathan: 'no' } },
     day: 2,
     h: '19 h',
     dur: '1 h 30',
@@ -423,7 +439,7 @@ const posts = [
     kind: 'event',
     reg: 'int',
     sport: 'Tennis',
-    d: '2026-10-24',
+    d: DD('2026-10-24'),
     h1: '14 h',
     h2: '22 h',
     date: 'Sam. 24 oct · 14 h – 22 h',
@@ -444,11 +460,19 @@ const posts = [
     kind: 'event',
     reg: 'ext',
     sport: 'Tennis',
-    d: '2026-10-26',
-    d2: '2026-11-15',
+    d: DD('2026-10-26'),
+    d2: DD('2026-11-15'),
     date: 'Du 26 oct au 15 nov',
     place: 'Au club',
-    trn: { sport: 'Tennis', gen: 'Mixte', pub: 'Adultes', fmt: 'Traditionnel', open: true, max: 64, dl: '2026-10-25' },
+    trn: {
+      sport: 'Tennis',
+      gen: 'Mixte',
+      pub: 'Adultes',
+      fmt: 'Traditionnel',
+      open: true,
+      max: 64,
+      dl: DD('2026-10-25')
+    },
     title: "Tournoi interne <em>d'automne</em>",
     body: "Inscriptions ouvertes jusqu'au 25 octobre. Simples et doubles, tous classements. Finales le 15 novembre, suivies du repas du club.",
     likes: 42,
@@ -465,15 +489,15 @@ const posts = [
     kind: 'event',
     reg: 'ext',
     sport: 'Padel',
-    d: '2026-10-31',
-    d2: '2026-11-01',
+    d: DD('2026-10-31'),
+    d2: DD('2026-11-01'),
     h1: '9 h',
     h2: '20 h',
     date: 'Du 31 oct au 1 nov · 9 h',
     place: 'Pistes 1 et 2',
     title: 'Tournoi P100 <em>de la Toussaint</em>',
     body: 'Tableau messieurs, poules puis phase finale. Balles fournies, buvette ouverte tout le week-end.',
-    trn: { sport: 'Padel', gen: 'Hommes', pub: 'Adultes', cat: 'P100', max: 24, dl: '2026-10-27' },
+    trn: { sport: 'Padel', gen: 'Hommes', pub: 'Adultes', cat: 'P100', max: 24, dl: DD('2026-10-27') },
     likes: 14,
     com: []
   },
@@ -484,7 +508,7 @@ const posts = [
     kind: 'event',
     reg: 'ext',
     sport: 'Tennis',
-    d: '2026-11-08',
+    d: DD('2026-11-08'),
     h1: '9 h',
     h2: '18 h',
     date: 'Dim. 8 nov · 9 h – 18 h',
@@ -502,7 +526,7 @@ const posts = [
       lo: '30/2',
       hi: '15/4',
       max: 16,
-      dl: '2026-11-04'
+      dl: DD('2026-11-04')
     },
     likes: 9,
     com: []
@@ -689,7 +713,7 @@ const posts = [
     t: 'Juin 2026',
     kind: 'event',
     reg: 'int',
-    d: '2026-06-27',
+    d: DD('2026-06-27'),
     h1: '18 h',
     h2: '23 h',
     date: 'Sam. 27 juin 2026 · 18 h – 23 h',
@@ -711,8 +735,8 @@ const posts = [
     kind: 'event',
     reg: 'int',
     sport: 'Tennis',
-    d: '2026-04-13',
-    d2: '2026-04-17',
+    d: DD('2026-04-13'),
+    d2: DD('2026-04-17'),
     date: 'Du 13 au 17 avr 2026 · 9 h – 17 h',
     place: 'Courts 1 à 4',
     title: 'Stage de Pâques jeunes',
@@ -890,7 +914,7 @@ const recs = [
   },
   {
     id: 'r2',
-    d: '2026-10-17',
+    d: DD('2026-10-17'),
     h: '14 h',
     tid: 'eq1',
     opp: 'TC Tulle',
@@ -902,7 +926,7 @@ const recs = [
   },
   {
     id: 'r3',
-    d: '2026-10-18',
+    d: DD('2026-10-18'),
     h: '10 h',
     tid: 'pad1',
     opp: 'AS Padel Objat',
@@ -914,7 +938,7 @@ const recs = [
   },
   {
     id: 'r5',
-    d: '2026-10-25',
+    d: DD('2026-10-25'),
     h: '9 h',
     tid: 'eqd',
     opp: 'TC Égletons',
@@ -926,7 +950,7 @@ const recs = [
   },
   {
     id: 'r4',
-    d: '2026-10-04',
+    d: DD('2026-10-04'),
     h: '14 h',
     tid: 'eq2',
     opp: 'TC Ussel',
@@ -1008,7 +1032,7 @@ const recs = [
   {
     id: 'x3',
     arch: '2025-2026',
-    d: '2026-05-17',
+    d: DD('2026-05-17'),
     h: '9 h',
     tid: 'eq1',
     opp: 'TC Limoges',
@@ -1020,7 +1044,7 @@ const recs = [
   {
     id: 'x4',
     arch: '2025-2026',
-    d: '2026-05-10',
+    d: DD('2026-05-10'),
     h: '9 h',
     tid: 'eqd',
     opp: 'TC Guéret',
@@ -1032,7 +1056,7 @@ const recs = [
   {
     id: 'x7',
     arch: '2025-2026',
-    d: '2026-04-26',
+    d: DD('2026-04-26'),
     h: '10 h',
     tid: 'pad1',
     opp: 'Padel Club Tulle',
@@ -1390,7 +1414,7 @@ const ORDERS = [
     item: 'b1',
     name: 'Croque-monsieur maison',
     price: '6 €',
-    date: '2026-10-14',
+    date: DD('2026-10-14'),
     moment: 'midi',
     qty: 1,
     note: '',
@@ -1402,7 +1426,7 @@ const ORDERS = [
     item: 'b1',
     name: 'Croque-monsieur maison',
     price: '6 €',
-    date: '2026-10-14',
+    date: DD('2026-10-14'),
     moment: 'midi',
     qty: 2,
     note: 'Sans salade',
@@ -1414,7 +1438,7 @@ const ORDERS = [
     item: 'b2',
     name: 'Salade du club',
     price: '9 €',
-    date: '2026-10-14',
+    date: DD('2026-10-14'),
     moment: 'midi',
     qty: 1,
     note: '',
@@ -1426,7 +1450,7 @@ const ORDERS = [
     item: 'b3',
     name: 'Formule du soir',
     price: '14 €',
-    date: '2026-10-14',
+    date: DD('2026-10-14'),
     moment: 'soir',
     qty: 1,
     note: '',
@@ -1452,7 +1476,7 @@ S.share = { tel: false, mail: false, soc: false };
 S.plan.mine = false;
 S.reply = null;
 chans[1].msgs[0].re = { '👍': 4, '❤️': 2 };
-posts.find(p => p.id === 'p6').close = '2026-10-20';
+posts.find(p => p.id === 'p6').close = DD('2026-10-20');
 grp('pad1').mem.push('me');
 recs.find(r => r.id === 'r3').lineup.me = 'R';
 Object.assign(I, {
@@ -1468,8 +1492,8 @@ posts.splice(2, 0, {
   stage: true,
   reg: 'int',
   sport: 'Tennis',
-  d: '2026-10-26',
-  d2: '2026-10-30',
+  d: DD('2026-10-26'),
+  d2: DD('2026-10-30'),
   h1: '9 h',
   h2: '12 h',
   date: 'Du 26 au 30 oct · 9 h – 12 h',
@@ -1595,19 +1619,24 @@ const ELEVES = [],
   const at = (d, h) => +new Date(d + 'T' + String(h).padStart(2, '0') + ':00:00');
   SEANCES.push(
     {
-      id: 'compet.2026-10-06',
+      id: 'compet.' + DD(DD('2026-10-06')),
       g: 'compet',
-      d: '2026-10-06',
+      d: DD('2026-10-06'),
       theme: 'Service : le lancer de balle',
       pres: { me: 'P', ines: 'P', thomas: 'P', nathan: 'A' },
       recap:
         'Travail du lancer : régularité et placement devant soi. Bonne séance, on garde le même lancer la semaine prochaine pour enchaîner sur la première volée.'
     },
-    { id: 'compet.2026-10-13', g: 'compet', d: '2026-10-13', theme: 'Service-volée : enchaîner le premier pas' },
     {
-      id: 'u12.2026-10-07',
+      id: 'compet.' + DD(DD('2026-10-13')),
+      g: 'compet',
+      d: DD('2026-10-13'),
+      theme: 'Service-volée : enchaîner le premier pas'
+    },
+    {
+      id: 'u12.' + DD(DD('2026-10-07')),
       g: 'u12',
-      d: '2026-10-07',
+      d: DD('2026-10-07'),
       theme: 'Coup droit croisé',
       pres: { leo: 'P' },
       recap: 'Échanges croisés en fond de court, objectif 10 balles sans faute. Bravo à tous !'
@@ -1619,9 +1648,9 @@ const ELEVES = [],
       to: 'me',
       by: 'sarah',
       k: 'bilan',
-      ses: 'compet.2026-10-06',
+      ses: 'compet.' + DD(DD('2026-10-06')),
       txt: 'Ton lancer est beaucoup plus régulier. Garde le bras gauche tendu plus longtemps : ta frappe partira plus haut.',
-      at: at('2026-10-06', 21)
+      at: at(DD('2026-10-06'), 21)
     },
     {
       id: 'sv2',
@@ -1629,9 +1658,9 @@ const ELEVES = [],
       by: 'sarah',
       k: 'msg',
       txt: 'Salut Camille, pense à apporter ta raquette de rechange mardi, on fera beaucoup de services.',
-      at: at('2026-10-10', 18)
+      at: at(DD('2026-10-10'), 18)
     },
-    { id: 'sv3', to: 'me', by: 'me', k: 'msg', txt: 'Bien noté, merci Sarah !', at: at('2026-10-10', 19) },
+    { id: 'sv3', to: 'me', by: 'me', k: 'msg', txt: 'Bien noté, merci Sarah !', at: at(DD('2026-10-10'), 19) },
     {
       id: 'sv4',
       to: 'me',
@@ -1639,7 +1668,7 @@ const ELEVES = [],
       k: 'video',
       url: 'https://youtu.be/exemple',
       txt: 'Mon service en match samedi : tu peux regarder le placement des pieds ?',
-      at: at('2026-10-11', 20)
+      at: at(DD('2026-10-11'), 20)
     },
     {
       id: 'sv5',
@@ -1648,16 +1677,16 @@ const ELEVES = [],
       k: 'video',
       re: 'sv4',
       txt: 'Le pied avant pivote trop tôt (0:04) : garde-le pointé vers le poteau jusqu’à la frappe. Le reste est très propre.',
-      at: at('2026-10-12', 9)
+      at: at(DD('2026-10-12'), 9)
     },
     {
       id: 'sv6',
       to: 'leo',
       by: 'sarah',
       k: 'bilan',
-      ses: 'u12.2026-10-07',
+      ses: 'u12.' + DD(DD('2026-10-07')),
       txt: 'Très bon coup droit croisé, Léo ! Prochaine étape : finir le geste au-dessus de l’épaule.',
-      at: at('2026-10-07', 16)
+      at: at(DD('2026-10-07'), 16)
     },
     {
       id: 'sv7',
@@ -1665,7 +1694,7 @@ const ELEVES = [],
       by: 'sarah',
       k: 'contenu',
       txt: 'Exercice à faire à la maison : 3 séries de 20 jongles avec la raquette, coup droit puis revers.',
-      at: at('2026-10-08', 12)
+      at: at(DD('2026-10-08'), 12)
     }
   );
 })();
