@@ -20,9 +20,12 @@ test('barèmes du serveur identiques à ceux de l\'appli (club/trophees.js)', ()
 
 test('même score pour tout le monde, trophée « Au bureau » compris', () => {
   const items = new Map([
-    ['member/a', { coll: 'member', id: 'a', data: { photo: 'x.jpg' } }],
+    // profil complet vérifié par le serveur : nom, sexe, date de naissance, un moyen de contact
+    ['member/a', { coll: 'member', id: 'a', data: { photo: 'x.jpg', n: 'Léa Morin', g: 'F', bd: '1990-05-02' } }],
+    ['prefs/a', { coll: 'prefs', id: 'a', data: { ct: { mail: ['mail', 'E-mail', 'lea@exemple.fr'] } } }],
     ['member/b', { coll: 'member', id: 'b', data: {} }],
-    ['stats/a', { coll: 'stats', id: 'a', data: { c: {}, k: ['profil'] } }],
+    // repère « profil » envoyé par le téléphone de b : ignoré
+    ['stats/b', { coll: 'stats', id: 'b', data: { c: {}, k: ['profil'] } }],
     ['group/g', { coll: 'group', id: 'g', data: { cap: 'b' } }],
   ]);
   const s = clubScores(items, { a: 'bureau', b: 'mem' });

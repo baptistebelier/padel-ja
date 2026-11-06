@@ -106,18 +106,46 @@ const TROPHIES = [
     t: [1, 3, 5, 10],
     i: 'club',
     m: 1
+  },
+  /* jeu réel : comptés par le serveur à partir de l'appel des enseignants, des rencontres et des tournois */
+  {
+    id: 'pres',
+    n: 'Toujours sur le court',
+    d: "Être pointé présent par l'enseignant aux entraînements",
+    u: 'séances présentes',
+    t: [5, 20, 50, 100],
+    i: 'check'
+  },
+  {
+    id: 'match',
+    n: 'Compétiteur',
+    d: 'Jouer des rencontres par équipe (match terminé ou titulaire)',
+    u: 'rencontres jouées',
+    t: [1, 5, 15, 30],
+    i: 'shield'
+  },
+  {
+    id: 'tourn',
+    n: 'Habitué des tournois',
+    d: 'Aller au bout de tournois /RAM JA du club',
+    u: 'tournois terminés',
+    t: [1, 3, 8, 15],
+    i: 'trophy'
   }
 ];
+/* Plafond quotidien par type d'action (le même que le serveur, lib/ram-score.js) : au-delà, l'action ne compte plus jusqu'au lendemain */
+const CAPS = { msg: 20, com: 10, live: 30, react: 30, like: 30, poll: 10 };
 /* Trophées rares : obtenus une fois. m = décerné par le club (ou automatiquement) */
 const RARES = [
   { id: 'hello', n: 'Bienvenue', d: "Rejoindre l'appli du club", r: 0, i: 'club', ok: () => true },
   {
     id: 'profil',
     n: "Carte d'identité",
-    d: 'Compléter ses informations personnelles',
+    d: 'Compléter ses informations personnelles : nom, sexe, date de naissance, téléphone ou e-mail',
     r: 0,
     i: 'user',
-    ok: id => ST(id).k.has('profil')
+    // dans la vraie appli, c'est le serveur qui vérifie le profil ; la démo garde son repère local
+    ok: id => (window.RAM && RAM.live && Array.isArray(RAM.profils) ? RAM.profils.includes(id) : ST(id).k.has('profil'))
   },
   { id: 'photo', n: 'Photogénique', d: 'Ajouter une photo de profil', r: 0, i: 'image', ok: id => !!M[id].photo },
   {
@@ -264,6 +292,9 @@ Object.assign(ST('me').c, {
   poll: 4,
   follow: 12,
   fidele: 4,
+  pres: 22,
+  match: 4,
+  tourn: 1,
   ap: 454
 });
 ST('me').k.add('profil');
@@ -525,17 +556,51 @@ function trophiesView(id) {
     const on = rOk(r, id);
     return `<button class="tro ${on ? '' : 'lock'}" data-a="open" data-v="troph" data-id="${id}|${r.id}">${medal(r.i, r.r, on)}<span class="grow"><span class="nm">${r.n}</span> <span class="tier t${r.r}">${RAR[r.r]}</span><br><span class="muted small">${RPTS[r.r]} pts</span></span>${on ? `<span class="st ok">${ic('check')}</span>` : ''}</button>`;
   }).join('');
-  const board = Object.keys(M)
-      .filter(x => x !== 'club' && (!isMinor(x) || seesMinors()))
-      .sort((a, b) => score(b) - score(a))
-      .slice(0, 10),
+  const mode = S.boardMode === 'toujours' ? 'toujours' : 'saison',
+    board = boardOf(mode),
+    hidden = !!(M[ME()] && M[ME()].noRank),
     nc = CLAIMS.filter(c => c.st === 'wait').length;
   return `<div class="pad">${self && staff() && nc ? `<button class="note" data-a="open" data-v="claims" style="width:100%;text-align:left"><b>${nc} demande${nc > 1 ? 's' : ''} de trophée</b> à examiner</button>` : ''}<div class="thero tsec">${av(id, 'xl')}<div class="grow"><span class="kicker">Score d'investissement${pron(id)}</span><span class="tscore">${sc}<small> pts</small></span><span class="muted small">${ptsOf(id)} pts de trophées · ${ST(id).c.ap || 0} pts d'activité${XP[id] ? ` · ${XP[id]} pts des saisons passées` : ''}</span><span class="muted small">${got} trophées sur ${TROPHIES.length + RARES.length} · cadre ${FRAMES[L].n.toLowerCase()}</span>${nx ? `<span class="bar"><i style="width:${nx.pc}%"></i></span><span class="muted small">Encore ${nx.need} pts pour le cadre ${nx.n.toLowerCase()}</span>` : '<span class="muted small">Le plus beau cadre du club.</span>'}</div></div>
- ${!self && staff() ? `<div class="note">Touche un trophée pour le décerner à ${first(id)}.</div>` : self ? '<p class="muted small">Chaque action rapporte 1 point d\'activité : like, commentaire, message, réaction, inscription, vote, présence, bénévolat. Annuler l\'action retire le point. Les trophées rapportent beaucoup plus : touche-en un pour voir ses paliers, ou le réclamer au club.</p>' : ''}
+ ${!self && staff() ? `<div class="note">Touche un trophée pour le décerner à ${first(id)}.</div>` : self ? '<p class="muted small">Chaque action rapporte 1 point d\'activité : like, commentaire, message, réaction, inscription, vote, présence, bénévolat, rencontre jouée, tournoi terminé. Annuler l\'action retire le point. Par jour, comptent au plus ' + CAPS.msg + ' messages, ' + CAPS.com + ' commentaires et ' + CAPS.like + ' likes. Les trophées rapportent beaucoup plus : touche-en un pour voir ses paliers, ou le réclamer au club.</p>' : ''}
  ${self ? `<span class="kicker">Les cadres d'avatar</span><div class="frames tsec">${FRAMES.map((f, i) => `<span class="fx ${i > L ? 'lock' : ''}"><span class="av sm${i ? ' fr' + i : ''}" style="--h:${hue(id)}">${ini(id)}</span><b>${f.n}</b><small>${f.min} pts</small></span>`).join('')}</div>` : ''}
  <span class="kicker">Trophées à paliers</span><div class="tsec">${tiered}</div>
  <span class="kicker">Trophées rares</span><div class="tsec">${rares}</div>
- ${self ? `<span class="kicker">Les plus investis du club</span><div class="tsec">${board.map((x, i) => `<button class="item" data-a="member" data-id="${x}"><b class="rank">${i + 1}</b>${av(x, 'sm')}<span class="grow"><span class="nm">${x === ME() ? 'Toi' : name(x)}</span><br><span class="muted small">Cadre ${FRAMES[lvlOf(x)].n.toLowerCase()}</span></span><b>${score(x)} pts</b></button>`).join('')}</div>` : ''}</div>`;
+ ${self ? boardSection(mode, board, hidden) : ''}</div>`;
+}
+/* Classement du club : « Cette saison » (repart à zéro chaque 1er septembre, les trophées restent) ou « Depuis toujours ».
+   Dans la vraie appli, c'est le serveur qui l'envoie, sans ceux qui ont choisi de ne pas y apparaître. */
+function boardOf(mode) {
+  const B = window.RAM && RAM.live && RAM.board,
+    ok = x => x !== 'club' && M[x] && (!isMinor(x) || seesMinors());
+  if (B) {
+    const src = (mode === 'toujours' ? B.toujours : B.saison) || {};
+    return Object.keys(src)
+      .filter(ok)
+      .sort((a, b) => src[b] - src[a])
+      .slice(0, 10)
+      .map(x => [x, src[x]]);
+  }
+  // démo : la saison, c'est le score sans l'historique des saisons passées
+  const pts = x => (mode === 'toujours' ? score(x) : score(x) - (XP[x] || 0));
+  return Object.keys(M)
+    .filter(x => ok(x) && !M[x].noRank)
+    .sort((a, b) => pts(b) - pts(a))
+    .slice(0, 10)
+    .map(x => [x, pts(x)]);
+}
+function boardSection(mode, board, hidden) {
+  const B = window.RAM && RAM.live && RAM.board,
+    sea = (B && B.season) || '',
+    chip = (k, l) => `<button class="chip" data-a="boardMode" data-k="${k}" aria-pressed="${mode === k}">${l}</button>`,
+    info =
+      mode === 'saison'
+        ? `Saison${sea ? ' ' + esc(sea) : ''} : le classement repart à zéro chaque 1er septembre. Les trophées gagnés restent.`
+        : 'Tous les points gagnés depuis ton arrivée au club.',
+    rows = board.map(
+      ([x, p], i) =>
+        `<button class="item" data-a="member" data-id="${x}"><b class="rank">${i + 1}</b>${av(x, 'sm')}<span class="grow"><span class="nm">${x === ME() ? 'Toi' : name(x)}</span><br><span class="muted small">Cadre ${FRAMES[lvlOf(x)].n.toLowerCase()}</span></span><b>${p} pts</b></button>`
+    );
+  return `<span class="kicker">Les plus investis du club</span><div class="chips board-mode" role="group" aria-label="Période du classement">${chip('saison', 'Cette saison')}${chip('toujours', 'Depuis toujours')}</div><p class="muted small">${info}</p>${hidden ? '<div class="note">Tu n\'apparais pas dans le classement des autres adhérents, et tu gardes tes trophées. Pour changer : Profil, onglet Mes infos.</div>' : ''}<div class="tsec tboard">${rows.length ? rows.join('') : empty('trophy', "Personne au classement pour l'instant", '')}</div>`;
 }
 /* Page d'un trophée : paliers, explication, réclamer ou décerner */
 function trophyPage(key) {
@@ -738,6 +803,10 @@ window.addEventListener('DOMContentLoaded', () => {
       });
     render(true);
     toast(ok ? `Trophée validé · ${first(c.by)} est prévenu(e)` : `Demande refusée · ${first(c.by)} est prévenu(e)`);
+  };
+  A.boardMode = d => {
+    S.boardMode = d.k === 'toujours' ? 'toujours' : 'saison';
+    render(true);
   };
   A.claimOk = d => res(d, 1);
   A.claimNo = d => res(d, 0);

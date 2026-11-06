@@ -1204,6 +1204,18 @@ const A = {
     render(true);
     toast(S.share[d.k] ? `${MYCT[d.k][1]} visible par les adhérents` : `${MYCT[d.k][1]} masqué`);
   },
+  /* ne pas apparaître dans le classement du club : enregistré dans mon profil, le serveur me retire des classements */
+  noRank() {
+    const me = M[ME()];
+    if (!me) return;
+    me.noRank = me.noRank !== true;
+    render(true);
+    toast(
+      me.noRank
+        ? 'Tu n’apparais plus dans le classement du club · tes trophées restent'
+        : 'Tu apparais de nouveau dans le classement du club'
+    );
+  },
   nset(d) {
     S.nset[d.k] = !S.nset[d.k];
     render(true);

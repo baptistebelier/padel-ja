@@ -52,6 +52,8 @@
     fol: {},
     roles: {},
     scores: {},
+    profils: null,
+    board: null,
     live: false
   });
   let readyFn;
@@ -1609,6 +1611,8 @@
       R.reads = d.reads;
       if (!d.items.length && view().v === 'chan') safeRender();
     }
+    if (d.profils) R.profils = d.profils;
+    if (d.board) R.board = d.board;
     if (d.scores) {
       const ch = Object.keys(d.scores).some(k => d.scores[k] !== R.scores[k]);
       R.scores = d.scores;
@@ -1948,6 +1952,8 @@
         fol: R.fol,
         roles: R.roles,
         scores: R.scores,
+        profils: R.profils,
+        board: R.board,
         reads: R.reads,
         counts: R.counts,
         jaTitles: R.jaTitles,
@@ -1983,6 +1989,8 @@
     R.fol = d.fol || {};
     R.roles = d.roles || {};
     R.scores = d.scores || {};
+    R.profils = d.profils || null; // profils complets, vérifiés par le serveur (trophée « Carte d'identité »)
+    R.board = d.board || null; // classements du club : cette saison et depuis toujours
     R.reads = d.reads || {}; // coches : jusqu'où tous les autres membres de chaque groupe ont lu
     R.more = d.more || {}; // discussions qui ont des messages plus anciens que ceux reçus à l'ouverture
     R.histoAvant = d.histoAvant || '';
