@@ -15,22 +15,30 @@ import { tmpdir } from 'node:os';
 import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import http from 'node:http';
+import net from 'node:net';
 import { chromium } from 'playwright';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 3900 + Math.floor(Math.random() * 90);
-const JA = `http://127.0.0.1:${PORT}`;
+// port libre donné par le système (et non tiré au hasard dans une plage) : deux séries lancées en même temps
+// ne tombent jamais sur le même serveur
+const freePort = () => new Promise((ok, ko) => { const s = net.createServer(); s.on('error', ko); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => ok(p)); }); });
+let PORT, JA;
 let server, demoServer, DEMO, dataDir, browser;
 
 /* ---------- démarrage : serveur JA (données jetables) + serveur statique pour la démo Club ---------- */
 before(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'ram-ecrans-'));
+  PORT = await freePort(); JA = `http://127.0.0.1:${PORT}`;
   const env = { ...process.env, PORT: String(PORT), DATA_DIR: dataDir };
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   server = spawn(process.execPath, [join(ROOT, 'server.js')], { env, stdio: 'ignore' });
-  for (let i = 0; i < 50; i++) {
+  // prêt quand il répond, même lentement sur une machine chargée ; sinon on s'arrête net plutôt que d'échouer plus loin
+  let exited = null;
+  server.once('exit', c => { exited = c; });
+  for (const t0 = Date.now(); ; await new Promise(r => setTimeout(r, 100))) {
     try { if ((await fetch(JA + '/')).ok) break; } catch (e) { /* pas encore prêt */ }
-    await new Promise(r => setTimeout(r, 100));
+    if (exited !== null) throw new Error('le serveur /RAM JA s’est arrêté au démarrage (code ' + exited + ')');
+    if (Date.now() - t0 > 30000) throw new Error('le serveur /RAM JA ne répond pas au bout de 30 s');
   }
 
   // la démo Club telle que GitHub Pages la sert : fichiers statiques, sans serveur /RAM
@@ -222,6 +230,10 @@ test('Coach : la saisie du thème n’est jamais effacée quand un autre club ch
   assert.ok(urls.includes('/api/coach/tableau'), 'demandé au serveur');
   // ouverture allégée : un cours ancien n'est pas là au départ, il arrive quand un écran a besoin de l'historique, et rien n'est perdu
   const vieux = new Date(Date.now() - 200 * 864e5).toISOString().slice(0, 10);
+  // ouverture à froid : on quitte l'appli (plus de synchro en route) et on efface son cache sur l'appareil, sinon
+  // l'appli rouvre depuis ce cache et la synchro suivante y ajoute le cours ancien (cas d'une machine chargée)
+  await page.goto(JA + '/api/ram/clubs');
+  await page.evaluate(() => new Promise(r => { const q = indexedDB.deleteDatabase('ram-cache'); q.onsuccess = q.onerror = q.onblocked = () => r(); }));
   await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'cours', id: 'gvieux', op: 'put', data: { type: 'train', name: 'Cours ancien', sport: 'Padel', coach: a.key, once: vieux, h: '9 h', dur: '1 h', mem: [], ext: ['e1'], day: 1 } }, { coll: 'seance', id: `gvieux.${vieux}`, op: 'put', data: { g: 'gvieux', d: vieux, pres: { e1: 'P' } } }] });
   await page.goto(`${JA}/club/coach.html`);
   await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
@@ -1107,16 +1119,25 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
 
   // le bureau change le rôle d'un adhérent depuis son profil, tout en haut
   await coachP.goto(JA + '/club/index.html');
-  await coachP.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000, polling: 300 });
-  await coachP.waitForFunction(k => M[k], mine.key, { timeout: 8000, polling: 300 });
-  // (le premier chargement du club peut ramener à l'accueil : on rouvre le profil tant qu'il n'est pas affiché)
-  await coachP.waitForFunction(k => { if (!document.querySelector('[data-a="ramRole"][data-r="gerant"]') && RAM.roles && RAM.roles[k]) A.member({ id: k }); return !!document.querySelector('[data-a="ramRole"][data-r="gerant"]'); }, mine.key, { timeout: 8000, polling: 300 });
-  await coachP.waitForFunction(() => { const c = document.querySelector('[data-a="ramRole"]'), p = c && c.closest('.card').previousElementSibling; return p && p.classList.contains('phero'); }, null, { timeout: 8000, polling: 300 });   // juste sous l’en-tête
-  await coachP.click('[data-a="ramRole"][data-r="gerant"]');
-  await coachP.waitForFunction(k => RAM.roles[k] === 'bureau' && M[k].role === 'Gérant', mine.key, { timeout: 8000, polling: 300 });
-  await coachP.waitForFunction(() => document.querySelector('[data-a="ramRole"][data-r="gerant"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 8000, polling: 300 });
-  await coachP.click('[data-a="ramRole"][data-r="mem"]');
-  await coachP.waitForFunction(k => RAM.roles[k] === 'mem' && !M[k].role, mine.key, { timeout: 8000, polling: 300 });
+  await coachP.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 30000, polling: 300 });
+  await coachP.waitForFunction(k => M[k], mine.key, { timeout: 15000, polling: 300 });
+  // le premier chargement du club peut ramener à l'accueil, même juste après l'ouverture du profil (club rechargé
+  // quand le rôle connu de l'appareil n'est plus le bon) : on attend l'état réel, en rouvrant le profil et en refaisant
+  // le geste tant que le rôle n'est pas vraiment changé, au lieu de cliquer une fois sur un bouton qui peut disparaître
+  // (rouvre le profil s'il n'est plus affiché, puis renvoie le premier bouton de rôle)
+  const ROUVRE = k => { if (!document.querySelector('[data-a="ramRole"]') && RAM.roles && RAM.roles[k]) A.member({ id: k }); return document.querySelector('[data-a="ramRole"]'); };
+  const roleChange = (r, role, titre) => coachP.waitForFunction(([k, r, role, titre]) => {
+    if (RAM.roles[k] === role && (M[k].role || '') === titre) return true;
+    if (!document.querySelector('[data-a="ramRole"]') && RAM.roles && RAM.roles[k]) A.member({ id: k });
+    const b = document.querySelector('[data-a="ramRole"][data-r="' + r + '"]');
+    if (b && b.getAttribute('aria-pressed') !== 'true') b.click();
+    return false;
+  }, [mine.key, r, role, titre], { timeout: 30000, polling: 500 });
+  await coachP.waitForFunction(ROUVRE, mine.key, { timeout: 15000, polling: 300 });
+  await coachP.waitForFunction(k => { if (!document.querySelector('[data-a="ramRole"]') && RAM.roles && RAM.roles[k]) A.member({ id: k }); const c = document.querySelector('[data-a="ramRole"]'), p = c && c.closest('.card').previousElementSibling; return !!(p && p.classList.contains('phero')); }, mine.key, { timeout: 15000, polling: 300 });   // juste sous l’en-tête
+  await roleChange('gerant', 'bureau', 'Gérant');
+  await coachP.waitForFunction(k => { if (!document.querySelector('[data-a="ramRole"]') && RAM.roles && RAM.roles[k]) A.member({ id: k }); return document.querySelector('[data-a="ramRole"][data-r="gerant"]')?.getAttribute('aria-pressed') === 'true'; }, mine.key, { timeout: 15000, polling: 300 });
+  await roleChange('mem', 'mem', '');
 
   // sans compte : la page publique
   await pp.goto(JA + '/r/' + club.id + '/' + club.key);
@@ -1636,19 +1657,20 @@ test('Club : section Club avec de vrais comptes, plusieurs clubs, club principal
   await post('/api/auth/signup', { email: `multi-${t}@exemple.test`, password: 'essai-' + t, first: 'Nina', last: 'Multi' });
   const a = await post('/api/ram/clubs', { name: 'Club Alpha' }), b = await post('/api/ram/clubs', { name: 'Club Beta' });
   await page.goto(JA + '/club/index.html');
-  await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000, polling: 300 });
+  await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 30000, polling: 300 });
   const principal = (await (await ctx.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.main);
   const autre = [a, b].find(c => !principal || c.id !== principal.id);
   await page.evaluate(id => A.ramSwitch({ id }), autre.id);
-  await page.waitForFunction(id => RAM.club === id && RAM.live, autre.id, { timeout: 15000, polling: 300 });
-  // (le changement de club se termine en revenant à l'accueil : on rouvre le profil tant qu'il n'est pas affiché)
-  await page.waitForFunction(() => { if (!document.querySelector('.meclub')) { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); } return !!document.querySelector('.meclub') && RAM.code; }, null, { timeout: 15000, polling: 500 });
+  await page.waitForFunction(id => RAM.club === id && RAM.live, autre.id, { timeout: 30000, polling: 300 });
+  // (le changement de club se termine en revenant à l'accueil : on rouvre le profil tant qu'il n'est pas affiché ;
+  //  et c'est bien le club choisi qui reste ouvert, même si une synchronisation de l'ancien club était en route)
+  await page.waitForFunction(id => { if (!document.querySelector('.meclub')) { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); } return !!document.querySelector('.meclub') && RAM.code && RAM.club === id; }, autre.id, { timeout: 30000, polling: 500 });
   assert.match(await page.locator('.meclubh .h3').innerText(), new RegExp(autre.name || 'Club'));
   assert.equal(await page.locator('.meclub [data-a="ramClubs"] svg').count(), 1, 'changer de club, en pictogramme');
   assert.equal(await page.locator('.meclub [data-a="admin"] svg').count(), 1, 'gestion, en pictogramme');
   assert.equal(await page.locator('.meclubh .tag').count(), 0, 'pas encore principal');
   await page.click('.meclub [data-a="ramMain"]');
-  await page.waitForSelector('.meclubh .tag', { timeout: 8000 });
+  await page.waitForSelector('.meclubh .tag', { timeout: 20000 });
   assert.match(await page.locator('.meclubh .tag').innerText(), /Club principal/i);
   assert.equal(await page.locator('.meclub [data-a="ramMain"]').count(), 0, 'le bouton disparaît');
   assert.equal(await page.locator('#sheet.open, #sheet .menu').count(), 0, 'pas de fenêtre ouverte en plus');

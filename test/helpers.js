@@ -53,4 +53,20 @@ function freePort() {
   });
 }
 
-module.exports = { freePort, E, seeded, act, demoTournament, playAll, game, repeat };
+/* attend un état réel plutôt qu'un délai : relance `fn` jusqu'à ce qu'elle rende une valeur vraie
+   (ou ne lève plus d'erreur d'assertion), puis la renvoie. Au-delà de `timeout`, la dernière erreur remonte.
+   Une machine chargée allonge l'attente ; elle ne fait plus échouer le test. */
+async function until(fn, { timeout = 30000, every = 150, msg = 'état jamais atteint' } = {}) {
+  const t0 = Date.now();
+  for (;;) {
+    let last;
+    try { const v = await fn(); if (v) return v; } catch (e) { last = e; }
+    if (Date.now() - t0 > timeout) throw last || new Error(msg);
+    await new Promise(r => setTimeout(r, every));
+  }
+}
+
+/* serveur lancé à côté : prêt quand il répond (et pas après un nombre fixe d'essais) */
+const serverReady = (base, timeout = 30000) => until(() => fetch(base + '/').then(() => true), { timeout, every: 100, msg: 'serveur jamais prêt : ' + base });
+
+module.exports = { until, serverReady, freePort, E, seeded, act, demoTournament, playAll, game, repeat };

@@ -951,6 +951,10 @@
     });
     return list;
   }
+  /* chaque ouverture d'un club (changement de club, rechargement complet) change de génération : une réponse
+     demandée pour l'ouverture précédente (envoi ou synchronisation encore en route) est ignorée, sinon elle
+     s'appliquerait au club qu'on vient d'ouvrir (données, révision, voire rechargement qui ramène à l'accueil) */
+  let gen = 0;
   async function tick() {
     if (!R.live) return;
     if (busy) {
@@ -958,6 +962,7 @@
       return;
     }
     busy = true;
+    const g = gen;
     try {
       const list = ops();
       if (list.length) {
@@ -968,6 +973,7 @@
           return x;
         });
         const r = await api('/api/ram/c/' + R.club + '/ops', { ops: sent });
+        if (g !== gen) return; // un autre club a été ouvert entre-temps
         const bad = new Set((r.rejected || []).map(x => x.coll + '/' + x.id));
         list.forEach(o => {
           if (bad.has(o.coll + '/' + o.id)) R.bad.set(o.coll + '/' + o.id, J(o.data || o._s));
@@ -994,6 +1000,7 @@
       }
       await pull();
     } catch (x) {
+      if (g !== gen) return; // erreur d'une demande faite pour le club précédent
       if (x.status === 401 || x.status === 404) {
         if (x.status === 401) R.cacheClear();
         else cacheDrop(R.club);
@@ -1595,7 +1602,9 @@
   const newsClubs = () => R.clubs.filter(c => c.id !== R.club && R.badges[c.id] > 0);
   const pastille = c => (R.badges[c.id] > 0 ? `<span class="un">${R.badges[c.id]}</span>` : '');
   async function pull() {
+    const g = gen;
     const d = await api('/api/ram/c/' + R.club + '/sync?since=' + R.rev);
+    if (g !== gen) return; // réponse pour le club précédent : le club ouvert entre-temps a déjà tout reçu
     // accès validé par le bureau ou rôle changé : ce qu'on a le droit de voir change, on recharge tout le club
     if (d.me && (d.me.valid !== R.valid || d.me.role !== R.role)) {
       const opened = d.me.valid && !R.valid;
@@ -1987,10 +1996,12 @@
     }, 4000);
   }
   async function start(id, opts = {}) {
+    const g = ++gen; // les demandes encore en route pour le club précédent seront ignorées
     // /RAM Coach : ouverture allégée, l'historique des cours et des séances arrive à la demande (loadHisto)
     const mem = opts.plein ? null : await cacheGet(id);
     const d =
       mem || (await api('/api/ram/c/' + id + '/sync?since=0' + (window.RAM_APP === 'coach' ? '&fenetre=1' : '')));
+    if (g !== gen) return; // une ouverture plus récente (autre club choisi entre-temps) l'emporte
     R.fullAt = mem ? mem.full : Date.now();
     R.clubInfo = d.club;
     R.cacheFirst = !!mem; // les nouveautés d'après le cache : sans notification, comme à une ouverture normale

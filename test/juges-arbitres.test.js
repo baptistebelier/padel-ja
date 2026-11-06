@@ -1,7 +1,7 @@
 /* Juges-arbitres /RAM JA : titres (un pour le tennis, un pour le padel) et suggestions dans les tournois */
 const test = require('node:test');
 const assert = require('node:assert');
-const { freePort } = require('./helpers');
+const { freePort, serverReady } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
@@ -12,7 +12,7 @@ test('titres de juge-arbitre et juges-arbitres proposés', async () => {
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });
   try {
     const B = `http://127.0.0.1:${PORT}`;
-    for (let i = 0; i < 50; i++) { try { await fetch(B + '/'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
+    await serverReady(B);
     const signup = async (email, first, last) => {
       const r = await fetch(B + '/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: 'motdepasse1', first, last, club: 'TC Test' }) });
       const cookie = [].concat(r.headers.getSetCookie()).map(c => c.split(';')[0]).filter(c => !/=$/.test(c)).join('; ');
