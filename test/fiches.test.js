@@ -1,7 +1,7 @@
 /* Fiches joueurs /RAM JA nourries par /RAM Club : profil sportif du compte, fiche des enfants sans compte */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { freePort } = require('./helpers');
+const { freePort, until, serverReady } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
@@ -10,10 +10,9 @@ test('profil sportif recopié sur la fiche ; un enfant sans compte reçoit sa fi
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });
-  const wait = ms => new Promise(r => setTimeout(r, ms));
   try {
     const B = `http://127.0.0.1:${PORT}`;
-    for (let i = 0; i < 50; i++) { try { await fetch(B + '/'); break; } catch (e) { await wait(100); } }
+    await serverReady(B);
     const r = await fetch(B + '/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'a@exemple.test', password: 'motdepasse1', first: 'Anna', last: 'Test' }) });
     const H = { 'Content-Type': 'application/json', Cookie: [].concat(r.headers.getSetCookie()).map(c => c.split(';')[0]).filter(c => !/=$/.test(c)).join('; ') };
     const api = (p, body) => fetch(B + p, body ? { method: 'POST', headers: H, body: JSON.stringify(body) } : { headers: H }).then(x => x.json());
@@ -22,22 +21,29 @@ test('profil sportif recopié sur la fiche ; un enfant sans compte reçoit sa fi
     await api(`/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'member', id: club.key, op: 'patch', patch: [{ p: ['g'], t: 'set', v: 'F' }, { p: ['bd'], t: 'set', v: '1990-05-04' }, { p: ['pl'], t: 'set', v: 6 }, { p: ['r'], t: 'set', v: '15/2' }, { p: ['pad'], t: 'set', v: 1234 }] }] });
     // et un enfant sans compte
     await api(`/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'member', id: 'kid1', op: 'put', data: { n: 'Léo Test', parent: club.key, g: 'H', bd: '2014-02-01', r: 'NC', res: [] } }] });
-    await wait(3800);
-    const me = (await api('/api/me/player')).linked;
-    assert.deepEqual([me.sex, me.birthYear, me.padelLevel, me.tennisRank, me.rank], ['F', 1990, 6, '15/2', '1234']);
-    const kid = (await api(`/api/ram/c/${club.id}/sync?since=0`)).items.find(i => i.coll === 'member' && i.id === 'kid1');
-    assert.ok(kid.data._ja, 'la fiche de l’enfant est reliée à son profil du club');
+    // recopie différée : on attend que la fiche et celle de l'enfant soient écrites, pas un délai fixe
+    await until(async () => {
+      const me = (await api('/api/me/player')).linked;
+      assert.deepEqual([me.sex, me.birthYear, me.padelLevel, me.tennisRank, me.rank], ['F', 1990, 6, '15/2', '1234']);
+      return true;
+    });
+    const kid = await until(async () => { const k = (await api(`/api/ram/c/${club.id}/sync?since=0`)).items.find(i => i.coll === 'member' && i.id === 'kid1'); return k && k.data._ja && k; }, { msg: 'la fiche de l’enfant n’est jamais reliée à son profil du club' });
     const fiche = (await api('/api/players/' + kid.data._ja)).player;
     assert.deepEqual([fiche.first, fiche.last, fiche.sex, fiche.birthYear, fiche.club], ['Léo', 'TEST', 'H', 2014, 'TC Fiches']);
 
     // identité du club : l'adresse et les pistes de padel saisies dans /RAM Club servent aux nouveaux tournois /RAM JA
     await api(`/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'conf', id: 'main', op: 'patch', patch: [{ p: ['info', 'addr'], t: 'set', v: '12 allée des Tilleuls' }, { p: ['info', 'pistes'], t: 'set', v: 4 }] }] });
-    await wait(4600);
     await api('/api/me', { club: 'TC Fiches' });
     await api('/api/profile', { profile: { club: 'TC Fiches' } });
-    const { id } = await api('/api/tournaments', { name: 'Open' });
-    const st = await api(`/api/t/${id}/export`);
-    assert.equal(st.tournament.address, '12 allée des Tilleuls');
+    // l'identité est recopiée 4 s après le dernier changement : un nouveau tournoi la reprend dès qu'elle est là
+    // (un tournoi créé trop tôt est supprimé : l'essai limite le nombre de tournois)
+    const st = await until(async () => {
+      const { id, error } = await api('/api/tournaments', { name: 'Open' });
+      assert.ok(id, error);
+      const x = await api(`/api/t/${id}/export`);
+      if (x.tournament && x.tournament.address === '12 allée des Tilleuls') return x;
+      await fetch(B + '/api/tournaments/' + id, { method: 'DELETE', headers: H });
+    }, { every: 500, msg: 'identité du club jamais reprise par un nouveau tournoi' });
     assert.deepEqual(st.courts.map(c => c.name), ['Piste 1', 'Piste 2', 'Piste 3', 'Piste 4']);
   } finally { srv.kill(); }
 });

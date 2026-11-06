@@ -1,7 +1,7 @@
 /* RAM Club : clubs, adhésions, droits d'écriture et synchronisation (stockage fichiers temporaire) */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { freePort } = require('./helpers');
+const { freePort, serverReady } = require('./helpers');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -139,7 +139,7 @@ test('API : créer un compte puis un club, synchroniser', async () => {
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });
   try {
     const B = `http://127.0.0.1:${PORT}`;
-    for (let i = 0; i < 50; i++) { try { await fetch(B + '/'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
+    await serverReady(B);
     assert.equal((await fetch(B + '/api/ram/clubs')).status, 401);
     const su = await fetch(B + '/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'club@exemple.test', password: 'motdepasse1', first: 'Camille', last: 'Roux', club: 'TPC' }) });
     assert.equal(su.status, 200);

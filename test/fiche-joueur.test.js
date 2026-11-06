@@ -1,7 +1,7 @@
 /* Fiche joueur des comptes /RAM : créée à l'inscription, elle suit le profil (nom, licence, classement padel) */
 const test = require('node:test');
 const assert = require('node:assert');
-const { freePort } = require('./helpers');
+const { freePort, serverReady } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
@@ -15,7 +15,7 @@ test('compte /RAM : une fiche joueur par compte, qui suit le profil', async () =
   const players = () => JSON.parse(fs.readFileSync(path.join(DATA, 'joueurs.json'), 'utf8'));
   try {
     const B = `http://127.0.0.1:${PORT}`;
-    for (let i = 0; i < 50; i++) { try { await fetch(B + '/'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
+    await serverReady(B);
     const signup = async email => {
       const r = await fetch(B + '/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: 'motdepasse1', first: 'Paul', last: 'Martin' }) });
       assert.equal(r.status, 200);

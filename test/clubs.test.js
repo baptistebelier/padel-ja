@@ -1,7 +1,7 @@
 /* Référentiel des clubs commun à /RAM JA et /RAM Club : un club = une ligne, retrouvé quelle que soit l'écriture */
 const test = require('node:test');
 const assert = require('node:assert');
-const { freePort } = require('./helpers');
+const { freePort, until, serverReady } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 const { createClubs, clubKey } = require('../lib/clubs.js');
@@ -32,7 +32,7 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
   const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env, stdio: 'pipe' });
   try {
     const B = `http://127.0.0.1:${PORT}`;
-    for (let i = 0; i < 50; i++) { try { await fetch(B + '/'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
+    await serverReady(B);
     const signup = async (email, first, club) => {
       const r = await fetch(B + '/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: 'motdepasse1', first, last: 'Test', club }) });
       assert.equal(r.status, 200);
@@ -59,22 +59,20 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     assert.equal(dir.filter(c => /chiquita/i.test(c.name)).length, 1);
 
     /* adhésions : club du compte (joueur, club de licence) et bureau de l'espace /RAM Club */
-    const wait = () => new Promise(r => setTimeout(r, 1900));   // recopie différée des changements /RAM Club
+    // les changements /RAM Club sont recopiés en différé : on attend l'état attendu, pas un délai fixe
     let mine = (await a('/api/me/clubs')).memberships;
     assert.ok(mine.some(x => x.clubId === ua.clubId && x.role === 'joueur' && x.source === 'compte' && x.licenceClub));
     assert.ok(mine.some(x => x.clubId === ua.clubId && x.role === 'bureau' && x.source === 'ramclub' && x.status === 'actif'));
     // Bruno demande à rejoindre : en attente jusqu'à la validation du bureau
     const space = (await a('/api/ram/clubs')).clubs[0];
     const joined = await b('/api/ram/join', { code: space.code });
-    await wait();
-    const pending = (await b('/api/me/clubs')).memberships.find(x => x.clubId === ua.clubId);
+    const pending = await until(async () => (await b('/api/me/clubs')).memberships.find(x => x.clubId === ua.clubId), { msg: 'demande d’adhésion jamais recopiée' });
     assert.equal(pending.status, 'attente'); assert.equal(pending.role, 'adherent');
     const s = await a(`/api/ram/c/${space.id}/sync?since=0`);
     const item = s.items.find(i => i.coll === 'member' && i.id === joined.key);
     const season = (s.items.find(i => i.coll === 'conf').data || {}).season;
     await a(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'member', id: joined.key, op: 'put', data: Object.assign({}, item.data, { valid: season, req: 0 }) }] });
-    await wait();
-    assert.equal((await b('/api/me/clubs')).memberships.find(x => x.clubId === ua.clubId).status, 'actif');
+    await until(async () => (await b('/api/me/clubs')).memberships.find(x => x.clubId === ua.clubId && x.status === 'actif'), { msg: 'validation jamais recopiée' });
     // validé au club /RAM Club : son club /RAM JA devient celui-ci, et ne se change plus à la main
     const ub3 = (await b('/api/me')).user;
     assert.equal(ub3.clubId, ua.clubId);
@@ -86,15 +84,15 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     const pid = s.items.find(i => i.coll === 'post') ? s.items.find(i => i.coll === 'post').id : 'p-test';
     await a(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'post', id: pid, op: 'put', data: { by: 'club', kind: 'annonce', title: 'Bienvenue', body: '', at: Date.now() } }] });
     await b(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'post', id: pid, op: 'patch', patch: [{ p: ['likers'], t: 'add', v: joined.key }] }] });
-    await new Promise(r => setTimeout(r, 3600));
-    const prog = (await b('/api/me/clubs')).progress.find(x => x.clubId === ua.clubId);
-    assert.ok(prog && prog.points >= 1 && prog.trophies >= 1, JSON.stringify(prog));
+    await until(async () => { const prog = (await b('/api/me/clubs')).progress.find(x => x.clubId === ua.clubId); return prog && prog.points >= 1 && prog.trophies >= 1; }, { msg: 'progression jamais recopiée' });
     // groupes d'entraînement : recopiés en base avec leurs membres et leur enseignant
     await a(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'group', id: 'gtest', op: 'put', data: { type: 'train', name: 'Adultes compétition', day: 2, h: '19 h', dur: '1 h 30', sport: 'Tennis', coach: space.key, mem: [joined.key] } }] });
-    await new Promise(r => setTimeout(r, 3000));
-    const gb = (await b('/api/me/clubs')).groups, ga = (await a('/api/me/clubs')).groups;
-    assert.deepEqual(gb.map(x => [x.name, x.day, x.start, x.role]), [['Adultes compétition', 2, '19 h', 'membre']]);
-    assert.deepEqual(ga.map(x => [x.name, x.role]), [['Adultes compétition', 'enseignant']]);
+    await until(async () => {
+      const gb = (await b('/api/me/clubs')).groups, ga = (await a('/api/me/clubs')).groups;
+      assert.deepEqual(gb.map(x => [x.name, x.day, x.start, x.role]), [['Adultes compétition', 2, '19 h', 'membre']]);
+      assert.deepEqual(ga.map(x => [x.name, x.role]), [['Adultes compétition', 'enseignant']]);
+      return true;
+    });
     // fiche du club : effectifs pour tous, liste nominative pour le bureau seulement
     const fiche = await a('/api/clubs/' + ua.clubId);
     assert.equal(fiche.counts.bureau, 1); assert.equal(fiche.counts.adherent, 1); assert.ok(fiche.bureau);
@@ -103,11 +101,13 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     assert.deepEqual(list.map(x => x.first).sort(), ['Alice', 'Bruno']);
     // quitter le club : l'adhésion /RAM Club disparaît
     await b(`/api/ram/c/${space.id}/remove`, { key: joined.key });
-    await wait();
     // il garde son dernier club, et redevient libre de le changer
-    const after = await b('/api/me/clubs');
-    assert.equal(after.memberships.filter(x => x.clubId === ua.clubId && x.source === 'ramclub').length, 0);
-    assert.equal(after.managed, null);
+    await until(async () => {
+      const after = await b('/api/me/clubs');
+      assert.equal(after.memberships.filter(x => x.clubId === ua.clubId && x.source === 'ramclub').length, 0);
+      assert.equal(after.managed, null);
+      return true;
+    });
     await b('/api/me', { club: 'TC Les Tilleuls' });
     assert.equal((await b('/api/me')).user.club, 'TC Les Tilleuls');
   } finally { srv.kill(); }

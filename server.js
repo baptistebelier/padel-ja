@@ -63,6 +63,7 @@ setInterval(() => {
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
 const agendaLu = Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) });
 const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
+const agendaAlerte = require('./lib/agenda-alerte.js').createAgendaAlerte({ store, agenda: agendaLu, push, Formules, log: m => console.warn('/RAM Coach : ' + m) });   // agenda relié devenu illisible : alerte dans la cloche
 const googleAgenda = require('./lib/google-agenda.js').createGoogleAgenda({ ram, store, coachTables, taches, log: m => console.warn('/RAM Coach : ' + m) });   // les séances écrites dans Google Agenda, en temps réel
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
@@ -1561,7 +1562,11 @@ const server = http.createServer(async (req, res) => {
         const url = Agenda.okIcal((await readBody(req)).url);
         return json(res, 200, url ? await agendaLu.verifier(url) : { ok: false, raison: 'hote' });
       }
-      if (req.method === 'GET') return json(res, 200, { agendas: await Promise.all(((await Formules.get(store, u.id)).icals || []).map(x => agendaLu.verifier(x))) });
+      if (req.method === 'GET') {
+        const urls = (await Formules.get(store, u.id)).icals || [], agendas = await Promise.all(urls.map(x => agendaLu.verifier(x)));
+        agendaAlerte.noter(u.id, urls, agendas, false).catch(() => {});   // un agenda de nouveau lisible quitte la cloche
+        return json(res, 200, { agendas });
+      }
       return json(res, 405, { error: 'Méthode non permise' });
     }
     if (p === '/api/coach/google-agenda') {
@@ -1713,6 +1718,9 @@ server.listen(PORT, '0.0.0.0', () => {
   const rec = setInterval(() => weeklyReconcile().catch(e => console.error('  Remise à plat :', e.message)), 6 * 3600e3); rec.unref();
   setTimeout(() => googleAgenda.tous().catch(e => console.error('  Google Agenda :', e.message)), 90000).unref();
   const gag = setInterval(() => googleAgenda.tous().catch(e => console.error('  Google Agenda :', e.message)), 6 * 3600e3); gag.unref();
+  // agendas reliés de chaque enseignant relus toutes les 2 h : alerte s'ils restent illisibles
+  setTimeout(() => agendaAlerte.tous().catch(e => console.error('  Agendas reliés :', e.message)), 120000).unref();
+  const aga = setInterval(() => agendaAlerte.tous().catch(e => console.error('  Agendas reliés :', e.message)), 2 * 3600e3); aga.unref();
   adhesions.watch(msg => console.error('  ' + msg));
   if (ONLINE && process.env.CALENDLY_TOKEN) Calendly.subscribe(process.env.CALENDLY_TOKEN, (process.env.APP_URL || 'https://ja.riseandmove.fr') + '/api/calendly/webhook')
     .then(r => console.log('  Calendly : webhook ' + (r.deja ? 'déjà inscrit' : 'inscrit'))).catch(e => console.error('  Calendly :', e.message));
