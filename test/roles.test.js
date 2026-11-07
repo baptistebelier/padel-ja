@@ -61,3 +61,16 @@ test('journal : le bureau voit qui a fait quoi, personne d’autre ; personne ne
   assert.equal(refus(await ram.ops(bureau.id, club.id, [{ coll: 'journal', id, op: 'del' }])), 1, 'le journal ne s’efface pas');
   assert.equal(refus(await ram.ops(bureau.id, club.id, [{ coll: 'journal', id: 'jx', op: 'put', data: { act: 'faux' } }])), 1);
 });
+
+test('niveau certifié : posé par l’enseignant, retiré si l’adhérent change lui-même son niveau, jamais forgé', async () => {
+  await ram.ops(coach.id, club.id, [{ coll: 'member', id: k.m, op: 'patch', patch: [{ p: ['pl'], t: 'set', v: 6 }] }]);
+  let m = item(await ram.sync(adh.id, club.id, 0), 'member', k.m);
+  assert.equal(m.cert.pl.by, k.c);
+  assert.equal(m.cert.pl.v, '6');
+  await ram.ops(adh.id, club.id, [{ coll: 'member', id: k.m, op: 'patch', patch: [{ p: ['cert', 'tn'], t: 'set', v: { by: k.c, at: 1, v: '"x"' } }] }]);
+  m = item(await ram.sync(adh.id, club.id, 0), 'member', k.m);
+  assert.equal(m.cert.tn, undefined, 'pas de certification inventée');
+  await ram.ops(adh.id, club.id, [{ coll: 'member', id: k.m, op: 'patch', patch: [{ p: ['pl'], t: 'set', v: 8 }] }]);
+  m = item(await ram.sync(adh.id, club.id, 0), 'member', k.m);
+  assert.equal(m.cert, undefined, 'changé par lui-même : plus certifié');
+});

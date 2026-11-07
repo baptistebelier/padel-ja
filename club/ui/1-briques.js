@@ -36,11 +36,20 @@ const RC = {
   Gérant: 'pres',
   Capitaine: 'cap'
 };
+/* niveau certifié par un enseignant (le serveur le pose ; il tombe si le niveau change ensuite) */
+if (!I.certif)
+  I.certif =
+    '<path d="M12 2.5l2.3 1.9 3-.2.9 2.9 2.6 1.6-1.1 2.8 1.1 2.8-2.6 1.6-.9 2.9-3-.2L12 21.5l-2.3-1.9-3 .2-.9-2.9-2.6-1.6L4.3 12.5 3.2 9.7l2.6-1.6.9-2.9 3 .2z"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/>';
+const certOk = (m, f) => !!(m && m.cert && m.cert[f] && m.cert[f].v === JSON.stringify(m[f]));
+const certIc = (m, f) =>
+  certOk(m, f)
+    ? `<span class="certif" role="img" aria-label="Niveau certifié par un enseignant" title="Niveau certifié par un enseignant">${ic('certif')}</span>`
+    : '';
 /* Un seul classement par personne, choisi selon le sport de l'écran */
 const rk = (id, sport) => {
   const m = M[id],
     tn = m.r && m.r !== 'NC' ? m.r + ' Tennis' : '',
-    pd = m.pl ? 'Niv ' + m.pl + ' Padel' : '';
+    pd = m.pl ? 'Niv ' + m.pl + ' Padel' + certIc(m, 'pl') : '';
   return sport === 'Padel' ? pd || tn : tn || pd;
 };
 function bd(id, sport) {

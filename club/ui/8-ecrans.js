@@ -74,6 +74,16 @@ function murSide() {
   }
 }
 /* ---------- écrans ---------- */
+/* mur : les publications nouvelles depuis ma dernière visite d'abord (badge « Nouveau »), puis un repère
+   « Vous êtes à jour » avant celles déjà vues ; sans nouveauté, le repère se place en tête du mur */
+function murJour(feed) {
+  if (SEEN.prev.home == null) return feed.map(postHTML).join('');
+  const neuf = p => isNew('home', p.at, p.by, p.wr),
+    nb = feed.filter(neuf).length,
+    i = feed.findIndex(p => !p.pin && !neuf(p)),
+    rep = `<div class="ajour" role="separator"><span>${ic('check')}Vous êtes à jour</span><small>${nb ? 'Publications déjà vues' : 'Aucune nouvelle publication depuis ta dernière visite'}</small></div>`;
+  return feed.map((p, j) => (j === i ? rep : '') + postHTML(p)).join('') + (i < 0 && nb ? rep : '');
+}
 const V = {
   home() {
     const v = M[ME()],
@@ -115,7 +125,7 @@ const V = {
       );
     })()}</div>
   ${isAdmin() && CLUBINFO.joined < CLUBINFO.members ? `<div class="pad" style="padding-bottom:4px"><button class="note" data-a="open" data-v="join" style="width:100%;text-align:left">${CLUBINFO.joined} adhérents sur ${CLUBINFO.members} ont rejoint l'appli. <b style="color:var(--accent)">Inviter les autres</b></button></div>` : ''}
-  <div class="feed">${feed.length ? feed.map(postHTML).join('') : emptyCard('home', 'Le mur est vide', 'Les annonces et les résultats du club apparaîtront ici.')}</div>${window.RAM && RAM.postsBefore ? '<div class="pad"><button class="btn ghost full" data-a="ramOlderPosts">Publications plus anciennes</button></div>' : ''}</div>${murSide()}</div>`;
+  <div class="feed">${feed.length ? murJour(feed) : emptyCard('home', 'Le mur est vide', 'Les annonces et les résultats du club apparaîtront ici.')}</div>${window.RAM && RAM.postsBefore ? '<div class="pad"><button class="btn ghost full" data-a="ramOlderPosts">Publications plus anciennes</button></div>' : ''}</div>${murSide()}</div>`;
   },
   chans() {
     const list = chans.filter(c => c.g === S.chanTab && chanOk(c));

@@ -489,6 +489,15 @@ button.tro{width:100%;text-align:left}
 .fr-g i{display:block;height:100%;background:var(--accent);border-radius:6px}
 .fr-bar b{text-align:right}
 .fr-txt{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+/* mur : repère entre les nouvelles publications et celles déjà vues */
+.ajour{display:flex;flex-direction:column;align-items:center;gap:2px;margin:6px 16px 14px;padding:10px 0;border-top:2px solid var(--accent);text-align:center}
+.ajour span{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-sub);font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase}
+.ajour span svg{width:18px;height:18px;padding:3px;border-radius:50%;background:var(--accent);color:var(--on-accent);box-sizing:content-box}
+.ajour small{color:var(--muted);font-size:12px}
+/* niveau certifié par un enseignant */
+.certif{display:inline-grid;place-items:center;vertical-align:-3px;margin-left:4px;color:var(--accent)}
+.certif svg{width:16px;height:16px;fill:currentColor;stroke:var(--card);stroke-width:2}
+.rt .certif svg{width:18px;height:18px}
 .fp-st.now .fp-card{border-color:var(--accent);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 45%,#000),0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
 .fp-lock{position:absolute;top:-9px;right:-7px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:2px solid var(--line);color:var(--muted)}
 .fp-lock svg{width:15px;height:15px}
