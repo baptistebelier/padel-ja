@@ -262,45 +262,98 @@
     const warm = e => { const a = e.target.closest && e.target.closest('a[href^="/"]'); if (!a) return; const url = new URL(a.href, location.href); if (softOk(url) && url.href !== location.href) fetchPage(url.href).catch(() => {}); };
     document.addEventListener('pointerover', warm, { passive: true }); document.addEventListener('touchstart', warm, { passive: true });
   }
-  /* annuaire des clubs commun à /RAM JA et /RAM Club : proposé dans les champs « Club »
-     (tournoi, paires, profil), clubs /RAM Club en premier */
-  function clubList() {
-    let ready = null;
-    document.addEventListener('focusin', e => {
-      const inp = e.target.closest && e.target.closest('input[data-f="club"], input[name="k1"], input[name="k2"], input[name="club"]');
-      if (!inp) return;
-      inp.setAttribute('list', 'ram-clubs');
-      ready = ready || fetch('/api/clubs-directory').then(r => r.json()).then(d => {
-        const dl = document.getElementById('ram-clubs') || (document.querySelector('.rail') || document.body).appendChild(Object.assign(document.createElement('datalist'), { id: 'ram-clubs' }));   // dans le menu : il reste en place d'une page à l'autre
-        dl.innerHTML = (d.clubs || []).map(c => `<option value="${String(c.name).replace(/"/g, '&quot;')}">${c.ramClub ? '/RAM Club' : c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '')}</option>`).join('');
-      }).catch(() => { ready = null; });
+  /* ---------- liste déroulante sous les champs de noms (clubs, juges-arbitres, joueurs, adhérents) ----------
+     Règles : { match(champ), source(texte, champ) → [{ v, l, d }], pick(champ, élément), filtre } ; les pages en ajoutent
+     avec RamSugg.add(règle), ou avant le chargement du menu : (window.RamSuggQ = window.RamSuggQ || []).push(règle). */
+  function suggestions() {
+    const rules = [], fold = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const q = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    let box = null, cur = null, items = [], act = -1, seq = 0, timer = null, skip = false;
+    const css = document.createElement('style');
+    css.textContent = '.rsug{position:fixed;z-index:9999;max-height:280px;overflow-y:auto;background:var(--ui-surface,#fff);color:var(--ui-text,#111);border:2px solid var(--ui-accent-line,#E0284A);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:4px}.rsug button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:9px 10px;border-radius:7px;cursor:pointer;min-height:44px;justify-content:center}.rsug button b{font-weight:700}.rsug button small{font-size:12px;opacity:.7}.rsug button[aria-selected="true"],.rsug button:hover{background:var(--ui-surface-2,#f2f2f2)}';
+    document.head.appendChild(css);
+    const rule = el => el && el.tagName === 'INPUT' && rules.find(r => { try { return r.match(el); } catch (e) { return false; } });
+    const close = () => { if (box) box.hidden = true; items = []; act = -1; };
+    function place() {
+      const r = cur.getBoundingClientRect(), below = innerHeight - r.bottom - 12, above = r.top - 12;
+      box.style.left = Math.max(8, r.left) + 'px'; box.style.width = Math.min(r.width, innerWidth - 16) + 'px';
+      if (below >= 160 || below >= above) { box.style.top = r.bottom + 4 + 'px'; box.style.bottom = ''; box.style.maxHeight = Math.max(120, Math.min(280, below)) + 'px'; }
+      else { box.style.top = ''; box.style.bottom = innerHeight - r.top + 4 + 'px'; box.style.maxHeight = Math.min(280, above) + 'px'; }
+    }
+    function draw() {
+      if (!box) {
+        box = document.createElement('div'); box.className = 'rsug'; box.setAttribute('role', 'listbox'); document.body.appendChild(box);
+        box.addEventListener('pointerdown', e => { e.preventDefault(); const b = e.target.closest('[data-i]'); if (b) pick(+b.dataset.i); });
+      }
+      box.innerHTML = items.map((it, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === act}"><b>${q(it.v)}</b>${it.l ? `<small>${q(it.l)}</small>` : ''}</button>`).join('');
+      box.hidden = !items.length || !cur;
+      if (!box.hidden) place();
+    }
+    async function update(el) {
+      const r = rule(el); if (!r) return;
+      cur = el; el.setAttribute('autocomplete', 'off'); el.removeAttribute('list');
+      const t = el.value.trim(), my = ++seq;
+      let l = await Promise.resolve(r.source(t, el)).catch(() => []);
+      if (my !== seq || cur !== el || document.activeElement !== el) return;
+      if (r.filtre !== false && t) l = l.filter(x => fold(x.v).includes(fold(t)) || fold(x.l).includes(fold(t)));
+      const vus = new Set(); l = l.filter(x => x && x.v && !vus.has(fold(x.v)) && vus.add(fold(x.v)));
+      if (l.length === 1 && fold(l[0].v) === fold(t)) l = [];
+      items = l.slice(0, 8); act = -1; draw();
+    }
+    function pick(i) {
+      const it = items[i], el = cur, r = rule(el); if (!it || !el) return;
+      skip = true; el.value = it.v;
+      ['input', 'change'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
+      skip = false;
+      if (r && r.pick) r.pick(el, it);
+      close();
+    }
+    document.addEventListener('focusin', e => { if (rule(e.target)) update(e.target); });
+    document.addEventListener('input', e => { if (skip || !rule(e.target)) return; clearTimeout(timer); timer = setTimeout(() => update(e.target), 160); });
+    document.addEventListener('keydown', e => {
+      if (!box || box.hidden || e.target !== cur) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); act = (act + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; draw(); }
+      else if (e.key === 'Enter' && act >= 0) { e.preventDefault(); pick(act); }
+      else if (e.key === 'Escape') close();
     });
+    document.addEventListener('focusout', e => { if (e.target === cur) setTimeout(() => { if (document.activeElement !== cur) { close(); cur = null; } }, 150); });
+    addEventListener('resize', () => { if (box && !box.hidden && cur) place(); });
+    document.addEventListener('scroll', () => { if (box && !box.hidden && cur) place(); }, true);
+    window.RamSugg = { add: r => rules.push(r), fold };
+    (window.RamSuggQ || []).forEach(r => rules.push(r));
+    window.RamSuggQ = { push: r => rules.push(r) };
+  }
+  /* annuaire des clubs commun à /RAM JA et /RAM Club : proposé dans les champs « Club »
+     (tournoi, paires, profil, adversaire d'une rencontre), clubs /RAM Club en premier */
+  function clubList() {
+    let annuaire = null;
+    const charger = () => (annuaire = annuaire || fetch('/api/clubs-directory').then(r => r.json()).then(d => (d.clubs || []).map(c => ({ v: c.name, l: [c.city, c.ramClub ? '/RAM Club' : c.tournaments ? c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') }))).catch(() => { annuaire = null; return []; }));
+    window.RamSugg.add({ match: el => el.matches('input[data-f="club"], input[name="k1"], input[name="k2"], input[name="club"], input[data-clubs]'), source: () => charger() });
   }
   /* juges-arbitres /RAM JA proposés dans le champ « Juge-arbitre » (tournoi, préférences) ;
      en choisir un remplit aussi « Qualification JA » (son titre padel en priorité) */
   function jaList() {
-    let found = [], timer = null;
-    const isJa = el => el && el.matches && el.matches('input[data-f="ja"], input[data-p="ja"]');
-    const q = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const label = r => [r.first, r.last].filter(Boolean).join(' ');
-    const load = text => fetch('/api/referees?q=' + encodeURIComponent(text || '')).then(r => r.json()).then(d => {
-      found = d.referees || [];
-      const dl = document.getElementById('ram-ja') || (document.querySelector('.rail') || document.body).appendChild(Object.assign(document.createElement('datalist'), { id: 'ram-ja' }));
-      dl.innerHTML = found.map(r => `<option value="${q(label(r))}">${q([r.titles.join(' · '), r.sameClub ? 'mon club' : r.club].filter(Boolean).join(' — '))}</option>`).join('');
-    }).catch(() => {});
-    document.addEventListener('focusin', e => { if (isJa(e.target)) { e.target.setAttribute('list', 'ram-ja'); if (!found.length) load(''); } });
-    document.addEventListener('input', e => { if (!isJa(e.target)) return; clearTimeout(timer); timer = setTimeout(() => load(e.target.value.trim()), 200); });
-    document.addEventListener('change', e => {
-      const el = e.target; if (!isJa(el)) return;
-      const r = found.find(x => label(x).toLowerCase() === el.value.trim().toLowerCase());
-      const title = r && (r.titles.find(x => /^JAP/.test(x)) || r.titles[0]); if (!title) return;
-      const key = el.dataset.f ? 'data-f' : 'data-p';
-      const box = el.closest('.form, .form2, form') || document, num = box.querySelector(`[${key}="jaNumber"]`);
-      if (!num || num.value === title) return;
-      num.value = title;
-      ['input', 'change'].forEach(t => num.dispatchEvent(new Event(t, { bubbles: true })));   // enregistré comme une saisie
+    window.RamSugg.add({
+      match: el => el.matches('input[data-f="ja"], input[data-p="ja"]'),
+      filtre: false,
+      source: t => fetch('/api/referees?q=' + encodeURIComponent(t || '')).then(r => r.json()).then(d => (d.referees || []).map(r => ({ v: [r.first, r.last].filter(Boolean).join(' '), l: [r.titles.join(' · '), r.sameClub ? 'mon club' : r.club].filter(Boolean).join(' — '), d: r }))),
+      // en choisir un remplit aussi « Qualification JA » (son titre padel en priorité)
+      pick: (el, it) => {
+        const r = it.d, title = r && (r.titles.find(x => /^JAP/.test(x)) || r.titles[0]); if (!title) return;
+        const key = el.dataset.f ? 'data-f' : 'data-p';
+        const box = el.closest('.form, .form2, form') || document, num = box.querySelector(`[${key}="jaNumber"]`);
+        if (!num || num.value === title) return;
+        num.value = title;
+        ['input', 'change'].forEach(t => num.dispatchEvent(new Event(t, { bubbles: true })));
+      }
+    });
+    // joueurs de la base /RAM JA (et adhérents /RAM Club) : champs marqués data-joueurs
+    window.RamSugg.add({
+      match: el => el.hasAttribute('data-joueurs'),
+      filtre: false,
+      source: t => (t.length < 2 ? [] : fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).then(d => (d.players || []).map(p => ({ v: [p.first, p.last].filter(Boolean).join(' '), l: [p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: p }))))
     });
   }
-  const start = () => { build(); clubList(); jaList(); navCursor(); softNav(); sideOut(); };
+  const start = () => { build(); suggestions(); clubList(); jaList(); navCursor(); softNav(); sideOut(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

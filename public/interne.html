@@ -55,6 +55,20 @@
   const $ = s => document.querySelector(s);
   const tid = location.pathname.split('/')[2], base = '/api/t/' + tid;
   let S = null, membres = [], club = true, ouvert = null;
+  /* liste déroulante des participants : adhérents du club (reliés à leur fiche), puis joueurs de la base /RAM JA */
+  (window.RamSuggQ = window.RamSuggQ || []).push({
+    match: el => el.hasAttribute('data-in-joueur'),
+    filtre: false,
+    source: async t => {
+      const f = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), pris = new Set(((S && S.int && S.int.players) || []).flatMap(p => p.ks || []));
+      const l = membres.filter(m => !pris.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ v: m.n, l: 'Adhérent du club · suit le tableau dans /RAM Club' }));
+      if (t.length >= 2) {
+        const d = await fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).catch(() => ({}));
+        (d.players || []).filter(p => p.source !== 'club').forEach(p => l.push({ v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank].filter(Boolean).join(' · ') }));
+      }
+      return l;
+    }
+  });
   document.head.appendChild(Object.assign(document.createElement('script'), { src: '/js/rail.js', defer: true }));
   function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
   async function send(type, payload) {
@@ -84,7 +98,7 @@
     const ligne = p => `<div class="in-p"><span class="n">${esc(p.n)}${(p.ks || []).length ? '' : ' <span class="club">· hors /RAM Club</span>'}</span>${tire ? (p.seed ? `<span class="club">Tête de série ${p.seed}</span>` : '') : `<select data-seed="${p.id}" aria-label="Tête de série"><option value="0">—</option>${Array.from({ length: Math.min(16, i.players.length) }, (_, k) => `<option value="${k + 1}" ${+p.seed === k + 1 ? 'selected' : ''}>TS ${k + 1}</option>`).join('')}</select><button class="ib2" data-del="${p.id}" aria-label="Retirer ${esc(p.n)}">Retirer</button>`}</div>`;
     return `<section class="card"><span class="eyebrow">Participants · ${i.players.length}</span><h2>${i.simple ? 'Joueurs' : 'Équipes'}</h2>
       ${i.players.map(ligne).join('') || '<p class="muted">Ajoute les participants parmi les adhérents du club.</p>'}
-      ${tire ? '' : `<form id="in-add" class="in-add"><input name="a" list="in-mem" placeholder="${i.simple ? 'Nom d’un adhérent' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" list="in-mem" placeholder="Joueur 2" autocomplete="off" required>'}<button class="btn">Ajouter</button></form><datalist id="in-mem">${membres.map(m => `<option value="${esc(m.n)}">`).join('')}</datalist>
+      ${tire ? '' : `<form id="in-add" class="in-add"><input name="a" data-in-joueur placeholder="${i.simple ? 'Tape un nom : adhérents, joueurs /RAM JA' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" data-in-joueur placeholder="Joueur 2" autocomplete="off" required>'}<button class="btn">Ajouter</button></form>
       <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /RAM Club : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
       <div class="in-row" style="margin-top:14px">${tire ? `<button class="btn ghost" id="in-undraw">Annuler le tirage</button><button class="btn ghost" id="in-redraw">Refaire le tirage</button>` : `<button class="btn" id="in-draw" ${i.players.length < 2 ? 'disabled' : ''}>Tirer le tableau</button>`}</div></section>`;
   }

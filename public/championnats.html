@@ -47,7 +47,22 @@
   const HOURS = []; for (let h = 7; h <= 22; h++) HOURS.push(h + ' h', h + ' h 30');
   const FORMATS = ['2 sets gagnants, super tie-break au 3e', '2 sets gagnants, 3e set classique', '1 set de 9 jeux', 'Format court (sets de 4 jeux)', 'Autre (voir le règlement)'];
   const AGES = ['Adultes', 'Jeunes', '+35', '+45', '+55'];
-  let clubs = [], club = null, items = new Map(), sel = { c: null, t: null, r: null };
+  let clubs = [], club = null, items = new Map(), sel = { c: null, t: null, r: null }, choisi = null;
+  /* liste déroulante « Ajouter un joueur » : adhérents pas encore dans l'équipe, puis joueurs de la base /RAM JA */
+  (window.RamSuggQ = window.RamSuggQ || []).push({
+    match: el => el.hasAttribute('data-ch-joueur'),
+    filtre: false,
+    source: async t => {
+      const g = sel.t && get('group', sel.t), dans = new Set((g && g.mem) || []), f = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const l = membres().filter(m => !dans.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ v: m.n, l: 'Adhérent du club', d: { k: m.k } }));
+      if (t.length >= 2) {
+        const d = await fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).catch(() => ({}));
+        (d.players || []).filter(p => p.source !== 'club').forEach(p => l.push({ v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank].filter(Boolean).join(' · '), d: { p } }));
+      }
+      return l;
+    },
+    pick: (el, it) => { choisi = it; }
+  });
   const toast = t => { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); };
   const api = async (p, body) => { const r = await fetch(p, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Erreur ' + r.status); return d; };
   const all = coll => [...items.values()].filter(i => i.coll === coll).map(i => i.data);
@@ -96,9 +111,9 @@
     return `<section class="card"><span class="eyebrow">Joueurs · ${mem.length}</span><h2>${esc(t.name)}</h2>
       <label>Capitaine<select id="t-cap"><option value="">—</option>${mem.map(k => `<option value="${k}" ${t.cap === k ? 'selected' : ''}>${esc(nom(k))}</option>`).join('')}</select></label>
       ${mem.map(k => `<div class="ch-p"><span class="n">${esc(nom(k))}</span><select data-ros="${k}" aria-label="Rôle de ${esc(nom(k))}"><option value="T" ${ros[k] !== 'R' ? 'selected' : ''}>Titulaire</option><option value="R" ${ros[k] === 'R' ? 'selected' : ''}>Remplaçant</option></select><button class="ib2" data-out="${k}">Retirer</button></div>`).join('') || '<p class="ch-empty">Ajoute les joueurs de l’équipe.</p>'}
-      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" list="ch-mem" placeholder="Nom d’un adhérent" required autocomplete="off"></label><button class="btn">Ajouter</button></form><datalist id="ch-mem">${dispo.map(m => `<option value="${esc(m.n)}">`).join('')}</datalist></section>
+      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" data-ch-joueur placeholder="Tape un nom : adhérents du club, joueurs /RAM JA" required autocomplete="off"></label><button class="btn">Ajouter</button></form><p class="muted small">Un joueur qui n’est pas encore dans /RAM Club y reçoit une fiche du club (sans compte) : il apparaît dans l’équipe et ses statistiques.</p></section>
       <section class="card"><span class="eyebrow">Calendrier</span><h2>Rencontres</h2><div class="ch-list">${recsOf(t.id).map(r => `<button class="ch-it" data-r="${r.id}" aria-pressed="${sel.r === r.id}"><span class="n">${esc(r.opp)}<br><small>${esc(fmtD(r.d))} · ${esc(r.h || '')} · ${domicile(r) ? 'à domicile' : "à l'extérieur"}${r.lieu ? ' · ' + esc(r.lieu) : ''}${r.comp ? ' · ' + esc(r.comp) : ''}</small></span><small>${r.st === 'done' ? 'Jouée ' + score(r).join('-') : Object.keys(r.lineup || {}).length ? 'Convocations envoyées' : 'À composer'}</small></button>`).join('') || '<p class="ch-empty">Aucune rencontre programmée.</p>'}</div>
-      <form id="r-new" class="grid" style="margin-top:12px"><div class="ch-row"><label>Adversaire<input name="opp" required maxlength="80" placeholder="TC Brive"></label><label>Journée<input name="comp" maxlength="60" placeholder="Journée 3"></label></div>
+      <form id="r-new" class="grid" style="margin-top:12px"><div class="ch-row"><label>Adversaire<input name="opp" data-clubs required maxlength="80" placeholder="TC Brive" autocomplete="off"></label><label>Journée<input name="comp" maxlength="60" placeholder="Journée 3"></label></div>
       <div class="ch-row"><label>Date<input type="date" name="d" required></label><label>Heure<select name="h">${HOURS.map(h => `<option ${h === '14 h' ? 'selected' : ''}>${h}</option>`).join('')}</select></label><label>Où<select name="dom"><option value="1">À domicile</option><option value="0">À l’extérieur</option></select></label><label style="flex:2 1 220px">Lieu (adresse, club adverse)<input name="lieu" maxlength="120"></label></div>
       <div><button class="btn">Programmer la rencontre</button></div></form></section>`;
   }
@@ -114,7 +129,7 @@
     return `<section class="card"><span class="eyebrow">${esc(fmtD(r.d))} · ${esc(r.h || '')} · ${domicile(r) ? 'à domicile' : "à l'extérieur"}</span><h2>${esc(t.name)} contre ${esc(r.opp)}</h2>
       <h3>Composition et convocations</h3><p class="muted small">Chaque joueur convoqué est prévenu dans /RAM Club et répond présent ou absent ; le capitaine reçoit les réponses.</p>
       ${mem.map(k => `<div class="ch-p"><span class="n">${esc(nom(k))}</span>${lu[k] ? `<span class="ch-tag ${conv[k] === 'ok' ? 'ok' : conv[k] === 'no' ? 'no' : 'wait'}">${lab[conv[k]] || 'Sans réponse'}</span>` : ''}<select data-lu="${k}" aria-label="Convocation de ${esc(nom(k))}"><option value="">Non convoqué</option><option value="T" ${lu[k] === 'T' ? 'selected' : ''}>Titulaire</option><option value="R" ${lu[k] === 'R' ? 'selected' : ''}>Remplaçant</option></select></div>`).join('')}
-      <h3 style="margin-top:18px">Résultats</h3><form id="r-res" class="ch-ms">${lignes.map((x, i) => { const m = ms.find(y => y.l === x.l) || {}, a = Array.isArray(m.a) ? m.a : [m.a]; return `<div class="ch-m" data-i="${i}"><b>${x.l}</b><span class="ch-row" style="gap:6px"><select name="a${i}">${opt(a[0])}</select>${x.dbl ? `<select name="b${i}">${opt(a[1])}</select>` : ''}</span><input name="o${i}" placeholder="Adversaire" value="${esc(Array.isArray(m.b) ? m.b[0] || '' : m.b || '')}"><input name="s${i}" placeholder="6-3 6-4" value="${esc((m.sets || []).map(s => s.join('-')).join(' '))}"><select name="w${i}"><option value="">—</option><option value="0" ${m.st === 'done' && m.w === 0 ? 'selected' : ''}>Gagné</option><option value="1" ${m.st === 'done' && m.w === 1 ? 'selected' : ''}>Perdu</option></select></div>`; }).join('')}
+      <h3 style="margin-top:18px">Résultats</h3><form id="r-res" class="ch-ms">${lignes.map((x, i) => { const m = ms.find(y => y.l === x.l) || {}, a = Array.isArray(m.a) ? m.a : [m.a]; return `<div class="ch-m" data-i="${i}"><b>${x.l}</b><span class="ch-row" style="gap:6px"><select name="a${i}">${opt(a[0])}</select>${x.dbl ? `<select name="b${i}">${opt(a[1])}</select>` : ''}</span><input name="o${i}" data-joueurs autocomplete="off" placeholder="Adversaire" value="${esc(Array.isArray(m.b) ? m.b[0] || '' : m.b || '')}"><input name="s${i}" placeholder="6-3 6-4" value="${esc((m.sets || []).map(s => s.join('-')).join(' '))}"><select name="w${i}"><option value="">—</option><option value="0" ${m.st === 'done' && m.w === 0 ? 'selected' : ''}>Gagné</option><option value="1" ${m.st === 'done' && m.w === 1 ? 'selected' : ''}>Perdu</option></select></div>`; }).join('')}
       <div class="ch-row"><button class="btn">Enregistrer les résultats</button><button type="button" class="btn ghost" id="r-del">Supprimer la rencontre</button></div></form></section>`;
   }
   function render() {
@@ -140,7 +155,18 @@
       on('#t-cap', 'onchange', e => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['cap'], t: 'set', v: e.target.value }] }], 'Capitaine choisi · il est prévenu'));
       document.querySelectorAll('[data-ros]').forEach(s => (s.onchange = () => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['roster', s.dataset.ros], t: 'set', v: s.value }] }])));
       document.querySelectorAll('[data-out]').forEach(b => (b.onclick = () => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'rm', v: b.dataset.out }, { p: ['roster', b.dataset.out], t: 'unset' }] }], 'Joueur retiré')));
-      on('#t-add', 'onsubmit', async e => { e.preventDefault(); const m = membres().find(x => x.n.toLowerCase() === e.target.n.value.trim().toLowerCase()); if (!m) return toast('Choisis un adhérent dans la liste'); await ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: m.k }, { p: ['roster', m.k], t: 'set', v: 'T' }] }], m.n + ' ajouté · il est prévenu'); });
+      on('#t-add', 'onsubmit', async e => {
+        e.preventDefault();
+        const n = e.target.n.value.trim(), m = membres().find(x => x.n.toLowerCase() === n.toLowerCase());
+        if (m) return ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: m.k }, { p: ['roster', m.k], t: 'set', v: 'T' }] }], m.n + ' ajouté · il est prévenu');
+        if (!n) return;
+        // pas encore dans /RAM Club : une fiche du club sans compte, reprise de la base /RAM JA si on l'y a choisi
+        const p = choisi && choisi.v === n && choisi.d && choisi.d.p, k = 'm' + Date.now().toString(36), conf = get('conf', 'main') || {};
+        const fiche = Object.assign({ n, r: (p && /^\d|NC|^-/.test(p.rank || '') ? p.rank : '') || 'NC', g: 'H', via: '/RAM JA', valid: conf.season || '' }, p && p.licence ? { lic: p.licence } : {});
+        if (!confirm(n + ' n’est pas encore dans /RAM Club. Lui créer une fiche du club (sans compte) et l’ajouter à l’équipe ?')) return;
+        await ops([{ coll: 'member', id: k, op: 'put', data: fiche }, { coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: k }, { p: ['roster', k], t: 'set', v: 'T' }] }], n + ' ajouté à l’équipe');
+        choisi = null;
+      });
       on('#r-new', 'onsubmit', async e => {
         e.preventDefault(); const f = e.target, id = nid('r'), dom = f.dom.value === '1';
         const data = { tid: t.id, opp: f.opp.value.trim(), comp: f.comp.value.trim(), d: f.d.value, h: f.h.value, dom, lieu: f.lieu.value.trim(), when: fmtD(f.d.value) + ' · ' + f.h.value + ' · ' + (dom ? 'à domicile' : "à l'extérieur"), st: 'soon', lineup: {}, conv: {}, ms: [] };
