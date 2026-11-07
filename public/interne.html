@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#120A0C">
+<link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
+<title>Tournoi interne — /RAM JA</title>
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/shell.css">
+<link rel="stylesheet" href="/css/street.css">
+<script src="/js/theme.js"></script>
+<script src="/js/interne.js"></script>
+<style>
+/* Tournoi interne : réglages, participants, tableau à élimination sur plusieurs semaines */
+.in-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+.in-row label { flex: 1 1 160px; }
+.in-p { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--ui-r-sm); background: var(--ui-surface-2); margin-top: 6px; min-width: 0; }
+.in-p .n { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.in-p .club { font-size: 12px; color: var(--ui-text-mut); }
+.in-p select { width: auto; flex: none; }
+.ib2 { border: 0; background: transparent; color: var(--ui-text-mut); cursor: pointer; padding: 6px 8px; border-radius: 8px; font: inherit; }
+.ib2:hover { background: var(--ui-surface); color: var(--ui-text); }
+.in-add { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.in-add input { flex: 1 1 200px; }
+.in-tab { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+.in-col { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; }
+.in-col h3 { font-family: var(--label); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ui-text-mut); margin: 0 0 4px; }
+.in-col .fin { font-size: 12px; color: var(--ui-text-mut); }
+.in-m { border: 2px solid var(--ui-border); border-radius: var(--ui-r-sm); background: var(--ui-surface-2); padding: 8px 10px; cursor: pointer; text-align: left; font: inherit; color: var(--ui-text); width: 100%; }
+.in-m:hover { border-color: var(--ui-accent-line); }
+.in-m .j { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.in-m .j.w { font-weight: 800; }
+.in-m .j.l { opacity: .55; }
+.in-m .st { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: var(--ui-surface); }
+.in-m.pending { border-color: #E3A33A; } .in-m.pending .st { background: #E3A33A; color: #111; }
+.in-m.contest { border-color: var(--ui-accent2, #E0284A); } .in-m.contest .st { background: var(--ui-accent2, #E0284A); color: #fff; }
+.in-m.bye { opacity: .5; cursor: default; }
+.in-fins { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.in-modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.in-modal > div { background: var(--ui-surface); color: var(--ui-text); border-radius: 14px; padding: 18px; width: min(460px, 100%); display: grid; gap: 12px; }
+.in-modal label.chk { display: flex; align-items: center; gap: 10px; flex-direction: row; }
+.in-modal label.chk input { width: auto; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ui-text); color: var(--ui-surface); padding: 12px 18px; border-radius: 10px; z-index: 99; font-weight: 600; max-width: calc(100vw - 32px); }
+.in-places li { padding: 4px 0; }
+</style>
+</head>
+<body class="acct" data-page="tournois">
+<main class="page" id="app"><p class="muted">Chargement…</p></main>
+<script>
+(function () {
+  'use strict';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = s => document.querySelector(s);
+  const tid = location.pathname.split('/')[2], base = '/api/t/' + tid;
+  let S = null, membres = [], club = true, ouvert = null;
+  document.head.appendChild(Object.assign(document.createElement('script'), { src: '/js/rail.js', defer: true }));
+  function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
+  async function send(type, payload) {
+    const r = await fetch(base + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, payload: payload || {} }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { toast(d.error || 'Action refusée'); return false; }
+    return true;
+  }
+  const I = () => S.int, nom = id => Int.nomDe(I(), id) || '…';
+  const dateFr = d => (d ? d.split('-').reverse().join('/') : '');
+
+  function reglages() {
+    const t = S.tournament, i = I(), tire = !!i.bracket;
+    return `<section class="card"><span class="eyebrow">Réglages</span><h2>Le tournoi</h2>
+      <form id="in-set" class="grid">
+        <div class="in-row"><label>Nom<input name="name" value="${esc(t.name)}" maxlength="80"></label><label>Club<input name="club" value="${esc(t.club)}" maxlength="80"></label></div>
+        <div class="in-row"><label>Sport<select name="sport" ${tire ? 'disabled' : ''}><option ${i.sport === 'Tennis' ? 'selected' : ''}>Tennis</option><option ${i.sport === 'Padel' ? 'selected' : ''}>Padel</option></select></label>
+        <label>Tableau<select name="simple" ${tire ? 'disabled' : ''}><option value="1" ${i.simple ? 'selected' : ''}>Simple</option><option value="0" ${i.simple ? '' : 'selected'}>Double</option></select></label>
+        <label>Début<input type="date" name="dateStart" value="${esc(t.dateStart || '')}"></label><label>Fin prévue<input type="date" name="dateEnd" value="${esc(t.dateEnd || '')}"></label></div>
+        <label>Règlement et organisation (visibles par les joueurs dans /RAM Club)<textarea name="regle" rows="6" maxlength="8000" placeholder="Format des matchs, balles, réservation des courts, délais, forfaits…">${esc(i.regle || '')}</textarea></label>
+        <label class="chk" style="display:flex;flex-direction:row;gap:10px;align-items:center"><input type="checkbox" name="pub" style="width:auto" ${t.regMode === 'none' ? '' : 'checked'}>Publier sur /RAM Club (tableau, règlement et participants pour les adhérents)</label>
+        <div><button class="btn">Enregistrer</button></div>
+      </form>${club ? '' : '<p class="muted small">Le club de ce tournoi n’a pas encore d’espace /RAM Club : le tournoi ne pourra pas y être publié.</p>'}</section>`;
+  }
+  function participants() {
+    const i = I(), tire = !!i.bracket;
+    const ligne = p => `<div class="in-p"><span class="n">${esc(p.n)}${(p.ks || []).length ? '' : ' <span class="club">· hors /RAM Club</span>'}</span>${tire ? (p.seed ? `<span class="club">Tête de série ${p.seed}</span>` : '') : `<select data-seed="${p.id}" aria-label="Tête de série"><option value="0">—</option>${Array.from({ length: Math.min(16, i.players.length) }, (_, k) => `<option value="${k + 1}" ${+p.seed === k + 1 ? 'selected' : ''}>TS ${k + 1}</option>`).join('')}</select><button class="ib2" data-del="${p.id}" aria-label="Retirer ${esc(p.n)}">Retirer</button>`}</div>`;
+    return `<section class="card"><span class="eyebrow">Participants · ${i.players.length}</span><h2>${i.simple ? 'Joueurs' : 'Équipes'}</h2>
+      ${i.players.map(ligne).join('') || '<p class="muted">Ajoute les participants parmi les adhérents du club.</p>'}
+      ${tire ? '' : `<form id="in-add" class="in-add"><input name="a" list="in-mem" placeholder="${i.simple ? 'Nom d’un adhérent' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" list="in-mem" placeholder="Joueur 2" autocomplete="off" required>'}<button class="btn">Ajouter</button></form><datalist id="in-mem">${membres.map(m => `<option value="${esc(m.n)}">`).join('')}</datalist>
+      <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /RAM Club : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
+      <div class="in-row" style="margin-top:14px">${tire ? `<button class="btn ghost" id="in-undraw">Annuler le tirage</button><button class="btn ghost" id="in-redraw">Refaire le tirage</button>` : `<button class="btn" id="in-draw" ${i.players.length < 2 ? 'disabled' : ''}>Tirer le tableau</button>`}</div></section>`;
+  }
+  function tableau() {
+    const i = I(); if (!i.bracket) return '';
+    const R = i.bracket.rounds, nb = R.length;
+    const fins = `<div class="in-fins">${R.map((l, r) => `<label>${esc(Int.tourNom(r, nb))}<input type="date" data-fin="${r}" value="${esc((i.tours[r] || {}).fin || '')}"></label>`).join('')}</div>`;
+    const boite = m => {
+      const e = Int.etat(m), cls = m.bye ? 'bye' : m.conteste ? 'contest' : e === 'pending' ? 'pending' : '';
+      const st = m.bye ? 'Exempt' : m.conteste ? 'Contesté' : e === 'pending' ? 'À confirmer' : e === 'done' ? (m.wo ? 'Forfait' : 'Joué') : e === 'ready' ? 'À jouer' : 'En attente';
+      const j = x => `<div class="j ${m.w ? (m.w === x ? 'w' : 'l') : ''}"><span>${esc(x ? nom(x) : '…')}</span>${m.w === x && m.sc ? `<span>${esc(m.sc)}</span>` : ''}</div>`;
+      return `<button class="in-m ${cls}" ${m.bye ? 'disabled' : `data-m="${m.id}"`}>${j(m.a)}${j(m.b)}<span class="st">${st}</span></button>`;
+    };
+    return `<section class="card"><span class="eyebrow">Dates limites</span><h2>Un tour, une date</h2><p class="muted small">Les joueurs reçoivent un rappel deux jours avant la date limite de leur match.</p>${fins}</section>
+      <section class="card"><span class="eyebrow">${i.status === 'done' ? 'Tournoi terminé' : 'En cours'}</span><h2>Tableau</h2><p class="muted small">Touche un match pour saisir ou corriger son résultat, trancher une contestation ou déclarer un forfait.</p>
+      <div class="in-tab">${R.map((l, r) => `<div class="in-col"><h3>${esc(Int.tourNom(r, nb))}${(i.tours[r] || {}).fin ? ` <span class="fin">· avant le ${dateFr(i.tours[r].fin)}</span>` : ''}</h3>${l.map(boite).join('')}</div>`).join('')}</div></section>`;
+  }
+  function classement() {
+    const pl = Int.places(I()); if (!pl.length) return '';
+    return `<section class="card"><span class="eyebrow">Classement</span><h2>${esc(nom(pl[0].id))} remporte le tournoi</h2><ol class="in-places">${pl.slice(0, 8).map(x => `<li>${x.place === 1 ? 'Vainqueur' : x.place === 2 ? 'Finaliste' : x.place + (x.lo && x.lo !== x.place ? '-' + x.lo : '') + 'e'} : ${esc(nom(x.id))}</li>`).join('')}</ol></section>`;
+  }
+  function render() {
+    if (!S || !S.int) return;
+    document.title = S.tournament.name + ' — /RAM JA';
+    const i = I(), fini = i.status === 'done';
+    $('#app').innerHTML = `<div class="page-h"><span class="eyebrow">Tournoi interne · ${esc(i.sport)} · ${i.simple ? 'simple' : 'double'}</span><h1>${esc(S.tournament.name)}</h1>
+      <div class="in-row">${fini ? '<button class="btn ghost" id="in-reopen">Rouvrir le tournoi</button>' : i.bracket ? '<button class="btn ghost" id="in-close">Clôturer le tournoi</button>' : ''}</div></div>
+      <div class="grid">${classement()}${tableau()}</div>
+      <div class="grid g-2" style="align-items:start;margin-top:16px"><div class="grid">${participants()}</div><div class="grid">${reglages()}</div></div>`;
+    bind();
+  }
+  function modal(m) {
+    const d = document.createElement('div'); d.className = 'in-modal';
+    d.innerHTML = `<div role="dialog" aria-label="Résultat du match"><h2 style="margin:0">${esc(nom(m.a))} contre ${esc(nom(m.b))}</h2>
+      ${m.conteste ? `<p class="note">Contestation : ${esc(m.conteste)}</p>` : ''}${m.w && !m.conf ? `<p class="muted">Saisi par ${esc(nom(m.by))}, en attente de la confirmation de l’adversaire.</p>` : ''}
+      <form id="in-res" class="grid"><fieldset style="border:0;padding:0;margin:0"><legend>Vainqueur</legend>
+      <label class="chk"><input type="radio" name="w" value="${m.a}" ${m.w === m.a ? 'checked' : ''} required>${esc(nom(m.a))}</label>
+      <label class="chk"><input type="radio" name="w" value="${m.b}" ${m.w === m.b ? 'checked' : ''}>${esc(nom(m.b))}</label></fieldset>
+      <label>Score<input name="sc" value="${esc(m.sc || '')}" placeholder="6-3 6-4" maxlength="60"></label>
+      <label class="chk"><input type="checkbox" name="wo" ${m.wo ? 'checked' : ''}>Victoire par forfait</label>
+      <div class="in-row"><button class="btn">Valider le résultat</button>${m.w ? '<button type="button" class="btn ghost" id="in-reset">Effacer</button>' : ''}<button type="button" class="btn ghost" id="in-x">Fermer</button></div></form></div>`;
+    document.body.appendChild(d);
+    const close = () => d.remove();
+    d.addEventListener('click', e => { if (e.target === d) close(); });
+    d.querySelector('#in-x').onclick = close;
+    if (d.querySelector('#in-reset')) d.querySelector('#in-reset').onclick = async () => { if (await send('int/reset', { m: m.id })) { close(); toast('Résultat effacé'); } };
+    d.querySelector('#in-res').onsubmit = async e => {
+      e.preventDefault();
+      const f = e.target;
+      if (await send('int/result', { m: m.id, w: f.w.value, sc: f.sc.value.trim(), wo: f.wo.checked })) { close(); toast('Résultat validé'); }
+    };
+  }
+  function bind() {
+    const set = $('#in-set');
+    if (set) set.onsubmit = async e => {
+      e.preventDefault();
+      const f = e.target, p = { name: f.name.value.trim(), club: f.club.value.trim(), dateStart: f.dateStart.value, dateEnd: f.dateEnd.value, regle: f.regle.value, regMode: f.pub.checked ? '' : 'none' };
+      if (!f.sport.disabled) { p.sport = f.sport.value; p.simple = f.simple.value === '1'; }
+      if (await send('int/setup', p)) toast('Réglages enregistrés');
+    };
+    const add = $('#in-add');
+    if (add) add.onsubmit = async e => {
+      e.preventDefault();
+      const f = e.target, noms = [f.a.value.trim(), f.b ? f.b.value.trim() : ''].filter(Boolean);
+      const ks = noms.map(n => (membres.find(m => m.n.toLowerCase() === n.toLowerCase()) || {}).k).filter(Boolean);
+      if (await send('int/player/add', { n: noms.join(' / '), ks })) { f.reset(); f.a.focus(); }
+    };
+    document.querySelectorAll('[data-seed]').forEach(s => (s.onchange = () => send('int/player/seed', { id: s.dataset.seed, seed: +s.value })));
+    document.querySelectorAll('[data-del]').forEach(b => (b.onclick = () => send('int/player/remove', { id: b.dataset.del })));
+    document.querySelectorAll('[data-fin]').forEach(i => (i.onchange = () => send('int/tour', { r: +i.dataset.fin, fin: i.value })));
+    document.querySelectorAll('[data-m]').forEach(b => (b.onclick = () => { const m = Int.findM(I(), b.dataset.m); if (!m) return; if (!(m.a && m.b)) return toast('Ce match attend encore ses joueurs.'); modal(m); }));
+    const on = (id, f) => { const el = $(id); if (el) el.onclick = f; };
+    on('#in-draw', async () => { if (await send('int/draw')) toast('Tableau tiré : chaque joueur est prévenu de son adversaire'); });
+    on('#in-redraw', async () => { if (confirm('Refaire le tirage ? Les joueurs seront prévenus de leur nouvel adversaire.') && await send('int/draw', { reseed: true })) toast('Nouveau tirage'); });
+    on('#in-undraw', async () => { if (confirm('Annuler le tirage ?')) await send('int/undraw'); });
+    on('#in-close', async () => { if (!confirm('Clôturer le tournoi ? Plus aucun résultat ne pourra être saisi.')) return; const r = await fetch('/api/tournaments/' + tid + '/close', { method: 'POST' }); if (r.ok) toast('Tournoi clôturé'); });
+    on('#in-reopen', async () => { const r = await fetch('/api/tournaments/' + tid + '/reopen', { method: 'POST' }); if (r.ok) toast('Tournoi rouvert'); });
+  }
+  const es = new EventSource(base + '/events');
+  es.onmessage = ev => { const d = JSON.parse(ev.data); if (d.state) { S = d.state; render(); } };
+  fetch(base + '/membres').then(r => r.json()).then(d => { membres = d.membres || []; club = d.club !== false; render(); }).catch(() => {});
+})();
+</script>
+</body>
+</html>

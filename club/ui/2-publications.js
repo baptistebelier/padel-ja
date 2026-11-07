@@ -110,6 +110,7 @@ function postBody(p) {
   if (k === 'teamfinal') return tfPost(p);
   if (k === 'promo' && typeof promoPost === 'function') return promoPost(p);
   if (k === 'formp' && typeof formPost === 'function') return formPost(p);
+  if (k === 'jaint' && p.ja && typeof intPost === 'function') return intPost(p);
   if (k === 'annonce' || k === 'event' || k === 'cta') {
     const usePoster = p.img || k === 'event';
     return (

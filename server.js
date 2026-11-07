@@ -13,11 +13,13 @@ const os = require('os');
 const crypto = require('crypto');
 const Engine = require('./public/js/engine.js');
 const Ani = require('./public/js/animation.js');
+const Int = require('./public/js/interne.js');   // tournoi interne d'un club (tableau sur plusieurs semaines)
 const Securite = require('./lib/securite.js');   // en-têtes de sécurité des pages, nettoyage des textes reçus
 const Agenda = require('./lib/agenda.js');   // /RAM Réservation : lien vers Google Agenda et agendas reliés
 const Formules = require('./lib/formules.js');   // /RAM Coach : formules, packs et abonnements de chaque enseignant
 const Echelles = require('./lib/echelles.js');   // /RAM Coach : échelles de niveaux de chaque enseignant   // animations : americano, mexicano, par équipes, montée-descente
-const reducerOf = T => (Ani.isAnimation(T) ? Ani : Engine);
+const reducerOf = T => (Int.isInterne(T) ? Int : Ani.isAnimation(T) ? Ani : Engine);
+const autreMoteur = T => Ani.isAnimation(T) || Int.isInterne(T);   // pas un tournoi FFT : son propre état
 const { createStore, norm } = require('./lib/store.js');
 const Backup = require('./lib/backup.js');
 const Retention = require('./lib/retention.js');
@@ -283,7 +285,7 @@ async function getRoom(id) {
   const row = await store.getTournament(id);
   if (!row) return null;
   if (rooms.has(id)) return rooms.get(id);
-  row.state = Ani.isAnimation(row.state) ? row.state : Engine.migrate(row.state || Engine.initialState());
+  row.state = autreMoteur(row.state) ? row.state : Engine.migrate(row.state || Engine.initialState());
   room = { row, rev: 1, history: [], clients: new Set(), timer: null, seen: Date.now() };
   rooms.set(id, room);
   return room;
@@ -378,8 +380,8 @@ async function access(req, url, room) {
 
 async function newTournament(owner, opts) {
   // animation (americano…) : son propre état, son propre moteur
-  const state = opts.animation ? Ani.initialState(opts.animation) : Engine.initialState();
-  if (!opts.animation) {
+  const state = opts.interne ? Int.initialState(opts.interne) : opts.animation ? Ani.initialState(opts.animation) : Engine.initialState();
+  if (!opts.animation && !opts.interne) {
     if (opts.demo) Engine.reduce(state, { type: 'demo/load', payload: { n: 16 } });
     if (opts.profile) Engine.reduce(state, { type: 'profile/apply', payload: { profile: opts.profile } });
     if (opts.template) Engine.reduce(state, { type: 'template/apply', payload: { template: opts.template } });
@@ -394,7 +396,7 @@ async function newTournament(owner, opts) {
     const defCourts = state.courts.every((c, i) => c.name === 'Terrain ' + (i + 1));
     if (cl.padel_courts && defCourts) state.courts = Array.from({ length: Math.min(16, cl.padel_courts) }, (_, i) => ({ id: 'c' + (i + 1), name: 'Piste ' + (i + 1), start: state.tournament.startTime || '09:00' }));
   }
-  if (opts.state) Object.assign(state, Ani.isAnimation(opts.state) ? JSON.parse(JSON.stringify(opts.state)) : Engine.migrate(JSON.parse(JSON.stringify(opts.state))));
+  if (opts.state) Object.assign(state, autreMoteur(opts.state) ? JSON.parse(JSON.stringify(opts.state)) : Engine.migrate(JSON.parse(JSON.stringify(opts.state))));
   const row = { id: Auth.randomId(10), owner, key: Auth.randomId(16), pin: Auth.randomPin(), created_at: Date.now(), updated_at: Date.now(), state };
   await store.saveTournament(row);
   return row;
@@ -420,6 +422,8 @@ function applyServerAction(room, action) {
 
 /* tournois et animations publiés sur /RAM Club, inscriptions depuis l'appli du club (lib/jaclub.js) */
 const jaClub = require('./lib/jaclub.js').createJaClub({ store, ram, clubs, Engine, Ani, getRoom, applyServerAction, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) } });
+// tournois internes : rappel aux joueurs deux jours avant la date limite de leur tour
+{ const t = setInterval(() => jaClub.relances(() => store.listAllTournaments()).catch(e => console.error('Rappels des tournois internes :', e.message)), 3 * 3600000); if (t.unref) t.unref(); }
 
 /* ---------------------------------------------------------------------
    base de joueurs : un joueur = une licence (ou, à défaut, NOM + prénom)
@@ -629,6 +633,11 @@ async function interClubRankings(season) {
 
 async function closeTournament(room, u) {
   const T = room.row.state;
+  // tournoi interne : terminé par son moteur
+  if (Int.isInterne(T)) {
+    try { applyServerAction(room, { type: 'int/finish' }); } catch (e) { return { error: e.message }; }
+    return { ok: true, saved: 0, skipped: 0, unfinished: 0, guest: !!u.guest };
+  }
   // animation : terminée par son moteur (classement figé), sans résultats FFT à enregistrer
   if (Ani.isAnimation(T)) {
     try { applyServerAction(room, { type: 'ani/finish' }); } catch (e) { return { error: e.message }; }
@@ -850,7 +859,7 @@ const server = http.createServer(async (req, res) => {
         const row = await store.getTournament(m[1]);
         if (!row) return redirect(res, '/app');
         if (!uid || uid !== row.owner) return redirect(res, '/connexion?retour=' + encodeURIComponent(p));
-        return sendFile(res, Ani.isAnimation(row.state) ? '/animation.html' : '/editor.html');
+        return sendFile(res, Int.isInterne(row.state) ? '/interne.html' : Ani.isAnimation(row.state) ? '/animation.html' : '/editor.html');
       }
       // animation : une seule page, qui s'adapte (écran TV, saisie des scores par les joueurs)
       const room = await getRoom(m[1]).catch(() => null);
@@ -1277,6 +1286,8 @@ const server = http.createServer(async (req, res) => {
         let opts = { name: b.name, demo: !!b.demo, profile: u.guest ? null : await store.getProfile(u.id) };
         // animation (americano, mexicano, par équipes, montée-descente)
         if (b.kind === 'animation') opts = { animation: { format: b.format, name: b.name, club: (opts.profile && opts.profile.club) || u.club || '' } };
+        // tournoi interne du club : tableau à élimination sur plusieurs semaines, joué et suivi dans /RAM Club
+        if (b.kind === 'interne') opts = { interne: { name: b.name, sport: b.sport, club: (opts.profile && opts.profile.club) || u.club || '' } };
         if (b.template) {
           const mine = await store.getTemplates(u.id);
           opts.template = Engine.PRESETS.find(t => t.id === b.template) || mine.find(t => t.id === b.template);
@@ -1404,6 +1415,12 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { referees: list.slice(0, 20) });
     }
     /* s'inscrire (ou se désinscrire) à un tournoi /RAM JA depuis /RAM Club */
+    // tournoi interne : un joueur saisit, confirme ou conteste le résultat de son match depuis /RAM Club
+    if (p === '/api/ja/interne' && req.method === 'POST') {
+      const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
+      const b = await readBody(req);
+      try { return json(res, 200, await jaClub.interne(u, b)); } catch (e) { return json(res, 400, { error: e.message }); }
+    }
     if ((p === '/api/ja/inscription' || p === '/api/ja/desinscription') && req.method === 'POST') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connectez-vous avec votre compte /RAM.' });
       const b = await readBody(req);
@@ -1647,7 +1664,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     /* ---------- API d'un tournoi ---------- */
-    m = p.match(/^\/api\/t\/([\w-]+)\/(events|action|undo|export|info|stats)$/);
+    m = p.match(/^\/api\/t\/([\w-]+)\/(events|action|undo|export|info|stats|membres)$/);
     if (m) {
       const room = await getRoom(m[1]);
       if (!room) return json(res, 404, { error: 'Tournoi introuvable' });
@@ -1672,6 +1689,11 @@ const server = http.createServer(async (req, res) => {
         const ka = setInterval(() => res.write(': ping\n\n'), 20000);
         req.on('close', () => { clearInterval(ka); room.clients.delete(c); room.seen = Date.now(); });
         return;
+      }
+      // tournoi interne : les adhérents du club, pour choisir les participants (juge-arbitre)
+      if (what === 'membres') {
+        if (level !== 'owner') return json(res, 403, { error: 'Réservé au juge-arbitre' });
+        return json(res, 200, await jaClub.membres(room.row.state));
       }
       if (what === 'info') {
         return json(res, 200, { level, pin: level === 'owner' ? room.row.pin : null, key: level === 'owner' ? room.row.key : null,

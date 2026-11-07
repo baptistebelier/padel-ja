@@ -156,6 +156,41 @@ function planMore(iso, out, me, mine) {
         my: p.by === me || !!s
       });
     }
+    // tournoi interne : à son premier jour, et le jour limite de mon match
+    if (p.kind === 'jaint' && p.ja && typeof intMoi === 'function') {
+      const J = p.ja,
+        moi = intMoi(J);
+      if (p.d === iso)
+        out.push({
+          cat: 'tour',
+          sport: p.sport || '',
+          all: true,
+          t: '',
+          kind: 'Tournoi interne',
+          lines: [['users', (J.players || []).length + ' participants']],
+          title: p.title,
+          v: 'post',
+          id: p.id,
+          my: moi.length > 0
+        });
+      moi.forEach(pj => {
+        const m = intMonMatch(J, pj);
+        if (!m || intEtat(m) !== 'ready' || ((J.tours || [])[m.r] || {}).fin !== iso) return;
+        out.push({
+          cat: 'tour',
+          sport: p.sport || '',
+          all: true,
+          t: '',
+          kind: 'Date limite',
+          lines: [['users', 'Contre ' + intNom(J, m.a === pj.id ? m.b : m.a)]],
+          title: p.title,
+          v: 'post',
+          id: p.id,
+          my: true
+        });
+      });
+      return;
+    }
     // tournoi ou animation /RAM JA
     if (p.kind === 'jatour' && p.ja && p.d && iso >= p.d && iso <= (p.d2 || p.d)) {
       const inn = (p.ja.list || []).some(x => keys.includes(x.k1) || keys.includes(x.k2));

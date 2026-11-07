@@ -67,6 +67,10 @@ const TITLES = {
   reports: () => ['Signalements', 'Modération'],
   journal: () => ['Journal du club', 'Bureau'],
   forms: () => ['Formulaires', club().name],
+  jaint: () => [
+    ((posts.find(x => x.id === view().id) || {}).title || 'Tournoi interne').replace(/<[^>]*>/g, ''),
+    'Tournoi interne'
+  ],
   form: () => [
     ((typeof QFORMS !== 'undefined' && QFORMS.find(x => x.id === view().id)) || { title: 'Formulaire' }).title.replace(
       /<[^>]*>/g,

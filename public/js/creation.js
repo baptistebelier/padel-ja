@@ -10,7 +10,12 @@
     ['montee', 'Montée-descente', 'Les gagnants montent d’un terrain, les perdants descendent.']
   ];
   let dlg = null, data = null, tab = 'officiels', pick = null;
-  const tabs = () => [['officiels', 'Modèles officiels'], ['mine', 'Mes modèles'], ['vierge', 'Vierge'], ['animation', 'Animations']];
+  const tabs = () => [['officiels', 'Modèles officiels'], ['mine', 'Mes modèles'], ['vierge', 'Vierge'], ['animation', 'Animations'], ['interne', 'Tournoi interne']];
+  // tournoi interne d'un club : tableau à élimination joué sur plusieurs semaines, suivi par les adhérents dans /RAM Club
+  const INTERNES = [
+    ['Tennis', 'Tournoi interne de tennis', 'Simple, tableau à élimination, matchs organisés par les joueurs sur plusieurs semaines.'],
+    ['Padel', 'Tournoi interne de padel', 'Par équipes de deux, tableau à élimination sur plusieurs semaines.']
+  ];
   const card = (kind, id, tag, title, sub) => `<button class="tpl" type="button" data-k="${kind}" data-id="${esc(id)}"><span class="tag ${kind === 'animation' ? 'lime' : ''}">${esc(tag)}</span><b>${esc(title)}</b><small>${esc(sub)}</small></button>`;
   function body() {
     if (!data) return '<p class="muted">Chargement…</p>';
@@ -18,6 +23,7 @@
       <p class="nverr" id="nvErr" hidden></p><div class="phead-act nvact"><button class="btn" type="button" id="nvBack">Retour</button><button class="btn primary" type="submit">Créer</button></div></form>`;
     if (tab === 'officiels') return `<div class="tpls">${data.presets.map(t => card('tpl', t.id, (t.fields && t.fields.category) || 'Modèle', t.name, t.desc || 'Modèle officiel')).join('')}</div>`;
     if (tab === 'mine') return data.mine.length ? `<div class="tpls">${data.mine.map(t => card('tpl', t.id, 'Mon modèle', t.name, t.desc || 'Modèle enregistré')).join('')}</div>` : '<p class="muted">Vous n’avez pas encore de modèle : enregistrez un tournoi comme modèle depuis ses réglages.</p>';
+    if (tab === 'interne') return `<div class="tpls">${INTERNES.map(a => card('interne', a[0], 'Interne', a[1], a[2])).join('')}</div><p class="muted small">Les adhérents suivent le tableau en direct, saisissent leurs résultats et sont prévenus de leur prochain adversaire dans /RAM Club.</p>`;
     if (tab === 'vierge') return `<div class="tpls">${card('vierge', '', 'Vierge', 'Tournoi officiel vierge', 'Je configure tout moi-même.')}</div>`;
     return `<div class="tpls">${ANIS.map(a => card('animation', a[0], 'Animation', a[1], a[2])).join('')}</div>`;
   }
@@ -28,7 +34,7 @@
     if (pick) { const i = dlg.querySelector('#nvName'); i.focus(); i.select(); }
   }
   async function create(name) {
-    const b = pick.kind === 'animation' ? { kind: 'animation', format: pick.id, name } : { name, template: pick.id || undefined };
+    const b = pick.kind === 'animation' ? { kind: 'animation', format: pick.id, name } : pick.kind === 'interne' ? { kind: 'interne', sport: pick.id, name } : { name, template: pick.id || undefined };
     const err = dlg.querySelector('#nvErr'), r = await fetch('/api/tournaments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
     const d = await r.json().catch(() => ({}));
     if (d.id) { location.href = '/t/' + d.id; return; }
@@ -51,7 +57,7 @@
       const c = e.target.closest('.tpl');
       if (c) {
         const title = c.querySelector('b').textContent, kind = c.dataset.k;
-        pick = { kind, id: c.dataset.id, name: kind === 'vierge' ? 'Mon tournoi' : kind === 'animation' ? title + ' du ' + new Date().toLocaleDateString('fr-FR', { weekday: 'long' }) : title };
+        pick = { kind, id: c.dataset.id, name: kind === 'vierge' ? 'Mon tournoi' : kind === 'animation' ? title + ' du ' + new Date().toLocaleDateString('fr-FR', { weekday: 'long' }) : kind === 'interne' ? title + ' ' + new Date().getFullYear() : title };
         draw();
       }
     });
