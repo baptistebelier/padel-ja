@@ -1666,7 +1666,8 @@ test('Club : section Club avec de vrais comptes, plusieurs clubs, club principal
   await page.waitForFunction(id => RAM.club === id && RAM.live, autre.id, { timeout: 30000, polling: 300 });
   // (le changement de club se termine en revenant à l'accueil : on rouvre le profil tant qu'il n'est pas affiché ;
   //  et c'est bien le club choisi qui reste ouvert, même si une synchronisation de l'ancien club était en route)
-  await page.waitForFunction(id => { if (!document.querySelector('.meclub')) { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); } return !!document.querySelector('.meclub') && RAM.code && RAM.club === id; }, autre.id, { timeout: 30000, polling: 500 });
+  //  le profil doit rester affiché quatre vérifications de suite (environ 2 s) : le retour à l'accueil de fin de changement est passé
+  await page.waitForFunction(id => { if (!document.querySelector('.meclub')) { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); } const ok = !!document.querySelector('.meclub') && RAM.code && RAM.club === id; window.__stable = ok ? (window.__stable || 0) + 1 : 0; return window.__stable >= 4; }, autre.id, { timeout: 30000, polling: 500 });
   assert.match(await page.locator('.meclubh .h3').innerText(), new RegExp(autre.name || 'Club'));
   assert.equal(await page.locator('.meclub [data-a="ramClubs"] svg').count(), 1, 'changer de club, en pictogramme');
   assert.equal(await page.locator('.meclub [data-a="admin"] svg').count(), 1, 'gestion, en pictogramme');
