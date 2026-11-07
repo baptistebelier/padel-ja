@@ -160,7 +160,7 @@ function clubView() {
     tabs +
     `<div class="pad"><div class="poster"><span class="kicker" style="color:var(--fg)">Tennis · Padel · saison ${S.season}</span><span class="big">${club().name.replace(' ', '<br>')}</span></div>
  <div class="stats">${stat('ball', I2.courts, 'Courts de tennis')}${stat('racket', I2.pistes, 'Pistes de padel')}${stat('users', I2.members, 'Adhérents')}${stat('shield', GROUPS.filter(g => g.type === 'team').length, 'Équipes')}</div>
- <div class="cacc">${I2.mods.actus ? acces('news', 'Actus', 'data-a="open" data-v="actusl"') : ''}${I2.mods.comm ? acces('users', 'Commissions', 'data-a="open" data-v="comml"') : ''}${acces('heart', 'Partenaires', 'data-a="open" data-v="partners"')}${acces('folder', 'Archives', 'data-a="open" data-v="archive"')}${acces('trophy', 'Classement des clubs', 'data-a="ranks"')}</div>
+ <div class="cacc">${I2.mods.actus ? acces('news', 'Actus', 'data-a="open" data-v="actusl"') : ''}${I2.mods.comm ? acces('users', 'Commissions', 'data-a="open" data-v="comml"') : ''}${acces('poll', 'Formulaires', 'data-a="open" data-v="forms"')}${acces('heart', 'Partenaires', 'data-a="open" data-v="partners"')}${acces('folder', 'Archives', 'data-a="open" data-v="archive"')}${acces('trophy', 'Classement des clubs', 'data-a="ranks"')}</div>
  <div class="note">${I2.joined} adhérents sur ${I2.members} ont rejoint l'appli.${isAdmin() ? ` <button class="nm" data-a="open" data-v="join" style="color:var(--accent)">Inviter les autres</button>` : ''}</div>
  ${typeof leagueCard === 'function' ? leagueCard() : ''}
  ${I2.book || I2.pay || I2.shop ? `<div class="ctl" style="flex-wrap:wrap">${lk(I2.book, 'Réserver un court')}${lk(I2.pay, 'Payer ma cotisation')}${lk(I2.shop, 'Boutique')}</div>` : ''}

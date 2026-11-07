@@ -472,6 +472,23 @@ button.tro{width:100%;text-align:left}
 .nv-mod-x svg{width:14px;height:14px}
 .nv-save{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 8px}
 .nv-save input{flex:1 1 180px;min-height:42px}
+/* formulaires du club */
+.fq-row{display:flex;flex-direction:column;gap:8px;padding:12px}
+.fq-row .fq-t,.fq-row .fq-q,.fq-row .fq-o,.dl-row select,.dl-row input,.nv-save input,#ev-prix-m,#ev-ens-nom,#nv-price{background:var(--card2);border:0;border-radius:var(--rb);min-height:44px;padding:8px 12px;width:100%;color:var(--fg);font:inherit}
+.fq-row .fq-o{min-height:84px;resize:vertical}
+.fq-row .row{gap:8px;align-items:center}
+.fq-row .fq-t{flex:1;min-height:42px;min-width:0}
+.fq-r{white-space:nowrap}
+.fq-opts{border:0;padding:0;margin:0 0 14px}
+.fq-opts legend{font-weight:600;margin-bottom:6px;padding:0}
+.fq-opts .chk{display:flex;min-height:44px;align-items:center}
+.fq-req{color:var(--hot)}
+.fr-bar{display:grid;grid-template-columns:minmax(80px,40%) 1fr 32px;gap:8px;align-items:center;margin:8px 0}
+.fr-l{font-size:14px;overflow-wrap:anywhere}
+.fr-g{height:12px;border-radius:6px;background:var(--card2);overflow:hidden}
+.fr-g i{display:block;height:100%;background:var(--accent);border-radius:6px}
+.fr-bar b{text-align:right}
+.fr-txt{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 .fp-st.now .fp-card{border-color:var(--accent);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 45%,#000),0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
 .fp-lock{position:absolute;top:-9px;right:-7px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:2px solid var(--line);color:var(--muted)}
 .fp-lock svg{width:15px;height:15px}
@@ -875,6 +892,12 @@ details.aide .aq p{margin:0;line-height:1.5}
 .evf{flex:0 0 100%;display:flex;flex-direction:column;gap:8px;position:relative;z-index:1}
 .evx.cx{opacity:.6}
 .evx.cx .evh{background:var(--hot);color:var(--on-hot)}
+.evh small{display:block;font-family:var(--f-sub);font-size:13px;font-weight:700;opacity:.85;margin-top:3px;letter-spacing:.02em}
+/* liste d'événements sur le mur : la date en grand, l'horaire de début à fin en dessous */
+.evh.evd{min-width:84px;padding:8px 6px;white-space:normal}
+.evh.evd b{display:block;font-size:30px;line-height:1}
+.evh.evd small{text-transform:uppercase;font-size:12px;margin-top:2px}
+.evh.evd i{display:block;font-style:normal;font-family:var(--f-sub);font-weight:700;font-size:13px;line-height:1.15;margin-top:6px;padding-top:5px;border-top:1px solid currentColor}
 /* raccourcis d'un cours (École) : un gros picto au-dessus du libellé, la couleur dit ce que fait le bouton */
 .ecacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .ecact{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:10px 6px;border-radius:var(--rb);background:var(--card2);color:var(--fg);font-family:var(--f-sub);font-weight:700;font-size:14px;line-height:1.15;text-align:center}

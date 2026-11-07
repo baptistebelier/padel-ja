@@ -114,6 +114,6 @@ function promoPost(p) {
   const rows = (p.ev || [])
     .map(e => promoItem(e.v + '|' + e.id + '|' + e.d))
     .filter(Boolean)
-    .map(x => `<span class="promo-d">${evLabel(x.iso)}</span>${planCard(x.i)}`);
+    .map(x => planCard(x.i, x.iso));
   return `<h2 class="tilt sm">${p.title}<i class="dd"></i></h2>${p.body ? `<p>${p.body}</p>` : ''}${rows.length ? `<div class="promo-l">${rows.join('')}</div>` : '<p class="muted small">Ces événements sont passés.</p>'}`;
 }

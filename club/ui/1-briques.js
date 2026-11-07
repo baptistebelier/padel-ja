@@ -92,9 +92,24 @@ const gallery = ph =>
 /* carte d'événement, la même dans /RAM Club et /RAM Coach : l'heure seule (le jour est sur l'étiquette épinglée au-dessus),
    le titre, une ligne par information avec son picto, les étiquettes ; un grand picto en fond rappelle ce que c'est */
 const EV_PIC = { ens: 'cCours', jeu: 'ball', ani: 'cal', tour: 'cTour', eq: 'users', repas: 'cRepas' };
+/* l'heure de fin d'un créneau : « 14 h » + 90 min → « 15 h 30 » */
+const hFin = (t, dur) => {
+  if (!t || !(dur > 0)) return '';
+  const m = hMin(t) + dur;
+  return Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : '');
+};
+const MOIS_C = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+/* pastille de la carte : l'heure de début, et celle de fin en dessous ; avec o.dt (liste d'événements du mur) : la date en grand */
+const evHead = o => {
+  if (o.dt) {
+    const d = new Date(o.dt + 'T12:00');
+    return `<span class="evh evd"><b>${d.getDate()}</b><small>${DAYS[d.getDay()].slice(0, 3)}. ${MOIS_C[d.getMonth()]}</small><i>${o.t ? o.t + (o.t2 ? ' – ' + o.t2 : '') : 'Journée'}</i></span>`;
+  }
+  return `<span class="evh">${o.t || 'Journée'}${o.t && o.t2 ? `<small>à ${o.t2}</small>` : ''}</span>`;
+};
 const evCard = o => {
   const el = o.foot || o.fixe ? 'div' : 'button';
-  return `<${el} class="card evx ${o.cat || 'ens'}${o.cx ? ' cx' : ''}" ${o.go || ''}><span class="evh">${o.t || 'Journée'}</span><span class="evb"><span class="evt">${o.title}</span>${(
+  return `<${el} class="card evx ${o.cat || 'ens'}${o.cx ? ' cx' : ''}" ${o.go || ''}>${evHead(o)}<span class="evb"><span class="evt">${o.title}</span>${(
     o.lines || []
   )
     .filter(Boolean)

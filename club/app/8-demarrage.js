@@ -276,6 +276,13 @@ function openFromUrl(u) {
     A.tab({ t: 'agenda' });
     return true;
   }
+  // formulaire du club : sa page, ou ses résultats (nouvelle réponse)
+  if ((v === 'form' || v === 'formres') && id && typeof QFORMS !== 'undefined' && QFORMS.some(f => f.id === id)) {
+    S.tab = 'club';
+    S.stack = [{ v: 'forms' }, { v, id }];
+    render();
+    return true;
+  }
   if (['home', 'chans', 'club', 'me'].includes(v)) {
     A.tab({ t: v });
     return true;

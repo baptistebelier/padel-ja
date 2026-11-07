@@ -272,6 +272,11 @@
       );
     });
     if (typeof CLAIMS !== 'undefined') CLAIMS.forEach(x => add('claim', x.id, x));
+    // formulaires et réponses (seules les miennes partent au serveur : voir mayWrite)
+    if (typeof QFORMS !== 'undefined') {
+      QFORMS.forEach(x => add('form', x.id, x));
+      QREPS.forEach(x => add('rep', x.id, x));
+    }
     // bar : la carte, et mes réservations (le bureau voit et tient toutes celles du club)
     BAR.forEach(x => {
       at(x, 'bar');
@@ -519,6 +524,8 @@
     rec: () => recs,
     report: () => REPORTS,
     journal: () => JOURNAL,
+    form: () => (typeof QFORMS !== 'undefined' ? QFORMS : []),
+    rep: () => (typeof QREPS !== 'undefined' ? QREPS : []),
     claim: () => (typeof CLAIMS !== 'undefined' ? CLAIMS : []),
     bar: () => BAR,
     order: () => ORDERS,
@@ -878,6 +885,13 @@
         return staff || id === k;
       case 'claim':
         return staff || d.by === k;
+      case 'form':
+        return (
+          R.role === 'bureau' ||
+          (d.by === k && (staff || R.role === 'anim' || COMMS.some(c => c.resp === k || (c.mem || []).includes(k))))
+        );
+      case 'rep':
+        return myKeys().includes(d.by);
       case 'bar':
         return R.role === 'bureau';
       case 'order':
@@ -1889,6 +1903,7 @@
       COMMS,
       REPORTS,
       JOURNAL,
+      ...(typeof QFORMS !== 'undefined' ? [QFORMS, QREPS] : []),
       NOTIFS,
       JOINREQ,
       FORM
@@ -2061,6 +2076,8 @@
       'seance',
       'brouillon',
       'suivi',
+      'form',
+      'rep',
       'msg',
       'report'
     ];

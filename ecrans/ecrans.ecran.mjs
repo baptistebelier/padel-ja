@@ -1960,3 +1960,35 @@ test('Club : un stage avec tarif, intervenant et déroulé ; le déroulé se dé
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+/* ---------- Formulaires : créer, répondre, résultats, promotion ---------- */
+test('Club : formulaire créé par le bureau, réponse d’un adhérent, résultats et promotion sur le mur', async () => {
+  const ctx = await phone();
+  const { page, errors } = await openPage(ctx, DEMO + '/index.html');
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); document.querySelectorAll('.back').forEach(b => b.remove()); S.role = 'admin'; S.tab = 'club'; S.stack = [{ v: 'forms' }]; render(); });
+  await page.click('[data-a="formNew"]');
+  await page.fill('#fq-title', 'Essai');
+  await page.locator('.fq-row .fq-q').first().fill('Ton nom');
+  await page.click('[data-a="fqAdd"]');
+  await page.locator('.fq-row').last().locator('.fq-t').selectOption('unique');
+  await page.locator('.fq-row').last().locator('.fq-q').fill('Créneau');
+  await page.locator('.fq-row').last().locator('.fq-o').fill('Matin\nSoir');
+  assert.ok(await page.evaluate(() => document.querySelector('#sheet').scrollWidth <= innerWidth + 1), 'tient sur 360 px');
+  await page.click('#fq-edit > button:not([type=button])');
+  await page.waitForSelector('[data-a="formPromo"]');
+  const id = await page.evaluate(() => QFORMS[0].id);
+  await page.evaluate(id => { S.stack = [{ v: 'forms' }, { v: 'form', id }]; render(); }, id);
+  await page.click('#fq-form > button');
+  assert.equal(await page.evaluate(id => QREPS.some(r => r.f === id), id), false, 'question obligatoire');
+  await page.fill('#fa-' + await page.evaluate(() => QFORMS[0].qs[0].id), 'Inès');
+  await page.locator('.fq-opts input[type=radio]').last().check();
+  await page.click('#fq-form > button');
+  assert.equal(await page.evaluate(id => QREPS.filter(r => r.f === id).length, id), 1);
+  await page.evaluate(id => { S.stack = [{ v: 'forms' }, { v: 'formres', id }]; render(); }, id);
+  assert.match(await page.textContent('#main'), /1 réponse/);
+  await page.click('[data-a="formPromo"]');
+  assert.ok(await page.evaluate(() => posts.some(p => p.kind === 'formp')));
+  assert.ok(await overflow(page) <= 1);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

@@ -1213,6 +1213,36 @@ const NOTIFS = [
 const REPORTS = [];
 /* journal des actions sensibles du club (écrit par le serveur, lu par le bureau) */
 const JOURNAL = [];
+/* formulaires du club (app/19-formulaires.js) et réponses ; dans la démo, un formulaire d'exemple */
+const QFORMS = [
+  {
+    id: 'fdemo',
+    by: 'me',
+    at: 1,
+    title: 'Repas de fin de saison',
+    desc: 'Dis-nous si tu viens et ce que tu préfères.',
+    fin: '',
+    cible: '',
+    anon: false,
+    qs: [
+      { id: 'q1', t: 'ouinon', q: 'Tu viens au repas ?', o: [], req: true },
+      { id: 'q2', t: 'unique', q: 'Ton menu', o: ['Viande', 'Poisson', 'Végétarien'], req: false },
+      { id: 'q3', t: 'nombre', q: "Nombre d'accompagnants", o: [], req: false },
+      { id: 'q4', t: 'long', q: 'Une remarque ?', o: [], req: false }
+    ]
+  }
+];
+const QREPS = [
+  { id: 'fdemo.hugo', f: 'fdemo', by: 'hugo', at: 2, a: { q1: 'Oui', q2: 'Poisson', q3: '1' } },
+  {
+    id: 'fdemo.sarah',
+    f: 'fdemo',
+    by: 'sarah',
+    at: 3,
+    a: { q1: 'Oui', q2: 'Végétarien', q3: '0', q4: 'Merci pour l’organisation !' }
+  },
+  { id: 'fdemo.mehdi', f: 'fdemo', by: 'mehdi', at: 4, a: { q1: 'Non' } }
+];
 
 /* État de l'appli. role : admin (bureau), cap (capitaine), mem (adhérent), kid (compte jeune de Léo) */
 const S = {

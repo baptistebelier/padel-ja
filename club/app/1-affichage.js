@@ -66,6 +66,21 @@ const TITLES = {
   comml: () => ['Commissions', club().name],
   reports: () => ['Signalements', 'Modération'],
   journal: () => ['Journal du club', 'Bureau'],
+  forms: () => ['Formulaires', club().name],
+  form: () => [
+    ((typeof QFORMS !== 'undefined' && QFORMS.find(x => x.id === view().id)) || { title: 'Formulaire' }).title.replace(
+      /<[^>]*>/g,
+      ''
+    ),
+    'Formulaire'
+  ],
+  formres: () => [
+    ((typeof QFORMS !== 'undefined' && QFORMS.find(x => x.id === view().id)) || { title: 'Résultats' }).title.replace(
+      /<[^>]*>/g,
+      ''
+    ),
+    'Résultats'
+  ],
   legal: () => ['Mentions', club().name],
   aide: () => ['Aide', 'Guide de l’appli'],
   post: () => ['Publication', club().name],

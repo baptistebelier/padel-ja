@@ -62,6 +62,7 @@ function planItems(iso) {
         all: !!p.d2,
         sport: p.sport || '',
         t: p.d2 ? '' : p.h1,
+        t2: p.d2 ? '' : p.h2,
         dur: du > 0 ? du : 120,
         kind: p.stage ? 'Stage' : p.anim ? 'Animation' : p.trn ? 'Tournoi' : '',
         pic: p.stage ? 'racket' : p.anim ? 'users' : '',
@@ -307,11 +308,15 @@ function planFiltersBody() {
 }
 /* les vues Événements et Liste : la carte commune (ui/1-briques.js), sous l'étiquette du jour */
 const PLAN_KIND = { jeu: 'Partie', ani: 'Événement', tour: 'Tournoi', eq: 'Rencontre', repas: 'Repas' };
-const planCard = i =>
+/* dt : la date affichée en grand dans la pastille (liste d'événements promue sur le mur) */
+const planCard = (i, dt) =>
   evCard({
     cat: i.cat,
     pic: i.pic,
     t: i.all ? '' : i.t,
+    // heure de fin : celle de l'événement, sinon calculée depuis la durée (pas pour une rencontre, dont la fin n'est pas connue)
+    t2: i.all ? '' : i.t2 !== undefined ? i.t2 : i.cat === 'eq' ? '' : hFin(i.t, i.dur),
+    dt,
     cx: i.cx,
     go: `data-a="open" data-v="${i.v}" data-id="${i.id}"`,
     title: i.title,
