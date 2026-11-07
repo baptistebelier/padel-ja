@@ -297,20 +297,22 @@
       let l = await Promise.resolve(r.source(t, el)).catch(() => []);
       if (my !== seq || cur !== el || document.activeElement !== el) return;
       if (r.filtre !== false && t) l = l.filter(x => fold(x.v).includes(fold(t)) || fold(x.l).includes(fold(t)));
-      const vus = new Set(); l = l.filter(x => x && x.v && !vus.has(fold(x.v)) && vus.add(fold(x.v)));
-      if (l.length === 1 && fold(l[0].v) === fold(t)) l = [];
+      // deux homonymes restent deux propositions : on dédoublonne par personne (id), pas par nom
+      const vus = new Set(), cle = x => x.id || fold(x.v) + '|' + fold(x.l);
+      l = l.filter(x => x && x.v && !vus.has(cle(x)) && vus.add(cle(x)));
+      if (l.length === 1 && el._sugg && cle(el._sugg) === cle(l[0])) l = [];
       items = l.slice(0, 8); act = -1; draw();
     }
     function pick(i) {
       const it = items[i], el = cur, r = rule(el); if (!it || !el) return;
-      skip = true; el.value = it.v;
+      skip = true; el.value = it.v; el._sugg = it;
       ['input', 'change'].forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
       skip = false;
       if (r && r.pick) r.pick(el, it);
       close();
     }
     document.addEventListener('focusin', e => { if (rule(e.target)) update(e.target); });
-    document.addEventListener('input', e => { if (skip || !rule(e.target)) return; clearTimeout(timer); timer = setTimeout(() => update(e.target), 160); });
+    document.addEventListener('input', e => { if (skip || !rule(e.target)) return; delete e.target._sugg; clearTimeout(timer); timer = setTimeout(() => update(e.target), 160); });
     document.addEventListener('keydown', e => {
       if (!box || box.hidden || e.target !== cur) return;
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); act = (act + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; draw(); }
@@ -336,7 +338,7 @@
     window.RamSugg.add({
       match: el => el.matches('input[data-f="ja"], input[data-p="ja"]'),
       filtre: false,
-      source: t => fetch('/api/referees?q=' + encodeURIComponent(t || '')).then(r => r.json()).then(d => (d.referees || []).map(r => ({ v: [r.first, r.last].filter(Boolean).join(' '), l: [r.titles.join(' · '), r.sameClub ? 'mon club' : r.club].filter(Boolean).join(' — '), d: r }))),
+      source: t => fetch('/api/referees?q=' + encodeURIComponent(t || '')).then(r => r.json()).then(d => (d.referees || []).map(r => ({ id: 'ja:' + (r.id || r.userId || [r.first, r.last, r.club].join('|')), v: [r.first, r.last].filter(Boolean).join(' '), l: [r.titles.join(' · '), r.sameClub ? 'mon club' : r.club].filter(Boolean).join(' — '), d: r }))),
       // en choisir un remplit aussi « Qualification JA » (son titre padel en priorité)
       pick: (el, it) => {
         const r = it.d, title = r && (r.titles.find(x => /^JAP/.test(x)) || r.titles[0]); if (!title) return;
@@ -351,7 +353,7 @@
     window.RamSugg.add({
       match: el => el.hasAttribute('data-joueurs'),
       filtre: false,
-      source: t => (t.length < 2 ? [] : fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).then(d => (d.players || []).map(p => ({ v: [p.first, p.last].filter(Boolean).join(' '), l: [p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: p }))))
+      source: t => (t.length < 2 ? [] : fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).then(d => (d.players || []).map(p => ({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: [p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: p }))))
     });
   }
   const start = () => { build(); suggestions(); clubList(); jaList(); navCursor(); softNav(); sideOut(); };

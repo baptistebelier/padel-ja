@@ -42,8 +42,15 @@ const sgMembres = () =>
   Object.keys(M)
     .filter(k => k !== 'club' && M[k] && sgNom(M[k].n))
     .map(k => ({
+      id: 'k:' + k,
       v: sgNom(M[k].n),
-      l: [M[k].role || 'Adhérent', M[k].pl ? 'niv ' + M[k].pl + ' padel' : M[k].r && M[k].r !== 'NC' ? M[k].r : '']
+      // de quoi distinguer deux homonymes : rôle, niveau, licence, compte /RAM ou fiche sans compte
+      l: [
+        M[k].role || 'Adhérent',
+        M[k].pl ? 'niv ' + M[k].pl + ' padel' : M[k].r && M[k].r !== 'NC' ? M[k].r : '',
+        M[k].lic ? 'lic. ' + M[k].lic : '',
+        window.RAM && RAM.roles ? (RAM.roles[k] ? 'compte /RAM' : 'fiche sans compte') : ''
+      ]
         .filter(Boolean)
         .join(' · '),
       d: { k }
@@ -80,6 +87,7 @@ async function sgJoueurs(t, champ) {
   return (d.players || [])
     .filter(p => p.source !== 'club')
     .map(p => ({
+      id: 'p:' + p.id,
       v:
         champ === 'ja-last'
           ? String(p.last || '').toUpperCase()
@@ -151,9 +159,11 @@ async function sgUpdate(inp) {
   if (src.includes('clubs')) l = l.concat((await sgAnnuaire()).filter(f));
   if (src.includes('joueurs')) l = l.concat(await sgJoueurs(t, inp.id).catch(() => []));
   if (my !== sgSeq || sgCur !== inp || document.activeElement !== inp) return;
-  const vus = new Set();
-  l = l.filter(x => x.v && !vus.has(sgFold(x.v)) && vus.add(sgFold(x.v)));
-  if (l.length === 1 && sgFold(l[0].v) === sgFold(t)) l = [];
+  // deux homonymes restent deux propositions : dédoublonnées par personne (id), pas par nom
+  const vus = new Set(),
+    cle = x => x.id || sgFold(x.v) + '|' + sgFold(x.l);
+  l = l.filter(x => x.v && !vus.has(cle(x)) && vus.add(cle(x)));
+  if (l.length === 1 && inp._sugg && cle(inp._sugg) === cle(l[0])) l = [];
   sgItems = l.slice(0, 8);
   sgAct = -1;
   sgDraw();
@@ -169,6 +179,7 @@ function sgPick(i) {
   if (!it || !inp) return;
   sgSkip = true;
   inp.value = it.v;
+  inp._sugg = it; // la personne choisie reste attachée au champ tant qu'on ne retape pas
   ['input', 'change'].forEach(t => inp.dispatchEvent(new Event(t, { bubbles: true })));
   sgSkip = false;
   // un joueur /RAM JA choisi pour un partenaire hors du club : nom, prénom, licence et club complétés
@@ -190,6 +201,7 @@ document.addEventListener('focusin', e => {
 });
 document.addEventListener('input', e => {
   if (sgSkip || !e.target || !SUGG[e.target.id]) return;
+  delete e.target._sugg;
   clearTimeout(sgT);
   sgT = setTimeout(() => sgUpdate(e.target), 160);
 });

@@ -50,28 +50,33 @@
   const HOURS = []; for (let h = 7; h <= 22; h++) HOURS.push(h + ' h', h + ' h 30');
   const FORMATS = ['2 sets gagnants, super tie-break au 3e', '2 sets gagnants, 3e set classique', '1 set de 9 jeux', 'Format court (sets de 4 jeux)', 'Autre (voir le règlement)'];
   const AGES = ['Adultes', 'Jeunes', '+35', '+45', '+55'];
-  let clubs = [], club = null, items = new Map(), sel = { c: null, t: null, r: null }, choisi = null, vue = 'home';
+  let clubs = [], club = null, items = new Map(), sel = { c: null, t: null, r: null }, vue = 'home';
   /* liste déroulante « Ajouter un joueur » : adhérents pas encore dans l'équipe, puis joueurs de la base /RAM JA */
   (window.RamSuggQ = window.RamSuggQ || []).push({
     match: el => el.hasAttribute('data-ch-joueur'),
     filtre: false,
     source: async t => {
       const g = sel.t && get('group', sel.t), dans = new Set((g && g.mem) || []), f = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-      const l = membres().filter(m => !dans.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ v: m.n, l: 'Adhérent du club', d: { k: m.k } }));
+      const l = membres().filter(m => !dans.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ id: 'k:' + m.k, v: m.n, l: 'Adhérent · ' + [m.compte ? 'Compte /RAM' : 'Fiche sans compte', m.niv, m.lic ? 'lic. ' + m.lic : ''].filter(Boolean).join(' · '), d: { k: m.k } }));
       if (t.length >= 2) {
         const d = await fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).catch(() => ({}));
-        (d.players || []).filter(p => p.source !== 'club').forEach(p => l.push({ v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank].filter(Boolean).join(' · '), d: { p } }));
+        (d.players || []).filter(p => p.source !== 'club').forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p } }));
       }
       return l;
     },
-    pick: (el, it) => { choisi = it; }
   });
   const toast = t => { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); };
   const api = async (p, body) => { const r = await fetch(p, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Erreur ' + r.status); return d; };
   const all = coll => [...items.values()].filter(i => i.coll === coll).map(i => i.data);
   const get = (coll, id) => (items.get(coll + '/' + id) || {}).data || null;
-  const nom = k => ((get('member', k) || {}).n || 'Adhérent');
-  const membres = () => all('member').filter(m => m.role !== 'Jeune' || true).map(m => ({ k: m.id, n: m.n })).filter(m => m.n).sort((a, b) => a.n.localeCompare(b.n, 'fr'));
+  /* nom d'un adhérent ; s'il a un homonyme dans le club, avec ce qui le distingue (licence, compte ou fiche sans compte) */
+  const nom = k => {
+    const m = get('member', k) || {}, n = m.n || 'Adhérent';
+    const homonyme = all('member').some(x => x.id !== k && String(x.n || '').toLowerCase() === String(n).toLowerCase());
+    return homonyme ? n + ' (' + (m.lic ? 'lic. ' + m.lic : comptes[k] ? 'compte /RAM' : 'fiche sans compte') + ')' : n;
+  };
+  let comptes = {};   // clés des adhérents qui ont un compte /RAM (pour distinguer deux homonymes)
+  const membres = () => all('member').map(m => ({ k: m.id, n: m.n, lic: m.lic || '', niv: m.pl ? 'niv ' + m.pl + ' padel' : m.r && m.r !== 'NC' ? m.r : '', compte: !!comptes[m.id] })).filter(m => m.n).sort((a, b) => a.n.localeCompare(b.n, 'fr'));
   const nid = p => p + Date.now().toString(36);
   const fmtD = iso => (iso ? new Date(iso + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : '');
   /* enregistrer dans /RAM Club : mêmes droits que dans l'appli du club (bureau, enseignant, capitaine) */
@@ -87,6 +92,7 @@
   async function charger() {
     const d = await api(`/api/ram/c/${club.id}/sync?since=0`);
     items = new Map(d.items.filter(i => !i.del && i.data).map(i => [i.coll + '/' + i.id, i]));
+    comptes = d.roles || {};
     render();
   }
   const teams = cid => all('group').filter(g => g.type === 'team' && g.champ === cid);
@@ -193,15 +199,18 @@
       document.querySelectorAll('[data-out]').forEach(b => (b.onclick = () => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'rm', v: b.dataset.out }, { p: ['roster', b.dataset.out], t: 'unset' }] }], 'Joueur retiré')));
       on('#t-add', 'onsubmit', async e => {
         e.preventDefault();
-        const n = e.target.n.value.trim(), m = membres().find(x => x.n.toLowerCase() === n.toLowerCase());
+        // la personne choisie dans la liste ; sinon le nom tapé, s'il ne désigne qu'un adhérent
+        const inp = e.target.n, n = inp.value.trim(), it = inp._sugg && inp._sugg.v === n ? inp._sugg : null;
+        const memes = membres().filter(x => x.n.toLowerCase() === n.toLowerCase());
+        if (!it && memes.length > 1) return toast('Plusieurs adhérents portent ce nom : choisis la bonne personne dans la liste');
+        const m = it && it.d && it.d.k ? membres().find(x => x.k === it.d.k) : it ? null : memes[0];
         if (m) return ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: m.k }, { p: ['roster', m.k], t: 'set', v: 'T' }] }], m.n + ' ajouté · il est prévenu');
         if (!n) return;
         // pas encore dans /RAM Club : une fiche du club sans compte, reprise de la base /RAM JA si on l'y a choisi
-        const p = choisi && choisi.v === n && choisi.d && choisi.d.p, k = 'm' + Date.now().toString(36), conf = get('conf', 'main') || {};
+        const p = it && it.d && it.d.p, k = 'm' + Date.now().toString(36), conf = get('conf', 'main') || {};
         const fiche = Object.assign({ n, r: (p && /^\d|NC|^-/.test(p.rank || '') ? p.rank : '') || 'NC', g: 'H', via: '/RAM JA', valid: conf.season || '' }, p && p.licence ? { lic: p.licence } : {});
         if (!confirm(n + ' n’est pas encore dans /RAM Club. Lui créer une fiche du club (sans compte) et l’ajouter à l’équipe ?')) return;
         await ops([{ coll: 'member', id: k, op: 'put', data: fiche }, { coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: k }, { p: ['roster', k], t: 'set', v: 'T' }] }], n + ' ajouté à l’équipe');
-        choisi = null;
       });
       on('#r-new', 'onsubmit', async e => {
         e.preventDefault(); const f = e.target, id = nid('r'), dom = f.dom.value === '1';

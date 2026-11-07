@@ -61,14 +61,23 @@
     filtre: false,
     source: async t => {
       const f = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), pris = new Set(((S && S.int && S.int.players) || []).flatMap(p => p.ks || []));
-      const l = membres.filter(m => !pris.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ v: m.n, l: 'Adhérent du club · suit le tableau dans /RAM Club' }));
+      const l = membres.filter(m => !pris.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ id: 'k:' + m.k, v: m.n, l: 'Adhérent · ' + [m.compte ? 'Compte /RAM' : 'Fiche sans compte', m.niv, m.lic ? 'lic. ' + m.lic : ''].filter(Boolean).join(' · '), d: { k: m.k } }));
       if (t.length >= 2) {
         const d = await fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).catch(() => ({}));
-        (d.players || []).filter(p => p.source !== 'club').forEach(p => l.push({ v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank].filter(Boolean).join(' · ') }));
+        (d.players || []).filter(p => p.source !== 'club').forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p } }));
       }
       return l;
     }
   });
+  /* la personne choisie dans la liste ; sinon le nom tapé, s'il ne désigne qu'un adhérent */
+  const quiEst = inp => {
+    if (!inp) return { n: '', k: null };
+    const n = inp.value.trim(), it = inp._sugg;
+    if (it && it.v === n) return { n, k: it.d && it.d.k ? it.d.k : null };
+    const l = membres.filter(m => m.n.toLowerCase() === n.toLowerCase());
+    if (l.length > 1) return { n, doublon: true };
+    return { n, k: l[0] ? l[0].k : null };
+  };
   document.head.appendChild(Object.assign(document.createElement('script'), { src: '/js/rail.js', defer: true }));
   function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); }
   async function send(type, payload) {
@@ -162,8 +171,9 @@
     const add = $('#in-add');
     if (add) add.onsubmit = async e => {
       e.preventDefault();
-      const f = e.target, noms = [f.a.value.trim(), f.b ? f.b.value.trim() : ''].filter(Boolean);
-      const ks = noms.map(n => (membres.find(m => m.n.toLowerCase() === n.toLowerCase()) || {}).k).filter(Boolean);
+      const f = e.target, qui = [quiEst(f.a), f.b ? quiEst(f.b) : null].filter(x => x && x.n);
+      if (qui.some(x => x.doublon)) return toast('Plusieurs adhérents portent ce nom : choisis la bonne personne dans la liste');
+      const noms = qui.map(x => x.n), ks = qui.map(x => x.k).filter(Boolean);
       if (await send('int/player/add', { n: noms.join(' / '), ks })) { f.reset(); f.a.focus(); }
     };
     document.querySelectorAll('[data-seed]').forEach(s => (s.onchange = () => send('int/player/seed', { id: s.dataset.seed, seed: +s.value })));
