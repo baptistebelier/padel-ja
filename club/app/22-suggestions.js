@@ -97,21 +97,15 @@ async function sgJoueurs(t, champ) {
       d: { p }
     }));
 }
+/* la liste est rangée dans le bloc du champ et accrochée sous lui : elle suit le champ quand la page défile
+   ou quand le clavier du téléphone s'ouvre (une liste fixée à l'écran se décalait sur iPhone) */
 function sgPlace() {
-  const r = sgCur.getBoundingClientRect(),
-    bas = innerHeight - r.bottom - 12,
-    haut = r.top - 12;
-  sgBox.style.left = Math.max(8, r.left) + 'px';
-  sgBox.style.width = Math.min(r.width, innerWidth - 16) + 'px';
-  if (bas >= 160 || bas >= haut) {
-    sgBox.style.top = r.bottom + 4 + 'px';
-    sgBox.style.bottom = '';
-    sgBox.style.maxHeight = Math.max(120, Math.min(300, bas)) + 'px';
-  } else {
-    sgBox.style.top = '';
-    sgBox.style.bottom = innerHeight - r.top + 4 + 'px';
-    sgBox.style.maxHeight = Math.min(300, haut) + 'px';
-  }
+  const hote = sgCur.parentElement;
+  if (getComputedStyle(hote).position === 'static') hote.style.position = 'relative';
+  if (sgBox.parentElement !== hote) hote.appendChild(sgBox);
+  sgBox.style.left = sgCur.offsetLeft + 'px';
+  sgBox.style.top = sgCur.offsetTop + sgCur.offsetHeight + 4 + 'px';
+  sgBox.style.width = sgCur.offsetWidth + 'px';
 }
 function sgDraw() {
   if (!sgBox) {
@@ -220,4 +214,3 @@ document.addEventListener('focusout', e => {
   }, 150);
 });
 addEventListener('resize', () => sgBox && !sgBox.hidden && sgCur && sgPlace());
-document.addEventListener('scroll', () => sgBox && !sgBox.hidden && sgCur && sgPlace(), true);

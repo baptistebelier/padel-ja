@@ -347,6 +347,14 @@ test('nouveau collectif : les adhérents de la fourchette, pas les autres', asyn
   assert.match(corps(l), /Nouvelle séance collective : Volée/);
 });
 
+test('équipe créée avec ses joueurs et son capitaine : chacun est prévenu, même sans adhésion validée', async () => {
+  const { coach, club, p, ek, pk } = await clubDeux(26);
+  await ops(coach, club, [{ coll: 'member', id: ek, op: 'patch', patch: [{ p: ['valid'], t: 'unset' }] }]);
+  const l = await ops(coach, club, [{ coll: 'group', id: 't9', op: 'put', data: { type: 'team', name: 'Équipe 2', cap: pk, mem: [ek, pk] } }]);
+  assert.ok(l.some(x => /Tu es ajouté à Équipe 2/.test(x[1].body) && x[0] !== p), 'le joueur sans adhésion validée : ' + corps(l));
+  assert.ok(l.some(x => x[0] === p && /Tu es capitaine : Équipe 2/.test(x[1].body)), corps(l));
+});
+
 test('équipe : capitaine nommé, réponse à la convocation, fin de rencontre', async () => {
   const { coach, club, el, p, ek, pk } = await clubDeux(25);
   await ops(coach, club, [{ coll: 'group', id: 't1', op: 'put', data: { type: 'team', name: 'Équipe 1', mem: [ek, pk] } }, { coll: 'rec', id: 'm1', op: 'put', data: { tid: 't1', opp: 'TC Tulle', st: 'soon' } }]);

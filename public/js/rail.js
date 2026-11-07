@@ -270,15 +270,16 @@
     const q = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     let box = null, cur = null, items = [], act = -1, seq = 0, timer = null, skip = false;
     const css = document.createElement('style');
-    css.textContent = '.rsug{position:fixed;z-index:9999;max-height:280px;overflow-y:auto;background:var(--ui-surface,#fff);color:var(--ui-text,#111);border:2px solid var(--ui-accent-line,#E0284A);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:4px}.rsug button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:9px 10px;border-radius:7px;cursor:pointer;min-height:44px;justify-content:center}.rsug button b{font-weight:700}.rsug button small{font-size:12px;opacity:.7}.rsug button[aria-selected="true"],.rsug button:hover{background:var(--ui-surface-2,#f2f2f2)}';
+    css.textContent = '.rsug{position:absolute;z-index:60;max-height:280px;overflow-y:auto;background:var(--ui-surface,#fff);color:var(--ui-text,#111);border:2px solid var(--ui-accent-line,#E0284A);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:4px}.rsug button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:9px 10px;border-radius:7px;cursor:pointer;min-height:44px;justify-content:center}.rsug button b{font-weight:700}.rsug button small{font-size:12px;opacity:.7}.rsug button[aria-selected="true"],.rsug button:hover{background:var(--ui-surface-2,#f2f2f2)}';
     document.head.appendChild(css);
     const rule = el => el && el.tagName === 'INPUT' && rules.find(r => { try { return r.match(el); } catch (e) { return false; } });
     const close = () => { if (box) box.hidden = true; items = []; act = -1; };
+    // rangée dans le bloc du champ, accrochée sous lui : elle suit le champ (défilement, clavier du téléphone)
     function place() {
-      const r = cur.getBoundingClientRect(), below = innerHeight - r.bottom - 12, above = r.top - 12;
-      box.style.left = Math.max(8, r.left) + 'px'; box.style.width = Math.min(r.width, innerWidth - 16) + 'px';
-      if (below >= 160 || below >= above) { box.style.top = r.bottom + 4 + 'px'; box.style.bottom = ''; box.style.maxHeight = Math.max(120, Math.min(280, below)) + 'px'; }
-      else { box.style.top = ''; box.style.bottom = innerHeight - r.top + 4 + 'px'; box.style.maxHeight = Math.min(280, above) + 'px'; }
+      const hote = cur.parentElement;
+      if (getComputedStyle(hote).position === 'static') hote.style.position = 'relative';
+      if (box.parentElement !== hote) hote.appendChild(box);
+      box.style.left = cur.offsetLeft + 'px'; box.style.top = cur.offsetTop + cur.offsetHeight + 4 + 'px'; box.style.width = cur.offsetWidth + 'px';
     }
     function draw() {
       if (!box) {
@@ -318,7 +319,6 @@
     });
     document.addEventListener('focusout', e => { if (e.target === cur) setTimeout(() => { if (document.activeElement !== cur) { close(); cur = null; } }, 150); });
     addEventListener('resize', () => { if (box && !box.hidden && cur) place(); });
-    document.addEventListener('scroll', () => { if (box && !box.hidden && cur) place(); }, true);
     window.RamSugg = { add: r => rules.push(r), fold };
     (window.RamSuggQ || []).forEach(r => rules.push(r));
     window.RamSuggQ = { push: r => rules.push(r) };

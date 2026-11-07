@@ -35,6 +35,9 @@
 @media (max-width: 900px) { .ch-m { grid-template-columns: 1fr 1fr; } }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ui-text); color: var(--ui-surface); padding: 12px 18px; border-radius: 10px; z-index: 99; font-weight: 600; max-width: calc(100vw - 32px); }
 .ch-empty { color: var(--ui-text-mut); }
+.ch-ecran { max-width: 860px; }
+.ch-plus { margin-top: 12px; } .ch-plus > summary { list-style: none; display: inline-flex; cursor: pointer; } .ch-plus > summary::-webkit-details-marker { display: none; } .ch-plus[open] > summary { display: none; }
+.ch-ecran > .btn[data-back] { justify-self: start; }
 </style>
 </head>
 <body class="acct" data-page="equipes">
@@ -47,7 +50,7 @@
   const HOURS = []; for (let h = 7; h <= 22; h++) HOURS.push(h + ' h', h + ' h 30');
   const FORMATS = ['2 sets gagnants, super tie-break au 3e', '2 sets gagnants, 3e set classique', '1 set de 9 jeux', 'Format court (sets de 4 jeux)', 'Autre (voir le règlement)'];
   const AGES = ['Adultes', 'Jeunes', '+35', '+45', '+55'];
-  let clubs = [], club = null, items = new Map(), sel = { c: null, t: null, r: null }, choisi = null;
+  let clubs = [], club = null, items = new Map(), sel = { c: null, t: null, r: null }, choisi = null, vue = 'home';
   /* liste déroulante « Ajouter un joueur » : adhérents pas encore dans l'équipe, puis joueurs de la base /RAM JA */
   (window.RamSuggQ = window.RamSuggQ || []).push({
     match: el => el.hasAttribute('data-ch-joueur'),
@@ -90,11 +93,6 @@
   const recsOf = tid => all('rec').filter(r => r.tid === tid && !r.arch).sort((a, b) => String(a.d || '').localeCompare(String(b.d || '')));
   const domicile = r => (r.dom != null ? !!r.dom : /domicile/.test(r.when || ''));
 
-  function champs() {
-    const l = all('champ').filter(c => !c.arch);
-    return `<section class="card"><span class="eyebrow">Championnats · ${l.length}</span><h2>${esc(club.name)}</h2><div class="ch-list">${l.map(c => `<button class="ch-it" data-c="${c.id}" aria-pressed="${sel.c === c.id}"><span class="n">${esc(c.name)}<br><small>${esc([c.sport, c.age, c.div, c.season].filter(Boolean).join(' · '))}</small></span><small>${teams(c.id).length} équipe${teams(c.id).length > 1 ? 's' : ''}</small></button>`).join('') || '<p class="ch-empty">Aucun championnat pour le moment.</p>'}</div>
-      <form id="ch-new" class="ch-row" style="margin-top:12px"><label>Nouveau championnat<input name="n" placeholder="Interclubs seniors" required maxlength="80"></label><label style="flex:0 0 120px">Sport<select name="s"><option>Tennis</option><option>Padel</option></select></label><button class="btn">Créer</button></form></section>`;
-  }
   function champForm(c) {
     const f = c.fmt || {};
     return `<section class="card"><span class="eyebrow">Règlement et format</span><h2>${esc(c.name)}</h2><form id="ch-set" class="grid">
@@ -108,14 +106,14 @@
   }
   function teamPart(t) {
     const ros = t.roster || {}, mem = t.mem || [], dispo = membres().filter(m => !mem.includes(m.k));
-    return `<section class="card"><span class="eyebrow">Joueurs · ${mem.length}</span><h2>${esc(t.name)}</h2>
+    return `<section class="card"><span class="eyebrow">Calendrier</span><h2>Rencontres</h2><div class="ch-list">${recsOf(t.id).map(r => `<button class="ch-it" data-r="${r.id}" aria-pressed="${sel.r === r.id}"><span class="n">${esc(r.opp)}<br><small>${esc(fmtD(r.d))} · ${esc(r.h || '')} · ${domicile(r) ? 'à domicile' : "à l'extérieur"}${r.lieu ? ' · ' + esc(r.lieu) : ''}${r.comp ? ' · ' + esc(r.comp) : ''}</small></span><small>${r.st === 'done' ? 'Jouée ' + score(r).join('-') : Object.keys(r.lineup || {}).length ? 'Convocations envoyées' : 'À composer'}</small></button>`).join('') || '<p class="ch-empty">Aucune rencontre programmée.</p>'}</div>
+      <details class="ch-plus"><summary class="btn">Programmer une rencontre</summary><form id="r-new" class="grid" style="margin-top:12px"><div class="ch-row"><label>Adversaire<input name="opp" data-clubs required maxlength="80" placeholder="TC Brive" autocomplete="off"></label><label>Journée<input name="comp" maxlength="60" placeholder="Journée 3"></label></div>
+      <div class="ch-row"><label>Date<input type="date" name="d" required></label><label>Heure<select name="h">${HOURS.map(h => `<option ${h === '14 h' ? 'selected' : ''}>${h}</option>`).join('')}</select></label><label>Où<select name="dom"><option value="1">À domicile</option><option value="0">À l’extérieur</option></select></label><label style="flex:2 1 220px">Lieu (adresse, club adverse)<input name="lieu" maxlength="120"></label></div>
+      <div><button class="btn">Programmer la rencontre</button></div></form></details></section>
+      <section class="card"><span class="eyebrow">Joueurs · ${mem.length}</span><h2>Effectif</h2>
       <label>Capitaine<select id="t-cap"><option value="">—</option>${mem.map(k => `<option value="${k}" ${t.cap === k ? 'selected' : ''}>${esc(nom(k))}</option>`).join('')}</select></label>
       ${mem.map(k => `<div class="ch-p"><span class="n">${esc(nom(k))}</span><select data-ros="${k}" aria-label="Rôle de ${esc(nom(k))}"><option value="T" ${ros[k] !== 'R' ? 'selected' : ''}>Titulaire</option><option value="R" ${ros[k] === 'R' ? 'selected' : ''}>Remplaçant</option></select><button class="ib2" data-out="${k}">Retirer</button></div>`).join('') || '<p class="ch-empty">Ajoute les joueurs de l’équipe.</p>'}
-      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" data-ch-joueur placeholder="Tape un nom : adhérents du club, joueurs /RAM JA" required autocomplete="off"></label><button class="btn">Ajouter</button></form><p class="muted small">Un joueur qui n’est pas encore dans /RAM Club y reçoit une fiche du club (sans compte) : il apparaît dans l’équipe et ses statistiques.</p></section>
-      <section class="card"><span class="eyebrow">Calendrier</span><h2>Rencontres</h2><div class="ch-list">${recsOf(t.id).map(r => `<button class="ch-it" data-r="${r.id}" aria-pressed="${sel.r === r.id}"><span class="n">${esc(r.opp)}<br><small>${esc(fmtD(r.d))} · ${esc(r.h || '')} · ${domicile(r) ? 'à domicile' : "à l'extérieur"}${r.lieu ? ' · ' + esc(r.lieu) : ''}${r.comp ? ' · ' + esc(r.comp) : ''}</small></span><small>${r.st === 'done' ? 'Jouée ' + score(r).join('-') : Object.keys(r.lineup || {}).length ? 'Convocations envoyées' : 'À composer'}</small></button>`).join('') || '<p class="ch-empty">Aucune rencontre programmée.</p>'}</div>
-      <form id="r-new" class="grid" style="margin-top:12px"><div class="ch-row"><label>Adversaire<input name="opp" data-clubs required maxlength="80" placeholder="TC Brive" autocomplete="off"></label><label>Journée<input name="comp" maxlength="60" placeholder="Journée 3"></label></div>
-      <div class="ch-row"><label>Date<input type="date" name="d" required></label><label>Heure<select name="h">${HOURS.map(h => `<option ${h === '14 h' ? 'selected' : ''}>${h}</option>`).join('')}</select></label><label>Où<select name="dom"><option value="1">À domicile</option><option value="0">À l’extérieur</option></select></label><label style="flex:2 1 220px">Lieu (adresse, club adverse)<input name="lieu" maxlength="120"></label></div>
-      <div><button class="btn">Programmer la rencontre</button></div></form></section>`;
+      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" data-ch-joueur placeholder="Tape un nom : adhérents du club, joueurs /RAM JA" required autocomplete="off"></label><button class="btn">Ajouter</button></form><p class="muted small">Un joueur qui n’est pas encore dans /RAM Club y reçoit une fiche du club (sans compte) : il apparaît dans l’équipe et ses statistiques.</p></section>`;
   }
   const score = r => { if (r.fin) return r.fin; let a = 0, b = 0; (r.ms || []).forEach(m => { if (m.st === 'done') m.w === 0 ? a++ : b++; }); return [a, b]; };
   function recPart(r, t, c) {
@@ -132,25 +130,63 @@
       <h3 style="margin-top:18px">Résultats</h3><form id="r-res" class="ch-ms">${lignes.map((x, i) => { const m = ms.find(y => y.l === x.l) || {}, a = Array.isArray(m.a) ? m.a : [m.a]; return `<div class="ch-m" data-i="${i}"><b>${x.l}</b><span class="ch-row" style="gap:6px"><select name="a${i}">${opt(a[0])}</select>${x.dbl ? `<select name="b${i}">${opt(a[1])}</select>` : ''}</span><input name="o${i}" data-joueurs autocomplete="off" placeholder="Adversaire" value="${esc(Array.isArray(m.b) ? m.b[0] || '' : m.b || '')}"><input name="s${i}" placeholder="6-3 6-4" value="${esc((m.sets || []).map(s => s.join('-')).join(' '))}"><select name="w${i}"><option value="">—</option><option value="0" ${m.st === 'done' && m.w === 0 ? 'selected' : ''}>Gagné</option><option value="1" ${m.st === 'done' && m.w === 1 ? 'selected' : ''}>Perdu</option></select></div>`; }).join('')}
       <div class="ch-row"><button class="btn">Enregistrer les résultats</button><button type="button" class="btn ghost" id="r-del">Supprimer la rencontre</button></div></form></section>`;
   }
+  /* accueil : les équipes du club, regroupées par championnat, avec leur prochaine rencontre */
+  function home() {
+    const ch = all('champ').filter(c => !c.arch), auj = new Date().toISOString().slice(0, 10);
+    const carte = t => {
+      const nx = recsOf(t.id).find(r => r.st !== 'done' && String(r.d || '') >= auj);
+      return `<button class="ch-it" data-t="${t.id}"><span class="n">${esc(t.name)}${t.gen && t.gen !== 'Mixte' ? ' ' + esc(t.gen) : ''}<br><small>${(t.mem || []).length} joueur${(t.mem || []).length > 1 ? 's' : ''}${t.cap ? ' · capitaine ' + esc(nom(t.cap)) : ''}</small></span><small>${nx ? 'Prochaine : ' + esc(fmtD(nx.d)) + ' contre ' + esc(nx.opp) : 'Aucune rencontre à venir'}</small></button>`;
+    };
+    const blocs = ch.map(c => `<section class="card"><div class="ch-row" style="justify-content:space-between;align-items:center"><div><span class="eyebrow">${esc([c.sport, c.div, c.season].filter(Boolean).join(' · ') || 'Championnat')}</span><h2 style="margin:4px 0">${esc(c.name)}</h2></div><button class="btn ghost" data-c="${c.id}">Règlement et format</button></div><div class="ch-list">${teams(c.id).map(carte).join('') || '<p class="ch-empty">Aucune équipe dans ce championnat.</p>'}</div></section>`).join('');
+    return `${blocs || '<section class="card"><p class="ch-empty">Aucune équipe pour le moment : créez la première ci-dessous.</p></section>'}
+      <section class="card"><span class="eyebrow">Nouvelle équipe</span><h2>Ajouter une équipe</h2><form id="t-new2" class="grid">
+      <div class="ch-row"><label>Nom<input name="n" placeholder="Équipe 1" required maxlength="60"></label><label style="flex:0 0 140px">Genre<select name="g"><option>Hommes</option><option>Dames</option><option>Mixte</option></select></label></div>
+      <div class="ch-row"><label>Championnat<select name="c">${ch.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}<option value="nouveau" ${ch.length ? '' : 'selected'}>Nouveau championnat…</option></select></label><label data-nc ${ch.length ? 'hidden' : ''}>Nom du championnat<input name="nc" placeholder="Interclubs seniors" maxlength="80"></label><label data-nc style="flex:0 0 130px" ${ch.length ? 'hidden' : ''}>Sport<select name="s"><option>Tennis</option><option>Padel</option></select></label></div>
+      <div><button class="btn">Créer l’équipe</button></div></form></section>`;
+  }
+  const retour = (l, v) => `<button class="btn ghost" data-back="${v}" style="margin-bottom:12px">← ${esc(l)}</button>`;
   function render() {
     if (!club) return;
     const c = sel.c && get('champ', sel.c), t = sel.t && get('group', sel.t), r = sel.r && get('rec', sel.r);
-    $('#app').innerHTML = `<div class="page-h"><span class="eyebrow">Championnats par équipes</span><h1>Équipes du club</h1>
+    if (vue === 'rec' && !(r && t)) vue = t ? 'team' : 'home';
+    if (vue === 'team' && !t) vue = 'home';
+    if (vue === 'champ' && !c) vue = 'home';
+    const ct = t && get('champ', t.champ);
+    const corps = vue === 'rec' ? retour(t.name, 'team') + recPart(r, t, ct) : vue === 'team' ? retour('Toutes les équipes', 'home') + `<p class="muted" style="margin:0 0 10px">${esc(ct ? ct.name : '')}${ct && ct.div ? ' · ' + esc(ct.div) : ''} · <button class="ib2" data-c="${t.champ}" style="text-decoration:underline">règlement et format</button></p>` + teamPart(t) : vue === 'champ' ? retour('Toutes les équipes', 'home') + champForm(c) : home();
+    $('#app').innerHTML = `<div class="page-h"><span class="eyebrow">Championnats par équipes</span><h1>${vue === 'team' ? esc(t.name) : vue === 'rec' ? esc(t.name) + ' contre ' + esc(r.opp) : vue === 'champ' ? esc(c.name) : 'Équipes du club'}</h1>
       ${clubs.length > 1 ? `<label style="max-width:320px">Club<select id="ch-club">${clubs.map(x => `<option value="${x.id}" ${x.id === club.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
-      <p class="muted">Tout ce que vous réglez ici est aussitôt dans /RAM Club : agenda des équipes, convocations, réponses, résultats et statistiques de chaque joueur.</p></div>
-      <div class="grid g-2" style="align-items:start"><div class="grid">${champs()}${c ? champForm(c) : ''}</div><div class="grid">${t ? teamPart(t) : ''}${r && t ? recPart(r, t, c) : ''}</div></div>`;
+      ${vue === 'home' ? '<p class="muted">Tout ce que vous réglez ici est aussitôt dans /RAM Club : agenda des équipes, convocations, réponses, résultats et statistiques de chaque joueur.</p>' : ''}</div>
+      <div class="grid ch-ecran">${corps}</div>`;
+    scrollTo(0, 0);
     bind(c, t, r);
   }
   function bind(c, t, r) {
     const on = (s, ev, f) => { const el = $(s); if (el) el[ev] = f; };
     on('#ch-club', 'onchange', e => { club = clubs.find(x => x.id === e.target.value); sel = { c: null, t: null, r: null }; charger(); });
-    document.querySelectorAll('[data-c]').forEach(b => (b.onclick = () => { sel = { c: b.dataset.c, t: null, r: null }; render(); }));
-    document.querySelectorAll('[data-t]').forEach(b => (b.onclick = () => { sel.t = b.dataset.t; sel.r = null; render(); }));
-    document.querySelectorAll('[data-r]').forEach(b => (b.onclick = () => { sel.r = b.dataset.r; render(); }));
+    document.querySelectorAll('[data-c]').forEach(b => (b.onclick = () => { sel.c = b.dataset.c; vue = 'champ'; render(); }));
+    document.querySelectorAll('[data-t]').forEach(b => (b.onclick = () => { sel.t = b.dataset.t; sel.r = null; vue = 'team'; render(); }));
+    document.querySelectorAll('[data-r]').forEach(b => (b.onclick = () => { sel.r = b.dataset.r; vue = 'rec'; render(); }));
+    document.querySelectorAll('[data-back]').forEach(b => (b.onclick = () => { vue = b.dataset.back; render(); }));
+    const t2 = $('#t-new2');
+    if (t2) {
+      t2.c.onchange = () => t2.querySelectorAll('[data-nc]').forEach(x => (x.hidden = t2.c.value !== 'nouveau'));
+      t2.onsubmit = async e => {
+        e.preventDefault();
+        const f = e.target, id = nid('eq'), l = [];
+        let cid = f.c.value;
+        if (cid === 'nouveau') {
+          if (!f.nc.value.trim()) return toast('Donne un nom au championnat');
+          cid = nid('c');
+          l.push({ coll: 'champ', id: cid, op: 'put', data: { name: f.nc.value.trim(), sport: f.s.value, age: 'Adultes', season: '', fmt: { s: 4, d: 1, match: FORMATS[0], pv: 3, pn: 2, pd: 1 } } });
+        }
+        l.push({ coll: 'group', id, op: 'put', data: { type: 'team', champ: cid, name: f.n.value.trim(), gen: f.g.value, sub: (get('champ', cid) || {}).div || '', cap: '', mem: [], roster: {} } });
+        if (await ops(l, 'Équipe créée : ajoutez ses joueurs')) { sel.t = id; vue = 'team'; render(); }
+      };
+    }
     on('#ch-new', 'onsubmit', async e => { e.preventDefault(); const id = nid('c'); if (await ops([{ coll: 'champ', id, op: 'put', data: { name: e.target.n.value.trim(), sport: e.target.s.value, age: 'Adultes', season: '', fmt: { s: 4, d: 1, match: FORMATS[0], pv: 3, pn: 2, pd: 1 } } }], 'Championnat créé')) { sel = { c: id, t: null, r: null }; render(); } });
     on('#ch-set', 'onsubmit', async e => { e.preventDefault(); const f = e.target; await ops([{ coll: 'champ', id: c.id, op: 'put', data: Object.assign({}, c, { name: f.name.value.trim() || c.name, div: f.div.value.trim(), season: f.season.value.trim(), age: f.age.value, regle: f.regle.value, fmt: { s: +f.s.value || 0, d: +f.d.value || 0, match: f.match.value, pv: +f.pv.value, pn: +f.pn.value, pd: +f.pd.value } }) }], 'Championnat enregistré'); });
-    on('#ch-arch', 'onclick', async () => { if (confirm('Archiver ce championnat ? Il quitte l’appli, ses résultats restent dans les archives du club.') && await ops([{ coll: 'champ', id: c.id, op: 'patch', patch: [{ p: ['arch'], t: 'set', v: c.season || String(new Date().getFullYear()) }] }], 'Championnat archivé')) { sel = { c: null, t: null, r: null }; render(); } });
-    on('#t-new', 'onsubmit', async e => { e.preventDefault(); const id = nid('eq'); if (await ops([{ coll: 'group', id, op: 'put', data: { type: 'team', champ: c.id, name: e.target.n.value.trim(), gen: e.target.g.value, sub: c.div || '', cap: '', mem: [], roster: {} } }], 'Équipe ajoutée')) { sel.t = id; render(); } });
+    on('#ch-arch', 'onclick', async () => { if (confirm('Archiver ce championnat ? Il quitte l’appli, ses résultats restent dans les archives du club.') && await ops([{ coll: 'champ', id: c.id, op: 'patch', patch: [{ p: ['arch'], t: 'set', v: c.season || String(new Date().getFullYear()) }] }], 'Championnat archivé')) { sel = { c: null, t: null, r: null }; vue = 'home'; render(); } });
+    on('#t-new', 'onsubmit', async e => { e.preventDefault(); const id = nid('eq'); if (await ops([{ coll: 'group', id, op: 'put', data: { type: 'team', champ: c.id, name: e.target.n.value.trim(), gen: e.target.g.value, sub: c.div || '', cap: '', mem: [], roster: {} } }], 'Équipe ajoutée')) { sel.t = id; vue = 'team'; render(); } });
     if (t) {
       on('#t-cap', 'onchange', e => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['cap'], t: 'set', v: e.target.value }] }], 'Capitaine choisi · il est prévenu'));
       document.querySelectorAll('[data-ros]').forEach(s => (s.onchange = () => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['roster', s.dataset.ros], t: 'set', v: s.value }] }])));
@@ -170,7 +206,7 @@
       on('#r-new', 'onsubmit', async e => {
         e.preventDefault(); const f = e.target, id = nid('r'), dom = f.dom.value === '1';
         const data = { tid: t.id, opp: f.opp.value.trim(), comp: f.comp.value.trim(), d: f.d.value, h: f.h.value, dom, lieu: f.lieu.value.trim(), when: fmtD(f.d.value) + ' · ' + f.h.value + ' · ' + (dom ? 'à domicile' : "à l'extérieur"), st: 'soon', lineup: {}, conv: {}, ms: [] };
-        if (await ops([{ coll: 'rec', id, op: 'put', data }], 'Rencontre programmée · l’équipe la voit dans son agenda')) { sel.r = id; render(); }
+        if (await ops([{ coll: 'rec', id, op: 'put', data }], 'Rencontre programmée · l’équipe la voit dans son agenda')) { sel.r = id; vue = 'rec'; render(); }
       });
     }
     if (r && t) {
@@ -186,7 +222,7 @@
         const fini = ms.length && ms.every(m => m.st === 'done');
         await ops([{ coll: 'rec', id: r.id, op: 'patch', patch: [{ p: ['ms'], t: 'set', v: ms }, { p: ['st'], t: 'set', v: fini ? 'done' : r.st === 'done' ? 'soon' : r.st || 'soon' }] }], fini ? 'Résultats enregistrés · la rencontre est terminée' : 'Résultats enregistrés');
       });
-      on('#r-del', 'onclick', async () => { if (confirm('Supprimer cette rencontre ?') && await ops([{ coll: 'rec', id: r.id, op: 'del' }], 'Rencontre supprimée')) { sel.r = null; render(); } });
+      on('#r-del', 'onclick', async () => { if (confirm('Supprimer cette rencontre ?') && await ops([{ coll: 'rec', id: r.id, op: 'del' }], 'Rencontre supprimée')) { sel.r = null; vue = 'team'; render(); } });
     }
   }
   (async () => {
