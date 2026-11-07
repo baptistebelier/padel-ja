@@ -3,6 +3,35 @@
    Les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 const NV_MAX = 6;
 const NV_PLACES = ['1', '2', '3', '4', '5', '6', '7', '8', '10', '12', '16'];
+/* Modèles de fourchettes : enregistrés une fois, rechargés d'un toucher à chaque partie ou séance.
+   Gardés dans mes réglages (synchronisés entre mes appareils, /RAM Club et /RAM Coach), 20 au plus. */
+const NV_MOD_MAX = 20;
+// aussi gardés sur l'appareil : /RAM Coach ne synchronise pas ces réglages
+const nvMods = () => {
+  if (!Array.isArray(S.nvModeles))
+    try {
+      S.nvModeles = JSON.parse(localStorage.getItem('nv-modeles') || '[]');
+    } catch (e) {
+      S.nvModeles = [];
+    }
+  return S.nvModeles;
+};
+const nvModsKeep = () => {
+  try {
+    localStorage.setItem('nv-modeles', JSON.stringify(S.nvModeles || []));
+  } catch (e) {}
+  if (typeof ramSave === 'function') ramSave();
+};
+function nvModsHtml() {
+  const l = nvMods();
+  return `<div class="fld nv-mods"><span class="lb">Mes fourchettes enregistrées</span>${
+    l.length
+      ? `<div class="chips wrap">${l.map(m => `<span class="chip nv-mod"><button type="button" data-a="nvModLoad" data-id="${esc(m.id)}">${esc(m.n)}<small>${m.sport} · ${m.tiers.length} fourchette${m.tiers.length > 1 ? 's' : ''}</small></button><button type="button" class="nv-mod-x" data-a="nvModDel" data-id="${esc(m.id)}" aria-label="Supprimer le modèle ${esc(m.n)}">${ic('x')}</button></span>`).join('')}</div>`
+      : '<p class="muted small">Aucune pour l’instant : règle tes fourchettes ci-dessous, puis enregistre-les pour la prochaine fois.</p>'
+  }</div>`;
+}
+const nvSaveHtml = () =>
+  `<div class="nv-save"><input id="nv-mod-n" maxlength="40" placeholder="Nom : Mardi compétiteurs, Ados…" aria-label="Nom du modèle de fourchettes" autocomplete="off"><button type="button" class="btn sm ghost" data-a="nvModSave">${ic('star')}Enregistrer ces fourchettes</button></div>`;
 /* une ligne de fourchette du formulaire : nom, de, à, minimum, maximum */
 function nvRow(i, sport, t) {
   const lv = sport === 'Padel' ? LV : RANKS,
@@ -41,13 +70,50 @@ Object.assign(A, {
       cours ? 'Séance collective' : 'Partie dirigée',
       `<form class="body" id="nv-form" data-m="${cours ? 'cours' : 'partie'}">${cours ? F('nv-theme', 'Thème de la séance', 'Service et retour, jeu au filet…') : ''}${O('nv-body', 'Précisions (facultatif)', cours ? 'Ce que l’on travaille, matériel…' : 'Format, court…')}
  <div class="two">${Sel('nv-sport', 'Sport', ['Tennis', 'Padel'])}${cours ? '' : Sel('nv-fmt', 'Format', ['Double', 'Simple'], 'Double')}</div>
- ${Dt('a-d1', cours ? 'Date (première séance)' : 'Date', 1)}<div class="two">${Sel('a-h1', 'Heure', HOURS, '18 h')}${Sel('a-dur', 'Durée', ['1 h', '1 h 30', '2 h'], '1 h 30')}</div>${O('nv-place', 'Lieu (facultatif)', 'Court 3, salle…')}${O('nv-price', 'Tarif', cours ? '15 € par séance' : '10 € par joueur')}
+ ${Dt('a-d1', cours ? 'Date (première séance)' : 'Date', 1)}<div class="two">${Sel('a-h1', 'Heure', HOURS, '18 h')}${Sel('a-dur', 'Durée', ['1 h', '1 h 30', '2 h'], '1 h 30')}</div>${O('nv-place', 'Lieu (facultatif)', 'Court 3, salle…')}${typeof prixChoix === 'function' ? prixChoix('nv-price', '', cours ? '15 € par séance' : '10 € par joueur') : O('nv-price', 'Tarif', cours ? '15 € par séance' : '10 € par joueur')}
  ${cours ? Sel('nv-rep', 'Récurrence', ['Une seule fois', 'Chaque semaine · 4 semaines', 'Chaque semaine · 6 semaines', 'Chaque semaine · 8 semaines', 'Chaque semaine · 10 semaines', 'Chaque semaine · 12 semaines']) : ''}
  <div class="fld"><span class="lb">Fourchettes de niveau</span><p class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première à atteindre son minimum valide ${cours ? 'la séance' : 'la partie'}, qui arrive alors au planning ; les inscrits des autres passent en liste d'attente. Avant, rien n'est bloqué.</p></div>
- <div id="nv-tiers" class="stack"></div><button type="button" class="btn ghost full" id="nv-add" data-a="nvRowAdd">${ic('plus')}Ajouter une fourchette</button>
+ <div id="nv-mods-box">${nvModsHtml()}</div><div id="nv-tiers" class="stack"></div><button type="button" class="btn ghost full" id="nv-add" data-a="nvRowAdd">${ic('plus')}Ajouter une fourchette</button>${nvSaveHtml()}
  <button class="btn full">${cours ? 'Proposer la séance' : 'Publier la recherche'}</button></form>`
     );
     nvTiers('Tennis', [null, null]);
+  },
+  /* modèles de fourchettes */
+  nvModSave() {
+    const sp = $('nv-sport').value,
+      tiers = nvRead(sp),
+      n = (($('nv-mod-n') || {}).value || '').trim();
+    if (!n) {
+      toast('Donne un nom au modèle (par exemple « Mardi compétiteurs »)');
+      if ($('nv-mod-n')) $('nv-mod-n').focus();
+      return;
+    }
+    const l = nvMods().filter(m => m.n.toLowerCase() !== n.toLowerCase());
+    if (l.length >= NV_MOD_MAX) return toast(NV_MOD_MAX + ' modèles au plus : supprimes-en un');
+    l.unshift({ id: 'm' + Date.now().toString(36), n: esc(n).slice(0, 60), sport: sp, tiers });
+    S.nvModeles = l;
+    $('nv-mod-n').value = '';
+    $('nv-mods-box').innerHTML = nvModsHtml();
+    nvModsKeep();
+    toast(`Fourchettes « ${n} » enregistrées`);
+  },
+  nvModLoad(d) {
+    const m = nvMods().find(x => x.id === d.id);
+    if (!m || !$('nv-sport')) return;
+    if ($('nv-sport').value !== m.sport) {
+      $('nv-sport').value = m.sport;
+      $('nv-sport').dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    nvTiers(m.sport, m.tiers.slice(0, NV_MAX));
+    toast(`Fourchettes « ${m.n.replace(/&amp;/g, '&')} » chargées`);
+  },
+  nvModDel(d) {
+    const m = nvMods().find(x => x.id === d.id);
+    if (!m) return;
+    S.nvModeles = nvMods().filter(x => x.id !== d.id);
+    if ($('nv-mods-box')) $('nv-mods-box').innerHTML = nvModsHtml();
+    nvModsKeep();
+    toast('Modèle supprimé');
   },
   nvRowAdd() {
     const sp = $('nv-sport').value,
@@ -125,6 +191,7 @@ document.addEventListener('submit', e => {
     weeks = cours ? +(val('nv-rep').match(/(\d+) semaines/) || [0, 1])[1] : 1,
     d0 = val('a-d1') || isoIn(1);
   if (!tiers.length) return toast('Ajoute au moins une fourchette de niveau');
+  if (typeof prixOk === 'function' && !prixOk('nv-price')) return;
   if (f.dataset.edit) {
     const p = posts.find(x => x.id === f.dataset.edit),
       o = p.nv,
@@ -155,7 +222,7 @@ document.addEventListener('submit', e => {
       time: val('a-h1'),
       dur: val('a-dur'),
       place: val('nv-place'),
-      price: val('nv-price'),
+      price: typeof prixLu === 'function' ? prixLu('nv-price') : val('nv-price'),
       dates,
       tiers,
       ins,
@@ -184,7 +251,7 @@ document.addEventListener('submit', e => {
       time: val('a-h1'),
       dur: val('a-dur'),
       place: val('nv-place'),
-      price: val('nv-price'),
+      price: typeof prixLu === 'function' ? prixLu('nv-price') : val('nv-price'),
       dates: Array.from({ length: weeks }, (_, i) => isoIn(7 * i, d0)),
       tiers,
       ins: {},
@@ -223,7 +290,8 @@ function nvEdit(p) {
   put('a-h1', nv.time);
   put('a-dur', nv.dur);
   put('nv-place', nv.place);
-  put('nv-price', nv.price);
+  if (typeof prixSet === 'function') prixSet('nv-price', nv.price);
+  else put('nv-price', nv.price);
   if (cours && (nv.dates || []).length > 1) put('nv-rep', 'Chaque semaine · ' + nv.dates.length + ' semaines');
   nvTiers(nv.sport, nv.tiers);
   if (Object.values(nv.ins || {}).some(l => (l || []).length)) $('nv-sport').disabled = true;

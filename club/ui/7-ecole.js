@@ -187,7 +187,7 @@ function ecoleBody(t) {
         ? st
             .map(
               p =>
-                `<div class="card"><span class="h3">${p.title}</span><p class="muted small">${p.body}</p>${evBox(p)}</div>`
+                `<div class="card"><div class="row"><span class="h3 grow">${p.title}</span>${staff ? `<button class="btn sm ghost" data-a="pedit" data-id="${p.id}">${ic('edit')}Modifier</button>` : ''}</div><p class="muted small">${p.body}</p>${evBox(p)}</div>`
             )
             .join('')
         : empty('ball', 'Aucun stage prévu', '')) +

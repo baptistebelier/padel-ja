@@ -46,7 +46,15 @@ function promoAsk(keys) {
 }
 Object.assign(A, {
   promoMenu(d) {
-    menuSheet('Événement', [
+    const [v, id] = String(d.k).split('|'),
+      p = v === 'post' && posts.find(x => x.id === id),
+      modif =
+        p &&
+        p.kind === 'event' &&
+        !p.arch &&
+        (p.by === ME() || canModerate() || (isAdmin() && (p.by === 'club' || p.stage)));
+    menuSheet(p && p.stage ? 'Stage' : 'Événement', [
+      modif && ['edit', p.stage ? 'Modifier le stage' : 'Modifier', 'pedit', `data-id="${esc(id)}"`],
       ['news', 'Promouvoir sur le mur', 'promoOne', `data-k="${esc(d.k)}"`],
       ['check', 'Sélectionner plusieurs événements', 'promoSelStart', `data-k="${esc(d.k)}"`]
     ]);

@@ -73,7 +73,9 @@ const paFields = (x = {}) =>
 function forms(k, cid) {
   if (k === 'stage') {
     const e = forms('event', cid);
-    return ['Nouveau stage', e[1], 'Publier le stage'];
+    // le stage : les mêmes champs, avec l'enseignant (du club ou une autre personne)
+    const x = typeof evExtra === 'function' ? evExtra({}, 'stage') : '';
+    return ['Nouveau stage', x ? e[1].replace(/<!--ev-x-->[\s\S]*?<!--\/ev-x-->/, () => x) : e[1], 'Publier le stage'];
   }
   if (k === 'anim') {
     const e = forms('event', cid);
@@ -98,6 +100,7 @@ function forms(k, cid) {
         `<div class="fld"><label for="a-d2">Date de fin</label><input type="date" id="a-d2" value="${isoIn(7)}" hidden><label class="chk" for="a-same"><input type="checkbox" id="a-same" checked data-hide="a-d2">Même jour</label></div><div class="two">${Sel('a-h1', 'Heure de début', HOURS, '14 h')}${Sel('a-h2', 'Heure de fin', HOURS, '18 h')}</div>` +
         F('a-place', 'Lieu', 'Club-house') +
         T('a-body', 'Description', 'Le programme en deux phrases') +
+        (typeof evExtra === 'function' ? evExtra({}, 'event') : '') +
         `<div class="fld"><span class="lb">Inscription</span><div class="radio"><label for="a-reg-int"><input type="radio" name="a-reg" value="int" id="a-reg-int" checked>Dans l'appli</label><label for="a-reg-ext"><input type="radio" name="a-reg" value="ext" id="a-reg-ext">Sur Ten'Up</label></div></div><div id="ev-int">${Sel('ev-cap', "Places (au-delà : liste d'attente)", ['Sans limite', '10', '20', '30', '40', '50', '80', '100'])}</div><div id="ev-ext" hidden>${O('a-ten', "Lien Ten'Up de l'événement", 'https://tenup.fft.fr/…')}</div>` +
         O('a-pay', 'Lien de paiement (HelloAsso…, facultatif)', 'https://www.helloasso.com/…') +
         visBlock(),

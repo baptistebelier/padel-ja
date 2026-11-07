@@ -352,7 +352,8 @@
       setup: S.setup || {},
       invited: S.invited || 0,
       motif: S.motif || 'ram-mixte',
-      favs: S.favs || []
+      favs: S.favs || [],
+      nvModeles: S.nvModeles || [] // modèles de fourchettes des parties dirigées et séances collectives
     });
     // messages : groupes, direct des rencontres, commentaires des publications
     const box = (ref, list) =>
@@ -736,6 +737,7 @@
         mergeNotifs(s.nh, initial);
         if (s.motif && typeof setMotif === 'function') setMotif(s.motif);
         if (Array.isArray(s.favs)) S.favs = s.favs.slice(0, 12); // mes favoris (frise du mur)
+        if (Array.isArray(s.nvModeles)) S.nvModeles = s.nvModeles.slice(0, 20);
         R.prefs = s;
         return;
       }
@@ -1865,6 +1867,12 @@
       pushT = setTimeout(tick, 120);
     }
   };
+  /* envoyer tout de suite un changement fait sans redessiner l'écran (modèle de fourchettes enregistré dans une fenêtre) */
+  window.ramSave = () => {
+    if (!R.live) return;
+    clearTimeout(pushT);
+    pushT = setTimeout(tick, 120);
+  };
 
   /* ---------- démarrage dans un vrai club ---------- */
   function wipe() {
@@ -2260,10 +2268,15 @@
   };
   /* mes clubs : le principal (celui de ma licence, repris par /RAM JA) et les secondaires (adhérent, autre sport…) */
   const ROLE_L = { bureau: 'Bureau', coach: 'Enseignant', mem: 'Adhérent' };
+  /* le club ouvert dans l'appli : une porte ouverte */
+  I.porte =
+    '<path d="M3 21h18"/><path d="M6 21V3h9"/><path d="M15 3v1.5"/><path d="M10 4.5l8-1.5v18l-8-1.5z"/><path d="M13 12h.01"/>';
+  const clubOuvert = () =>
+    `<span class="club-on" role="img" aria-label="Club ouvert dans l'appli" title="Club ouvert dans l'appli">${ic('porte')}</span>`;
   A.ramClubs = () => {
     const main = R.clubs.find(c => c.main),
       row = c =>
-        `<div class="item"><button class="grow" data-a="ramSwitch" data-id="${c.id}" style="text-align:left;display:flex;gap:10px;align-items:center">${ic(c.id === R.club ? 'check' : 'club')}<span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${S.super ? 'Administrateur' : ROLE_L[c.role] || ''}${c.id === R.club ? ' · ouvert' : ''}</span></span>${pastille(c)}</button>${c.main ? '<span class="tag lime">Principal</span>' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}">Principal</button>`}</div>`;
+        `<div class="item"><button class="grow" data-a="ramSwitch" data-id="${c.id}" style="text-align:left;display:flex;gap:10px;align-items:center"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${S.super ? 'Administrateur' : ROLE_L[c.role] || ''}</span></span>${c.id === R.club ? clubOuvert() : pastille(c)}</button>${c.main ? '<span class="tag lime">Principal</span>' : ''}</div>`;
     sheet(
       'Mes clubs',
       `<div class="body">${main ? `<span class="kicker">Club principal · licence</span>${row(main)}` : ''}${
@@ -2430,7 +2443,7 @@
     return `<div class="card"><span class="kicker">Mes clubs</span>${list
       .map(
         c =>
-          `<div class="item" style="gap:10px"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${S.super ? 'Administrateur' : ROLE_P[c.role] || ''}${c.main ? ' · club principal (licence)' : ' · club secondaire'}</span></span>${c.id === R.club ? '<span class="tag lime">Ouvert</span>' : `${pastille(c)}<button class="btn sm" data-a="ramSwitch" data-id="${c.id}">Ouvrir</button>`}${c.main ? '' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}" title="Le club de ta licence, repris sur ta fiche /RAM JA">Principal</button>`}</div>`
+          `<div class="item" style="gap:10px"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${e(c.name)}</span><br><span class="muted small">${S.super ? 'Administrateur' : ROLE_P[c.role] || ''}${c.main ? ' · club principal (licence)' : ' · club secondaire'}</span></span>${c.id === R.club ? clubOuvert() : `${pastille(c)}<button class="btn sm" data-a="ramSwitch" data-id="${c.id}">Ouvrir</button>`}${c.main ? '' : `<button class="btn sm ghost" data-a="ramMain" data-id="${c.id}" title="Le club de ta licence, repris sur ta fiche /RAM JA">Principal</button>`}</div>`
       )
       .join(
         ''

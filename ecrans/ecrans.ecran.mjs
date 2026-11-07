@@ -1925,3 +1925,38 @@ test('Club : le bureau promeut plusieurs événements de l’agenda sur le mur ;
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+/* ---------- Stage : tarif, intervenant extérieur, déroulé dépliable sur le mur et dans l'agenda ---------- */
+test('Club : un stage avec tarif, intervenant et déroulé ; le déroulé se déplie sur sa carte', async () => {
+  const ctx = await phone();
+  const { page, errors } = await openPage(ctx, DEMO + '/index.html');
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); document.querySelectorAll('.back').forEach(b => b.remove()); S.role = 'admin'; render(); A.newPost({ k: 'stage' }); });
+  await page.waitForSelector('#ev-prix-p');
+  await page.fill('#a-title', 'Stage essai');
+  await page.fill('#a-place', 'Court 1');
+  await page.fill('#a-body', 'Technique');
+  await page.check('#ev-prix-p');
+  await page.fill('#ev-prix-m', '30');
+  await page.selectOption('#ev-ens', 'autre');
+  await page.fill('#ev-ens-nom', 'Jean Dupont');
+  await page.click('[data-a="dlAdd"]');
+  await page.locator('#dl-list .dl-t').last().fill('Sur le terrain');
+  await page.click('[data-a="dlAdd"]');
+  await page.locator('#dl-list .dl-t').last().fill('Déjeuner au club-house');
+  assert.ok(await page.evaluate(() => document.querySelector('#sheet').scrollWidth <= innerWidth + 1), 'le formulaire tient sur 360 px');
+  await page.click('#adm-form > button.btn.full');
+  const p = await page.waitForFunction(() => posts.find(x => x.title === 'Stage essai')).then(h => h.jsonValue());
+  assert.equal(p.prix, '30');
+  assert.equal(p.ensNom, 'Jean Dupont');
+  assert.equal(p.dl.length, 2);
+  await page.evaluate(() => { S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = 'events'; S.dlOpen = []; render(); });
+  const card = page.locator('.evx', { hasText: 'Stage essai' });
+  assert.match(await card.textContent(), /30 €/);
+  assert.match(await card.textContent(), /Avec Jean Dupont/);
+  await card.locator('.dl-tog').click();
+  assert.equal(await card.locator('.dl-f li').count(), 2);
+  assert.equal(await card.locator('.dl-f').isHidden(), false, 'déplié');
+  assert.equal(await page.evaluate(() => view().v), 'agenda', 'déplier n’ouvre pas la fiche');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

@@ -62,6 +62,11 @@ document.addEventListener('submit', e => {
       p.title = g('e-title');
       p.body = g('e-body');
       if ($('e-place')) p.place = g('e-place');
+      if ($('ev-prix-g') && typeof evExtraRead === 'function') {
+        const kx = p.stage ? 'stage' : 'event';
+        if (!evExtraOk(kx)) return;
+        Object.assign(p, evExtraRead(kx));
+      }
       if ($('e-d1')) {
         const d1 = val('e-d1'),
           d2 = val('e-d2'),
@@ -612,6 +617,7 @@ document.addEventListener('submit', e => {
         toast("L'heure de fin doit être après l'heure de début");
         return;
       }
+      if (typeof evExtraOk === 'function' && !evExtraOk(k)) return;
       posts.unshift({
         ...base,
         ...(k === 'stage' || k === 'anim'
@@ -635,7 +641,9 @@ document.addEventListener('submit', e => {
         ins: [],
         cap: reg === 'int' && cp !== 'Sans limite' ? +cp : 0,
         tenup: esc(toUrl(val('a-ten'))),
-        pay: esc(toUrl(val('a-pay')))
+        pay: esc(toUrl(val('a-pay'))),
+        // tarif, enseignant du stage, déroulé (app/18-stage.js)
+        ...(typeof evExtraRead === 'function' ? evExtraRead(k) : {})
       });
       S.img = null;
       versPage(

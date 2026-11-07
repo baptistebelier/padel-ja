@@ -67,8 +67,12 @@ function planItems(iso) {
         pic: p.stage ? 'racket' : p.anim ? 'users' : '',
         lines: [
           p.d2 ? ['cal', 'Du ' + fmtD(p.d, 1) + ' au ' + fmtD(p.d2, 1)] : ['clock', p.h1 + ' – ' + p.h2],
-          p.place && ['pin', p.place]
+          p.place && ['pin', p.place],
+          typeof ensTxt === 'function' && ensTxt(p) && ['user', 'Avec ' + ensTxt(p)]
         ],
+        // tarif toujours visible ; déroulé du stage dépliable sous la carte
+        tg1: typeof prixTxt === 'function' && prixTxt(p) ? evTag(prixTxt(p)) : '',
+        foot: typeof dlBlock === 'function' ? dlBlock(p) : '',
         title: p.title.replace(/<[^>]+>/g, ''),
         v: 'post',
         id: p.id,
@@ -139,7 +143,9 @@ function planMore(iso, out, me, mine) {
               ? evTag('Liste d’attente')
               : s === 'in'
                 ? evTag('Inscrit')
-                : '') + (st.win ? '' : evTag('En attente de joueurs')),
+                : '') +
+          (st.win ? '' : evTag('En attente de joueurs')) +
+          (nv.price ? evTag(nv.price) : ''),
         title:
           nv.mode === 'cours'
             ? nv.theme || 'Séance collective'
@@ -314,7 +320,8 @@ const planCard = i =>
       (i.tg0 || '') +
       (i.kind || PLAN_KIND[i.cat] ? evTag(i.kind || PLAN_KIND[i.cat]) : '') +
       sportTag(i.sport) +
-      (i.tg1 || '')
+      (i.tg1 || ''),
+    foot: i.foot || ''
   });
 /* Événements de l'agenda du club : ce qu'organise le club (événements, stages, animations,
    tournois du club, tournois et animations /RAM JA, rencontres d'équipes),
