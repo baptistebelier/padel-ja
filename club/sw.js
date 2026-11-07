@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-07-carnet44';
+const VERSION = '2026-11-07-carnet45';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -54,6 +54,7 @@ const CORE = [
   'app/14-discussions.js',
   'app/15-bandeaux.js',
   'app/16-suivi.js',
+  'app/17-promo.js',
   'manifest.webmanifest',
   'icon-180.png',
   'icon-512.png'

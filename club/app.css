@@ -425,7 +425,22 @@ button.tro{width:100%;text-align:left}
 .fp-card .av{width:52px;height:52px;font-size:19px}
 .fp-card b{font-family:var(--f-sub);font-size:14px;letter-spacing:.02em;text-transform:uppercase;line-height:1}
 .fp-st.lock .fp-card{background:var(--card2);border-color:var(--line);box-shadow:0 4px 0 #000}
-.fp-st.lock .fp-card .av{filter:grayscale(1) brightness(.75)}
+.fp-st.lock .fp-card .av,.fp-st.lock .fp-card .medal{filter:grayscale(1) brightness(.75)}
+.fp-card .medal{width:52px;height:52px}
+.tp-now{text-align:center;margin:-8px 0 18px}
+/* agenda du club : promouvoir des événements sur le mur */
+.promo-w{position:relative}
+.promo-more{position:absolute;top:6px;right:6px;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--fg);z-index:2}
+.promo-more svg{width:20px;height:20px}
+.promo-w.sel>.card{outline:2px dashed var(--line);outline-offset:-2px}
+.promo-w.sel.on>.card{outline:3px solid var(--accent);outline-offset:-3px}
+.promo-ck{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;pointer-events:none;z-index:2}
+.promo-ck svg{width:16px;height:16px}
+.promo-w.on .promo-ck{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.promo-bar{position:sticky;top:8px;z-index:4;display:flex;align-items:center;gap:8px;padding:10px 12px;margin:0 0 12px;background:var(--card);border:2px solid var(--accent);border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.promo-l{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.promo-d{font-family:var(--f-sub);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.promo-sn{font-weight:600}
 .fp-st.now .fp-card{border-color:var(--accent);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 45%,#000),0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
 .fp-lock{position:absolute;top:-9px;right:-7px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:2px solid var(--line);color:var(--muted)}
 .fp-lock svg{width:15px;height:15px}

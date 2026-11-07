@@ -255,22 +255,49 @@ const RAR = ['Courant', 'Peu courant', 'Rare', 'Très rare'];
 const FR_COUL = ['#8A8A8A', '#C8834B', '#C9D1D9', '#F2C230', '#5FD3C6', '#7FB4FF'];
 const CADENAS =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="4.5" y="10" width="15" height="11" rx="2.5" fill="currentColor"/><circle cx="12" cy="15.5" r="1.7" fill="var(--card)"/></svg>';
+/* chemin de progression commun : étapes [{ n, min }], valeur atteinte, étape atteinte L,
+   carte(i, état) : le contenu de chaque carte, bulle : le texte posé sur la barre */
+function progPath(etapes, v, L, o) {
+  const n = etapes.length,
+    N = etapes[L + 1],
+    pos = N ? L + Math.max(0, Math.min(1, (v - etapes[L].min) / (N.min - etapes[L].min))) : n - 1,
+    pc = ((pos / (n - 1)) * 100).toFixed(1);
+  const etape = (f, i) => {
+    const st = i <= L ? 'got' : i === L + 1 ? 'now' : 'lock';
+    return `<div class="fp-st ${st}" role="listitem" style="--c:${o.coul[i]}" aria-label="${o.nom} ${f.n}, ${f.min} ${o.unite}${st === 'got' ? ', débloqué' : ', à débloquer'}"><span class="fp-card">${st === 'got' ? '' : `<span class="fp-lock">${CADENAS}</span>`}${o.carte(i, st)}<b>${f.n}</b></span><span class="fp-dia"></span><small>${f.min} ${o.court}</small></div>`;
+  };
+  return `<div class="fpath tsec" role="list" aria-label="${o.titre}"><div class="fp-in" style="--n:${n}"><div class="fp-rail"><i style="width:${pc}%"></i><span class="fp-me" style="left:${pc}%">${o.bulle}</span></div>${etapes.map(etape).join('')}</div></div>`;
+}
+/* paliers d'un trophée : départ, bronze, argent, or, platine, la barre remplie jusqu'au compteur */
+const TR_COUL = ['#8A8A8A', '#C8834B', '#C9D1D9', '#F2C230', '#5FD3C6'];
+function tierPath(t, v, n) {
+  const etapes = [{ n: 'Départ', min: 0 }].concat(t.t.map((x, i) => ({ n: TIERS[i], min: x })));
+  return progPath(etapes, v, n, {
+    coul: TR_COUL,
+    nom: 'Palier',
+    unite: t.u,
+    court: '',
+    titre: 'Paliers du trophée ' + t.n,
+    bulle: v,
+    carte: (i, st) => (i ? medal(t.i, i - 1, st === 'got') : `<span class="medal off">${ic(t.i)}</span>`)
+  });
+}
 function framePath(id) {
   const sc = score(id),
     L = lvlOf(id),
-    n = FRAMES.length,
-    N = FRAMES[L + 1],
-    pos = N ? L + Math.max(0, Math.min(1, (sc - FRAMES[L].min) / (N.min - FRAMES[L].min))) : n - 1,
-    pc = (pos / (n - 1)) * 100,
     photo = M[id] && M[id].photo;
-  const etape = (f, i) => {
-    const st = i <= L ? 'got' : i === L + 1 ? 'now' : 'lock',
-      avatar = photo
+  return progPath(FRAMES, sc, L, {
+    coul: FR_COUL,
+    nom: 'Cadre',
+    unite: 'points',
+    court: 'pts',
+    titre: "Chemin des cadres d'avatar",
+    bulle: sc + ' pts',
+    carte: i =>
+      photo
         ? `<span class="av${i ? ' fr' + i : ''}" style="background-image:url(${photo})"></span>`
-        : `<span class="av${i ? ' fr' + i : ''}" style="--h:${hue(id)}">${ini(id)}</span>`;
-    return `<div class="fp-st ${st}" role="listitem" style="--c:${FR_COUL[i]}" aria-label="Cadre ${f.n}, ${f.min} points${st === 'got' ? ', débloqué' : ', à débloquer'}"><span class="fp-card">${st === 'got' ? '' : `<span class="fp-lock">${CADENAS}</span>`}${avatar}<b>${f.n}</b></span><span class="fp-dia"></span><small>${f.min} pts</small></div>`;
-  };
-  return `<div class="fpath tsec" role="list" aria-label="Chemin des cadres d'avatar"><div class="fp-in" style="--n:${n}"><div class="fp-rail"><i style="width:${pc.toFixed(1)}%"></i><span class="fp-me" style="left:${pc.toFixed(1)}%">${sc} pts</span></div>${FRAMES.map(etape).join('')}</div></div>`;
+        : `<span class="av${i ? ' fr' + i : ''}" style="--h:${hue(id)}">${ini(id)}</span>`
+  });
 }
 /* Cadres autour de l'avatar, débloqués par le score d'investissement */
 const FRAMES = [
@@ -637,13 +664,11 @@ function trophyPage(key) {
     nextLv = t.t ? (n < 4 ? TIERS[n] : '') : RAR[t.r];
   const head = `<div class="tdet">${medal(t.i, t.t ? Math.max(0, n - 1) : t.r, n)}<h2 class="h3">${t.n}</h2>${t.t ? (n ? `<span class="tier t${n - 1}">${TIERS[n - 1]}</span>` : '<span class="muted small">Pas encore obtenu</span>') : `<span class="tier t${t.r}">${RAR[t.r]}</span>`}<p class="muted">${t.d}</p></div>`;
   const lv = t.t
-    ? `<span class="kicker">Les paliers</span>` +
-      t.t
-        .map(
-          (x, i) =>
-            `<div class="lvl">${medal(t.i, i, i < n)}<span class="grow"><span class="nm">${TIERS[i]}</span><br><span class="muted small">${Math.min(v, x)} / ${x} ${t.u}</span><span class="bar tb"><i class="t${i}" style="width:${Math.round(Math.min(1, v / x) * 100)}%"></i></span></span><b>+${TPTS[i]} pts</b>${i < n ? `<span class="st ok">${ic('check')}</span>` : ''}</div>`
-        )
-        .join('')
+    ? `<span class="kicker">Les paliers</span>${tierPath(t, v, n)}<p class="muted small tp-now">${n < 4 ? `${v} ${t.u} · encore ${t.t[n] - v} pour le palier ${TIERS[n].toLowerCase()}` : `${v} ${t.u} · tous les paliers obtenus`}</p>`
+    : '';
+  // trophée rare : obtenu ou à obtenir, sans paliers
+  const lvRare = t.t
+    ? ''
     : `<div class="lvl">${medal(t.i, t.r, n)}<span class="grow"><span class="nm">${n ? 'Obtenu' : 'À obtenir'}</span><br><span class="muted small">${t.m ? 'Décerné par le club ou automatiquement' : 'Se débloque tout seul dès que la condition est remplie'}</span></span><b>+${RPTS[t.r]} pts</b></div>`;
   let act = '';
   if (!done && !self && staff())
@@ -654,7 +679,7 @@ function trophyPage(key) {
     act = cl
       ? `<div class="note">Ta demande pour le palier ${(t.t ? TIERS[cl.tier] : RAR[t.r]).toLowerCase()} est en attente. Le bureau et les enseignants sont prévenus.</div>`
       : `<button class="btn full ghost" data-a="claimAsk" data-t="${tid}">Réclamer ce trophée au club</button><p class="muted small">Tu penses remplir la condition mais l'appli ne l'a pas vu (par exemple un tournoi joué ailleurs) ? Le bureau ou un enseignant vérifie et valide ta demande.</p>`;
-  return `<div class="pad">${head}<div class="stack">${lv}</div>${act}</div>`;
+  return `<div class="pad">${head}${t.t ? lv : `<div class="stack">${lvRare}</div>`}${act}</div>`;
 }
 function claimsView() {
   const l = CLAIMS.filter(c => c.st === 'wait');

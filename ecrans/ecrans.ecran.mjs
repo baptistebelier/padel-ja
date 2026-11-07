@@ -1898,3 +1898,30 @@ test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA
   }
   assert.deepEqual(trop, [], 'des textes font moins de 12 px');
 });
+
+/* ---------- Agenda du club : promouvoir des événements sur le mur ; page d'un trophée : la jauge des paliers ---------- */
+test('Club : le bureau promeut plusieurs événements de l’agenda sur le mur ; un adhérent n’a pas le bouton ; jauge des paliers d’un trophée', async () => {
+  const ctx = await phone();
+  const { page, errors } = await openPage(ctx, DEMO + '/index.html');
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); document.querySelectorAll('.back').forEach(b => b.remove()); S.tab = 'me'; S.stack = [{ v: 'troph', id: ME() + '|like' }]; render(); });
+  await page.waitForSelector('.fpath .fp-st');
+  assert.equal(await page.locator('.fpath .fp-st').count(), 5, 'départ et 4 paliers');
+  assert.match(await page.textContent('.tp-now'), /encore \d+ pour le palier/);
+  await page.evaluate(() => { S.role = 'admin'; S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = 'events'; render(); });
+  await page.waitForSelector('.promo-more');
+  await page.locator('.promo-more').first().click();
+  await page.click('[data-a="promoSelStart"]');
+  await page.locator('.promo-w.sel:not(.on) [data-a="promoPick"]').first().click();
+  assert.match(await page.textContent('.promo-bar'), /2 événements/);
+  await page.click('[data-a="promoNext"]');
+  await page.fill('#promo-m', 'Venez nombreux');
+  await page.click('[data-a="promoGo"]');
+  await page.waitForFunction(() => posts.some(p => p.kind === 'promo'));
+  assert.equal(await page.evaluate(() => posts.find(p => p.kind === 'promo').ev.length), 2);
+  assert.equal(await page.locator('.promo-l .card').count(), 2, 'les deux événements sur le mur');
+  assert.ok(await overflow(page) <= 1, 'rien ne déborde');
+  await page.evaluate(() => { S.role = 'mem'; S.tab = 'agenda'; render(); });
+  assert.equal(await page.locator('.promo-more').count(), 0, 'pas pour un adhérent');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

@@ -108,6 +108,7 @@ function trnBox(p) {
 function postBody(p) {
   const k = p.kind;
   if (k === 'teamfinal') return tfPost(p);
+  if (k === 'promo' && typeof promoPost === 'function') return promoPost(p);
   if (k === 'annonce' || k === 'event' || k === 'cta') {
     const usePoster = p.img || k === 'event';
     return (

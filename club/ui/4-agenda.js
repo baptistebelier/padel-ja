@@ -340,7 +340,7 @@ function eventsView() {
     cols.push([iso, (days.find(x => x[0] === iso) || [iso, []])[1]]);
   return `<div class="pad">${
     days.length
-      ? `<div class="plk">${cols.map(([iso, l]) => evDay(iso, l.map(planCard).join('') || '<span class="muted small plc-v">Rien de prévu</span>', l.length ? '' : 'vide')).join('')}</div>`
+      ? `${!me && typeof promoBar === 'function' ? promoBar() : ''}<div class="plk">${cols.map(([iso, l]) => evDay(iso, l.map(i => (!me && typeof promoCard === 'function' ? promoCard(i, iso, planCard(i)) : planCard(i))).join('') || '<span class="muted small plc-v">Rien de prévu</span>', l.length ? '' : 'vide')).join('')}</div>`
       : me
         ? empty(
             'cal',
