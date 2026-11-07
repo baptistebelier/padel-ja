@@ -37,7 +37,7 @@ after(async () => {
 
 const PAGES = ['/', '/demo', '/connexion', '/connecteur', '/mot-de-passe-oublie', '/club/demo', '/club/connexion', '/club/presentation', '/club/coach.html', '/club/coach-presentation.html'];
 // pages /RAM JA d'un compte connecté (compte de démonstration ouvert par /demo)
-const CONNECTE = ['/app', '/dashboard', '/calendrier', '/joueurs', '/statistiques', '/profil', '/tv', '/overlay', '/remote', '/r/essai'];
+const CONNECTE = ['/app', '/championnats', '/dashboard', '/calendrier', '/joueurs', '/statistiques', '/profil', '/tv', '/overlay', '/remote', '/r/essai'];
 
 test('en-têtes de sécurité envoyés avec les pages et les réponses', async () => {
   const r = await fetch(B + '/club/demo');

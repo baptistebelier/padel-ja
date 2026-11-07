@@ -513,6 +513,13 @@ button.tro{width:100%;text-align:left}
 .int-j{display:flex;justify-content:space-between;gap:8px;font-size:14px;min-height:22px;align-items:center}
 .int-j.w{font-weight:800}.int-j.l{opacity:.55}.int-j.moi span{text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:2px}
 .int-regle{line-height:1.5}
+/* championnats par équipes : statistiques domicile / extérieur, règlement */
+.eq-st table{width:100%;border-collapse:collapse;margin-top:6px;font-size:14px}
+.eq-st th,.eq-st td{padding:7px 4px;text-align:center;border-bottom:1px solid var(--line)}
+.eq-st th[scope=row]{text-align:left;font-weight:600}
+.eq-st thead th{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.eq-st tbody tr:last-child th,.eq-st tbody tr:last-child td{font-weight:800;border-bottom:0}
+.eq-regle summary{cursor:pointer;font-weight:700;min-height:40px;display:flex;align-items:center}
 .fp-st.now .fp-card{border-color:var(--accent);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 45%,#000),0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
 .fp-lock{position:absolute;top:-9px;right:-7px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:2px solid var(--line);color:var(--muted)}
 .fp-lock svg{width:15px;height:15px}

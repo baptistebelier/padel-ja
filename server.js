@@ -836,7 +836,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
     if (p === '/app') { const u0 = await currentUser(req); if (!u0) return redirect(res, '/connexion'); await firstJaVisit(u0); return sendFile(res, '/app.html'); }
     // espace du juge-arbitre : tableau de bord, calendrier, joueurs, profil
-    const ACCOUNT_PAGES = { '/dashboard': 'dashboard.html', '/calendrier': 'calendrier.html', '/joueurs': 'joueurs.html', '/statistiques': 'statistiques.html', '/profil': 'profil.html' };
+    const ACCOUNT_PAGES = { '/championnats': 'championnats.html', '/dashboard': 'dashboard.html', '/calendrier': 'calendrier.html', '/joueurs': 'joueurs.html', '/statistiques': 'statistiques.html', '/profil': 'profil.html' };
     if (ACCOUNT_PAGES[p]) { const u0 = await currentUser(req); if (!u0) return redirect(res, '/connexion?retour=' + p); await firstJaVisit(u0); return sendFile(res, '/' + ACCOUNT_PAGES[p]); }
     if (p === '/en-cours') {   // raccourci vers le tournoi en cours le plus récent
       const u = await currentUser(req); if (!u) return redirect(res, '/connexion');

@@ -8,6 +8,7 @@
     tournois: I('<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8 21h8M9 17h6"/>'),
     calendrier: I('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/>'),
     joueurs: I('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.2c2.6.2 4.4 1.8 5 4.8"/>'),
+    equipes: I('<path d="M4 19v-1.5A3.5 3.5 0 0 1 7.5 14h3A3.5 3.5 0 0 1 14 17.5V19"/><circle cx="9" cy="8.5" r="3"/><path d="M16 4.5l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z"/><path d="M16 14h1a3 3 0 0 1 3 3v2"/>'),
     stats: I('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
     admin: I('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
     moon: '<svg class="ic ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
@@ -20,6 +21,7 @@
     ['tournois', '/app', 'Tournois', 'Mes tournois'],
     ['calendrier', '/calendrier', 'Calendrier', 'Mon calendrier'],
     ['joueurs', '/joueurs', 'Joueurs', 'Mes joueurs'],
+    ['equipes', '/championnats', 'Équipes', 'Championnats par équipes'],
     ['stats', '/statistiques', 'Stats', 'Statistiques'],
     ['admin', '/admin', 'Admin', 'Administration']
   ];

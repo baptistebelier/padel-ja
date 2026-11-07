@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#120A0C">
+<link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
+<title>Championnats par équipes — /RAM JA</title>
+<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/shell.css">
+<link rel="stylesheet" href="/css/street.css">
+<script src="/js/theme.js"></script>
+<script src="/js/rail.js" defer></script>
+<style>
+/* Championnats par équipes du club : gérés ici, suivis et joués dans /RAM Club */
+.ch-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+.ch-row label { flex: 1 1 150px; }
+.ch-list { display: grid; gap: 6px; margin-top: 8px; }
+.ch-it { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--ui-r-sm); background: var(--ui-surface-2); border: 2px solid transparent; cursor: pointer; text-align: left; font: inherit; color: var(--ui-text); width: 100%; }
+.ch-it[aria-pressed="true"] { border-color: var(--ui-accent-line); }
+.ch-it .n { flex: 1; min-width: 0; font-weight: 700; }
+.ch-it small { color: var(--ui-text-mut); font-weight: 500; }
+.ch-p { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--ui-r-sm); background: var(--ui-surface-2); margin-top: 6px; }
+.ch-p .n { flex: 1; font-weight: 600; min-width: 0; }
+.ch-p select { width: auto; flex: none; }
+.ch-tag { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--ui-surface); }
+.ch-tag.ok { background: #2E9D5B; color: #fff; } .ch-tag.no { background: var(--ui-accent2, #E0284A); color: #fff; } .ch-tag.wait { background: #E3A33A; color: #111; }
+.ib2 { border: 0; background: transparent; color: var(--ui-text-mut); cursor: pointer; padding: 6px 8px; border-radius: 8px; font: inherit; }
+.ib2:hover { background: var(--ui-surface); color: var(--ui-text); }
+.ch-ms { display: grid; gap: 8px; }
+.ch-m { display: grid; grid-template-columns: 80px minmax(170px, 1.8fr) minmax(0, 1fr) minmax(90px, .8fr) 110px; gap: 8px; align-items: center; }
+.ch-m select, .ch-m input { width: 100%; min-width: 0; }
+.ch-m .ch-row { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+@media (max-width: 900px) { .ch-m { grid-template-columns: 1fr 1fr; } }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ui-text); color: var(--ui-surface); padding: 12px 18px; border-radius: 10px; z-index: 99; font-weight: 600; max-width: calc(100vw - 32px); }
+.ch-empty { color: var(--ui-text-mut); }
+</style>
+</head>
+<body class="acct" data-page="equipes">
+<main class="page" id="app"><p class="muted">Chargement…</p></main>
+<script>
+(function () {
+  'use strict';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $ = s => document.querySelector(s);
+  const HOURS = []; for (let h = 7; h <= 22; h++) HOURS.push(h + ' h', h + ' h 30');
+  const FORMATS = ['2 sets gagnants, super tie-break au 3e', '2 sets gagnants, 3e set classique', '1 set de 9 jeux', 'Format court (sets de 4 jeux)', 'Autre (voir le règlement)'];
+  const AGES = ['Adultes', 'Jeunes', '+35', '+45', '+55'];
+  let clubs = [], club = null, items = new Map(), sel = { c: null, t: null, r: null };
+  const toast = t => { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3200); };
+  const api = async (p, body) => { const r = await fetch(p, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Erreur ' + r.status); return d; };
+  const all = coll => [...items.values()].filter(i => i.coll === coll).map(i => i.data);
+  const get = (coll, id) => (items.get(coll + '/' + id) || {}).data || null;
+  const nom = k => ((get('member', k) || {}).n || 'Adhérent');
+  const membres = () => all('member').filter(m => m.role !== 'Jeune' || true).map(m => ({ k: m.id, n: m.n })).filter(m => m.n).sort((a, b) => a.n.localeCompare(b.n, 'fr'));
+  const nid = p => p + Date.now().toString(36);
+  const fmtD = iso => (iso ? new Date(iso + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : '');
+  /* enregistrer dans /RAM Club : mêmes droits que dans l'appli du club (bureau, enseignant, capitaine) */
+  async function ops(list, ok) {
+    try {
+      const r = await api(`/api/ram/c/${club.id}/ops`, { ops: list });
+      if (r.rejected && r.rejected.length) { toast(r.rejected[0].error || 'Refusé'); return false; }
+      await charger();
+      if (ok) toast(ok);
+      return true;
+    } catch (e) { toast(e.message); return false; }
+  }
+  async function charger() {
+    const d = await api(`/api/ram/c/${club.id}/sync?since=0`);
+    items = new Map(d.items.filter(i => !i.del && i.data).map(i => [i.coll + '/' + i.id, i]));
+    render();
+  }
+  const teams = cid => all('group').filter(g => g.type === 'team' && g.champ === cid);
+  const recsOf = tid => all('rec').filter(r => r.tid === tid && !r.arch).sort((a, b) => String(a.d || '').localeCompare(String(b.d || '')));
+  const domicile = r => (r.dom != null ? !!r.dom : /domicile/.test(r.when || ''));
+
+  function champs() {
+    const l = all('champ').filter(c => !c.arch);
+    return `<section class="card"><span class="eyebrow">Championnats · ${l.length}</span><h2>${esc(club.name)}</h2><div class="ch-list">${l.map(c => `<button class="ch-it" data-c="${c.id}" aria-pressed="${sel.c === c.id}"><span class="n">${esc(c.name)}<br><small>${esc([c.sport, c.age, c.div, c.season].filter(Boolean).join(' · '))}</small></span><small>${teams(c.id).length} équipe${teams(c.id).length > 1 ? 's' : ''}</small></button>`).join('') || '<p class="ch-empty">Aucun championnat pour le moment.</p>'}</div>
+      <form id="ch-new" class="ch-row" style="margin-top:12px"><label>Nouveau championnat<input name="n" placeholder="Interclubs seniors" required maxlength="80"></label><label style="flex:0 0 120px">Sport<select name="s"><option>Tennis</option><option>Padel</option></select></label><button class="btn">Créer</button></form></section>`;
+  }
+  function champForm(c) {
+    const f = c.fmt || {};
+    return `<section class="card"><span class="eyebrow">Règlement et format</span><h2>${esc(c.name)}</h2><form id="ch-set" class="grid">
+      <div class="ch-row"><label>Nom<input name="name" value="${esc(c.name)}" maxlength="80"></label><label>Division<input name="div" value="${esc(c.div || '')}" placeholder="Régional 2" maxlength="60"></label><label>Saison<input name="season" value="${esc(c.season || '')}" placeholder="2026-2027" maxlength="40"></label><label>Catégorie<select name="age">${AGES.map(a => `<option ${c.age === a ? 'selected' : ''}>${a}</option>`).join('')}</select></label></div>
+      <div class="ch-row"><label>Simples par rencontre<input type="number" name="s" min="0" max="10" value="${f.s != null ? f.s : 4}"></label><label>Doubles par rencontre<input type="number" name="d" min="0" max="10" value="${f.d != null ? f.d : 1}"></label><label style="flex:2 1 260px">Format des matchs<select name="match">${FORMATS.map(x => `<option ${f.match === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label></div>
+      <div class="ch-row"><label>Points d’une victoire<input type="number" name="pv" min="0" max="10" value="${f.pv != null ? f.pv : 3}"></label><label>Nul<input type="number" name="pn" min="0" max="10" value="${f.pn != null ? f.pn : 2}"></label><label>Défaite<input type="number" name="pd" min="0" max="10" value="${f.pd != null ? f.pd : 1}"></label></div>
+      <label>Règlement (lu par les joueurs dans /RAM Club)<textarea name="regle" rows="5" maxlength="8000" placeholder="Horaires, balles, ordre des matchs, forfaits, licences…">${esc(c.regle || '')}</textarea></label>
+      <div class="ch-row"><button class="btn">Enregistrer</button><button type="button" class="btn ghost" id="ch-arch">Archiver le championnat</button></div></form></section>
+      <section class="card"><span class="eyebrow">Équipes inscrites</span><h2>Équipes</h2><div class="ch-list">${teams(c.id).map(t => `<button class="ch-it" data-t="${t.id}" aria-pressed="${sel.t === t.id}"><span class="n">${esc(t.name)}${t.gen ? ' ' + esc(t.gen) : ''}<br><small>Capitaine : ${t.cap ? esc(nom(t.cap)) : '—'} · ${(t.mem || []).length} joueurs</small></span><small>${recsOf(t.id).length} rencontre${recsOf(t.id).length > 1 ? 's' : ''}</small></button>`).join('') || '<p class="ch-empty">Aucune équipe.</p>'}</div>
+      <form id="t-new" class="ch-row" style="margin-top:12px"><label>Nouvelle équipe<input name="n" placeholder="Équipe 1" required maxlength="60"></label><label style="flex:0 0 130px">Genre<select name="g"><option>Hommes</option><option>Dames</option><option>Mixte</option></select></label><button class="btn">Ajouter</button></form></section>`;
+  }
+  function teamPart(t) {
+    const ros = t.roster || {}, mem = t.mem || [], dispo = membres().filter(m => !mem.includes(m.k));
+    return `<section class="card"><span class="eyebrow">Joueurs · ${mem.length}</span><h2>${esc(t.name)}</h2>
+      <label>Capitaine<select id="t-cap"><option value="">—</option>${mem.map(k => `<option value="${k}" ${t.cap === k ? 'selected' : ''}>${esc(nom(k))}</option>`).join('')}</select></label>
+      ${mem.map(k => `<div class="ch-p"><span class="n">${esc(nom(k))}</span><select data-ros="${k}" aria-label="Rôle de ${esc(nom(k))}"><option value="T" ${ros[k] !== 'R' ? 'selected' : ''}>Titulaire</option><option value="R" ${ros[k] === 'R' ? 'selected' : ''}>Remplaçant</option></select><button class="ib2" data-out="${k}">Retirer</button></div>`).join('') || '<p class="ch-empty">Ajoute les joueurs de l’équipe.</p>'}
+      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" list="ch-mem" placeholder="Nom d’un adhérent" required autocomplete="off"></label><button class="btn">Ajouter</button></form><datalist id="ch-mem">${dispo.map(m => `<option value="${esc(m.n)}">`).join('')}</datalist></section>
+      <section class="card"><span class="eyebrow">Calendrier</span><h2>Rencontres</h2><div class="ch-list">${recsOf(t.id).map(r => `<button class="ch-it" data-r="${r.id}" aria-pressed="${sel.r === r.id}"><span class="n">${esc(r.opp)}<br><small>${esc(fmtD(r.d))} · ${esc(r.h || '')} · ${domicile(r) ? 'à domicile' : "à l'extérieur"}${r.lieu ? ' · ' + esc(r.lieu) : ''}${r.comp ? ' · ' + esc(r.comp) : ''}</small></span><small>${r.st === 'done' ? 'Jouée ' + score(r).join('-') : Object.keys(r.lineup || {}).length ? 'Convocations envoyées' : 'À composer'}</small></button>`).join('') || '<p class="ch-empty">Aucune rencontre programmée.</p>'}</div>
+      <form id="r-new" class="grid" style="margin-top:12px"><div class="ch-row"><label>Adversaire<input name="opp" required maxlength="80" placeholder="TC Brive"></label><label>Journée<input name="comp" maxlength="60" placeholder="Journée 3"></label></div>
+      <div class="ch-row"><label>Date<input type="date" name="d" required></label><label>Heure<select name="h">${HOURS.map(h => `<option ${h === '14 h' ? 'selected' : ''}>${h}</option>`).join('')}</select></label><label>Où<select name="dom"><option value="1">À domicile</option><option value="0">À l’extérieur</option></select></label><label style="flex:2 1 220px">Lieu (adresse, club adverse)<input name="lieu" maxlength="120"></label></div>
+      <div><button class="btn">Programmer la rencontre</button></div></form></section>`;
+  }
+  const score = r => { if (r.fin) return r.fin; let a = 0, b = 0; (r.ms || []).forEach(m => { if (m.st === 'done') m.w === 0 ? a++ : b++; }); return [a, b]; };
+  function recPart(r, t, c) {
+    const f = (c && c.fmt) || {}, lu = r.lineup || {}, conv = r.conv || {}, mem = t.mem || [];
+    const lignes = [];
+    for (let i = 0; i < (f.s != null ? +f.s : 4); i++) lignes.push({ l: 'Simple ' + (i + 1), dbl: false });
+    for (let i = 0; i < (f.d != null ? +f.d : 1); i++) lignes.push({ l: 'Double ' + (i + 1), dbl: true });
+    const ms = r.ms || [], conv1 = Object.keys(lu);
+    const opt = (sel2) => `<option value="">—</option>${conv1.map(k => `<option value="${k}" ${sel2 === k ? 'selected' : ''}>${esc(nom(k))}</option>`).join('')}`;
+    const lab = { ok: 'Présent', no: 'Absent', wait: 'Sans réponse' };
+    return `<section class="card"><span class="eyebrow">${esc(fmtD(r.d))} · ${esc(r.h || '')} · ${domicile(r) ? 'à domicile' : "à l'extérieur"}</span><h2>${esc(t.name)} contre ${esc(r.opp)}</h2>
+      <h3>Composition et convocations</h3><p class="muted small">Chaque joueur convoqué est prévenu dans /RAM Club et répond présent ou absent ; le capitaine reçoit les réponses.</p>
+      ${mem.map(k => `<div class="ch-p"><span class="n">${esc(nom(k))}</span>${lu[k] ? `<span class="ch-tag ${conv[k] === 'ok' ? 'ok' : conv[k] === 'no' ? 'no' : 'wait'}">${lab[conv[k]] || 'Sans réponse'}</span>` : ''}<select data-lu="${k}" aria-label="Convocation de ${esc(nom(k))}"><option value="">Non convoqué</option><option value="T" ${lu[k] === 'T' ? 'selected' : ''}>Titulaire</option><option value="R" ${lu[k] === 'R' ? 'selected' : ''}>Remplaçant</option></select></div>`).join('')}
+      <h3 style="margin-top:18px">Résultats</h3><form id="r-res" class="ch-ms">${lignes.map((x, i) => { const m = ms.find(y => y.l === x.l) || {}, a = Array.isArray(m.a) ? m.a : [m.a]; return `<div class="ch-m" data-i="${i}"><b>${x.l}</b><span class="ch-row" style="gap:6px"><select name="a${i}">${opt(a[0])}</select>${x.dbl ? `<select name="b${i}">${opt(a[1])}</select>` : ''}</span><input name="o${i}" placeholder="Adversaire" value="${esc(Array.isArray(m.b) ? m.b[0] || '' : m.b || '')}"><input name="s${i}" placeholder="6-3 6-4" value="${esc((m.sets || []).map(s => s.join('-')).join(' '))}"><select name="w${i}"><option value="">—</option><option value="0" ${m.st === 'done' && m.w === 0 ? 'selected' : ''}>Gagné</option><option value="1" ${m.st === 'done' && m.w === 1 ? 'selected' : ''}>Perdu</option></select></div>`; }).join('')}
+      <div class="ch-row"><button class="btn">Enregistrer les résultats</button><button type="button" class="btn ghost" id="r-del">Supprimer la rencontre</button></div></form></section>`;
+  }
+  function render() {
+    if (!club) return;
+    const c = sel.c && get('champ', sel.c), t = sel.t && get('group', sel.t), r = sel.r && get('rec', sel.r);
+    $('#app').innerHTML = `<div class="page-h"><span class="eyebrow">Championnats par équipes</span><h1>Équipes du club</h1>
+      ${clubs.length > 1 ? `<label style="max-width:320px">Club<select id="ch-club">${clubs.map(x => `<option value="${x.id}" ${x.id === club.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
+      <p class="muted">Tout ce que vous réglez ici est aussitôt dans /RAM Club : agenda des équipes, convocations, réponses, résultats et statistiques de chaque joueur.</p></div>
+      <div class="grid g-2" style="align-items:start"><div class="grid">${champs()}${c ? champForm(c) : ''}</div><div class="grid">${t ? teamPart(t) : ''}${r && t ? recPart(r, t, c) : ''}</div></div>`;
+    bind(c, t, r);
+  }
+  function bind(c, t, r) {
+    const on = (s, ev, f) => { const el = $(s); if (el) el[ev] = f; };
+    on('#ch-club', 'onchange', e => { club = clubs.find(x => x.id === e.target.value); sel = { c: null, t: null, r: null }; charger(); });
+    document.querySelectorAll('[data-c]').forEach(b => (b.onclick = () => { sel = { c: b.dataset.c, t: null, r: null }; render(); }));
+    document.querySelectorAll('[data-t]').forEach(b => (b.onclick = () => { sel.t = b.dataset.t; sel.r = null; render(); }));
+    document.querySelectorAll('[data-r]').forEach(b => (b.onclick = () => { sel.r = b.dataset.r; render(); }));
+    on('#ch-new', 'onsubmit', async e => { e.preventDefault(); const id = nid('c'); if (await ops([{ coll: 'champ', id, op: 'put', data: { name: e.target.n.value.trim(), sport: e.target.s.value, age: 'Adultes', season: '', fmt: { s: 4, d: 1, match: FORMATS[0], pv: 3, pn: 2, pd: 1 } } }], 'Championnat créé')) { sel = { c: id, t: null, r: null }; render(); } });
+    on('#ch-set', 'onsubmit', async e => { e.preventDefault(); const f = e.target; await ops([{ coll: 'champ', id: c.id, op: 'put', data: Object.assign({}, c, { name: f.name.value.trim() || c.name, div: f.div.value.trim(), season: f.season.value.trim(), age: f.age.value, regle: f.regle.value, fmt: { s: +f.s.value || 0, d: +f.d.value || 0, match: f.match.value, pv: +f.pv.value, pn: +f.pn.value, pd: +f.pd.value } }) }], 'Championnat enregistré'); });
+    on('#ch-arch', 'onclick', async () => { if (confirm('Archiver ce championnat ? Il quitte l’appli, ses résultats restent dans les archives du club.') && await ops([{ coll: 'champ', id: c.id, op: 'patch', patch: [{ p: ['arch'], t: 'set', v: c.season || String(new Date().getFullYear()) }] }], 'Championnat archivé')) { sel = { c: null, t: null, r: null }; render(); } });
+    on('#t-new', 'onsubmit', async e => { e.preventDefault(); const id = nid('eq'); if (await ops([{ coll: 'group', id, op: 'put', data: { type: 'team', champ: c.id, name: e.target.n.value.trim(), gen: e.target.g.value, sub: c.div || '', cap: '', mem: [], roster: {} } }], 'Équipe ajoutée')) { sel.t = id; render(); } });
+    if (t) {
+      on('#t-cap', 'onchange', e => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['cap'], t: 'set', v: e.target.value }] }], 'Capitaine choisi · il est prévenu'));
+      document.querySelectorAll('[data-ros]').forEach(s => (s.onchange = () => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['roster', s.dataset.ros], t: 'set', v: s.value }] }])));
+      document.querySelectorAll('[data-out]').forEach(b => (b.onclick = () => ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'rm', v: b.dataset.out }, { p: ['roster', b.dataset.out], t: 'unset' }] }], 'Joueur retiré')));
+      on('#t-add', 'onsubmit', async e => { e.preventDefault(); const m = membres().find(x => x.n.toLowerCase() === e.target.n.value.trim().toLowerCase()); if (!m) return toast('Choisis un adhérent dans la liste'); await ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: m.k }, { p: ['roster', m.k], t: 'set', v: 'T' }] }], m.n + ' ajouté · il est prévenu'); });
+      on('#r-new', 'onsubmit', async e => {
+        e.preventDefault(); const f = e.target, id = nid('r'), dom = f.dom.value === '1';
+        const data = { tid: t.id, opp: f.opp.value.trim(), comp: f.comp.value.trim(), d: f.d.value, h: f.h.value, dom, lieu: f.lieu.value.trim(), when: fmtD(f.d.value) + ' · ' + f.h.value + ' · ' + (dom ? 'à domicile' : "à l'extérieur"), st: 'soon', lineup: {}, conv: {}, ms: [] };
+        if (await ops([{ coll: 'rec', id, op: 'put', data }], 'Rencontre programmée · l’équipe la voit dans son agenda')) { sel.r = id; render(); }
+      });
+    }
+    if (r && t) {
+      document.querySelectorAll('[data-lu]').forEach(s => (s.onchange = () => { const k = s.dataset.lu; ops([s.value ? { coll: 'rec', id: r.id, op: 'patch', patch: [{ p: ['lineup', k], t: 'set', v: s.value }, { p: ['conv', k], t: 'set', v: (r.conv || {})[k] || 'wait' }] } : { coll: 'rec', id: r.id, op: 'patch', patch: [{ p: ['lineup', k], t: 'unset' }, { p: ['conv', k], t: 'unset' }] }], s.value ? 'Convocation envoyée' : 'Convocation retirée'); }));
+      on('#r-res', 'onsubmit', async e => {
+        e.preventDefault(); const f = e.target, ms = [];
+        f.querySelectorAll('.ch-m').forEach(row => {
+          const i = row.dataset.i, l = row.querySelector('b').textContent, a1 = f['a' + i].value, a2 = f['b' + i] ? f['b' + i].value : '', w = f['w' + i].value;
+          const sets = f['s' + i].value.trim().split(/\s+/).map(x => x.split(/[-/]/).map(Number)).filter(x => x.length === 2 && x.every(n => !isNaN(n)));
+          if (!a1 && !w) return;
+          ms.push(Object.assign({ l, a: a2 ? [a1, a2] : a1, b: [f['o' + i].value.trim()], sets }, w !== '' ? { st: 'done', w: +w } : { st: 'soon' }));
+        });
+        const fini = ms.length && ms.every(m => m.st === 'done');
+        await ops([{ coll: 'rec', id: r.id, op: 'patch', patch: [{ p: ['ms'], t: 'set', v: ms }, { p: ['st'], t: 'set', v: fini ? 'done' : r.st === 'done' ? 'soon' : r.st || 'soon' }] }], fini ? 'Résultats enregistrés · la rencontre est terminée' : 'Résultats enregistrés');
+      });
+      on('#r-del', 'onclick', async () => { if (confirm('Supprimer cette rencontre ?') && await ops([{ coll: 'rec', id: r.id, op: 'del' }], 'Rencontre supprimée')) { sel.r = null; render(); } });
+    }
+  }
+  (async () => {
+    try {
+      clubs = ((await api('/api/ram/clubs')).clubs || []).filter(c => c.role === 'bureau' || c.role === 'coach' || c.super);
+      if (!clubs.length) { $('#app').innerHTML = '<div class="page-h"><span class="eyebrow">Championnats par équipes</span><h1>Équipes du club</h1></div><section class="card"><p>Les championnats se gèrent depuis le compte d’un membre du bureau ou d’un enseignant d’un club présent sur /RAM Club.</p><p><a class="btn" href="/club/">Ouvrir /RAM Club</a></p></section>'; return; }
+      club = clubs.find(c => c.main) || clubs[0];
+      await charger();
+    } catch (e) { $('#app').innerHTML = `<section class="card"><p>${esc(e.message)}</p></section>`; }
+  })();
+})();
+</script>
+</body>
+</html>

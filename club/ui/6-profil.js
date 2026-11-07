@@ -124,6 +124,7 @@ function profile(id) {
   else if (kid && !self)
     h += `<div class="note">Compte jeune : pas de messagerie privée ni d'abonnés. Ses résultats ne sont visibles que de son groupe, de ses parents et des encadrants.</div>`;
   h +=
+    (typeof equipeStats === 'function' ? equipeStats(id) : '') +
     contact(id) +
     `<div class="stack" id="palmares"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
   return h + '</div>';
@@ -135,7 +136,7 @@ function profile(id) {
 function meTabBody(T, id, m, kid) {
   let h = '';
   if (T === 'jeu')
-    return `<div class="meshort"><button class="btn" data-a="result">${ic('score')}Ajouter un résultat</button>${kid ? '' : `<button class="btn ghost" data-a="rankMenu">${ic('chart')}Changer mon classement</button>`}</div><div class="stack" id="palmares"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
+    return `${typeof equipeStats === 'function' ? equipeStats(id) : ''}<div class="meshort"><button class="btn" data-a="result">${ic('score')}Ajouter un résultat</button>${kid ? '' : `<button class="btn ghost" data-a="rankMenu">${ic('chart')}Changer mon classement</button>`}</div><div class="stack" id="palmares"><span class="kicker">Palmarès de la saison</span><div class="chips"><button class="chip" data-a="palm" data-s="tennis" aria-pressed="${S.palm !== 'padel'}">Tennis · ${m.res.length}</button><button class="chip" data-a="palm" data-s="padel" aria-pressed="${S.palm === 'padel'}">Padel · ${(m.pres || []).length}</button></div><div class="palm">${S.palm === 'padel' ? padelList(id) : resList(id)}</div></div>`;
   if (T === 'infos') {
     h = contact(id);
     // classement du club : on peut ne pas y apparaître, en gardant ses trophées et son score
