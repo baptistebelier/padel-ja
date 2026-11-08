@@ -1162,3 +1162,38 @@ button.rsj.on{background:var(--accent);color:var(--on-accent)}
 .item.rsdem{box-shadow:inset 0 0 0 2px var(--accent);border-radius:var(--rb)}
 /* une séance passée sans appel : à vérifier */
 .cocycb i.vide,.cocycl i.vide{background:transparent;box-shadow:inset 0 0 0 1.5px var(--hot)}
+/* tournoi interne : arbre comme la feuille FFT (un trait par joueur, des branches), poules */
+.ab-w{overflow-x:auto;padding:4px 0 10px}
+.ab-h,.ab{display:grid;grid-template-columns:repeat(var(--c),minmax(136px,1fr));min-width:calc(var(--c)*136px)}
+.ab-h span{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 6px 6px}
+.ab{grid-template-rows:repeat(var(--l),46px)}
+.ab-s{position:relative;min-width:0}
+.ab-s::before{content:'';position:absolute;left:0;right:0;top:50%;border-top:1.5px solid color-mix(in srgb,var(--fg) 50%,transparent)}
+.ab-s.ab-up::after{content:'';position:absolute;right:0;top:50%;height:100%;border-right:1.5px solid color-mix(in srgb,var(--fg) 50%,transparent)}
+.ab-n{position:absolute;left:6px;right:8px;bottom:50%;padding-bottom:3px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:13.5px}
+.ab-n .nm{overflow:hidden;text-overflow:ellipsis}
+.ab-n .nm.q{font-style:italic;color:var(--muted)}
+.ab-i{position:absolute;left:6px;right:8px;top:50%;padding-top:3px;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ab-cl{margin-left:auto;font-size:11px;color:var(--muted);flex:none}
+.ab-ts{flex:none;display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;border:1.5px solid var(--accent);color:var(--accent);font-size:10px;font-weight:800;line-height:1}
+.ab-s.w .nm{font-weight:800}
+.ab-s.l .nm{opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
+.ab-s.moi::before{border-top-color:var(--accent);border-top-width:2.5px}
+.ab-s.moi .nm{color:var(--accent);font-weight:800}
+.ab-s.att .ab-i{color:#C77D0A;font-weight:700}
+.ab-s.ct .ab-i{color:var(--accent);font-weight:700}
+.ab-s.ab-x{visibility:hidden}
+.ab-s.ab-fin .nm{font-weight:800}
+.int-poules{display:grid;gap:10px}
+@media (min-width:700px){.int-poules{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}}
+.int-poule{display:grid;gap:8px}
+.int-pt{width:100%;border-collapse:collapse;font-size:13px}
+.int-pt th{text-align:left;font-size:11px;color:var(--muted);padding:2px 4px}
+.int-pt td{padding:4px;border-top:1px solid var(--line)}
+.int-pt tr.qual td{font-weight:800}
+.int-pt tr.moi td{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.int-pm{display:grid;gap:4px}
+.int-pm>div{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;font-size:13px;padding:6px 8px;border-radius:8px;background:var(--card2)}
+.int-pm>div.moi{outline:2px solid var(--accent)}
+.int-pm small{color:var(--muted);font-size:11.5px}
+.int-cl li{padding:3px 0}.int-cl li.moi{font-weight:800;color:var(--accent)}

@@ -2048,9 +2048,9 @@ test('JA : tournoi interne en tableaux successifs, sections et qualifiés, sans 
   assert.equal((await page.$$('.in-sec')).length, 3, 'trois sections au tableau 1');
   assert.ok((await page.textContent('#app')).includes('Qualifié 1 du tableau 1'), 'places des qualifiés au tableau final');
   assert.match(await page.textContent('#app'), /Format 4/);
-  if (process.env.CAPTURE) await page.screenshot({ path: process.env.CAPTURE, fullPage: true });   // capture à la demande
+  if (process.env.CAPTURE) { await page.screenshot({ path: process.env.CAPTURE, fullPage: true }); await page.locator('#app section.card').nth(1).screenshot({ path: process.env.CAPTURE.replace('.png', '-final.png') }); }   // capture à la demande
   // un score impossible est refusé, avec le format
-  await page.click('.in-m[data-m]:not(.bye)');
+  await page.click('.in-sec button.ab-s[data-m]');
   await page.fill('.in-modal input[name=sc]', '6-3 3-6 7-5');
   await page.check('.in-modal input[name=w]');
   await page.click('.in-modal button.btn');
@@ -2067,4 +2067,40 @@ test('JA : tournoi interne en tableaux successifs, sections et qualifiés, sans 
   await p2.waitForSelector('.in-sec h4', { timeout: 8000 });
   assert.ok(await overflow(p2) <= 1, 'pas de débordement sur 360 px');
   await tel.close();
+});
+
+test('JA : tournoi interne en poules programmées, puis TMC, sans erreur', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/demo');
+  await page.waitForTimeout(400);
+  const ids = await page.evaluate(async () => {
+    const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json());
+    const out = [];
+    for (const [name, setup] of [['Interne en poules', { mode: 'poules', pcfg: { n: 2, q: 1 }, prog: true, terrains: ['Court 1', 'Court 2'] }], ['Interne TMC', { mode: 'tmc' }]]) {
+      const { id } = await post('/api/tournaments', { kind: 'interne', sport: 'Tennis', name });
+      for (let i = 0; i < 8; i++) await post('/api/t/' + id + '/action', { type: 'int/player/add', payload: { n: 'Joueur ' + (i + 1), ks: ['k' + i], cl: ['15', '15/1', '30', '30/1', '30/2', '40', 'NC', 'NC'][i] } });
+      await post('/api/t/' + id + '/action', { type: 'int/setup', payload: setup });
+      await post('/api/t/' + id + '/action', { type: 'int/draw', payload: {} });
+      out.push(id);
+    }
+    return out;
+  });
+  await page.goto(JA + '/t/' + ids[0]);
+  await page.waitForSelector('.in-poule', { timeout: 8000 });
+  assert.equal((await page.$$('.in-poule')).length, 2);
+  // programmer un match de poule depuis sa fenêtre
+  await page.click('.in-pm button');
+  await page.fill('.in-modal input[name=d]', '2030-05-11');
+  await page.fill('.in-modal input[name=h]', '10:00');
+  await page.fill('.in-modal input[name=c]', 'Court 1');
+  await page.click('#in-pg button.btn');
+  await page.waitForSelector('.in-pg', { timeout: 8000 });
+  assert.match(await page.textContent('#app'), /Programme des matchs/);
+  assert.match(await page.textContent('#app'), /10h00/);
+  await page.goto(JA + '/t/' + ids[1]);
+  await page.waitForSelector('.ab', { timeout: 8000 });
+  assert.match(await page.textContent('#app'), /Places 5 à 8/);
+  assert.deepEqual(errs, []);
+  await ctx.close();
 });

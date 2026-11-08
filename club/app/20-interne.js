@@ -27,8 +27,10 @@ const intTabs = J =>
     : (J.rounds || []).length
       ? [{ id: '', nom: 'Tableau', q: 1, rounds: J.rounds, tours: J.tours || [], places: [] }]
       : [];
-const intMatches = J => intTabs(J).flatMap(t => t.rounds.flat());
-const intTabDe = (J, m) => intTabs(J).find(t => t.id === (m.t || '')) || intTabs(J)[0];
+/* matchs de poule d'abord, puis ceux des tableaux */
+const intMatches = J =>
+  (J.poules || []).flatMap(po => po.matches || []).concat(intTabs(J).flatMap(t => t.rounds.flat()));
+const intTabDe = (J, m) => (m.poule != null ? null : intTabs(J).find(t => t.id === (m.t || '')) || intTabs(J)[0]);
 const intNomTour = (J, m) => m.nom || intTour(m.r, (intTabDe(J, m) || { rounds: [] }).rounds.length);
 const intFinM = (J, m) => {
   const f = m.fin != null ? m.fin : (((intTabDe(J, m) || {}).tours || [])[m.r] || {}).fin;
@@ -67,7 +69,7 @@ function intMatchCarte(p, J, pj) {
     fin = intFinM(J, m),
     data = `data-tid="${esc(J.tid)}" data-m="${m.id}"${kid ? ` data-kid="${kid}"` : ''}`;
   if (!adv) {
-    const T = intTabDe(J, m),
+    const T = intTabDe(J, m) || { rounds: [], places: [] },
       cote = 2 * m.i + (m.a === pj.id ? 1 : 0),
       av = m.r ? (T.rounds[m.r - 1] || [])[cote] : null,
       place = !m.r && (T.places || [])[cote];
@@ -80,7 +82,7 @@ function intMatchCarte(p, J, pj) {
     act = `<p class="small"><b>${esc(intNom(J, m.by))}</b> a saisi : ${m.w === pj.id ? 'ta victoire' : 'sa victoire'}${m.sc ? ' (' + esc(m.sc) + ')' : ''}.</p><div class="ctl"><button class="btn sm grow" data-a="intConf" ${data}>Confirmer</button><button class="btn sm ghost grow" data-a="intContest" ${data}>Contester</button></div>`;
   else if (e === 'pending')
     act = `<p class="muted small">${m.conteste ? 'Résultat contesté : le juge-arbitre va trancher.' : 'Résultat saisi, en attente de la confirmation de ton adversaire.'}</p>`;
-  return `<div class="int-moi"><span class="kicker">Mon prochain match${pour} · ${esc(intNomTour(J, m))}</span><div class="row" style="gap:10px"><span class="grow">Contre <b>${intLien(J, adv)}</b>${fin ? `<br><span class="muted small">À jouer avant le ${fin}</span>` : ''}</span></div>${act}</div>`;
+  return `<div class="int-moi"><span class="kicker">Mon prochain match${pour} · ${esc(intNomTour(J, m))}</span><div class="row" style="gap:10px"><span class="grow">Contre <b>${intLien(J, adv)}</b>${m.prog ? `<br><span class="small"><b>Programmé le ${esc(m.prog)}</b></span>` : fin ? `<br><span class="muted small">À jouer avant le ${fin}</span>` : ''}</span></div>${act}</div>`;
 }
 /* la publication sur le mur */
 function intPost(p) {
@@ -89,7 +91,100 @@ function intPost(p) {
     tabs = intTabs(J),
     nb = tabs.length ? tabs[0].rounds.length : 0,
     st = J.status === 'done' ? 'Terminé' : J.status === 'live' ? 'En cours' : 'Inscriptions';
-  return `<span class="kicker">Tournoi interne · ${esc(J.sport || '')}</span><h2 class="tilt sm">${p.title}<i class="dd"></i></h2><div class="meta"><span>${ic('users')}${(J.players || []).length} participant${(J.players || []).length > 1 ? 's' : ''}</span><span>${ic('flag')}${st}</span>${tabs.length > 1 ? `<span>${ic('trophy')}${tabs.length} tableaux</span>` : nb ? `<span>${ic('trophy')}${intTour(0, nb)}</span>` : ''}</div>${J.format ? `<p class="muted small">${esc(J.formatNom || '')}</p>` : ''}${J.champion ? `<div class="int-moi win">${ic('trophy')}<b>${esc(intNom(J, J.champion))} remporte le tournoi</b></div>` : ''}${moi.map(pj => intMatchCarte(p, J, pj)).join('')}<div class="ctl"><button class="btn grow" data-a="open" data-v="jaint" data-id="${p.id}">${ic('chart')}Tableau</button><button class="btn grow ghost" data-a="intTab" data-id="${p.id}" data-t="regle">Règlement</button><button class="btn grow ghost" data-a="intTab" data-id="${p.id}" data-t="joueurs">Participants</button></div>`;
+  return `<span class="kicker">Tournoi interne · ${esc(J.sport || '')}</span><h2 class="tilt sm">${p.title}<i class="dd"></i></h2><div class="meta"><span>${ic('users')}${(J.players || []).length} participant${(J.players || []).length > 1 ? 's' : ''}</span><span>${ic('flag')}${st}</span>${tabs.length > 1 ? `<span>${ic('trophy')}${tabs.length} tableaux</span>` : nb ? `<span>${ic('trophy')}${intTour(0, nb)}</span>` : ''}</div>${J.format ? `<p class="muted small">${esc(J.formatNom || '')}</p>` : ''}${J.champion ? `<div class="int-moi win">${ic('trophy')}<b>${esc(intNom(J, J.champion))} remporte le tournoi</b></div>` : ''}${J.consolante ? `<p class="small">${ic('trophy')} Consolante : <b>${esc(intNom(J, J.consolante))}</b></p>` : ''}${moi.map(pj => intMatchCarte(p, J, pj)).join('')}<div class="ctl"><button class="btn grow" data-a="open" data-v="jaint" data-id="${p.id}">${ic('chart')}Tableau</button><button class="btn grow ghost" data-a="intTab" data-id="${p.id}" data-t="regle">Règlement</button><button class="btn grow ghost" data-a="intTab" data-id="${p.id}" data-t="joueurs">Participants</button></div>`;
+}
+/* l'arbre d'un tableau (ou d'une section), comme la feuille FFT : chaque joueur sur un trait, le vainqueur reporté
+   sur le trait du tour suivant avec le score dessous, une branche réunit les deux joueurs d'un match ;
+   un exempt n'apparaît pas : son joueur entre au tour suivant */
+function intArbre(J, T, j, mesIds) {
+  const R = T.rounds,
+    nb = R.length,
+    final = (T.q || 1) === 1,
+    q = T.q || 1,
+    s = (T.size || Math.pow(2, nb) * q) / q;
+  const titre = c =>
+    c === nb
+      ? final
+        ? T.role === 'class'
+          ? 'Place ' + T.lo
+          : 'Vainqueur'
+        : 'Qualifié ' + (j + 1)
+      : final
+        ? intTour(c, nb)
+        : c === nb - 1
+          ? 'Qualification'
+          : 'Tour ' + (c + 1);
+  const nomCase = (x, place) => {
+    if (!x || x === 'BYE') return place ? `<span class="nm q">${esc(place)}</span>` : '<span class="nm"></span>';
+    const p = intJoueur(J, x) || {},
+      ts = (T.ts || {})[x];
+    return `<span class="nm">${esc(intNom(J, x))}</span>${ts ? `<b class="ab-ts">${ts}</b>` : ''}${p.cl ? `<span class="ab-cl">${esc(p.cl)}</span>` : ''}`;
+  };
+  const sous = m => {
+    if (m.w && !m.bye)
+      return esc(m.sc || (m.wo ? 'Forfait' : '')) + (m.conf ? '' : m.conteste ? ' · contesté' : ' · à confirmer');
+    if (m.prog) return esc(m.prog);
+    return intEtat(m) === 'ready'
+      ? 'À jouer' + (m.fin ? ' · avant le ' + m.fin.split('-').reverse().slice(0, 2).join('/') : '')
+      : '';
+  };
+  let cases = '';
+  for (let c = 0; c <= nb; c++) {
+    const n = s / Math.pow(2, c),
+      span = Math.pow(2, c);
+    for (let k = 0; k < n; k++) {
+      const g = j * n + k,
+        suite = c < nb ? R[c][g >> 1] : null;
+      let x = null,
+        place = null,
+        dessous = '',
+        cache = false,
+        cls = '';
+      if (c === 0) {
+        const L = j * s + k,
+          m = R[0][L >> 1] || {};
+        x = m[L % 2 ? 'b' : 'a'];
+        place = (T.places || [])[L] || null;
+        cache = !!m.bye || x === 'BYE';
+      } else {
+        const f = R[c - 1][g] || {};
+        x = f.w && f.w !== 'BYE' ? f.w : null;
+        cache = f.w === 'BYE';
+        dessous = f.bye ? '' : sous(f);
+        if (f.w && !f.conf) cls += f.conteste ? ' ct' : ' att';
+      }
+      if (suite && suite.w && suite.conf && !suite.bye && x) cls += suite.w === x ? ' w' : ' l';
+      if (x && mesIds.includes(x)) cls += ' moi';
+      const haut = c < nb && k % 2 === 0 && !(c === 0 && (R[0][(j * s + k) >> 1] || {}).bye) ? ' ab-up' : '';
+      const pos = `grid-column:${c + 1};grid-row:${k * span + 1} / span ${span}`;
+      cases += cache
+        ? `<div class="ab-s ab-x" style="${pos}"></div>`
+        : `<div class="ab-s${cls}${haut}${c === nb ? ' ab-fin' : ''}" style="${pos}"><span class="ab-n">${nomCase(x, place)}</span><span class="ab-i">${dessous}</span></div>`;
+    }
+  }
+  return `<div class="ab-w"><div class="ab-h" style="--c:${nb + 1}">${Array.from({ length: nb + 1 }, (_, c) => `<span>${titre(c)}</span>`).join('')}</div><div class="ab" style="--c:${nb + 1};--l:${s}">${cases}</div></div>`;
+}
+/* les poules : classement (2 points par victoire, 1 par défaite, 0 par forfait) et matchs */
+function intPoules(J, mesIds) {
+  const P = J.poules || [];
+  if (!P.length) return '';
+  const sg = n => (n > 0 ? '+' + n : String(n));
+  return `<h3 style="margin:8px 0 4px">Poules</h3><div class="int-poules">${P.map(
+    po =>
+      `<div class="card int-poule"><span class="kicker">${esc(po.nom)}${po.finie ? ' · terminée' : po.fin ? ' · avant le ' + po.fin.split('-').reverse().slice(0, 2).join('/') : ''}</span><table class="int-pt"><thead><tr><th></th><th>Joueur</th><th>Pts</th><th>V/J</th><th>Man.</th><th>Jeux</th></tr></thead><tbody>${(
+        po.classement || []
+      )
+        .map(
+          (x, r) =>
+            `<tr class="${po.finie && r < po.q ? 'qual' : ''}${mesIds.includes(x.id) ? ' moi' : ''}"><td>${r + 1}</td><td>${intLien(J, x.id)}${(po.ts || {})[x.id] ? ` <b class="ab-ts">${po.ts[x.id]}</b>` : ''}</td><td>${x.pts}</td><td>${x.g}/${x.j}</td><td>${sg(x.m)}</td><td>${sg(x.jx)}</td></tr>`
+        )
+        .join('')}</tbody></table><div class="int-pm">${(po.matches || [])
+        .map(
+          m =>
+            `<div class="${mesIds.includes(m.a) || mesIds.includes(m.b) ? 'moi' : ''}"><span>${esc(intNom(J, m.a))} – ${esc(intNom(J, m.b))}</span><small>${m.w ? esc((m.w === m.a ? '' : intNom(J, m.w) + ' ') + (m.sc || (m.wo ? 'forfait' : ''))) + (m.conf ? '' : ' · à confirmer') : m.prog ? esc(m.prog) : 'À jouer'}</small></div>`
+        )
+        .join('')}</div></div>`
+  ).join('')}</div>`;
 }
 /* la page du tournoi : tableau, règlement, participants */
 function intView(id) {
@@ -117,47 +212,21 @@ function intView(id) {
         return `<div class="item">${k ? av(k, 'sm') : `<span class="tile">${ic('user')}</span>`}<span class="grow"><span class="nm">${intLien(J, x.id)}</span>${x.cl ? ` <span class="bd">${esc(x.cl)}</span>` : ''}${x.seed ? ` <span class="bd rk">TS ${x.seed}</span>` : ''}<br><span class="muted small">${J.champion === x.id ? 'Vainqueur' : nb ? (enCourse ? 'Toujours en course' : 'Éliminé') : 'Inscrit'}</span></span></div>`;
       })
       .join('')}</div>`;
-  else if (!nb) corps = `<p class="muted">Le tableau n’est pas encore tiré.</p>`;
+  else if (!nb && !(J.poules || []).length) corps = `<p class="muted">Le tableau n’est pas encore tiré.</p>`;
   else {
-    const boite = (T, m) => {
-      const e = intEtat(m),
-        mien = mesIds.includes(m.a) || mesIds.includes(m.b),
-        // 1er tour : la place d'un qualifié pas encore connu porte son nom
-        place = side => (m.r === 0 ? (T.places || [])[2 * m.i + (side === 'a' ? 0 : 1)] : null),
-        j = side => {
-          const x = m[side];
-          return `<span class="int-j ${m.w && m.conf ? (m.w === x ? 'w' : 'l') : ''}${mesIds.includes(x) ? ' moi' : ''}"><span>${x ? esc(intNom(J, x)) : place(side) ? `<i>${esc(place(side))}</i>` : '…'}</span>${m.w === x && m.sc ? `<b>${esc(m.sc)}</b>` : ''}</span>`;
-        };
-      return `<div class="int-m${m.bye ? ' bye' : ''}${mien ? ' mien' : ''}${e === 'pending' ? ' att' : ''}">${j('a')}${j('b')}${e === 'pending' ? '<small>À confirmer</small>' : m.wo ? '<small>Forfait</small>' : ''}</div>`;
-    };
     // un tableau, découpé en sections s'il qualifie plusieurs joueurs pour le tableau suivant
     const unTab = T => {
-      const n = T.rounds.length,
-        final = (T.q || 1) === 1,
-        col = r => (final ? intTour(r, n) : r === n - 1 ? 'Qualification' : 'Tour ' + (r + 1)),
-        fin = r => {
-          const f = ((T.tours || [])[r] || {}).fin;
-          return f ? ` · avant le ${f.split('-').reverse().slice(0, 2).join('/')}` : '';
-        },
-        sec = s =>
-          `<div class="int-tab" style="--nb:${n}">${T.rounds
-            .map((l, r) => {
-              const k = l.length / (T.q || 1);
-              return `<div class="int-col"><span class="kicker">${col(r)}${fin(r)}</span>${l
-                .slice(s * k, (s + 1) * k)
-                .map(m => boite(T, m))
-                .join('')}</div>`;
-            })
-            .join('')}</div>`;
-      const corpsT = final
-        ? sec(0)
-        : Array.from(
-            { length: T.q },
-            (_, s) => `<p class="kicker" style="margin:10px 0 4px">Section ${s + 1} · qualifié ${s + 1}</p>${sec(s)}`
-          ).join('');
-      return `${nb > 1 ? `<h3 style="margin:16px 0 4px">${esc(T.nom)}${T.plage ? ` <span class="muted small">· ${esc(T.plage)}</span>` : ''}</h3>` : ''}${corpsT}`;
+      const final = (T.q || 1) === 1,
+        corpsT = final
+          ? intArbre(J, T, 0, mesIds)
+          : Array.from(
+              { length: T.q },
+              (_, s) =>
+                `<p class="kicker" style="margin:10px 0 4px">Section ${s + 1} · qualifié ${s + 1}</p>${intArbre(J, T, s, mesIds)}`
+            ).join('');
+      return `${nb > 1 || (J.poules || []).length ? `<h3 style="margin:16px 0 4px">${esc(T.nom)}${T.plage ? ` <span class="muted small">· ${esc(T.plage)}</span>` : ''}</h3>` : ''}${corpsT}`;
     };
-    corps = `${intTabs(J).map(unTab).join('')}<p class="muted small">Faites glisser le tableau sur le côté pour voir les tours suivants.</p>`;
+    corps = `${intPoules(J, mesIds)}${intTabs(J).map(unTab).join('')}${J.mode === 'tmc' && (J.places || []).length ? `<h3 style="margin:16px 0 4px">Classement</h3><ol class="int-cl">${J.places.map(x => `<li${mesIds.includes(x.id) ? ' class="moi"' : ''}>${esc(intNom(J, x.id))}</li>`).join('')}</ol>` : ''}<p class="muted small">Faites glisser le tableau sur le côté pour voir les tours suivants.</p>`;
   }
   return `<div class="pad">${moi.map(pj => intMatchCarte(p, J, pj)).join('')}<div class="seg" role="tablist">${[
     ['tableau', 'Tableau'],

@@ -46,6 +46,45 @@
 .in-modal label.chk input { width: auto; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ui-text); color: var(--ui-surface); padding: 12px 18px; border-radius: 10px; z-index: 99; font-weight: 600; max-width: calc(100vw - 32px); }
 .in-places li { padding: 4px 0; }
+/* arbre d'un tableau, comme la feuille FFT : un trait par joueur, les branches réunissent les deux joueurs d'un match */
+.ab-w { overflow-x: auto; padding: 4px 0 10px; }
+.ab-h, .ab { display: grid; grid-template-columns: repeat(var(--c), minmax(150px, 1fr)); min-width: calc(var(--c) * 150px); }
+.ab-h span { font-family: var(--label); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ui-text-mut); padding: 0 6px 6px; }
+.ab { grid-template-rows: repeat(var(--l), 48px); }
+.ab-s { position: relative; display: block; min-width: 0; background: none; border: 0; padding: 0; margin: 0; font: inherit; font-weight: 400; text-transform: none; letter-spacing: normal; box-shadow: none; border-radius: 0; color: var(--ui-text); text-align: left; min-height: 0; }
+.ab-s::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1.5px solid color-mix(in srgb, var(--ui-text) 55%, transparent); }
+.ab-s.ab-up::after { content: ''; position: absolute; right: 0; top: 50%; height: 100%; border-right: 1.5px solid color-mix(in srgb, var(--ui-text) 55%, transparent); }
+.ab-n { position: absolute; left: 6px; right: 10px; bottom: 50%; padding-bottom: 3px; display: flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 13.5px; }
+.ab-n .nm { overflow: hidden; text-overflow: ellipsis; }
+.ab-i { position: absolute; left: 6px; right: 10px; top: 50%; padding-top: 3px; font-size: 11.5px; color: var(--ui-text-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-cl { margin-left: auto; font-size: 11px; color: var(--ui-text-mut); flex: none; }
+.ab-ts { flex: none; display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid var(--ui-accent-text, #E0284A); color: var(--ui-accent-text, #E0284A); font-size: 10px; font-weight: 800; line-height: 1; }
+.ab-s.w .nm { font-weight: 800; }
+.ab-s.l .nm { opacity: .5; text-decoration: line-through; text-decoration-thickness: 1px; }
+.ab-s.q .nm { font-style: italic; color: var(--ui-text-mut); }
+.ab-s.att .ab-i { color: #C77D0A; font-weight: 700; }
+.ab-s.ct .ab-i { color: var(--ui-accent-text, #E0284A); font-weight: 700; }
+.ab-s.ab-x { visibility: hidden; }
+.ab-s.ab-fin .nm { font-weight: 800; color: var(--ui-accent-text, #E0284A); }
+button.ab-s { cursor: pointer; }
+button.ab-s:hover::before, button.ab-s:focus-visible::before { border-top-color: var(--ui-accent-text, #E0284A); border-top-width: 2.5px; }
+/* poules et programme */
+.in-poules { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.in-poule { padding: 12px; border-radius: var(--ui-r-sm); background: var(--ui-surface-2); display: grid; gap: 8px; align-content: start; }
+.in-poule h3 { margin: 0; }
+.in-pt { width: 100%; border-collapse: collapse; font-size: 13px; }
+.in-pt th { text-align: left; font-size: 11px; color: var(--ui-text-mut); font-weight: 700; padding: 2px 4px; }
+.in-pt td { padding: 4px; border-top: 1px solid var(--ui-border); }
+.in-pt tr.qual td { font-weight: 800; }
+.in-pt tr.qual td:first-child { color: var(--ui-accent-text, #E0284A); }
+.in-pm { display: grid; gap: 4px; }
+.in-pm button, .in-pg { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; width: 100%; text-align: left; border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-surface); color: var(--ui-text); font: inherit; font-size: 13px; padding: 6px 8px; cursor: pointer; }
+.in-pm button small, .in-pg small { color: var(--ui-text-mut); font-size: 11.5px; }
+.in-pm button.att { border-color: #E3A33A; } .in-pm button.ct { border-color: var(--ui-accent-text, #E0284A); } .in-pm button.ok span { font-weight: 700; }
+.in-pg { margin-top: 4px; } .in-pg b { min-width: 46px; }
+.in-jour { margin: 14px 0 4px; font-size: 14px; text-transform: capitalize; }
+.in-al { display: grid; gap: 4px; padding: 10px 12px; border-radius: 8px; border: 2px solid #E3A33A; background: color-mix(in srgb, #E3A33A 12%, transparent); margin-bottom: 8px; }
+.in-al p { margin: 0; font-size: 13px; }
 /* tableaux successifs : une carte par tableau, ses sections les unes sous les autres */
 .in-sec + .in-sec { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--ui-border); }
 .in-sec > h4 { margin: 0 0 8px; font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ui-accent-text); }
@@ -109,6 +148,22 @@
     const fmts = tennis ? Object.keys(Int.FORMATS).filter(f => i.simple || Int.FORMATS[f].pd) : [];
     const st = brouillon || i.struct || [], rep = Int.repartition(Object.assign({}, i, { struct: st }));
     const ech = cur => Int.ECHELONS.map(e => opt(e, e, cur)).join('');
+    const formule = `<label>Formule<select id="in-mode" ${tire ? 'disabled' : ''}>${opt('tableaux', 'Tableaux à élimination directe', i.mode)}${opt('poules', 'Poules, puis tableau final', i.mode)}${opt('tmc', 'Tournoi multi-chances (TMC)', i.mode)}</select></label>`;
+    const prog = `<h3 style="margin:14px 0 6px">Déroulement</h3>
+      <label class="chk" style="display:flex;flex-direction:row;gap:10px;align-items:center"><input type="checkbox" id="in-prog" style="width:auto" ${i.prog ? 'checked' : ''}>Matchs programmés par le juge-arbitre (jour, heure, terrain)</label>
+      <p class="muted small">${i.prog ? 'Les joueurs sont prévenus de chaque programmation. Les limites de parties par jour, les repos et les horaires sont vérifiés (art. 13 et 14).' : 'Sinon, les joueurs organisent leurs matchs avant la date limite de chaque tour.'}</p>
+      ${i.prog ? `<div class="in-row"><label>Terrains (séparés par des virgules)<input id="in-terr" value="${esc((i.terrains || []).join(', '))}" placeholder="Court 1, Court 2, Court 3"></label><label>Catégorie<select id="in-cat">${Object.keys(Int.CATEGORIES).map(k => opt(k, Int.CATEGORIES[k], i.categorie)).join('')}</select></label></div>` : ''}`;
+    if (i.mode !== 'tableaux') {
+      const c = i.pcfg || {}, rp = Int.repartitionPoules(i), n = Math.max(1, +c.n || 1);
+      const corps = i.mode === 'tmc'
+        ? `<p class="muted small">Tableau principal de 32 joueurs au plus ; les perdants de chaque tour sont reversés dans un tableau de classement. Chacun joue le même nombre de matchs et est classé de 1 à ${i.players.length || 'n'} (art. 51 bis). Pas de consolante.</p>`
+        : `<div class="in-row"><label>Nombre de poules<input type="number" min="1" max="26" id="in-pn" value="${esc(c.n)}" ${tire ? 'disabled' : ''}></label><label>Qualifiés par poule<input type="number" min="1" max="3" id="in-pq" value="${esc(c.q)}" ${tire ? 'disabled' : ''}></label>
+          <label>Joueurs en poules<select id="in-pmax" ${tire ? 'disabled' : ''}>${opt('', 'Tous', c.max || '')}${Int.ECHELONS.slice(0, -1).map(e => opt(e, 'Jusqu’à ' + e, c.max || '')).join('')}</select></label></div>
+          <p class="muted small">${rp.poules.length} en poules (${Math.floor(rp.poules.length / n)} à ${Math.ceil(rp.poules.length / n)} par poule, 6 au plus), ${rp.direct.length} directement au tableau final. Une tête de série par poule ; le 2e d’une poule est placé dans l’autre moitié du tableau que le 1er.</p>`;
+      return `<section class="card"><span class="eyebrow">Format et formule</span><h2>Comment se joue le tournoi</h2>
+        <label>Format des matchs<select id="in-fmt" ${joue ? 'disabled' : ''}>${tennis ? fmts.map(f => opt(f, 'Format ' + f + ' : ' + Int.FORMATS[f].l, i.format)).join('') + opt(0, 'Score libre', i.format) : opt(0, 'Score libre (padel)', 0)}</select></label>
+        ${formule}${corps}${prog}</section>`;
+    }
     const lignes = st.map((x, k) => `<div class="in-strow"><b>Tableau ${k + 1} · ${rep[k].length} joueur${rep[k].length > 1 ? 's' : ''}</b>
         <label>Classement le plus haut<select data-st-max="${k}" ${tire ? 'disabled' : ''}>${ech(x.max)}</select></label>
         <label>Qualifiés sortants<input type="number" min="1" max="16" data-st-q="${k}" value="${esc(x.q)}" ${tire ? 'disabled' : ''}></label>
@@ -116,10 +171,11 @@
     return `<section class="card"><span class="eyebrow">Format et tableaux</span><h2>Comment se joue le tournoi</h2>
       <label>Format des matchs<select id="in-fmt" ${joue ? 'disabled' : ''}>${tennis ? fmts.map(f => opt(f, 'Format ' + f + ' : ' + Int.FORMATS[f].l, i.format)).join('') + opt(0, 'Score libre', i.format) : opt(0, 'Score libre (padel)', 0)}</select></label>
       <p class="in-fmt">${Int.FORMATS[i.format] ? `Les scores saisis sont vérifiés, par exemple ${esc(Int.FORMATS[i.format].ex)}.${i.simple ? '' : ' En double, le point décisif est obligatoire (art. 11).'}` : 'Le score est un texte libre.'}</p>
+      ${formule}
       ${tennis ? `<h3 style="margin:14px 0 6px">Tableaux</h3>
       <p class="muted small">${st.length ? 'Chaque joueur entre dans le tableau de son classement ; les qualifiés de chaque tableau rejoignent le suivant, jusqu’au tableau final. Un tableau qui qualifie plusieurs joueurs est découpé en sections, une par qualifié.' : 'Un seul tableau pour tous. Pour des tableaux successifs par classement (NC à 30/1, puis 30 à 15/1…), ajoutez un tableau.'}</p>
       <div class="in-st">${lignes}<div class="in-strow"><b>${st.length ? 'Tableau final' : 'Tableau'} · ${rep[st.length].length} joueur${rep[st.length].length > 1 ? 's' : ''}${st.length ? ' + ' + st[st.length - 1].q + ' qualifié' + (st[st.length - 1].q > 1 ? 's' : '') : ''}</b><span class="muted small">${st.length ? 'les mieux classés' : 'tous les participants'}</span></div></div>
-      ${tire ? '<p class="muted small">Le tableau est tiré : annulez le tirage pour changer la structure.</p>' : `<div class="in-row" style="margin-top:10px">${st.length < 4 ? '<button type="button" class="btn ghost" id="in-st-add">Ajouter un tableau</button>' : ''}${brouillon ? '<button type="button" class="btn" id="in-st-save">Enregistrer les tableaux</button>' : ''}</div>`}` : ''}</section>`;
+      ${tire ? '<p class="muted small">Le tableau est tiré : annulez le tirage pour changer la structure.</p>' : `<div class="in-row" style="margin-top:10px">${st.length < 4 ? '<button type="button" class="btn ghost" id="in-st-add">Ajouter un tableau</button>' : ''}${brouillon ? '<button type="button" class="btn" id="in-st-save">Enregistrer les tableaux</button>' : ''}</div>`}` : ''}${prog}</section>`;
   }
   let brouillon = null;   // structure en cours de modification, pas encore enregistrée
   function reglages() {
@@ -148,36 +204,109 @@
       <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /RAM Club : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
       <div class="in-row" style="margin-top:14px">${tire ? `<button class="btn ghost" id="in-undraw">Annuler le tirage</button><button class="btn ghost" id="in-redraw">Refaire le tirage</button>` : `<button class="btn" id="in-draw" ${i.players.length < 2 ? 'disabled' : ''}>Tirer le tableau</button>`}</div></section>`;
   }
-  /* un tableau : ses dates limites, puis ses sections (une seule pour le tableau final) */
+  /* l'arbre d'un tableau (ou d'une section), comme la feuille FFT : chaque joueur sur un trait (nom et classement
+     au-dessus, tête de série cerclée), le vainqueur reporté sur le trait du tour suivant avec le score en dessous,
+     une branche réunit les deux joueurs d'un match ; un exempt n'apparaît pas, son joueur entre au tour suivant */
+  function arbre(T, j) {
+    const i = I(), R = T.rounds, nb = R.length, final = T.q === 1, s = T.size / T.q;
+    const titre = c => (c === nb ? (final ? (T.role === 'class' ? 'Place ' + T.lo : 'Vainqueur') : 'Qualifié ' + (j + 1)) : final ? Int.tourNom(c, nb) : c === nb - 1 ? 'Qualification' : 'Tour ' + (c + 1));
+    const etiquette = (x, tok) => {
+      if (!x) return tok && Int.estTok(tok) ? `<span class="nm">${esc(Int.nomDe(i, tok))}</span>` : '<span class="nm"></span>';
+      const p = Int.joueur(i, x) || {}, ts = T.ts && T.ts[x];
+      return `<span class="nm">${esc(nom(x))}</span>${ts ? `<b class="ab-ts" title="Tête de série ${ts}">${ts}</b>` : ''}${p.cl ? `<span class="ab-cl">${esc(p.cl)}</span>` : ''}`;
+    };
+    const etatSous = m => {
+      if (!m) return '';
+      if (m.w && !m.bye) return `${esc(m.sc || (m.wo ? 'Forfait' : ''))}${!m.conf ? ` · ${m.conteste ? 'contesté' : 'à confirmer'}` : ''}`;
+      if (Int.etat(m) === 'ready') return m.d ? esc(Int.progNom(m)) : 'À jouer' + (Int.finDe(i, m) ? ' · avant le ' + dateFr(Int.finDe(i, m)).slice(0, 5) : '');
+      return m.d ? esc(Int.progNom(m)) : '';
+    };
+    let cases = '';
+    for (let c = 0; c <= nb; c++) {
+      const n = s / Math.pow(2, c), span = Math.pow(2, c);
+      for (let k = 0; k < n; k++) {
+        const g = j * n + k, suite = c < nb ? R[c][g >> 1] : null;
+        let x = null, tok = null, sous = '', cache = false, cls = '';
+        if (c === 0) {
+          const L = j * s + k, m = R[0][L >> 1];
+          x = m[L % 2 ? 'b' : 'a']; tok = T.lines[L];
+          cache = !!m.bye || x === 'BYE' || tok === 'BYE';
+        } else {
+          const f = R[c - 1][g];
+          x = f.w && f.w !== 'BYE' ? f.w : null;
+          cache = f.w === 'BYE';
+          sous = f.bye ? '' : etatSous(f);
+          if (f.w && !f.conf) cls += f.conteste ? ' ct' : ' att';
+        }
+        if (suite && suite.w && suite.conf && !suite.bye && x) cls += suite.w === x ? ' w' : ' l';
+        if (x && !Int.joueur(i, x)) x = null;
+        if (!x && tok && Int.estTok(tok)) cls += ' q';
+        const clic = suite && !suite.bye && !cache;
+        const pos = `grid-column:${c + 1};grid-row:${k * span + 1} / span ${span}`;
+        const haut = c < nb && k % 2 === 0 && !(c === 0 && (R[0][(j * s + k) >> 1] || {}).bye) ? ' ab-up' : '';
+        const contenu = `<span class="ab-n">${etiquette(x, tok)}</span><span class="ab-i">${sous}</span>`;
+        cases += cache ? `<div class="ab-s ab-x" style="${pos}"></div>` : clic ? `<button type="button" class="ab-s${cls}${haut}" style="${pos}" data-m="${suite.id}">${contenu}</button>` : `<div class="ab-s${cls}${haut}${c === nb ? ' ab-fin' : ''}" style="${pos}">${contenu}</div>`;
+      }
+    }
+    return `<div class="ab-w"><div class="ab-h" style="--c:${nb + 1}">${Array.from({ length: nb + 1 }, (_, c) => `<span>${esc(titre(c))}</span>`).join('')}</div><div class="ab" style="--c:${nb + 1};--l:${s}">${cases}</div></div>`;
+  }
+  /* un tableau : ses dates limites, puis ses sections (une seule pour un tableau final) */
   function unTableau(T) {
     const i = I(), R = T.rounds, nb = R.length, final = T.q === 1;
     const col = r => (final ? Int.tourNom(r, nb) : r === nb - 1 ? 'Qualification' : 'Tour ' + (r + 1));
     const fins = `<div class="in-fins">${R.map((l, r) => `<label>${esc(col(r))}<input type="date" data-fin="${r}" data-t="${esc(T.id)}" value="${esc((T.tours[r] || {}).fin || '')}"></label>`).join('')}</div>`;
-    const boite = m => {
-      const e = Int.etat(m), cls = m.bye ? 'bye' : m.conteste ? 'contest' : e === 'pending' ? 'pending' : '';
-      const st = m.bye ? 'Exempt' : m.conteste ? 'Contesté' : e === 'pending' ? 'À confirmer' : e === 'done' ? (m.wo ? 'Forfait' : 'Joué') : e === 'ready' ? 'À jouer' : 'En attente';
-      // 1er tour : une place de qualifié pas encore connu porte son nom (« Qualifié 2 du tableau 1 »)
-      const place = side => (m.r === 0 ? T.lines[2 * m.i + (side === 'a' ? 0 : 1)] : null);
-      const j = side => {
-        const x = m[side], q = !x && String(place(side) || '').startsWith('Q:'), ts = x && T.ts && T.ts[x];
-        return `<div class="j ${m.w ? (m.w === x ? 'w' : 'l') : ''}${q ? ' q' : ''}"><span>${esc(x ? nom(x) : q ? Int.nomDe(i, place(side)) : '…')}${ts ? `<span class="ts">TS ${ts}</span>` : ''}</span>${m.w === x && m.sc ? `<span>${esc(m.sc)}</span>` : ''}</div>`;
-      };
-      return `<button class="in-m ${cls}" ${m.bye ? 'disabled' : `data-m="${m.id}"`}>${j('a')}${j('b')}<span class="st">${st}</span></button>`;
-    };
-    // section j : les matchs de chaque tour qui en font partie
-    const section = j => `<div class="in-tab">${R.map((l, r) => { const n = l.length / T.q; return `<div class="in-col"><h3>${esc(col(r))}${(T.tours[r] || {}).fin ? ` <span class="fin">· avant le ${dateFr(T.tours[r].fin)}</span>` : ''}</h3>${l.slice(j * n, (j + 1) * n).map(boite).join('')}</div>`; }).join('')}</div>`;
-    const corps = final ? section(0) : Array.from({ length: T.q }, (_, j) => `<div class="in-sec"><h4>Section ${j + 1} · qualifié ${j + 1}</h4>${section(j)}</div>`).join('');
-    return `<section class="card"><span class="eyebrow">${esc(T.nom)}${T.plage ? ' · ' + esc(T.plage) : ''}${final ? '' : ' · ' + T.q + ' qualifié' + (T.q > 1 ? 's' : '')}</span><h2>${final ? (i.status === 'done' ? 'Tournoi terminé' : esc(T.nom)) : esc(T.nom)}</h2>
+    const corps = final ? arbre(T, 0) : Array.from({ length: T.q }, (_, j) => `<div class="in-sec"><h4>Section ${j + 1} · qualifié ${j + 1}</h4>${arbre(T, j)}</div>`).join('');
+    const ey = T.role === 'class' ? 'Tableau de classement' : T.role === 'consol' ? 'Épreuve de consolation' : T.plage || '';
+    return `<section class="card"><span class="eyebrow">${esc(ey)}${final ? '' : ' · ' + T.q + ' qualifié' + (T.q > 1 ? 's' : '')}</span><h2>${esc(T.nom)}</h2>
       <details><summary class="muted small">Dates limites des tours</summary><p class="muted small">Les joueurs reçoivent un rappel deux jours avant la date limite de leur match.</p>${fins}</details>
-      <p class="muted small">Touchez un match pour saisir ou corriger son résultat, trancher une contestation ou déclarer un forfait.</p>${corps}</section>`;
+      <p class="muted small">Touchez un joueur ou un trait pour saisir ou corriger un résultat${I().prog ? ', programmer le match' : ''}, trancher une contestation ou déclarer un forfait.</p>${corps}</section>`;
+  }
+  /* les poules : classement (2 points par victoire, 1 par défaite, 0 par forfait ; manches, jeux) et matchs */
+  function lesPoules() {
+    const i = I(), P = Int.poulesOf(i); if (!P.length) return '';
+    const signe = n => (n > 0 ? '+' + n : String(n));
+    return `<section class="card"><span class="eyebrow">Phase de poules · ${P[0].q} qualifié${P[0].q > 1 ? 's' : ''} par poule</span><h2>Poules</h2>
+      <p class="muted small">Victoire : 2 points (aussi par forfait), défaite : 1 point, défaite par forfait : 0. Égalité : différence de manches, puis de jeux, puis entre les seuls joueurs à égalité (art. 56).</p>
+      <div class="in-poules">${P.map(po => {
+        const c = Int.classementPoule(i, po), fini = Int.pouleFinie(po);
+        return `<div class="in-poule"><h3>${esc(po.nom)}${fini ? ' <span class="club">· terminée</span>' : ''}</h3>
+          <table class="in-pt"><thead><tr><th></th><th>Joueur</th><th title="Points">Pts</th><th title="Victoires / matchs">V/J</th><th title="Différence de manches">Man.</th><th title="Différence de jeux">Jeux</th></tr></thead><tbody>
+          ${c.map((x, r) => `<tr class="${fini && r < po.q ? 'qual' : ''}"><td>${r + 1}</td><td>${esc(nom(x.id))}${po.ts && po.ts[x.id] ? ` <b class="ab-ts">${po.ts[x.id]}</b>` : ''}</td><td>${x.pts}</td><td>${x.g}/${x.j}</td><td>${signe(x.mg - x.mp)}</td><td>${signe(x.jg - x.jp)}</td></tr>`).join('')}</tbody></table>
+          <div class="in-pm">${po.matches.map(m => `<button type="button" class="${Int.etat(m) === 'pending' ? 'att' : m.conteste ? 'ct' : m.w ? 'ok' : ''}" data-m="${m.id}"><span>${esc(nom(m.a))} – ${esc(nom(m.b))}</span><small>${m.w ? esc((m.w === m.a ? '' : nom(m.w) + ' ') + (m.sc || (m.wo ? 'forfait' : ''))) + (m.conf ? '' : ' · à confirmer') : m.d ? esc(Int.progNom(m)) : 'À jouer'}</small></button>`).join('')}</div>
+          <label class="small">Date limite<input type="date" data-fin-poule="${po.k}" value="${esc(po.fin || '')}"></label></div>`;
+      }).join('')}</div></section>`;
   }
   function tableau() {
     const i = I(); if (!Int.tire(i)) return '';
-    return Int.tabsOf(i).map(unTableau).join('');
+    return lesPoules() + Int.tabsOf(i).map(unTableau).join('') + consol() + programme();
+  }
+  /* consolante (art. 51-2) : le juge-arbitre y inscrit les battus qui l'acceptent */
+  function consol() {
+    const i = I(); if (i.mode === 'tmc' || i.status === 'done') return '';
+    const C = Int.consolante(i), commencee = C && C.rounds.flat().some(m => m.w && !m.bye), n = Int.consolables(i).length;
+    if (commencee) return '';
+    return `<section class="card"><span class="eyebrow">Épreuve de consolation</span><h2>Consolante</h2>
+      <p class="muted small">Pour les joueurs battus dans l’épreuve principale qui veulent rejouer (art. 51-2). Son tableau suit leur classement ; chacun n’entre que dans une consolante.</p>
+      <div class="in-row"><button class="btn ${C ? 'ghost' : ''}" id="in-consol" ${n < 2 ? 'disabled' : ''}>${C ? 'Modifier les joueurs de la consolante' : 'Créer la consolante'}</button><span class="muted small">${n} joueur${n > 1 ? 's' : ''} battu${n > 1 ? 's' : ''} pour l’instant</span></div></section>`;
+  }
+  /* programmation : les matchs par jour, ceux qui restent à programmer, les alertes du règlement */
+  function programme() {
+    const i = I(); if (!i.prog) return '';
+    const l = Int.allMatches(i).filter(m => !m.bye && !(m.w && m.conf));
+    const prog = l.filter(m => m.d).sort((a, b) => (a.d + (a.h || '')).localeCompare(b.d + (b.h || ''))), reste = l.filter(m => !m.d && m.a && m.b), al = Int.alertes(i);
+    const jours = {}; prog.forEach(m => (jours[m.d] = jours[m.d] || []).push(m));
+    const ligne = m => `<button type="button" class="in-pg" data-m="${m.id}"><b>${esc(m.h ? m.h.replace(':', 'h') : '—')}</b><span>${esc(nom(m.a))} – ${esc(nom(m.b))}</span><small>${esc(Int.nomTour(i, m))}${m.c ? ' · ' + esc(m.c) : ''}</small></button>`;
+    return `<section class="card"><span class="eyebrow">Programmation</span><h2>Programme des matchs</h2>
+      ${al.length ? `<div class="in-al">${al.map(a => `<p>${esc(a.txt)}</p>`).join('')}</div>` : '<p class="muted small">Aucune alerte : parties par jour, repos et horaires respectent le règlement (art. 13 et 14).</p>'}
+      ${Object.keys(jours).map(d => `<h3 class="in-jour">${esc(Int.jourFr(d))}</h3>${jours[d].map(ligne).join('')}`).join('') || '<p class="muted">Aucun match programmé.</p>'}
+      ${reste.length ? `<h3 class="in-jour">À programmer · ${reste.length}</h3>${reste.map(ligne).join('')}` : ''}</section>`;
   }
   function classement() {
-    const pl = Int.places(I()); if (!pl.length) return '';
-    return `<section class="card"><span class="eyebrow">Classement</span><h2>${esc(nom(pl[0].id))} remporte le tournoi</h2><ol class="in-places">${pl.slice(0, 8).map(x => `<li>${x.place === 1 ? 'Vainqueur' : x.place === 2 ? 'Finaliste' : x.place + (x.lo && x.lo !== x.place ? '-' + x.lo : '') + 'e'} : ${esc(nom(x.id))}</li>`).join('')}</ol></section>`;
+    const i = I(), pl = Int.places(i), C = Int.consolante(i), vc = C && Int.vainqueur(C);
+    if (!pl.length && !vc) return '';
+    const tmc = i.mode === 'tmc';
+    const titre = pl.length && pl[0].place === 1 && Int.champion(i) ? esc(nom(pl[0].id)) + ' remporte le tournoi' : 'Classement provisoire';
+    return `<section class="card"><span class="eyebrow">Classement${tmc ? ' · tournoi multi-chances' : ''}</span><h2>${titre}</h2><ol class="in-places">${pl.slice(0, tmc ? 32 : 8).map(x => `<li>${tmc ? x.place + (x.place === 1 ? 'er' : 'e') : x.place === 1 ? 'Vainqueur' : x.place === 2 ? 'Finaliste' : x.place + (x.lo && x.lo !== x.place ? '-' + x.lo : '') + 'e'} : ${esc(nom(x.id))}</li>`).join('')}</ol>${vc ? `<p><b>Consolante :</b> ${esc(nom(vc))}</p>` : ''}</section>`;
   }
   function render() {
     if (!S || !S.int) return;
@@ -191,19 +320,28 @@
     bind();
   }
   function modal(m) {
-    const d = document.createElement('div'); d.className = 'in-modal';
-    d.innerHTML = `<div role="dialog" aria-label="Résultat du match"><h2 style="margin:0">${esc(nom(m.a))} contre ${esc(nom(m.b))}</h2>
+    const d = document.createElement('div'), i = I(), pret = m.a && m.b && m.a !== 'BYE' && m.b !== 'BYE';
+    d.className = 'in-modal';
+    // programmation (jour, heure, terrain), aussi avant que les deux joueurs soient connus
+    const prog = i.prog ? `<form id="in-pg" class="grid"><h3 style="margin:0">Programmation</h3><div class="in-row"><label>Jour<input type="date" name="d" value="${esc(m.d || '')}"></label><label>Heure<input type="time" name="h" min="07:00" value="${esc(m.h || '')}"></label>
+      <label>Terrain<input name="c" list="in-terrains" value="${esc(m.c || '')}" maxlength="30"></label></div><datalist id="in-terrains">${(i.terrains || []).map(t => `<option value="${esc(t)}">`).join('')}</datalist>
+      <div class="in-row"><button class="btn">Programmer</button>${m.d ? '<button type="button" class="btn ghost" id="in-unpg">Déprogrammer</button>' : ''}</div></form>` : '';
+    d.innerHTML = `<div role="dialog" aria-label="Match"><h2 style="margin:0">${esc(m.a ? nom(m.a) : 'À venir')} contre ${esc(m.b ? nom(m.b) : 'à venir')}</h2><p class="muted small" style="margin:0">${esc(Int.nomTour(i, m))}</p>
       ${m.conteste ? `<p class="note">Contestation : ${esc(m.conteste)}</p>` : ''}${m.w && !m.conf ? `<p class="muted">Saisi par ${esc(nom(m.by))}, en attente de la confirmation de l’adversaire.</p>` : ''}
-      <form id="in-res" class="grid"><fieldset style="border:0;padding:0;margin:0"><legend>Vainqueur</legend>
+      ${prog}${pret ? '' : '<p class="muted small">Le résultat se saisit quand les deux joueurs sont connus.</p><div class="in-row"><button type="button" class="btn ghost" id="in-x">Fermer</button></div>'}
+      <form id="in-res" class="grid" ${pret ? '' : 'hidden'}><fieldset style="border:0;padding:0;margin:0"><legend>Vainqueur</legend>
       <label class="chk"><input type="radio" name="w" value="${m.a}" ${m.w === m.a ? 'checked' : ''} required>${esc(nom(m.a))}</label>
       <label class="chk"><input type="radio" name="w" value="${m.b}" ${m.w === m.b ? 'checked' : ''}>${esc(nom(m.b))}</label></fieldset>
       <label>Score${Int.FORMATS[I().format] ? ` <span class="muted small">(${esc(Int.nomTour(I(), m))} · format ${I().format}, du côté du vainqueur)</span>` : ''}<input name="sc" value="${esc(m.sc || '')}" placeholder="${esc((Int.FORMATS[I().format] || {}).ex || '6-3 6-4')}" maxlength="60"></label>
       <label class="chk"><input type="checkbox" name="wo" ${m.wo ? 'checked' : ''}>Victoire par forfait</label>
-      <div class="in-row"><button class="btn">Valider le résultat</button>${m.w ? '<button type="button" class="btn ghost" id="in-reset">Effacer</button>' : ''}<button type="button" class="btn ghost" id="in-x">Fermer</button></div></form></div>`;
+      <div class="in-row"><button class="btn">Valider le résultat</button>${m.w ? '<button type="button" class="btn ghost" id="in-reset">Effacer</button>' : ''}${pret ? '<button type="button" class="btn ghost" id="in-x">Fermer</button>' : ''}</div></form></div>`;
     document.body.appendChild(d);
     const close = () => d.remove();
     d.addEventListener('click', e => { if (e.target === d) close(); });
     d.querySelector('#in-x').onclick = close;
+    const pg = d.querySelector('#in-pg');
+    if (pg) pg.onsubmit = async e => { e.preventDefault(); if (!pg.d.value) return toast('Choisis le jour du match'); if (await send('int/prog', { m: m.id, d: pg.d.value, h: pg.h.value, c: pg.c.value.trim() })) { close(); toast('Match programmé : les joueurs sont prévenus'); } };
+    if (d.querySelector('#in-unpg')) d.querySelector('#in-unpg').onclick = async () => { if (await send('int/prog', { m: m.id, d: '' })) { close(); toast('Match déprogrammé'); } };
     if (d.querySelector('#in-reset')) d.querySelector('#in-reset').onclick = async () => { if (await send('int/reset', { m: m.id })) { close(); toast('Résultat effacé'); } };
     d.querySelector('#in-res').onsubmit = async e => {
       e.preventDefault();
@@ -243,7 +381,28 @@
     document.querySelectorAll('[data-seed]').forEach(s => (s.onchange = () => send('int/player/seed', { id: s.dataset.seed, seed: +s.value })));
     document.querySelectorAll('[data-del]').forEach(b => (b.onclick = () => send('int/player/remove', { id: b.dataset.del })));
     document.querySelectorAll('[data-fin]').forEach(i => (i.onchange = () => send('int/tour', { t: i.dataset.t || '', r: +i.dataset.fin, fin: i.value })));
-    document.querySelectorAll('[data-m]').forEach(b => (b.onclick = () => { const m = Int.findM(I(), b.dataset.m); if (!m) return; if (!(m.a && m.b)) return toast('Ce match attend encore ses joueurs.'); modal(m); }));
+    document.querySelectorAll('[data-m]').forEach(b => (b.onclick = () => { const m = Int.findM(I(), b.dataset.m); if (!m) return; if (!(m.a && m.b) && !I().prog) return toast('Ce match attend encore ses joueurs.'); modal(m); }));
+    document.querySelectorAll('[data-fin-poule]').forEach(x => (x.onchange = () => send('int/tour', { poule: +x.dataset.finPoule, fin: x.value })));
+    // formule, poules, programmation : enregistrées aussitôt
+    const val = id => ($(id) || {}).value;
+    if ($('#in-mode')) $('#in-mode').onchange = () => send('int/setup', { mode: val('#in-mode') });
+    ['#in-pn', '#in-pq', '#in-pmax'].forEach(id => { if ($(id)) $(id).onchange = () => send('int/setup', { pcfg: { n: +val('#in-pn'), q: +val('#in-pq'), max: val('#in-pmax') } }); });
+    if ($('#in-prog')) $('#in-prog').onchange = () => send('int/setup', { prog: $('#in-prog').checked });
+    if ($('#in-terr')) $('#in-terr').onchange = () => send('int/setup', { terrains: val('#in-terr').split(',') });
+    if ($('#in-cat')) $('#in-cat').onchange = () => send('int/setup', { categorie: val('#in-cat') });
+    on('#in-consol', () => {
+      const i = I(), C = Int.consolante(i), dans = new Set(C ? C.lines.filter(x => Int.joueur(i, x)) : Int.consolables(i).map(p => p.id));
+      const d = document.createElement('div'); d.className = 'in-modal';
+      d.innerHTML = `<div role="dialog" aria-label="Consolante"><h2 style="margin:0">Consolante</h2><p class="muted small">Cochez les joueurs battus qui ont accepté de jouer la consolante.</p>
+        <form id="in-cf" class="grid">${Int.consolables(i).map(p => `<label class="chk"><input type="checkbox" name="c" value="${p.id}" ${dans.has(p.id) ? 'checked' : ''}>${esc(p.n)}${p.cl ? ' · ' + esc(p.cl) : ''}</label>`).join('')}
+        <div class="in-row"><button class="btn">Tirer la consolante</button>${C ? '<button type="button" class="btn ghost" id="in-cdel">Supprimer la consolante</button>' : ''}<button type="button" class="btn ghost" id="in-cx">Fermer</button></div></form></div>`;
+      document.body.appendChild(d);
+      const close = () => d.remove();
+      d.querySelector('#in-cx').onclick = close;
+      d.addEventListener('click', e => { if (e.target === d) close(); });
+      if (d.querySelector('#in-cdel')) d.querySelector('#in-cdel').onclick = async () => { if (await send('int/consol', { ids: [] })) { close(); toast('Consolante supprimée'); } };
+      d.querySelector('#in-cf').onsubmit = async e => { e.preventDefault(); const ids = [...d.querySelectorAll('input[name=c]:checked')].map(x => x.value); if (await send('int/consol', { ids })) { close(); toast('Consolante tirée'); } };
+    });
     on('#in-draw', async () => { if (await send('int/draw')) toast('Tableau tiré : chaque joueur est prévenu de son adversaire'); });
     on('#in-redraw', async () => { if (confirm('Refaire le tirage ? Les joueurs seront prévenus de leur nouvel adversaire.') && await send('int/draw', { reseed: true })) toast('Nouveau tirage'); });
     on('#in-undraw', async () => { if (confirm('Annuler le tirage ?')) await send('int/undraw'); });
