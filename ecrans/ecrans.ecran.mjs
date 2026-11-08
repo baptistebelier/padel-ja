@@ -1993,3 +1993,38 @@ test('Club : formulaire créé par le bureau, réponse d’un adhérent, résult
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('JA : panneau « Tournoi en cours » quand plusieurs tournois se jouent, on passe de l’un à l’autre', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/demo');
+  await page.waitForTimeout(400);
+  // deux tournois internes commencés (participants inscrits)
+  const ids = await page.evaluate(async () => {
+    const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json());
+    const out = [];
+    for (const name of ['Interne simple messieurs', 'Interne simple dames']) {
+      const { id } = await post('/api/tournaments', { kind: 'interne', sport: 'Tennis', name });
+      for (let i = 1; i <= 4; i++) await post('/api/t/' + id + '/action', { type: 'int/player/add', payload: { n: 'Joueur ' + i, ks: ['k' + i] } });
+      out.push(id);
+    }
+    return out;
+  });
+  // la liste des tournois est enregistrée juste après les modifications : on attend qu'elle les montre
+  for (let i = 0; i < 60; i++) { const n = await page.evaluate(() => fetch('/api/tournaments').then(r => r.json()).then(d => d.tournaments.filter(t => t.kind === 'interne' && t.players).length)); if (n >= 2) break; await page.waitForTimeout(250); }
+  await page.goto(JA + '/t/' + ids[0]);
+  await page.waitForSelector('details.enc summary', { timeout: 8000 });
+  assert.match(await page.textContent('details.enc summary'), /Interne simple messieurs/);
+  await page.click('details.enc summary');
+  const noms = await page.$$eval('.enc-l a b', l => l.map(x => x.textContent));
+  assert.ok(noms.includes('Interne simple dames') && noms.includes('Interne simple messieurs'), noms.join(', '));
+  await page.click('.enc-l a:not([aria-current])');
+  await page.waitForURL(new RegExp('/t/' + ids[1]));
+  await page.waitForSelector('details.enc summary');
+  assert.match(await page.textContent('details.enc summary'), /Interne simple dames/);
+  // sur le tableau de bord aussi
+  await page.goto(JA + '/dashboard');
+  await page.waitForSelector('[data-encours] details.enc', { timeout: 8000 });
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});

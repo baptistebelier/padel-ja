@@ -845,7 +845,8 @@ const server = http.createServer(async (req, res) => {
     if (ACCOUNT_PAGES[p]) { const u0 = await currentUser(req); if (!u0) return redirect(res, '/connexion?retour=' + p); await firstJaVisit(u0); return sendFile(res, '/' + ACCOUNT_PAGES[p]); }
     if (p === '/en-cours') {   // raccourci vers le tournoi en cours le plus récent
       const u = await currentUser(req); if (!u) return redirect(res, '/connexion');
-      const cur = currentTournament(await store.listTournaments(u.id));
+      const [own, partages] = await Promise.all([store.listTournaments(u.id), u.guest ? [] : store.listShared(u.email).catch(() => [])]);
+      const cur = currentTournament(own.concat(partages));
       return redirect(res, cur ? '/t/' + cur.id : '/app');
     }
     if (p === '/demo') {
