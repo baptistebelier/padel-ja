@@ -19,7 +19,7 @@ test('tableau de 6 : taille 8, deux exemptés face aux têtes de série 1 et 2, 
   Int.reduce(T, { type: 'int/player/seed', payload: { id: 'j1', seed: 1 } });
   Int.reduce(T, { type: 'int/player/seed', payload: { id: 'j2', seed: 2 } });
   Int.reduce(T, { type: 'int/draw' });
-  const B = T.int.bracket;
+  const B = T.int.tabs[0];
   assert.equal(B.size, 8);
   assert.equal(B.rounds.length, 3);
   const r0 = B.rounds[0];
@@ -35,24 +35,24 @@ test('tableau de 6 : taille 8, deux exemptés face aux têtes de série 1 et 2, 
 test('résultat saisi par un joueur, confirmé par l’adversaire ; le gagnant avance', () => {
   const T = nouveau(4);
   Int.reduce(T, { type: 'int/draw' });
-  const m = T.int.bracket.rounds[0][0], [a, b] = [m.a, m.b];
+  const m = T.int.tabs[0].rounds[0][0], [a, b] = [m.a, m.b];
   assert.throws(() => Int.reduce(T, { type: 'int/result', payload: { m: m.id, w: a, sc: '6-3 6-4', by: 'j99' } }), /joueurs du match/);
   Int.reduce(T, { type: 'int/result', payload: { m: m.id, w: a, sc: '6-3 6-4', by: a } });
   assert.equal(Int.etat(Int.findM(T.int, m.id)), 'pending');
-  assert.equal(T.int.bracket.rounds[1][0].a, null, 'pas encore confirmé : n’avance pas');
+  assert.equal(T.int.tabs[0].rounds[1][0].a, null, 'pas encore confirmé : n’avance pas');
   assert.throws(() => Int.reduce(T, { type: 'int/confirm', payload: { m: m.id, by: a } }), /adversaire/);
   Int.reduce(T, { type: 'int/confirm', payload: { m: m.id, by: b } });
-  assert.equal(T.int.bracket.rounds[1][0].a, a);
+  assert.equal(T.int.tabs[0].rounds[1][0].a, a);
 });
 
 test('contestation, puis le juge-arbitre tranche ; forfait ; finale et vainqueur', () => {
   const T = nouveau(2);
   Int.reduce(T, { type: 'int/draw' });
-  const f = T.int.bracket.rounds[0][0];
+  const f = T.int.tabs[0].rounds[0][0];
   Int.reduce(T, { type: 'int/result', payload: { m: f.id, w: f.a, sc: '6-0 6-0', by: f.a } });
   Int.reduce(T, { type: 'int/contest', payload: { m: f.id, by: f.b, why: 'On a joué 3 sets' } });
   assert.match(Int.findM(T.int, f.id).conteste, /3 sets/);
-  Int.reduce(T, { type: 'int/result', payload: { m: f.id, w: f.b, sc: '4-6 6-3 7-5' } });
+  Int.reduce(T, { type: 'int/result', payload: { m: f.id, w: f.b, sc: '4-6 6-3 10-7' } });
   assert.equal(Int.champion(T.int), f.b);
   assert.deepEqual(Int.places(T.int).map(x => x.place), [1, 2]);
 });
@@ -64,7 +64,7 @@ test('avis : prochain adversaire, match d’avant, résultat à confirmer, conte
   const tirage = Int.avis(A0, T);
   assert.ok(tirage.some(x => /ton adversaire est/.test(x.body)), 'au tirage, chacun connaît son adversaire');
   assert.ok(tirage.some(x => /vont jouer : le gagnant sera ton adversaire/.test(x.body)), 'l’exempt sait qui sortira du match d’avant');
-  const m = T.int.bracket.rounds[0].find(x => x.a !== 'BYE' && x.b !== 'BYE');
+  const m = T.int.tabs[0].rounds[0].find(x => x.a !== 'BYE' && x.b !== 'BYE');
   const A1 = clone(T);
   Int.reduce(T, { type: 'int/result', payload: { m: m.id, w: m.a, sc: '6-2 6-2', by: m.a } });
   const conf = Int.avis(A1, T);

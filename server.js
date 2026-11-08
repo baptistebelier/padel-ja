@@ -1332,6 +1332,8 @@ const server = http.createServer(async (req, res) => {
         delete st.tournament.example;
         Object.assign(st, { pairs: [], draw: null, matches: [], poules: [] });
         if (Ani.isAnimation(st)) { Object.assign(st.ani, { players: [], rounds: [], status: 'setup', seed: Math.floor(Math.random() * 1e9) }); st.ani.timer.endsAt = null; st.tournament.closed = false; st.tournament.closedAt = null; }
+        // tournoi interne : mêmes réglages (format, structure, règlement), sans participants ni tableaux
+        if (Int.isInterne(st)) { Object.assign(st.int, { players: [], tabs: [], status: 'setup', seed: Math.floor(Math.random() * 1e9), relances: {} }); delete st.int.bracket; delete st.int.tours; st.tournament.closed = false; st.tournament.closedAt = null; }
         st.tournament.name = st.tournament.name + ' (copie)';
         const row = await newTournament(u.id, { state: st });
         return json(res, 200, { id: row.id });

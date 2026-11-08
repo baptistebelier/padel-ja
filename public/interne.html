@@ -46,6 +46,17 @@
 .in-modal label.chk input { width: auto; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ui-text); color: var(--ui-surface); padding: 12px 18px; border-radius: 10px; z-index: 99; font-weight: 600; max-width: calc(100vw - 32px); }
 .in-places li { padding: 4px 0; }
+/* tableaux successifs : une carte par tableau, ses sections les unes sous les autres */
+.in-sec + .in-sec { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--ui-border); }
+.in-sec > h4 { margin: 0 0 8px; font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ui-accent-text); }
+.in-m .ts { font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 4px; background: var(--ui-accent, #E0284A); color: #fff; margin-left: 6px; }
+.in-m .j.q span:first-child { font-style: italic; color: var(--ui-text-mut); }
+.in-st { display: grid; gap: 8px; }
+.in-st .in-strow { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; padding: 8px 10px; border-radius: var(--ui-r-sm); background: var(--ui-surface-2); }
+.in-st .in-strow b { flex: 1 1 140px; }
+.in-st .in-strow label { flex: 0 1 150px; }
+.in-p .cl { width: 88px; }
+.in-fmt { font-size: 13px; color: var(--ui-text-mut); }
 </style>
 </head>
 <body class="acct" data-page="tournois">
@@ -91,8 +102,28 @@
   const I = () => S.int, nom = id => Int.nomDe(I(), id) || '…';
   const dateFr = d => (d ? d.split('-').reverse().join('/') : '');
 
+  const opt = (v, l, cur) => `<option value="${esc(v)}" ${String(v) === String(cur) ? 'selected' : ''}>${esc(l)}</option>`;
+  /* format de match (formats FFT 1 à 7 au tennis) et structure : tableau unique ou tableaux successifs par classement */
+  function formatStructure() {
+    const i = I(), tire = Int.tire(i), joue = Int.allMatches(i).some(m => m.w && !m.bye), tennis = i.sport === 'Tennis';
+    const fmts = tennis ? Object.keys(Int.FORMATS).filter(f => i.simple || Int.FORMATS[f].pd) : [];
+    const st = brouillon || i.struct || [], rep = Int.repartition(Object.assign({}, i, { struct: st }));
+    const ech = cur => Int.ECHELONS.map(e => opt(e, e, cur)).join('');
+    const lignes = st.map((x, k) => `<div class="in-strow"><b>Tableau ${k + 1} · ${rep[k].length} joueur${rep[k].length > 1 ? 's' : ''}</b>
+        <label>Classement le plus haut<select data-st-max="${k}" ${tire ? 'disabled' : ''}>${ech(x.max)}</select></label>
+        <label>Qualifiés sortants<input type="number" min="1" max="16" data-st-q="${k}" value="${esc(x.q)}" ${tire ? 'disabled' : ''}></label>
+        ${tire ? '' : `<button type="button" class="ib2" data-st-del="${k}">Retirer</button>`}</div>`).join('');
+    return `<section class="card"><span class="eyebrow">Format et tableaux</span><h2>Comment se joue le tournoi</h2>
+      <label>Format des matchs<select id="in-fmt" ${joue ? 'disabled' : ''}>${tennis ? fmts.map(f => opt(f, 'Format ' + f + ' : ' + Int.FORMATS[f].l, i.format)).join('') + opt(0, 'Score libre', i.format) : opt(0, 'Score libre (padel)', 0)}</select></label>
+      <p class="in-fmt">${Int.FORMATS[i.format] ? `Les scores saisis sont vérifiés, par exemple ${esc(Int.FORMATS[i.format].ex)}.${i.simple ? '' : ' En double, le point décisif est obligatoire (art. 11).'}` : 'Le score est un texte libre.'}</p>
+      ${tennis ? `<h3 style="margin:14px 0 6px">Tableaux</h3>
+      <p class="muted small">${st.length ? 'Chaque joueur entre dans le tableau de son classement ; les qualifiés de chaque tableau rejoignent le suivant, jusqu’au tableau final. Un tableau qui qualifie plusieurs joueurs est découpé en sections, une par qualifié.' : 'Un seul tableau pour tous. Pour des tableaux successifs par classement (NC à 30/1, puis 30 à 15/1…), ajoutez un tableau.'}</p>
+      <div class="in-st">${lignes}<div class="in-strow"><b>${st.length ? 'Tableau final' : 'Tableau'} · ${rep[st.length].length} joueur${rep[st.length].length > 1 ? 's' : ''}${st.length ? ' + ' + st[st.length - 1].q + ' qualifié' + (st[st.length - 1].q > 1 ? 's' : '') : ''}</b><span class="muted small">${st.length ? 'les mieux classés' : 'tous les participants'}</span></div></div>
+      ${tire ? '<p class="muted small">Le tableau est tiré : annulez le tirage pour changer la structure.</p>' : `<div class="in-row" style="margin-top:10px">${st.length < 4 ? '<button type="button" class="btn ghost" id="in-st-add">Ajouter un tableau</button>' : ''}${brouillon ? '<button type="button" class="btn" id="in-st-save">Enregistrer les tableaux</button>' : ''}</div>`}` : ''}</section>`;
+  }
+  let brouillon = null;   // structure en cours de modification, pas encore enregistrée
   function reglages() {
-    const t = S.tournament, i = I(), tire = !!i.bracket;
+    const t = S.tournament, i = I(), tire = Int.tire(i);
     return `<section class="card"><span class="eyebrow">Réglages</span><h2>Le tournoi</h2>
       <form id="in-set" class="grid">
         <div class="in-row"><label>Nom<input name="name" value="${esc(t.name)}" maxlength="80"></label><label>Club<input name="club" value="${esc(t.club)}" maxlength="80"></label></div>
@@ -105,27 +136,44 @@
       </form>${club ? '' : '<p class="muted small">Le club de ce tournoi n’a pas encore d’espace /RAM Club : le tournoi ne pourra pas y être publié.</p>'}</section>`;
   }
   function participants() {
-    const i = I(), tire = !!i.bracket;
-    const ligne = p => `<div class="in-p"><span class="n">${esc(p.n)}${(p.ks || []).length ? '' : ' <span class="club">· hors /RAM Club</span>'}</span>${tire ? (p.seed ? `<span class="club">Tête de série ${p.seed}</span>` : '') : `<select data-seed="${p.id}" aria-label="Tête de série"><option value="0">—</option>${Array.from({ length: Math.min(16, i.players.length) }, (_, k) => `<option value="${k + 1}" ${+p.seed === k + 1 ? 'selected' : ''}>TS ${k + 1}</option>`).join('')}</select><button class="ib2" data-del="${p.id}" aria-label="Retirer ${esc(p.n)}">Retirer</button>`}</div>`;
+    const i = I(), tire = Int.tire(i), tennis = i.sport === 'Tennis';
+    // classement FFT : il range les joueurs dans leur tableau et désigne les têtes de série
+    const clSel = p => tennis ? `<select class="cl" data-cl="${p.id}" aria-label="Classement de ${esc(p.n)}">${opt('', '—', p.cl || '')}${Int.ECHELONS.map(e => opt(e, e, p.cl || '')).join('')}${p.cl && !Int.ECHELONS.includes(p.cl) ? opt(p.cl, p.cl, p.cl) : ''}</select>` : '';
+    const tri = i.players.slice().sort((a, b) => Int.rang(b.cl) - Int.rang(a.cl) || a.n.localeCompare(b.n, 'fr'));
+    const ligne = p => `<div class="in-p"><span class="n">${esc(p.n)}${(p.ks || []).length ? '' : ' <span class="club">· hors /RAM Club</span>'}</span>${tire ? `${p.cl ? `<span class="club">${esc(p.cl)}</span>` : ''}${Int.tsDe(i, p.id) ? `<span class="club">Tête de série ${Int.tsDe(i, p.id)}</span>` : ''}` : `${clSel(p)}<select data-seed="${p.id}" aria-label="Tête de série choisie à la main"><option value="0">TS auto</option>${Array.from({ length: Math.min(16, i.players.length) }, (_, k) => `<option value="${k + 1}" ${+p.seed === k + 1 ? 'selected' : ''}>TS ${k + 1}</option>`).join('')}</select><button class="ib2" data-del="${p.id}" aria-label="Retirer ${esc(p.n)}">Retirer</button>`}</div>`;
     return `<section class="card"><span class="eyebrow">Participants · ${i.players.length}</span><h2>${i.simple ? 'Joueurs' : 'Équipes'}</h2>
-      ${i.players.map(ligne).join('') || '<p class="muted">Ajoute les participants parmi les adhérents du club.</p>'}
+      ${tennis && !tire && i.players.length ? '<p class="muted small">Les têtes de série suivent le classement (le quart du tableau final, une par section). « TS » les fixe à la main.</p>' : ''}
+      ${tri.map(ligne).join('') || '<p class="muted">Ajoute les participants parmi les adhérents du club.</p>'}
       ${tire ? '' : `<form id="in-add" class="in-add"><input name="a" data-in-joueur placeholder="${i.simple ? 'Tape un nom : adhérents, joueurs /RAM JA' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" data-in-joueur placeholder="Joueur 2" autocomplete="off" required>'}<button class="btn">Ajouter</button></form>
       <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /RAM Club : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
       <div class="in-row" style="margin-top:14px">${tire ? `<button class="btn ghost" id="in-undraw">Annuler le tirage</button><button class="btn ghost" id="in-redraw">Refaire le tirage</button>` : `<button class="btn" id="in-draw" ${i.players.length < 2 ? 'disabled' : ''}>Tirer le tableau</button>`}</div></section>`;
   }
-  function tableau() {
-    const i = I(); if (!i.bracket) return '';
-    const R = i.bracket.rounds, nb = R.length;
-    const fins = `<div class="in-fins">${R.map((l, r) => `<label>${esc(Int.tourNom(r, nb))}<input type="date" data-fin="${r}" value="${esc((i.tours[r] || {}).fin || '')}"></label>`).join('')}</div>`;
+  /* un tableau : ses dates limites, puis ses sections (une seule pour le tableau final) */
+  function unTableau(T) {
+    const i = I(), R = T.rounds, nb = R.length, final = T.q === 1;
+    const col = r => (final ? Int.tourNom(r, nb) : r === nb - 1 ? 'Qualification' : 'Tour ' + (r + 1));
+    const fins = `<div class="in-fins">${R.map((l, r) => `<label>${esc(col(r))}<input type="date" data-fin="${r}" data-t="${esc(T.id)}" value="${esc((T.tours[r] || {}).fin || '')}"></label>`).join('')}</div>`;
     const boite = m => {
       const e = Int.etat(m), cls = m.bye ? 'bye' : m.conteste ? 'contest' : e === 'pending' ? 'pending' : '';
       const st = m.bye ? 'Exempt' : m.conteste ? 'Contesté' : e === 'pending' ? 'À confirmer' : e === 'done' ? (m.wo ? 'Forfait' : 'Joué') : e === 'ready' ? 'À jouer' : 'En attente';
-      const j = x => `<div class="j ${m.w ? (m.w === x ? 'w' : 'l') : ''}"><span>${esc(x ? nom(x) : '…')}</span>${m.w === x && m.sc ? `<span>${esc(m.sc)}</span>` : ''}</div>`;
-      return `<button class="in-m ${cls}" ${m.bye ? 'disabled' : `data-m="${m.id}"`}>${j(m.a)}${j(m.b)}<span class="st">${st}</span></button>`;
+      // 1er tour : une place de qualifié pas encore connu porte son nom (« Qualifié 2 du tableau 1 »)
+      const place = side => (m.r === 0 ? T.lines[2 * m.i + (side === 'a' ? 0 : 1)] : null);
+      const j = side => {
+        const x = m[side], q = !x && String(place(side) || '').startsWith('Q:'), ts = x && T.ts && T.ts[x];
+        return `<div class="j ${m.w ? (m.w === x ? 'w' : 'l') : ''}${q ? ' q' : ''}"><span>${esc(x ? nom(x) : q ? Int.nomDe(i, place(side)) : '…')}${ts ? `<span class="ts">TS ${ts}</span>` : ''}</span>${m.w === x && m.sc ? `<span>${esc(m.sc)}</span>` : ''}</div>`;
+      };
+      return `<button class="in-m ${cls}" ${m.bye ? 'disabled' : `data-m="${m.id}"`}>${j('a')}${j('b')}<span class="st">${st}</span></button>`;
     };
-    return `<section class="card"><span class="eyebrow">Dates limites</span><h2>Un tour, une date</h2><p class="muted small">Les joueurs reçoivent un rappel deux jours avant la date limite de leur match.</p>${fins}</section>
-      <section class="card"><span class="eyebrow">${i.status === 'done' ? 'Tournoi terminé' : 'En cours'}</span><h2>Tableau</h2><p class="muted small">Touche un match pour saisir ou corriger son résultat, trancher une contestation ou déclarer un forfait.</p>
-      <div class="in-tab">${R.map((l, r) => `<div class="in-col"><h3>${esc(Int.tourNom(r, nb))}${(i.tours[r] || {}).fin ? ` <span class="fin">· avant le ${dateFr(i.tours[r].fin)}</span>` : ''}</h3>${l.map(boite).join('')}</div>`).join('')}</div></section>`;
+    // section j : les matchs de chaque tour qui en font partie
+    const section = j => `<div class="in-tab">${R.map((l, r) => { const n = l.length / T.q; return `<div class="in-col"><h3>${esc(col(r))}${(T.tours[r] || {}).fin ? ` <span class="fin">· avant le ${dateFr(T.tours[r].fin)}</span>` : ''}</h3>${l.slice(j * n, (j + 1) * n).map(boite).join('')}</div>`; }).join('')}</div>`;
+    const corps = final ? section(0) : Array.from({ length: T.q }, (_, j) => `<div class="in-sec"><h4>Section ${j + 1} · qualifié ${j + 1}</h4>${section(j)}</div>`).join('');
+    return `<section class="card"><span class="eyebrow">${esc(T.nom)}${T.plage ? ' · ' + esc(T.plage) : ''}${final ? '' : ' · ' + T.q + ' qualifié' + (T.q > 1 ? 's' : '')}</span><h2>${final ? (i.status === 'done' ? 'Tournoi terminé' : esc(T.nom)) : esc(T.nom)}</h2>
+      <details><summary class="muted small">Dates limites des tours</summary><p class="muted small">Les joueurs reçoivent un rappel deux jours avant la date limite de leur match.</p>${fins}</details>
+      <p class="muted small">Touchez un match pour saisir ou corriger son résultat, trancher une contestation ou déclarer un forfait.</p>${corps}</section>`;
+  }
+  function tableau() {
+    const i = I(); if (!Int.tire(i)) return '';
+    return Int.tabsOf(i).map(unTableau).join('');
   }
   function classement() {
     const pl = Int.places(I()); if (!pl.length) return '';
@@ -136,9 +184,10 @@
     document.title = S.tournament.name + ' — /RAM JA';
     const i = I(), fini = i.status === 'done';
     $('#app').innerHTML = `<div class="page-h"><span class="eyebrow">Tournoi interne · ${esc(i.sport)} · ${i.simple ? 'simple' : 'double'}</span><h1>${esc(S.tournament.name)}</h1>
-      <div class="in-row">${fini ? '<button class="btn ghost" id="in-reopen">Rouvrir le tournoi</button>' : i.bracket ? '<button class="btn ghost" id="in-close">Clôturer le tournoi</button>' : ''}</div></div>
+      <p class="in-fmt">${esc(Int.formatNom(i.format))}</p>
+      <div class="in-row">${fini ? '<button class="btn ghost" id="in-reopen">Rouvrir le tournoi</button>' : Int.tire(i) ? '<button class="btn ghost" id="in-close">Clôturer le tournoi</button>' : ''}</div></div>
       <div class="grid">${classement()}${tableau()}</div>
-      <div class="grid g-2" style="align-items:start;margin-top:16px"><div class="grid">${participants()}</div><div class="grid">${reglages()}<section class="card" data-adjoints></section></div></div>`;
+      <div class="grid g-2" style="align-items:start;margin-top:16px"><div class="grid">${participants()}</div><div class="grid">${formatStructure()}${reglages()}<section class="card" data-adjoints></section></div></div>`;
     bind();
   }
   function modal(m) {
@@ -148,7 +197,7 @@
       <form id="in-res" class="grid"><fieldset style="border:0;padding:0;margin:0"><legend>Vainqueur</legend>
       <label class="chk"><input type="radio" name="w" value="${m.a}" ${m.w === m.a ? 'checked' : ''} required>${esc(nom(m.a))}</label>
       <label class="chk"><input type="radio" name="w" value="${m.b}" ${m.w === m.b ? 'checked' : ''}>${esc(nom(m.b))}</label></fieldset>
-      <label>Score<input name="sc" value="${esc(m.sc || '')}" placeholder="6-3 6-4" maxlength="60"></label>
+      <label>Score${Int.FORMATS[I().format] ? ` <span class="muted small">(${esc(Int.nomTour(I(), m))} · format ${I().format}, du côté du vainqueur)</span>` : ''}<input name="sc" value="${esc(m.sc || '')}" placeholder="${esc((Int.FORMATS[I().format] || {}).ex || '6-3 6-4')}" maxlength="60"></label>
       <label class="chk"><input type="checkbox" name="wo" ${m.wo ? 'checked' : ''}>Victoire par forfait</label>
       <div class="in-row"><button class="btn">Valider le résultat</button>${m.w ? '<button type="button" class="btn ghost" id="in-reset">Effacer</button>' : ''}<button type="button" class="btn ghost" id="in-x">Fermer</button></div></form></div>`;
     document.body.appendChild(d);
@@ -163,6 +212,7 @@
     };
   }
   function bind() {
+    const on = (id, f) => { const el = $(id); if (el) el.onclick = f; };
     const set = $('#in-set');
     if (set) set.onsubmit = async e => {
       e.preventDefault();
@@ -176,13 +226,24 @@
       const f = e.target, qui = [quiEst(f.a), f.b ? quiEst(f.b) : null].filter(x => x && x.n);
       if (qui.some(x => x.doublon)) return toast('Plusieurs adhérents portent ce nom : choisis la bonne personne dans la liste');
       const noms = qui.map(x => x.n), ks = qui.map(x => x.k).filter(Boolean);
-      if (await send('int/player/add', { n: noms.join(' / '), ks })) { f.reset(); f.a.focus(); }
+      // simple : le classement de la fiche de l'adhérent ; double : le juge-arbitre le choisit
+      const cl = qui.length === 1 && qui[0].k ? ((membres.find(m => m.k === qui[0].k) || {}).cl || '') : '';
+      if (await send('int/player/add', { n: noms.join(' / '), ks, cl })) { f.reset(); f.a.focus(); }
     };
+    document.querySelectorAll('[data-cl]').forEach(s => (s.onchange = () => send('int/player/cl', { id: s.dataset.cl, cl: s.value })));
+    const fmt = $('#in-fmt');
+    if (fmt) fmt.onchange = async () => { if (await send('int/setup', { format: +fmt.value })) toast('Format enregistré'); };
+    // structure : modifiée sur place, enregistrée d'un coup
+    const st = () => (brouillon = brouillon || JSON.parse(JSON.stringify(I().struct || [])));
+    on('#in-st-add', () => { const l = st(), der = l[l.length - 1], k = der ? Math.min(Int.ECHELONS.length - 2, Int.ECHELONS.indexOf(der.max) + 6) : 6; l.push({ max: Int.ECHELONS[k], q: 2 }); render(); });
+    document.querySelectorAll('[data-st-max]').forEach(s => (s.onchange = () => { st()[+s.dataset.stMax].max = s.value; render(); }));
+    document.querySelectorAll('[data-st-q]').forEach(s => (s.onchange = () => { st()[+s.dataset.stQ].q = +s.value; render(); }));
+    document.querySelectorAll('[data-st-del]').forEach(b => (b.onclick = () => { st().splice(+b.dataset.stDel, 1); render(); }));
+    on('#in-st-save', async () => { if (await send('int/setup', { struct: brouillon })) { brouillon = null; toast('Tableaux enregistrés'); } });
     document.querySelectorAll('[data-seed]').forEach(s => (s.onchange = () => send('int/player/seed', { id: s.dataset.seed, seed: +s.value })));
     document.querySelectorAll('[data-del]').forEach(b => (b.onclick = () => send('int/player/remove', { id: b.dataset.del })));
-    document.querySelectorAll('[data-fin]').forEach(i => (i.onchange = () => send('int/tour', { r: +i.dataset.fin, fin: i.value })));
+    document.querySelectorAll('[data-fin]').forEach(i => (i.onchange = () => send('int/tour', { t: i.dataset.t || '', r: +i.dataset.fin, fin: i.value })));
     document.querySelectorAll('[data-m]').forEach(b => (b.onclick = () => { const m = Int.findM(I(), b.dataset.m); if (!m) return; if (!(m.a && m.b)) return toast('Ce match attend encore ses joueurs.'); modal(m); }));
-    const on = (id, f) => { const el = $(id); if (el) el.onclick = f; };
     on('#in-draw', async () => { if (await send('int/draw')) toast('Tableau tiré : chaque joueur est prévenu de son adversaire'); });
     on('#in-redraw', async () => { if (confirm('Refaire le tirage ? Les joueurs seront prévenus de leur nouvel adversaire.') && await send('int/draw', { reseed: true })) toast('Nouveau tirage'); });
     on('#in-undraw', async () => { if (confirm('Annuler le tirage ?')) await send('int/undraw'); });

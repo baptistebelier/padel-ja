@@ -2028,3 +2028,43 @@ test('JA : panneau « Tournoi en cours » quand plusieurs tournois se jouent, on
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+test('JA : tournoi interne en tableaux successifs, sections et qualifiés, sans erreur ni débordement', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/demo');
+  await page.waitForTimeout(400);
+  const id = await page.evaluate(async () => {
+    const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json());
+    const { id } = await post('/api/tournaments', { kind: 'interne', sport: 'Tennis', name: 'Interne par séries' });
+    const cl = ['NC', '40', '30/5', '30/4', '30/3', '30/2', '30/1', 'NC', '40', '30/4', '30', '15/5', '15/4', '15/1'];
+    for (let i = 0; i < cl.length; i++) await post('/api/t/' + id + '/action', { type: 'int/player/add', payload: { n: 'Joueur ' + (i + 1), ks: ['k' + i], cl: cl[i] } });
+    await post('/api/t/' + id + '/action', { type: 'int/setup', payload: { struct: [{ max: '30/1', q: 3 }], format: 4 } });
+    await post('/api/t/' + id + '/action', { type: 'int/draw', payload: {} });
+    return id;
+  });
+  await page.goto(JA + '/t/' + id);
+  await page.waitForSelector('.in-sec h4', { timeout: 8000 });
+  assert.equal((await page.$$('.in-sec')).length, 3, 'trois sections au tableau 1');
+  assert.ok((await page.textContent('#app')).includes('Qualifié 1 du tableau 1'), 'places des qualifiés au tableau final');
+  assert.match(await page.textContent('#app'), /Format 4/);
+  if (process.env.CAPTURE) await page.screenshot({ path: process.env.CAPTURE, fullPage: true });   // capture à la demande
+  // un score impossible est refusé, avec le format
+  await page.click('.in-m[data-m]:not(.bye)');
+  await page.fill('.in-modal input[name=sc]', '6-3 3-6 7-5');
+  await page.check('.in-modal input[name=w]');
+  await page.click('.in-modal button.btn');
+  await page.waitForSelector('.toast');
+  assert.match(await page.textContent('.toast'), /impossible au format 4/);
+  assert.deepEqual(errs, []);
+  const cookies = await ctx.cookies();
+  await ctx.close();
+  // même compte sur un téléphone de 360 px
+  const tel = await phone();
+  await tel.addCookies(cookies);
+  const p2 = await tel.newPage();
+  await p2.goto(JA + '/t/' + id);
+  await p2.waitForSelector('.in-sec h4', { timeout: 8000 });
+  assert.ok(await overflow(p2) <= 1, 'pas de débordement sur 360 px');
+  await tel.close();
+});
