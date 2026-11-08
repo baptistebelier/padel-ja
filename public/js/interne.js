@@ -508,6 +508,79 @@
     return I.players.filter(p => battus.has(p.id));
   }
 
+  /* ---------- composition à la main (tableau recopié de MOJA, par exemple) ---------- */
+  const tabJoue = T => T.rounds.flat().some(m => m.w && !m.bye);
+  // où se trouve un joueur ou une place à venir : [{ T, L }] dans les tableaux, ou sa poule
+  const ouEst = (I, x) => { const out = []; tabsOf(I).forEach(T => T.lines.forEach((y, L) => { if (y === x) out.push({ T, L }); })); return out; };
+  const dansPoule = (I, id) => poulesOf(I).find(po => po.joueurs.includes(id)) || null;
+  /* tour d'entrée d'une ligne : 0 si elle joue le 1er tour, 1 si son adversaire est exempt, 2 si toute la fraction de 4 l'est… */
+  function entree(T, L) {
+    const vide = (a, n) => { for (let x = a; x < a + n; x++) if (T.lines[x] !== 'BYE') return false; return true; };
+    let r = 0;
+    while (r < T.rounds.length) {
+      const n = 1 << r, frere = ((L >> r) ^ 1) << r;
+      if (!vide(frere, n)) break;
+      r++;
+    }
+    return r;
+  }
+  /* reconstruire les tours d'un tableau après une composition à la main */
+  function refaire(T) {
+    const t = tabDeLignes({ id: T.id, nom: T.nom, plage: T.plage, q: T.q, role: T.role, lo: T.lo }, T.lines, T.ts, T.size / T.q);
+    t.tours = t.tours.map((x, r) => (T.tours || [])[r] || x);
+    T.rounds = t.rounds; T.tours = t.tours; T.s = t.s; T.size = t.size;
+  }
+  /* contrôles du règlement sur un tableau composé (art. 45-3, 46) : [{ t, txt }] ; des alertes, pas des blocages */
+  function controles(I) {
+    const out = [], P = I.players, poules = poulesOf(I).length > 0;
+    // chaque joueur placé une fois : dans une poule ou un tableau (hors tableaux de classement et consolante)
+    const principaux = tabsOf(I).filter(T => T.role !== 'class' && T.role !== 'consol');
+    P.forEach(p => {
+      const n = principaux.reduce((s, T) => s + T.lines.filter(x => x === p.id).length, 0) + (dansPoule(I, p.id) ? 1 : 0);
+      if (!n) out.push({ t: '', txt: `${p.n} n’est placé dans aucun tableau${poules ? ' ni aucune poule' : ''}.` });
+      if (n > 1) out.push({ t: '', txt: `${p.n} est placé ${n} fois.` });
+    });
+    principaux.forEach((T, k) => {
+      if (T.role === 'inter') {
+        for (let j = 0; j < T.q; j++) {
+          const tok = 'Q:' + T.id + ':' + j, n = ouEst(I, tok).length;
+          if (n !== 1) out.push({ t: T.id, txt: `${T.nom} : la place du qualifié ${j + 1} ${n ? 'figure ' + n + ' fois' : 'manque'} dans le tableau suivant.` });
+        }
+      }
+      const directs = T.lines.filter(x => joueur(I, x)).length;
+      // deux qualifiés face à face pour leur premier match (sauf tableau final de seuls qualifiés, art. 45-3-c)
+      for (let L = 0; L < T.lines.length; L += 2) {
+        const a = T.lines[L], b = T.lines[L + 1];
+        if (/^Q:/.test(a) && /^Q:/.test(b) && directs) out.push({ t: T.id, txt: `${T.nom} : deux qualifiés se rencontrent pour leur premier match (lignes ${L + 1} et ${L + 2}, art. 45-3-c).` });
+      }
+      // tour d'entrée des joueurs : pas plus loin qu'un mieux classé (art. 45-3-b), un même classement sur 2 tours au plus (art. 45-3-a)
+      const ent = T.lines.map((x, L) => (joueur(I, x) ? { p: joueur(I, x), r: entree(T, L), L } : null)).filter(Boolean);
+      ent.forEach(a => ent.forEach(b => { if (rang(a.p.cl) < rang(b.p.cl) && a.r > b.r && !(T.ts && T.ts[a.p.id] && !T.ts[b.p.id])) out.push({ t: T.id, txt: `${T.nom} : ${a.p.n} (${a.p.cl || 'NC'}) entre plus loin que ${b.p.n} (${b.p.cl || 'NC'}), mieux classé (art. 45-3-b).` }); }));
+      const parCl = {}; ent.forEach(e => (parCl[e.p.cl || 'NC'] = parCl[e.p.cl || 'NC'] || []).push(e.r));
+      Object.keys(parCl).forEach(c => { const l = parCl[c]; if (Math.max(...l) - Math.min(...l) > 1) out.push({ t: T.id, txt: `${T.nom} : les ${c} entrent sur plus de deux tours (art. 45-3-a).` }); });
+      // têtes de série : dans l'ordre du classement, séparées (moitiés du tableau final, sections d'un tableau intermédiaire)
+      const ts = Object.keys(T.ts || {}).filter(id => joueur(I, id) && T.lines.includes(id)).sort((a, b) => T.ts[a] - T.ts[b]);
+      for (let x = 1; x < ts.length; x++) if (rang(joueur(I, ts[x]).cl) > rang(joueur(I, ts[x - 1]).cl)) out.push({ t: T.id, txt: `${T.nom} : la tête de série ${T.ts[ts[x]]} est mieux classée que la ${T.ts[ts[x - 1]]} (art. 46-1-c).` });
+      const s = T.size / T.q, ligneDe = id => T.lines.indexOf(id);
+      if (T.q === 1 && ts.length >= 2) { const a = ligneDe(ts[0]), b = ligneDe(ts[1]); if ((a < T.size / 2) === (b < T.size / 2)) out.push({ t: T.id, txt: `${T.nom} : les têtes de série 1 et 2 sont dans la même moitié du tableau (art. 46).` }); }
+      if (T.q > 1) {
+        const parSec = {}; ts.slice(0, T.q).forEach(id => { const j = Math.floor(ligneDe(id) / s); parSec[j] = (parSec[j] || 0) + 1; });
+        if (Object.values(parSec).some(n => n > 1)) out.push({ t: T.id, txt: `${T.nom} : deux des ${T.q} premières têtes de série sont dans la même section (art. 49-2-d).` });
+        if (ts.length && ts.length < T.q && T.lines.some(x => joueur(I, x) && rang(joueur(I, x).cl) > 0)) out.push({ t: T.id, txt: `${T.nom} : chaque section doit compter une tête de série (art. 49-2-d).` });
+      }
+      if (k === 0 && T.q === 1 && P.some(p => rang(p.cl) > 0) && !ts.length && !poules) out.push({ t: T.id, txt: `${T.nom} : aucune tête de série (art. 46-1-a).` });
+    });
+    poulesOf(I).forEach(po => { if (po.joueurs.length > 6) out.push({ t: 'p' + po.k, txt: `${po.nom} : ${po.joueurs.length} joueurs, 6 au plus (art. 54).` }); });
+    if (poules) { const l = poulesOf(I).map(po => po.joueurs.length); if (Math.max(...l) - Math.min(...l) > 1) out.push({ t: '', txt: 'Les poules doivent avoir le même nombre de joueurs, à une unité près (art. 54).' }); }
+    return out;
+  }
+  /* les matchs d'une poule, chacun contre tous (tournante) */
+  function matchsPoule(po) {
+    const l = po.joueurs.length % 2 ? po.joueurs.concat(['-']) : po.joueurs.slice(), N = l.length, out = [];
+    for (let t = 0; t < N - 1; t++) { for (let x = 0; x < N / 2; x++) { const a = l[x], b = l[N - 1 - x]; if (a !== '-' && b !== '-') out.push({ id: 'p' + po.k + 'm' + out.length, poule: po.k, a, b }); } l.splice(1, 0, l.pop()); }
+    return out;
+  }
+
   /* ---------- programmation : jour, heure, terrain ; limites et repos (art. 13 et 14) ---------- */
   const minutes = h => { const x = String(h || '').match(/^(\d{1,2}):(\d{2})$/); return x ? +x[1] * 60 + +x[2] : null; };
   const debutMs = m => (m.d && minutes(m.h) != null ? Date.parse(m.d + 'T00:00:00Z') + minutes(m.h) * 60000 : null);
@@ -631,11 +704,87 @@
         exige(!allMatches(I).some(m => m.w && !m.bye), 'Des résultats sont saisis : le tirage ne se refait plus.');
         if (p.reseed) I.seed = Math.floor(Math.random() * 1e9);
         build(I); I.status = 'live';
+        // tableau vierge : les dimensions sont calculées, le juge-arbitre place chaque joueur (tableau recopié de MOJA)
+        if (p.vierge) {
+          tabsOf(I).forEach(U => { U.lines = U.lines.map(x => (joueur(I, x) ? 'BYE' : x)); U.ts = {}; refaire(U); });
+          poulesOf(I).forEach(po => { po.ts = {}; });
+          resolve(I);
+        }
         return T;
       }
       case 'int/undraw': {
         exige(!allMatches(I).some(m => m.w && !m.bye), 'Des résultats sont saisis : le tirage ne s’annule plus.');
         I.tabs = []; I.poules = []; I.status = 'setup';
+        return T;
+      }
+      /* ----- composition à la main : une ligne du 1er tour reçoit un joueur, un exempt ou une place de qualifié ;
+         un joueur déjà placé ailleurs échange sa place avec ce qu'il y avait là ----- */
+      case 'int/line': {
+        const U = tabsOf(I).find(x => x.id === String(p.t || '')); exige(U, 'Tableau inconnu.');
+        exige(!tabJoue(U), 'Des résultats sont saisis dans ce tableau : sa composition ne change plus.');
+        const L = Math.floor(+p.L); exige(L >= 0 && L < U.lines.length, 'Ligne inconnue.');
+        const x = String(p.x || 'BYE');
+        exige(x === 'BYE' || joueur(I, x) || /^Q:[a-h]:\d+$/.test(x) || /^P:\d+:\d$/.test(x), 'Choix impossible pour cette ligne.');
+        if (joueur(I, x)) exige(!dansPoule(I, x), 'Ce joueur est dans une poule : retire-le d’abord de sa poule.');
+        if (/^Q:/.test(x)) { const [, tid] = x.split(':'), src = tabsOf(I).findIndex(t => t.id === tid), ici = tabsOf(I).indexOf(U); exige(src >= 0 && src < ici, 'Un qualifié vient d’un tableau précédent.'); }
+        const avant = U.lines[L];
+        if (x !== 'BYE') ouEst(I, x).forEach(o => { if (o.T !== U || o.L !== L) { exige(!tabJoue(o.T), 'Ce joueur a déjà joué dans un autre tableau.'); o.T.lines[o.L] = avant; if (o.T !== U) { if (joueur(I, avant) && o.T.ts) delete o.T.ts[avant]; refaire(o.T); } } });
+        U.lines[L] = x;
+        if (joueur(I, avant) && !U.lines.includes(avant) && U.ts) delete U.ts[avant];
+        refaire(U); resolve(I);
+        return T;
+      }
+      case 'int/swap': {
+        const U = tabsOf(I).find(x => x.id === String(p.t || '')); exige(U, 'Tableau inconnu.');
+        exige(!tabJoue(U), 'Des résultats sont saisis dans ce tableau : sa composition ne change plus.');
+        const a = Math.floor(+p.a), b = Math.floor(+p.b);
+        exige(a >= 0 && b >= 0 && a < U.lines.length && b < U.lines.length, 'Ligne inconnue.');
+        [U.lines[a], U.lines[b]] = [U.lines[b], U.lines[a]];
+        refaire(U); resolve(I);
+        return T;
+      }
+      /* tête de série d'un tableau, fixée à la main (0 : retirée) */
+      case 'int/ts': {
+        const U = tabsOf(I).find(x => x.id === String(p.t || '')); exige(U, 'Tableau inconnu.');
+        exige(!tabJoue(U), 'Des résultats sont saisis dans ce tableau.');
+        exige(U.lines.includes(p.id) && joueur(I, p.id), 'Ce joueur n’est pas dans ce tableau.');
+        const n = Math.floor(+p.n || 0); U.ts = U.ts || {};
+        Object.keys(U.ts).forEach(k => { if (k !== p.id && U.ts[k] === n) delete U.ts[k]; });
+        if (n > 0 && n <= 64) U.ts[p.id] = n; else delete U.ts[p.id];
+        return T;
+      }
+      /* dimension d'un tableau : taille des sections et nombre de qualifiés ; les joueurs gardent leur ordre */
+      case 'int/dims': {
+        const U = tabsOf(I).find(x => x.id === String(p.t || '')); exige(U, 'Tableau inconnu.');
+        exige(!tabJoue(U), 'Des résultats sont saisis dans ce tableau : sa dimension ne change plus.');
+        const q = U.role === 'inter' ? Math.floor(+p.q || U.q) : 1, s = Math.floor(+p.s || 0);
+        exige(q >= 1 && q <= 16, 'De 1 à 16 qualifiés.');
+        exige(s >= 2 && s <= 128 && (s & (s - 1)) === 0, 'Chaque section compte 2, 4, 8, 16, 32… lignes.');
+        const D = s * q, gardes = U.lines.filter(x => x !== 'BYE');
+        exige(gardes.length <= D, `${gardes.length} joueurs et places dans ce tableau : ${D} lignes ne suffisent pas.`);
+        const lines = new Array(D).fill('BYE'); gardes.forEach((x, i) => { lines[i] = x; });
+        // qualifiés sortants : les places en trop disparaissent du tableau suivant, les nouvelles y prennent une ligne libre
+        if (U.role === 'inter' && q !== U.q) {
+          const suite = tabsOf(I)[tabsOf(I).indexOf(U) + 1];
+          exige(suite && !tabJoue(suite), 'Le tableau suivant a commencé.');
+          for (let j = q; j < U.q; j++) ouEst(I, 'Q:' + U.id + ':' + j).forEach(o => { o.T.lines[o.L] = 'BYE'; });
+          for (let j = U.q; j < q; j++) { const L = suite.lines.indexOf('BYE'); exige(L >= 0, 'Le tableau suivant est plein : agrandis-le d’abord.'); suite.lines[L] = 'Q:' + U.id + ':' + j; }
+          refaire(suite);
+        }
+        U.q = q; U.lines = lines; U.size = D;
+        refaire(U); resolve(I);
+        return T;
+      }
+      /* poules : déplacer un joueur dans une autre poule (ou l'échanger avec un joueur de cette poule) */
+      case 'int/poule/move': {
+        const de = dansPoule(I, p.id), vers = poulesOf(I).find(po => po.k === +p.k);
+        exige(de && vers, 'Joueur ou poule inconnus.');
+        const touchees = [de, vers];
+        exige(!touchees.some(po => po.matches.some(m => m.w && !m.bye)), 'Des résultats sont saisis dans ces poules.');
+        exige(!tabsOf(I).some(t => t.lines.some(x => String(x).startsWith('P:' + de.k + ':') || String(x).startsWith('P:' + vers.k + ':')) && tabJoue(t)), 'Le tableau final a commencé.');
+        if (p.avec) { const autre = vers.joueurs.indexOf(p.avec); exige(autre >= 0, 'Ce joueur n’est pas dans cette poule.'); vers.joueurs[autre] = p.id; de.joueurs[de.joueurs.indexOf(p.id)] = p.avec; }
+        else { exige(vers.joueurs.length < 6, 'Six joueurs au plus par poule (art. 54).'); de.joueurs = de.joueurs.filter(x => x !== p.id); vers.joueurs.push(p.id); }
+        touchees.forEach(po => { po.matches = matchsPoule(po); if (po.ts) Object.keys(po.ts).forEach(id => { if (!po.joueurs.includes(id)) delete po.ts[id]; }); });
         return T;
       }
       /* consolante (art. 51-2) : le juge-arbitre y inscrit les battus qui ont accepté ; tableau établi selon leur classement */
@@ -764,5 +913,5 @@
   }
   return { initialState, reduce, isInterne, build, resolve, etat, allMatches, findM, suivant, avant, champion, places, nomDe, joueur, tourNom, nomTour, finDe, avis, aRelancer, seedOrder, placesTS,
     tabsOf, poulesOf, tire, tsDe, repartition, repartitionPoules, rang, clNorm, ECHELONS, FORMATS, CATEGORIES, formatNom, verifScore, norm,
-    classementPoule, pouleFinie, consolables, consolante, vainqueur, final, alertes, progNom, jourFr, estTok };
+    classementPoule, pouleFinie, consolables, consolante, vainqueur, final, alertes, progNom, jourFr, estTok, controles, entree, tabJoue };
 });

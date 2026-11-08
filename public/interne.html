@@ -8,6 +8,8 @@
 <title>Tournoi interne — /RAM JA</title>
 <link rel="stylesheet" href="/css/ram.css">
 <link rel="stylesheet" href="/css/theme.css">
+<link rel="stylesheet" href="/css/editor.css">
+<link rel="stylesheet" href="/css/ui.css">
 <link rel="stylesheet" href="/css/shell.css">
 <link rel="stylesheet" href="/css/street.css">
 <script src="/js/theme.js"></script>
@@ -95,11 +97,49 @@ button.ab-s:hover::before, button.ab-s:focus-visible::before { border-top-color:
 .in-st .in-strow b { flex: 1 1 140px; }
 .in-st .in-strow label { flex: 0 1 150px; }
 .in-p .cl { width: 88px; }
+/* composition à la main : une ligne par place du tableau */
+.cp-g { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+.cp-sec { display: grid; gap: 2px; align-content: start; }
+.cp-sec h4 { margin: 0 0 4px; font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ui-accent-text); }
+.cp-l { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.cp-l.bas { border-bottom: 1px dashed var(--ui-border); padding-bottom: 6px; margin-bottom: 4px; }
+.cp-n { width: 26px; flex: none; text-align: right; font-size: 12px; color: var(--ui-text-mut); font-variant-numeric: tabular-nums; }
+.cp-l select { flex: 1 1 auto; min-width: 0; padding: 6px 8px; }
+.cp-v { flex: 1; }
+.cp-ts { display: flex; flex-direction: row; align-items: center; gap: 4px; font-size: 11px; color: var(--ui-text-mut); flex: none; }
+.cp-ts input { width: 52px; padding: 5px 6px; }
+.cp-e { font-size: 11px; color: var(--ui-text-mut); width: 52px; flex: none; }
+.cp-dims label { flex: 0 1 180px; }
+main#app { min-width: 0; }
 .in-fmt { font-size: 13px; color: var(--ui-text-mut); }
 </style>
 </head>
-<body class="acct" data-page="tournois">
-<main class="page" id="app"><p class="muted">Chargement…</p></main>
+<body class="editor-page" data-page="encours">
+<!-- même coque que l'éditeur des tournois : section « En cours », menu du tournoi à gauche (barre du bas sur téléphone) -->
+<header class="appbar" id="appbar">
+  <button class="ab-btn ab-menu" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
+  <div class="ab-title"><a class="ab-logo" href="/dashboard" aria-label="Tableau de bord"><img class="lg-n" src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"><img class="lg-j" src="/img/ja-ram-rouge-noir.png" alt="/RAM JA"></a><b id="abTitle">Tournoi interne</b><small id="abSub"></small></div>
+</header>
+<div class="shell">
+<aside class="side">
+  <div class="side-t"><span class="side-ey">Tournoi en cours</span><b id="sName">Tournoi interne</b><small id="sSub"></small><span class="side-st" id="sState"></span></div>
+  <nav id="nav">
+    <button data-tab="tournoi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8 21h8M9 17h6"/></svg><i>01</i><span class="lg">Tournoi</span><span class="sh">Tournoi</span></button>
+    <button data-tab="participants"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.2c2.6.2 4.4 1.8 5 4.8"/></svg><i>02</i><span class="lg">Participants</span><span class="sh">Joueurs</span></button>
+    <button data-tab="tirage"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="9" height="13"/><rect x="12" y="4" width="9" height="13"/><path d="M16.5 8.5v4M14.5 10.5h4"/></svg><i>03</i><span class="lg">Tirage et composition</span><span class="sh">Tirage</span></button>
+    <button data-tab="tableaux"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h5v6H3zM3 14h5v6H3zM8 7h3v10H8M11 12h3M14 9h7v6h-7z"/></svg><i>04</i><span class="lg">Tableaux et résultats</span><span class="sh">Tableaux</span></button>
+    <button data-tab="programme"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4M12 13v3l2 1.5"/></svg><i>05</i><span class="lg">Programmation</span><span class="sh">Planning</span></button>
+  </nav>
+</aside>
+<main id="app">
+  <header class="top"><div class="top-t"><span class="tag" id="hTag">Tournoi interne</span><h1 id="hName">Chargement…</h1><div id="hSub" class="muted"></div></div><div class="top-actions" id="hAct"></div></header>
+  <section id="tab-tournoi" class="tab"></section>
+  <section id="tab-participants" class="tab"></section>
+  <section id="tab-tirage" class="tab"></section>
+  <section id="tab-tableaux" class="tab"></section>
+  <section id="tab-programme" class="tab"></section>
+</main>
+</div>
 <script>
 (function () {
   'use strict';
@@ -150,7 +190,7 @@ button.ab-s:hover::before, button.ab-s:focus-visible::before { border-top-color:
     const ech = cur => Int.ECHELONS.map(e => opt(e, e, cur)).join('');
     const formule = `<label>Formule<select id="in-mode" ${tire ? 'disabled' : ''}>${opt('tableaux', 'Tableaux à élimination directe', i.mode)}${opt('poules', 'Poules, puis tableau final', i.mode)}${opt('tmc', 'Tournoi multi-chances (TMC)', i.mode)}</select></label>`;
     const prog = `<h3 style="margin:14px 0 6px">Déroulement</h3>
-      <label class="chk" style="display:flex;flex-direction:row;gap:10px;align-items:center"><input type="checkbox" id="in-prog" style="width:auto" ${i.prog ? 'checked' : ''}>Matchs programmés par le juge-arbitre (jour, heure, terrain)</label>
+      <label class="chk" style="display:flex;flex-direction:row;gap:10px;align-items:center"><input type="checkbox" id="in-prog" ${i.prog ? 'checked' : ''}>Matchs programmés par le juge-arbitre (jour, heure, terrain)</label>
       <p class="muted small">${i.prog ? 'Les joueurs sont prévenus de chaque programmation. Les limites de parties par jour, les repos et les horaires sont vérifiés (art. 13 et 14).' : 'Sinon, les joueurs organisent leurs matchs avant la date limite de chaque tour.'}</p>
       ${i.prog ? `<div class="in-row"><label>Terrains (séparés par des virgules)<input id="in-terr" value="${esc((i.terrains || []).join(', '))}" placeholder="Court 1, Court 2, Court 3"></label><label>Catégorie<select id="in-cat">${Object.keys(Int.CATEGORIES).map(k => opt(k, Int.CATEGORIES[k], i.categorie)).join('')}</select></label></div>` : ''}`;
     if (i.mode !== 'tableaux') {
@@ -187,7 +227,7 @@ button.ab-s:hover::before, button.ab-s:focus-visible::before { border-top-color:
         <label>Tableau<select name="simple" ${tire ? 'disabled' : ''}><option value="1" ${i.simple ? 'selected' : ''}>Simple</option><option value="0" ${i.simple ? '' : 'selected'}>Double</option></select></label>
         <label>Début<input type="date" name="dateStart" value="${esc(t.dateStart || '')}"></label><label>Fin prévue<input type="date" name="dateEnd" value="${esc(t.dateEnd || '')}"></label></div>
         <label>Règlement et organisation (visibles par les joueurs dans /RAM Club)<textarea name="regle" rows="6" maxlength="8000" placeholder="Format des matchs, balles, réservation des courts, délais, forfaits…">${esc(i.regle || '')}</textarea></label>
-        <label class="chk" style="display:flex;flex-direction:row;gap:10px;align-items:center"><input type="checkbox" name="pub" style="width:auto" ${t.regMode === 'none' ? '' : 'checked'}>Publier sur /RAM Club (tableau, règlement et participants pour les adhérents)</label>
+        <label class="chk" style="display:flex;flex-direction:row;gap:10px;align-items:center"><input type="checkbox" name="pub" ${t.regMode === 'none' ? '' : 'checked'}>Publier sur /RAM Club (tableau, règlement et participants pour les adhérents)</label>
         <div><button class="btn">Enregistrer</button></div>
       </form>${club ? '' : '<p class="muted small">Le club de ce tournoi n’a pas encore d’espace /RAM Club : le tournoi ne pourra pas y être publié.</p>'}</section>`;
   }
@@ -202,7 +242,7 @@ button.ab-s:hover::before, button.ab-s:focus-visible::before { border-top-color:
       ${tri.map(ligne).join('') || '<p class="muted">Ajoute les participants parmi les adhérents du club.</p>'}
       ${tire ? '' : `<form id="in-add" class="in-add"><input name="a" data-in-joueur placeholder="${i.simple ? 'Tape un nom : adhérents, joueurs /RAM JA' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" data-in-joueur placeholder="Joueur 2" autocomplete="off" required>'}<button class="btn">Ajouter</button></form>
       <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /RAM Club : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
-      <div class="in-row" style="margin-top:14px">${tire ? `<button class="btn ghost" id="in-undraw">Annuler le tirage</button><button class="btn ghost" id="in-redraw">Refaire le tirage</button>` : `<button class="btn" id="in-draw" ${i.players.length < 2 ? 'disabled' : ''}>Tirer le tableau</button>`}</div></section>`;
+      ${tire ? '<p class="muted small">Le tableau est tiré : les placements se modifient dans « Tirage et composition ».</p>' : `<div class="in-row" style="margin-top:14px"><button type="button" class="btn ghost" data-go="tirage">Passer au tirage</button></div>`}</section>`;
   }
   /* l'arbre d'un tableau (ou d'une section), comme la feuille FFT : chaque joueur sur un trait (nom et classement
      au-dessus, tête de série cerclée), le vainqueur reporté sur le trait du tour suivant avec le score en dessous,
@@ -278,7 +318,7 @@ button.ab-s:hover::before, button.ab-s:focus-visible::before { border-top-color:
   }
   function tableau() {
     const i = I(); if (!Int.tire(i)) return '';
-    return lesPoules() + Int.tabsOf(i).map(unTableau).join('') + consol() + programme();
+    return lesPoules() + Int.tabsOf(i).map(unTableau).join('') + consol();
   }
   /* consolante (art. 51-2) : le juge-arbitre y inscrit les battus qui l'acceptent */
   function consol() {
@@ -308,17 +348,81 @@ button.ab-s:hover::before, button.ab-s:focus-visible::before { border-top-color:
     const titre = pl.length && pl[0].place === 1 && Int.champion(i) ? esc(nom(pl[0].id)) + ' remporte le tournoi' : 'Classement provisoire';
     return `<section class="card"><span class="eyebrow">Classement${tmc ? ' · tournoi multi-chances' : ''}</span><h2>${titre}</h2><ol class="in-places">${pl.slice(0, tmc ? 32 : 8).map(x => `<li>${tmc ? x.place + (x.place === 1 ? 'er' : 'e') : x.place === 1 ? 'Vainqueur' : x.place === 2 ? 'Finaliste' : x.place + (x.lo && x.lo !== x.place ? '-' + x.lo : '') + 'e'} : ${esc(nom(x.id))}</li>`).join('')}</ol>${vc ? `<p><b>Consolante :</b> ${esc(nom(vc))}</p>` : ''}</section>`;
   }
+  /* ----- tirage et composition : tirage automatique, tableau vierge, puis chaque ligne modifiable
+     (un tableau recopié de MOJA se saisit ligne par ligne) ; les contrôles du règlement s'affichent au fur et à mesure ----- */
+  function tirage() {
+    const i = I(), tire = Int.tire(i);
+    if (!tire) {
+      return `<section class="card"><span class="eyebrow">Tirage au sort</span><h2>Établir le tableau</h2>
+        <p>${i.players.length} participant${i.players.length > 1 ? 's' : ''} · ${esc(i.mode === 'poules' ? 'poules, puis tableau final' : i.mode === 'tmc' ? 'tournoi multi-chances' : (i.struct || []).length ? (i.struct.length + 1) + ' tableaux successifs' : 'tableau unique')}</p>
+        <div class="in-row"><button class="btn" id="in-draw" ${i.players.length < 2 ? 'disabled' : ''}>Tirage automatique</button><button class="btn ghost" id="in-vierge" ${i.players.length < 2 ? 'disabled' : ''}>Tableau vierge à composer</button></div>
+        <p class="muted small"><b>Tirage automatique</b> : têtes de série, exempts et qualifiés placés selon le règlement (art. 45 à 52), les autres tirés au sort ; vous pouvez ensuite tout modifier à la main.<br><b>Tableau vierge</b> : les dimensions sont calculées et vous placez chaque joueur vous-même, par exemple pour recopier un tableau établi dans MOJA.</p></section>`;
+    }
+    const ctl = Int.controles(i), joue = Int.allMatches(i).some(m => m.w && !m.bye);
+    const opts = (T, cur) => {
+      const idx = Int.tabsOf(i).indexOf(T), prevQ = Int.tabsOf(i).slice(0, idx).filter(U => U.role === 'inter').flatMap(U => Array.from({ length: U.q }, (_, j) => 'Q:' + U.id + ':' + j));
+      const pTok = T.role === 'final' ? Int.poulesOf(i).flatMap(po => Array.from({ length: po.q }, (_, r) => 'P:' + po.k + ':' + (r + 1))) : [];
+      const ouJ = id => { for (const U of Int.tabsOf(i)) { const L = U.lines.indexOf(id); if (L >= 0) return U === T ? 'ligne ' + (L + 1) : U.nom.toLowerCase(); } return ''; };
+      const dansPoule = id => Int.poulesOf(i).some(po => po.joueurs.includes(id));
+      const joueurs = i.players.filter(p => !dansPoule(p.id)).slice().sort((a, b) => Int.rang(b.cl) - Int.rang(a.cl) || a.n.localeCompare(b.n, 'fr'));
+      const libres = joueurs.filter(p => !ouJ(p.id)), places = joueurs.filter(p => ouJ(p.id));
+      const o = (v, l) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`;
+      return o('BYE', '— Exempt —') + (libres.length ? `<optgroup label="Non placés">${libres.map(p => o(p.id, p.n + (p.cl ? ' · ' + p.cl : ''))).join('')}</optgroup>` : '')
+        + (places.length ? `<optgroup label="Déjà placés (échange)">${places.map(p => o(p.id, p.n + (p.cl ? ' · ' + p.cl : '') + (p.id === cur ? '' : ' · ' + ouJ(p.id)))).join('')}</optgroup>` : '')
+        + (prevQ.length || pTok.length ? `<optgroup label="Places à venir">${prevQ.concat(pTok).map(t => o(t, Int.nomDe(i, t))).join('')}</optgroup>` : '');
+    };
+    const unTab = T => {
+      const fige = Int.tabJoue(T), s = T.size / T.q, entreeNom = r => (r === 0 ? '1er tour' : (r + 1) + 'e tour');
+      const lignes = j => Array.from({ length: s }, (_, k) => {
+        const L = j * s + k, x = T.lines[L], p = Int.joueur(i, x);
+        return `<div class="cp-l${L % 2 ? ' bas' : ''}"><span class="cp-n">${L + 1}</span>${fige ? `<span class="cp-v">${esc(x === 'BYE' ? 'Exempt' : Int.nomDe(i, x))}</span>` : `<select data-line="${L}" data-t="${esc(T.id)}" aria-label="Ligne ${L + 1}">${opts(T, x)}</select>`}
+          ${p ? `<label class="cp-ts" title="Tête de série">TS<input type="number" min="0" max="64" data-ts="${esc(p.id)}" data-t="${esc(T.id)}" value="${(T.ts || {})[p.id] || ''}" ${fige ? 'disabled' : ''}></label><span class="cp-e">${entreeNom(Int.entree(T, L))}</span>` : ''}</div>`;
+      }).join('');
+      const corps = Array.from({ length: T.q }, (_, j) => `<div class="cp-sec">${T.q > 1 ? `<h4>Section ${j + 1} · qualifié ${j + 1}</h4>` : ''}${lignes(j)}</div>`).join('');
+      const tailles = [2, 4, 8, 16, 32, 64, 128].filter(n => n * T.q >= T.lines.filter(x => x !== 'BYE').length || n === s);
+      return `<section class="card"><span class="eyebrow">${esc(T.plage || (T.role === 'consol' ? 'Consolante' : T.role === 'class' ? 'Tableau de classement' : ''))}</span><h2>${esc(T.nom)}</h2>
+        ${fige ? '<p class="muted small">Des résultats sont saisis : la composition de ce tableau est figée.</p>' : `<div class="in-row cp-dims"><label>Lignes par section<select data-dims-s="${esc(T.id)}">${tailles.map(n => `<option ${n === s ? 'selected' : ''}>${n}</option>`).join('')}</select></label>${T.role === 'inter' ? `<label>Sections (qualifiés)<input type="number" min="1" max="16" data-dims-q="${esc(T.id)}" value="${T.q}"></label>` : ''}<button type="button" class="btn ghost" data-dims="${esc(T.id)}">Appliquer</button></div>
+        <p class="muted small">Choisissez pour chaque ligne un joueur, un exempt ou une place de qualifié : un joueur déjà placé échange sa place. Le tour d’entrée de chaque joueur s’affiche à droite.</p>`}
+        <div class="cp-g">${corps}</div></section>`;
+    };
+    const poulesC = () => !Int.poulesOf(i).length ? '' : `<section class="card"><span class="eyebrow">Poules</span><h2>Composition des poules</h2>
+      <div class="in-poules">${Int.poulesOf(i).map(po => `<div class="in-poule"><h3>${esc(po.nom)} · ${po.joueurs.length}</h3>${po.joueurs.map(id => `<div class="in-p"><span class="n">${esc(nom(id))}${(Int.joueur(i, id) || {}).cl ? ' <span class="club">' + esc(Int.joueur(i, id).cl) + '</span>' : ''}</span><select data-pmove="${esc(id)}" aria-label="Changer de poule">${Int.poulesOf(i).map(x => `<option value="${x.k}" ${x.k === po.k ? 'selected' : ''}>${esc(x.nom)}</option>`).join('')}</select></div>`).join('')}</div>`).join('')}</div>
+      <p class="muted small">Un joueur déplacé dans une poule de 6 doit en échanger un autre : choisissez d’abord une poule qui a de la place.</p></section>`;
+    return `<section class="card"><span class="eyebrow">Contrôles du règlement</span><h2>${ctl.length ? ctl.length + ' point' + (ctl.length > 1 ? 's' : '') + ' à vérifier' : 'Tableau conforme'}</h2>
+        ${ctl.length ? `<div class="in-al">${ctl.map(c => `<p>${esc(c.txt)}</p>`).join('')}</div>` : '<p class="muted small">Chaque joueur est placé une fois ; têtes de série, exempts et qualifiés respectent les articles 45 à 49.</p>'}
+        <div class="in-row">${joue ? '' : '<button class="btn ghost" id="in-redraw">Refaire un tirage automatique</button><button class="btn ghost" id="in-revierge">Repartir d’un tableau vierge</button><button class="btn ghost" id="in-undraw">Annuler le tirage</button>'}</div></section>
+      ${poulesC()}${Int.tabsOf(i).map(unTab).join('')}`;
+  }
   function render() {
     if (!S || !S.int) return;
     document.title = S.tournament.name + ' — /RAM JA';
-    const i = I(), fini = i.status === 'done';
-    $('#app').innerHTML = `<div class="page-h"><span class="eyebrow">Tournoi interne · ${esc(i.sport)} · ${i.simple ? 'simple' : 'double'}</span><h1>${esc(S.tournament.name)}</h1>
-      <p class="in-fmt">${esc(Int.formatNom(i.format))}</p>
-      <div class="in-row">${fini ? '<button class="btn ghost" id="in-reopen">Rouvrir le tournoi</button>' : Int.tire(i) ? '<button class="btn ghost" id="in-close">Clôturer le tournoi</button>' : ''}</div></div>
-      <div class="grid">${classement()}${tableau()}</div>
-      <div class="grid g-2" style="align-items:start;margin-top:16px"><div class="grid">${participants()}</div><div class="grid">${formatStructure()}${reglages()}<section class="card" data-adjoints></section></div></div>`;
+    const i = I(), fini = i.status === 'done', t = S.tournament;
+    const sous = [i.sport, i.simple ? 'simple' : 'double', i.mode === 'poules' ? 'poules et tableau' : i.mode === 'tmc' ? 'TMC' : ''].filter(Boolean).join(' · ');
+    const etat = fini ? 'Terminé' : Int.tire(i) ? 'En cours' : 'Inscriptions';
+    [['#sName', t.name], ['#abTitle', t.name], ['#hName', t.name], ['#sSub', sous], ['#abSub', etat], ['#sState', etat], ['#hSub', Int.formatNom(i.format)], ['#hTag', 'Tournoi interne · ' + i.sport]].forEach(([s, v]) => { const el = $(s); if (el) el.textContent = v; });
+    $('#hAct').innerHTML = fini ? '<button class="ghost" id="in-reopen">Rouvrir le tournoi</button>' : Int.tire(i) ? '<button class="ghost" id="in-close">Clôturer le tournoi</button>' : '';
+    const pr = programme();
+    const tabs = {
+      tournoi: `<div class="grid g-2" style="align-items:start"><div class="grid">${formatStructure()}</div><div class="grid">${reglages()}<section class="card" data-adjoints></section></div></div>`,
+      participants: participants(),
+      tirage: tirage(),
+      tableaux: `<div class="grid">${classement()}${tableau() || '<section class="card"><h2>Pas encore de tableau</h2><p class="muted">Les tableaux apparaissent après le tirage.</p><button type="button" class="btn" data-go="tirage">Aller au tirage</button></section>'}</div>`,
+      programme: pr || `<section class="card"><span class="eyebrow">Programmation</span><h2>Matchs organisés par les joueurs</h2><p class="muted">Les joueurs organisent leurs matchs avant la date limite de chaque tour. Pour programmer chaque match (jour, heure, terrain), cochez « Matchs programmés » dans l’onglet Tournoi.</p><button type="button" class="btn ghost" data-go="tournoi">Ouvrir les réglages</button></section>`
+    };
+    Object.keys(tabs).forEach(k => { const el = $('#tab-' + k); if (el && el.dataset.h !== tabs[k]) { el.dataset.h = tabs[k]; el.innerHTML = tabs[k]; } });
+    ouvrir(onglet || (Int.tire(i) ? 'tableaux' : 'participants'), true);
     bind();
   }
+  /* onglets du menu du tournoi (gardés dans l'adresse : #tirage…) */
+  let onglet = (location.hash || '').slice(1) || null;
+  function ouvrir(t, sans) {
+    if (!document.getElementById('tab-' + t)) t = 'tournoi';
+    onglet = t;
+    document.querySelectorAll('#nav button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    document.querySelectorAll('main .tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + t));
+    if (!sans) { history.replaceState(null, '', '#' + t); scrollTo(0, 0); }
+  }
+  document.querySelectorAll('#nav button[data-tab]').forEach(b => (b.onclick = () => ouvrir(b.dataset.tab)));
   function modal(m) {
     const d = document.createElement('div'), i = I(), pret = m.a && m.b && m.a !== 'BYE' && m.b !== 'BYE';
     d.className = 'in-modal';
@@ -383,6 +487,22 @@ button.ab-s:hover::before, button.ab-s:focus-visible::before { border-top-color:
     document.querySelectorAll('[data-fin]').forEach(i => (i.onchange = () => send('int/tour', { t: i.dataset.t || '', r: +i.dataset.fin, fin: i.value })));
     document.querySelectorAll('[data-m]').forEach(b => (b.onclick = () => { const m = Int.findM(I(), b.dataset.m); if (!m) return; if (!(m.a && m.b) && !I().prog) return toast('Ce match attend encore ses joueurs.'); modal(m); }));
     document.querySelectorAll('[data-fin-poule]').forEach(x => (x.onchange = () => send('int/tour', { poule: +x.dataset.finPoule, fin: x.value })));
+    document.querySelectorAll('[data-go]').forEach(b => (b.onclick = () => ouvrir(b.dataset.go)));
+    // composition à la main
+    document.querySelectorAll('[data-line]').forEach(s => (s.onchange = () => send('int/line', { t: s.dataset.t, L: +s.dataset.line, x: s.value })));
+    document.querySelectorAll('[data-ts]').forEach(x => (x.onchange = () => send('int/ts', { t: x.dataset.t, id: x.dataset.ts, n: +x.value || 0 })));
+    document.querySelectorAll('[data-dims]').forEach(b => (b.onclick = async () => {
+      const t = b.dataset.dims, s = document.querySelector(`[data-dims-s="${t}"]`), q = document.querySelector(`[data-dims-q="${t}"]`);
+      if (await send('int/dims', { t, s: +s.value, q: q ? +q.value : 1 })) toast('Dimension du tableau modifiée');
+    }));
+    document.querySelectorAll('[data-pmove]').forEach(s => (s.onchange = async () => {
+      const k = +s.value, vers = Int.poulesOf(I()).find(po => po.k === k);
+      let avec;
+      if (vers && vers.joueurs.length >= 6) { avec = prompt('Cette poule est complète : nom exact du joueur à échanger', ''); const x = vers.joueurs.find(id => nom(id).toLowerCase() === String(avec || '').trim().toLowerCase()); if (!x) { render(); return toast('Échange annulé'); } avec = x; }
+      if (!(await send('int/poule/move', { id: s.dataset.pmove, k, avec }))) render();
+    }));
+    on('#in-vierge', async () => { if (await send('int/draw', { vierge: true })) toast('Tableau vierge : placez chaque joueur'); });
+    on('#in-revierge', async () => { if (confirm('Repartir d’un tableau vierge ? Tous les placements seront retirés.') && await send('int/draw', { vierge: true })) toast('Tableau vierge'); });
     // formule, poules, programmation : enregistrées aussitôt
     const val = id => ($(id) || {}).value;
     if ($('#in-mode')) $('#in-mode').onchange = () => send('int/setup', { mode: val('#in-mode') });

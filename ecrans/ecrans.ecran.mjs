@@ -2087,20 +2087,54 @@ test('JA : tournoi interne en poules programmées, puis TMC, sans erreur', async
     return out;
   });
   await page.goto(JA + '/t/' + ids[0]);
-  await page.waitForSelector('.in-poule', { timeout: 8000 });
-  assert.equal((await page.$$('.in-poule')).length, 2);
+  await page.waitForSelector('#tab-tableaux .in-poule', { timeout: 8000 });
+  assert.equal((await page.$$('#tab-tableaux .in-poule')).length, 2);
   // programmer un match de poule depuis sa fenêtre
-  await page.click('.in-pm button');
+  await page.click('#tab-tableaux .in-pm button');
   await page.fill('.in-modal input[name=d]', '2030-05-11');
   await page.fill('.in-modal input[name=h]', '10:00');
   await page.fill('.in-modal input[name=c]', 'Court 1');
   await page.click('#in-pg button.btn');
-  await page.waitForSelector('.in-pg', { timeout: 8000 });
+  await page.click('#nav button[data-tab="programme"]');
+  await page.waitForSelector('#tab-programme .in-pg', { timeout: 8000 });
   assert.match(await page.textContent('#app'), /Programme des matchs/);
   assert.match(await page.textContent('#app'), /10h00/);
   await page.goto(JA + '/t/' + ids[1]);
   await page.waitForSelector('.ab', { timeout: 8000 });
   assert.match(await page.textContent('#app'), /Places 5 à 8/);
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('JA : tournoi interne dans « En cours », composition à la main d’un tableau vierge, aucun pictogramme géant', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/demo');
+  await page.waitForTimeout(400);
+  const id = await page.evaluate(async () => {
+    const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json());
+    const { id } = await post('/api/tournaments', { kind: 'interne', sport: 'Tennis', name: 'Interne recopié de MOJA' });
+    for (let i = 0; i < 6; i++) await post('/api/t/' + id + '/action', { type: 'int/player/add', payload: { n: 'Joueur ' + (i + 1), ks: ['k' + i], cl: ['15', '15/1', '30', '30/1', '40', 'NC'][i] } });
+    return id;
+  });
+  await page.goto(JA + '/t/' + id + '#tirage');
+  await page.waitForSelector('#in-vierge', { timeout: 8000 });
+  assert.equal(await page.getAttribute('body', 'data-page'), 'encours', 'la section « En cours » du menu');
+  assert.equal(await page.textContent('#nav button.on .lg'), 'Tirage et composition');
+  await page.click('#in-vierge');
+  await page.waitForSelector('#tab-tirage select[data-line="0"]', { timeout: 8000 });
+  assert.match(await page.textContent('#tab-tirage'), /n’est placé dans aucun tableau/);
+  // ligne 1 : le joueur 1 ; puis vérifier qu'il apparaît dans l'arbre
+  await page.selectOption('#tab-tirage select[data-line="0"]', 'j1');
+  await page.waitForFunction(() => document.querySelector('#tab-tirage select[data-line="0"]').value === 'j1');
+  await page.click('#nav button[data-tab="tableaux"]');
+  assert.match(await page.textContent('#tab-tableaux'), /Joueur 1/);
+  // pas de pictogramme démesuré, ici comme sur le tableau de bord
+  for (const u of ['/t/' + id, '/dashboard']) {
+    await page.goto(JA + u); await page.waitForTimeout(900);
+    const gros = await page.evaluate(() => [...document.querySelectorAll('svg')].filter(s => { const r = s.getBoundingClientRect(); return r.width > 64 || r.height > 64; }).length);
+    assert.equal(gros, 0, 'pictogramme géant sur ' + u);
+  }
   assert.deepEqual(errs, []);
   await ctx.close();
 });
