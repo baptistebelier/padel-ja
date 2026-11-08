@@ -37,6 +37,23 @@ let sgClubs = null,
   sgSeq = 0,
   sgT = null,
   sgSkip = false;
+/* une personne dans la liste : sa photo, ou ses initiales */
+const sgPP = it =>
+  it.pp
+    ? `<span class="pp-a" aria-hidden="true"${it.ph && /^(https?:\/\/|\/|data:image\/)[^"'()\s]+$/.test(it.ph) ? ` style="background-image:url('${sgEsc(it.ph)}')"` : ''}>${
+        it.ph
+          ? ''
+          : sgEsc(
+              String(it.v || '')
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(w => w[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase()
+            )
+      }</span>`
+    : '';
 /* adhérents du club : fiches connues de l'appli, sans le club lui-même */
 const sgMembres = () =>
   Object.keys(M)
@@ -53,7 +70,16 @@ const sgMembres = () =>
       ]
         .filter(Boolean)
         .join(' · '),
-      d: { k }
+      d: { k },
+      // photo et e-mail : celui que l'adhérent partage dans son profil (le mien : celui que je partage), jamais pour un jeune
+      pp: 1,
+      ph: M[k].photo || '',
+      ml:
+        typeof isMinor === 'function' && isMinor(k)
+          ? ''
+          : k === ME()
+            ? (S.share && S.share.mail && MYCT.mail[2]) || ''
+            : (CT[k] && CT[k].mail) || ''
     }))
     .sort((a, b) => a.v.localeCompare(b.v, 'fr'));
 async function sgAnnuaire() {
@@ -102,7 +128,10 @@ async function sgJoueurs(t, champ) {
       ]
         .filter(Boolean)
         .join(' · '),
-      d: { p }
+      d: { p },
+      pp: 1,
+      ph: p.photo || '',
+      ml: p.mail || ''
     }));
 }
 /* la liste est rangée dans le bloc du champ et accrochée sous lui : elle suit le champ quand la page défile
@@ -130,7 +159,7 @@ function sgDraw() {
   sgBox.innerHTML = sgItems
     .map(
       (it, i) =>
-        `<button type="button" role="option" data-i="${i}" aria-selected="${i === sgAct}"><b>${sgEsc(it.v)}</b>${it.l ? `<small>${sgEsc(it.l)}</small>` : ''}</button>`
+        `<button type="button" role="option" data-i="${i}" aria-selected="${i === sgAct}"${it.pp ? ' class="pp"' : ''}>${sgPP(it)}<span class="pp-t"><b>${sgEsc(it.v)}</b>${it.ml ? `<small>${sgEsc(it.ml)}</small>` : ''}${it.l ? `<small>${sgEsc(it.l)}</small>` : ''}</span></button>`
     )
     .join('');
   sgBox.hidden = !sgItems.length || !sgCur;

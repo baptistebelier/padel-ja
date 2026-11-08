@@ -525,6 +525,7 @@ button.tro{width:100%;text-align:left}
 .sgbox button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;width:100%;text-align:left;padding:9px 12px;border-radius:8px;min-height:46px;color:var(--fg)}
 .sgbox button b{font-weight:700;font-size:15px}
 .sgbox button small{font-size:12px;color:var(--muted)}
+.sgbox button.pp{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px}.sgbox .pp-t{display:flex;flex-direction:column;min-width:0}.sgbox .pp-t small{overflow-wrap:anywhere}.sgbox .pp-a{flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:var(--card2) center/cover no-repeat;display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--fg)}
 .sgbox button[aria-selected="true"],.sgbox button:hover{background:var(--card2)}
 .fp-st.now .fp-card{border-color:var(--accent);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 45%,#000),0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
 .fp-lock{position:absolute;top:-9px;right:-7px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:2px solid var(--line);color:var(--muted)}

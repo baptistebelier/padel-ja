@@ -270,7 +270,7 @@
     const q = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     let box = null, cur = null, items = [], act = -1, seq = 0, timer = null, skip = false;
     const css = document.createElement('style');
-    css.textContent = '.rsug{position:absolute;z-index:60;max-height:280px;overflow-y:auto;background:var(--ui-surface,#fff);color:var(--ui-text,#111);border:2px solid var(--ui-accent-line,#E0284A);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:4px}.rsug button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:9px 10px;border-radius:7px;cursor:pointer;min-height:44px;justify-content:center}.rsug button b{font-weight:700}.rsug button small{font-size:12px;opacity:.7}.rsug button[aria-selected="true"],.rsug button:hover{background:var(--ui-surface-2,#f2f2f2)}';
+    css.textContent = '.rsug{position:absolute;z-index:60;max-height:280px;overflow-y:auto;background:var(--ui-surface,#fff);color:var(--ui-text,#111);border:2px solid var(--ui-accent-line,#E0284A);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:4px}.rsug button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:9px 10px;border-radius:7px;cursor:pointer;min-height:44px;justify-content:center}.rsug button b{font-weight:700}.rsug button small{font-size:12px;opacity:.7}.rsug button[aria-selected="true"],.rsug button:hover{background:var(--ui-surface-2,#f2f2f2)}.rsug button.pp{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px}.rsug .pp-t{display:flex;flex-direction:column;min-width:0}.rsug .pp-t small{overflow-wrap:anywhere}.rsug .pp-a{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:var(--ui-surface-2,#eee) center/cover no-repeat;display:grid;place-items:center;font-size:12px;font-weight:800}';
     document.head.appendChild(css);
     const rule = el => el && el.tagName === 'INPUT' && rules.find(r => { try { return r.match(el); } catch (e) { return false; } });
     const close = () => { if (box) box.hidden = true; items = []; act = -1; };
@@ -286,7 +286,9 @@
         box = document.createElement('div'); box.className = 'rsug'; box.setAttribute('role', 'listbox'); document.body.appendChild(box);
         box.addEventListener('pointerdown', e => { e.preventDefault(); const b = e.target.closest('[data-i]'); if (b) pick(+b.dataset.i); });
       }
-      box.innerHTML = items.map((it, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === act}"><b>${q(it.v)}</b>${it.l ? `<small>${q(it.l)}</small>` : ''}</button>`).join('');
+      // une personne (adhérent, joueur) : sa photo, ou ses initiales, et son e-mail s'il le partage
+      const pp = it => it.pp ? `<span class="pp-a" aria-hidden="true"${it.ph && /^(https?:\/\/|\/)[^"'()\s]+$/.test(it.ph) ? ` style="background-image:url('${q(it.ph)}')"` : ''}>${it.ph ? '' : q(String(it.v || '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase())}</span>` : '';
+      box.innerHTML = items.map((it, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${i === act}"${it.pp ? ' class="pp"' : ''}>${pp(it)}<span class="pp-t"><b>${q(it.v)}</b>${it.ml ? `<small>${q(it.ml)}</small>` : ''}${it.l ? `<small>${q(it.l)}</small>` : ''}</span></button>`).join('');
       box.hidden = !items.length || !cur;
       if (!box.hidden) place();
     }
@@ -353,7 +355,7 @@
     window.RamSugg.add({
       match: el => el.hasAttribute('data-joueurs'),
       filtre: false,
-      source: t => (t.length < 2 ? [] : fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).then(d => (d.players || []).map(p => ({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: [p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: p }))))
+      source: t => (t.length < 2 ? [] : fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).then(d => (d.players || []).map(p => ({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: [p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: p, pp: 1, ph: p.photo, ml: p.mail }))))
     });
   }
   const start = () => { build(); suggestions(); clubList(); jaList(); navCursor(); softNav(); sideOut(); };

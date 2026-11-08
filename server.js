@@ -1502,8 +1502,8 @@ const server = http.createServer(async (req, res) => {
           (await ram.searchMembers(q, 6).catch(() => [])).forEach(m => {
             const w = m.name.trim().split(/\s+/), first = w.shift() || '', last = w.join(' ').toUpperCase();
             const cles = [m.ja, m.licence && 'l:' + m.licence, 'n:' + norm(last) + '|' + norm(first)].filter(Boolean), deja = cles.map(c => deCle.get(c)).find(Boolean);
-            if (deja) { (deja.membres = deja.membres || []).push({ c: m.clubId, k: m.key }); return; }
-            list.push({ id: 'rc-' + m.clubId + '-' + m.key, last, first, licence: m.licence, rank: m.rank, club: m.club, source: 'club', tournaments: 0 });
+            if (deja) { (deja.membres = deja.membres || []).push({ c: m.clubId, k: m.key }); if (!deja.photo && m.photo) deja.photo = m.photo; if (!deja.mail && m.mail) deja.mail = m.mail; return; }
+            list.push({ id: 'rc-' + m.clubId + '-' + m.key, last, first, licence: m.licence, rank: m.rank, club: m.club, source: 'club', tournaments: 0, photo: m.photo, mail: m.mail });
           });
           return json(res, 200, { players: list });
         }
