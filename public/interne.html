@@ -54,7 +54,7 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = s => document.querySelector(s);
   const tid = location.pathname.split('/')[2], base = '/api/t/' + tid;
-  let S = null, membres = [], club = true, ouvert = null;
+  let S = null, membres = [], club = true, ouvert = null, espace = null;
   /* liste déroulante des participants : adhérents du club (reliés à leur fiche), puis joueurs de la base /RAM JA */
   (window.RamSuggQ = window.RamSuggQ || []).push({
     match: el => el.hasAttribute('data-in-joueur'),
@@ -64,7 +64,7 @@
       const l = membres.filter(m => !pris.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ id: 'k:' + m.k, v: m.n, l: 'Adhérent · ' + [m.compte ? 'Compte /RAM' : 'Fiche sans compte', m.niv, m.lic ? 'lic. ' + m.lic : ''].filter(Boolean).join(' · '), d: { k: m.k } }));
       if (t.length >= 2) {
         const d = await fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).catch(() => ({}));
-        (d.players || []).filter(p => p.source !== 'club').forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p } }));
+        (d.players || []).filter(p => p.source !== 'club' && !(p.membres || []).some(x => x.c === espace)).forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p } }));
       }
       return l;
     }
@@ -189,7 +189,7 @@
   }
   const es = new EventSource(base + '/events');
   es.onmessage = ev => { const d = JSON.parse(ev.data); if (d.state) { S = d.state; render(); } };
-  fetch(base + '/membres').then(r => r.json()).then(d => { membres = d.membres || []; club = d.club !== false; render(); }).catch(() => {});
+  fetch(base + '/membres').then(r => r.json()).then(d => { membres = d.membres || []; espace = d.espace || null; club = d.club !== false; render(); }).catch(() => {});
 })();
 </script>
 </body>

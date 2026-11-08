@@ -60,7 +60,7 @@
       const l = membres().filter(m => !dans.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ id: 'k:' + m.k, v: m.n, l: 'Adhérent · ' + [m.compte ? 'Compte /RAM' : 'Fiche sans compte', m.niv, m.lic ? 'lic. ' + m.lic : ''].filter(Boolean).join(' · '), d: { k: m.k } }));
       if (t.length >= 2) {
         const d = await fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).catch(() => ({}));
-        (d.players || []).filter(p => p.source !== 'club').forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p } }));
+        (d.players || []).filter(p => p.source !== 'club' && !(p.membres || []).some(x => x.c === club.id)).forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p } }));
       }
       return l;
     },

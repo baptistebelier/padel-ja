@@ -1488,9 +1488,13 @@ const server = http.createServer(async (req, res) => {
           const list = players.map(pl => Object.assign(publicPlayer(pl), { tournaments: parts.filter(x => x.player_id === pl.id).length }));
           // adhérents /RAM Club pas encore dans la base : proposés aussi (nom, licence, classement padel, club)
           const known = new Set(players.flatMap(pl => [pl.id, pl.licence && 'l:' + pl.licence, pl.name_key && 'n:' + pl.name_key].filter(Boolean)));
+          // fiche de la base qui est aussi un adhérent d'un club : on le dit (clé dans le club), pour ne pas la proposer deux fois
+          const deCle = new Map();
+          players.forEach((pl, i) => [pl.id, pl.licence && 'l:' + pl.licence, pl.name_key && 'n:' + pl.name_key].filter(Boolean).forEach(c => deCle.set(c, list[i])));
           (await ram.searchMembers(q, 6).catch(() => [])).forEach(m => {
             const w = m.name.trim().split(/\s+/), first = w.shift() || '', last = w.join(' ').toUpperCase();
-            if ((m.ja && known.has(m.ja)) || (m.licence && known.has('l:' + m.licence)) || known.has('n:' + norm(last) + '|' + norm(first))) return;
+            const cles = [m.ja, m.licence && 'l:' + m.licence, 'n:' + norm(last) + '|' + norm(first)].filter(Boolean), deja = cles.map(c => deCle.get(c)).find(Boolean);
+            if (deja) { (deja.membres = deja.membres || []).push({ c: m.clubId, k: m.key }); return; }
             list.push({ id: 'rc-' + m.clubId + '-' + m.key, last, first, licence: m.licence, rank: m.rank, club: m.club, source: 'club', tournaments: 0 });
           });
           return json(res, 200, { players: list });

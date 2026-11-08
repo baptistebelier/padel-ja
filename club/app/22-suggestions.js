@@ -85,7 +85,7 @@ async function sgJoueurs(t, champ) {
   const r = await fetch('/api/players?q=' + encodeURIComponent(t), { credentials: 'include' }).catch(() => null);
   const d = r && r.ok ? await r.json() : {};
   return (d.players || [])
-    .filter(p => p.source !== 'club')
+    .filter(p => p.source !== 'club' && !(p.membres || []).some(x => window.RAM && x.c === RAM.club))
     .map(p => ({
       id: 'p:' + p.id,
       v:
