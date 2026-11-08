@@ -204,18 +204,19 @@ main#app { min-width: 0; }
         <label>Format des matchs<select id="in-fmt" ${joue ? 'disabled' : ''}>${tennis ? fmts.map(f => opt(f, 'Format ' + f + ' : ' + Int.FORMATS[f].l, i.format)).join('') + opt(0, 'Score libre', i.format) : opt(0, 'Score libre (padel)', 0)}</select></label>
         ${formule}${corps}${prog}</section>`;
     }
-    const lignes = st.map((x, k) => `<div class="in-strow"><b>Tableau ${k + 1} · ${rep[k].length} joueur${rep[k].length > 1 ? 's' : ''}</b>
-        <label>Classement le plus haut<select data-st-max="${k}" ${tire ? 'disabled' : ''}>${ech(x.max)}</select></label>
-        <label>Qualifiés sortants<input type="number" min="1" max="16" data-st-q="${k}" value="${esc(x.q)}" ${tire ? 'disabled' : ''}></label>
-        ${tire ? '' : `<button type="button" class="ib2" data-st-del="${k}">Retirer</button>`}</div>`).join('');
+    const npub = Int.publies(i), finTire = !!Int.final(i), figeSt = tire && (i.mode !== 'tableaux' || finTire);
+    const lignes = st.map((x, k) => { const f = figeSt || k < npub; return `<div class="in-strow"><b>Tableau ${k + 1} · ${rep[k].length} joueur${rep[k].length > 1 ? 's' : ''}${k < npub ? ' · tiré' : tire ? ' · à tirer' : ''}</b>
+        <label>Classement le plus haut<select data-st-max="${k}" ${f ? 'disabled' : ''}>${ech(x.max)}</select></label>
+        <label>Qualifiés sortants<input type="number" min="1" max="16" data-st-q="${k}" value="${esc(x.q)}" ${f ? 'disabled' : ''}></label>
+        ${f ? '' : `<button type="button" class="ib2" data-st-del="${k}">Retirer</button>`}</div>`; }).join('');
     return `<section class="card"><span class="eyebrow">Format et tableaux</span><h2>Comment se joue le tournoi</h2>
       <label>Format des matchs<select id="in-fmt" ${joue ? 'disabled' : ''}>${tennis ? fmts.map(f => opt(f, 'Format ' + f + ' : ' + Int.FORMATS[f].l, i.format)).join('') + opt(0, 'Score libre', i.format) : opt(0, 'Score libre (padel)', 0)}</select></label>
       <p class="in-fmt">${Int.FORMATS[i.format] ? `Les scores saisis sont vérifiés, par exemple ${esc(Int.FORMATS[i.format].ex)}.${i.simple ? '' : ' En double, le point décisif est obligatoire (art. 11).'}` : 'Le score est un texte libre.'}</p>
       ${formule}
       ${tennis ? `<h3 style="margin:14px 0 6px">Tableaux</h3>
       <p class="muted small">${st.length ? 'Chaque joueur entre dans le tableau de son classement ; les qualifiés de chaque tableau rejoignent le suivant, jusqu’au tableau final. Un tableau qui qualifie plusieurs joueurs est découpé en sections, une par qualifié.' : 'Un seul tableau pour tous. Pour des tableaux successifs par classement (NC à 30/1, puis 30 à 15/1…), ajoutez un tableau.'}</p>
-      <div class="in-st">${lignes}<div class="in-strow"><b>${st.length ? 'Tableau final' : 'Tableau'} · ${rep[st.length].length} joueur${rep[st.length].length > 1 ? 's' : ''}${st.length ? ' + ' + st[st.length - 1].q + ' qualifié' + (st[st.length - 1].q > 1 ? 's' : '') : ''}</b><span class="muted small">${st.length ? 'les mieux classés' : 'tous les participants'}</span></div></div>
-      ${tire ? '<p class="muted small">Le tableau est tiré : annulez le tirage pour changer la structure.</p>' : `<div class="in-row" style="margin-top:10px">${st.length < 4 ? '<button type="button" class="btn ghost" id="in-st-add">Ajouter un tableau</button>' : ''}${brouillon ? '<button type="button" class="btn" id="in-st-save">Enregistrer les tableaux</button>' : ''}</div>`}` : ''}${prog}</section>`;
+      <div class="in-st">${lignes}<div class="in-strow"><b>${st.length ? 'Tableau final' : 'Tableau'} · ${rep[st.length].length} joueur${rep[st.length].length > 1 ? 's' : ''}${st.length ? ' + ' + st[st.length - 1].q + ' qualifié' + (st[st.length - 1].q > 1 ? 's' : '') : ''}</b><span class="muted small">${finTire ? 'tiré' : st.length ? 'les mieux classés' + (tire ? ' · à tirer' : '') : 'tous les participants'}</span></div></div>
+      ${figeSt ? '<p class="muted small">Le tableau final est tiré : le découpage ne change plus.</p>' : `${tire ? '<p class="muted small">Les tableaux déjà tirés sont figés ; ajoutez ou modifiez les suivants, puis tirez-les dans « Tirage et composition ».</p>' : ''}<div class="in-row" style="margin-top:10px">${st.length < 6 ? '<button type="button" class="btn ghost" id="in-st-add">Ajouter un tableau à sections</button>' : ''}${brouillon ? '<button type="button" class="btn" id="in-st-save">Enregistrer les tableaux</button>' : ''}</div>`}` : ''}${prog}</section>`;
   }
   let brouillon = null;   // structure en cours de modification, pas encore enregistrée
   function reglages() {
@@ -232,17 +233,18 @@ main#app { min-width: 0; }
       </form>${club ? '' : '<p class="muted small">Le club de ce tournoi n’a pas encore d’espace /RAM Club : le tournoi ne pourra pas y être publié.</p>'}</section>`;
   }
   function participants() {
-    const i = I(), tire = Int.tire(i), tennis = i.sport === 'Tennis';
+    const i = I(), tire = Int.tire(i), tennis = i.sport === 'Tennis', aj = Int.ajoutPossible(i), fini = i.status === 'done';
     // classement FFT : il range les joueurs dans leur tableau et désigne les têtes de série
     const clSel = p => tennis ? `<select class="cl" data-cl="${p.id}" aria-label="Classement de ${esc(p.n)}">${opt('', '—', p.cl || '')}${Int.ECHELONS.map(e => opt(e, e, p.cl || '')).join('')}${p.cl && !Int.ECHELONS.includes(p.cl) ? opt(p.cl, p.cl, p.cl) : ''}</select>` : '';
     const tri = i.players.slice().sort((a, b) => Int.rang(b.cl) - Int.rang(a.cl) || a.n.localeCompare(b.n, 'fr'));
-    const ligne = p => `<div class="in-p"><span class="n">${esc(p.n)}${(p.ks || []).length ? '' : ' <span class="club">· hors /RAM Club</span>'}</span>${tire ? `${p.cl ? `<span class="club">${esc(p.cl)}</span>` : ''}${Int.tsDe(i, p.id) ? `<span class="club">Tête de série ${Int.tsDe(i, p.id)}</span>` : ''}` : `${clSel(p)}<select data-seed="${p.id}" aria-label="Tête de série choisie à la main"><option value="0">TS auto</option>${Array.from({ length: Math.min(16, i.players.length) }, (_, k) => `<option value="${k + 1}" ${+p.seed === k + 1 ? 'selected' : ''}>TS ${k + 1}</option>`).join('')}</select><button class="ib2" data-del="${p.id}" aria-label="Retirer ${esc(p.n)}">Retirer</button>`}</div>`;
+    const ligne = p => `<div class="in-p"><span class="n">${esc(p.n)}${(p.ks || []).length ? '' : ' <span class="club">· hors /RAM Club</span>'}</span>${Int.place(i, p.id) || fini ? `${p.cl ? `<span class="club">${esc(p.cl)}</span>` : ''}${Int.tsDe(i, p.id) ? `<span class="club">Tête de série ${Int.tsDe(i, p.id)}</span>` : ''}` : `${tire ? '<span class="club">en attente de son tableau</span>' : ''}${clSel(p)}<select data-seed="${p.id}" aria-label="Tête de série choisie à la main"><option value="0">TS auto</option>${Array.from({ length: Math.min(16, i.players.length) }, (_, k) => `<option value="${k + 1}" ${+p.seed === k + 1 ? 'selected' : ''}>TS ${k + 1}</option>`).join('')}</select><button class="ib2" data-del="${p.id}" aria-label="Retirer ${esc(p.n)}">Retirer</button>`}</div>`;
     return `<section class="card"><span class="eyebrow">Participants · ${i.players.length}</span><h2>${i.simple ? 'Joueurs' : 'Équipes'}</h2>
       ${tennis && !tire && i.players.length ? '<p class="muted small">Les têtes de série suivent le classement (le quart du tableau final, une par section). « TS » les fixe à la main.</p>' : ''}
       ${tri.map(ligne).join('') || '<p class="muted">Ajoute les participants parmi les adhérents du club.</p>'}
-      ${tire ? '' : `<form id="in-add" class="in-add"><input name="a" data-in-joueur placeholder="${i.simple ? 'Tape un nom : adhérents, joueurs /RAM JA' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" data-in-joueur placeholder="Joueur 2" autocomplete="off" required>'}<button class="btn">Ajouter</button></form>
+      ${tire && aj.ok && !fini ? `<p class="note">Le tournoi a commencé : vous pouvez encore inscrire des joueurs classés <b>${esc(aj.min)}</b> ou mieux, qui entreront dans un tableau pas encore tiré.</p>` : ''}
+      ${(tire && !aj.ok) || fini ? '' : `<form id="in-add" class="in-add"><input name="a" data-in-joueur placeholder="${i.simple ? 'Tape un nom : adhérents, joueurs /RAM JA' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" data-in-joueur placeholder="Joueur 2" autocomplete="off" required>'}${tennis ? `<select name="cl" aria-label="Classement" style="flex:0 0 120px">${opt('', 'Classement', '')}${Int.ECHELONS.filter(e => !tire || !aj.min || Int.rang(e) >= Int.rang(aj.min)).map(e => opt(e, e, '')).join('')}</select>` : ''}<button class="btn">Ajouter</button></form>
       <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /RAM Club : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
-      ${tire ? '<p class="muted small">Le tableau est tiré : les placements se modifient dans « Tirage et composition ».</p>' : `<div class="in-row" style="margin-top:14px"><button type="button" class="btn ghost" data-go="tirage">Passer au tirage</button></div>`}</section>`;
+      ${tire ? '<p class="muted small">Les placements se modifient dans « Tirage et composition ».</p>' : `<div class="in-row" style="margin-top:14px"><button type="button" class="btn ghost" data-go="tirage">Passer au tirage</button></div>`}</section>`;
   }
   /* l'arbre d'un tableau (ou d'une section), comme la feuille FFT : chaque joueur sur un trait (nom et classement
      au-dessus, tête de série cerclée), le vainqueur reporté sur le trait du tour suivant avec le score en dessous,
@@ -355,10 +357,11 @@ main#app { min-width: 0; }
     if (!tire) {
       return `<section class="card"><span class="eyebrow">Tirage au sort</span><h2>Établir le tableau</h2>
         <p>${i.players.length} participant${i.players.length > 1 ? 's' : ''} · ${esc(i.mode === 'poules' ? 'poules, puis tableau final' : i.mode === 'tmc' ? 'tournoi multi-chances' : (i.struct || []).length ? (i.struct.length + 1) + ' tableaux successifs' : 'tableau unique')}</p>
-        <div class="in-row"><button class="btn" id="in-draw" ${i.players.length < 2 ? 'disabled' : ''}>Tirage automatique</button><button class="btn ghost" id="in-vierge" ${i.players.length < 2 ? 'disabled' : ''}>Tableau vierge à composer</button></div>
+        <div class="in-row"><button class="btn" id="in-draw" ${i.players.length < 2 ? 'disabled' : ''}>Tirage automatique${(i.struct || []).length && i.mode === 'tableaux' ? ' de tous les tableaux' : ''}</button><button class="btn ghost" id="in-vierge" ${i.players.length < 2 ? 'disabled' : ''}>Tableau vierge à composer</button></div>
+        ${(i.struct || []).length && i.mode === 'tableaux' ? `<div class="in-row" style="margin-top:10px"><button class="btn ghost" data-tabdraw="auto">Tirer seulement le tableau 1 (${esc(Int.prochain(i).spec.plage)})</button><button class="btn ghost" data-tabdraw="vierge">Tableau 1 vierge</button></div><p class="muted small">Les tableaux suivants se tireront plus tard, pendant que le tableau 1 se joue ; d’ici là vous pouvez inscrire des joueurs mieux classés et ajouter des tableaux au découpage.</p>` : ''}
         <p class="muted small"><b>Tirage automatique</b> : têtes de série, exempts et qualifiés placés selon le règlement (art. 45 à 52), les autres tirés au sort ; vous pouvez ensuite tout modifier à la main.<br><b>Tableau vierge</b> : les dimensions sont calculées et vous placez chaque joueur vous-même, par exemple pour recopier un tableau établi dans MOJA.</p></section>`;
     }
-    const ctl = Int.controles(i), joue = Int.allMatches(i).some(m => m.w && !m.bye);
+    const ctl = Int.controles(i), joue = Int.allMatches(i).some(m => m.w && !m.bye), partiel = i.mode === 'tableaux' && !!Int.prochain(i);
     const opts = (T, cur) => {
       const idx = Int.tabsOf(i).indexOf(T), prevQ = Int.tabsOf(i).slice(0, idx).filter(U => U.role === 'inter').flatMap(U => Array.from({ length: U.q }, (_, j) => 'Q:' + U.id + ':' + j));
       const pTok = T.role === 'final' ? Int.poulesOf(i).flatMap(po => Array.from({ length: po.q }, (_, r) => 'P:' + po.k + ':' + (r + 1))) : [];
@@ -385,13 +388,25 @@ main#app { min-width: 0; }
         <p class="muted small">Choisissez pour chaque ligne un joueur, un exempt ou une place de qualifié : un joueur déjà placé échange sa place. Le tour d’entrée de chaque joueur s’affiche à droite.</p>`}
         <div class="cp-g">${corps}</div></section>`;
     };
+    // tableaux publiés un par un : le prochain du découpage, ses joueurs et ses qualifiés entrants
+    const suivant = () => {
+      if (i.mode !== 'tableaux' || i.status === 'done') return '';
+      const x = Int.prochain(i), der = Int.tabsOf(i).filter(t => t.role !== 'consol' && t.role !== 'class').slice(-1)[0];
+      const retirer = der && !Int.tabJoue(der) && Int.publies(i) > 1 ? `<button class="btn ghost" id="in-tabundraw">Retirer le ${esc(der.nom.toLowerCase())}</button>` : '';
+      if (!x) return retirer ? `<section class="card"><span class="eyebrow">Découpage</span><h2>Tous les tableaux sont tirés</h2><div class="in-row">${retirer}</div></section>` : '';
+      return `<section class="card"><span class="eyebrow">Prochain tableau · non publié</span><h2>${esc(x.spec.nom)}${x.spec.plage ? ' · ' + esc(x.spec.plage) : ''}</h2>
+        <p>${x.direct.length} joueur${x.direct.length > 1 ? 's' : ''} admis directement${x.qIn.length ? ' + ' + x.qIn.length + ' qualifié' + (x.qIn.length > 1 ? 's' : '') + ' du tableau précédent' : ''}${x.finalTab ? '' : ' · ' + x.spec.q + ' qualifié' + (x.spec.q > 1 ? 's' : '') + ' sortant' + (x.spec.q > 1 ? 's' : '') + ' (sections)'}.</p>
+        ${x.direct.length ? `<p class="muted small">${x.direct.map(p => esc(p.n) + (p.cl ? ' (' + esc(p.cl) + ')' : '')).join(', ')}</p>` : ''}
+        <div class="in-row"><button class="btn" data-tabdraw="auto">Tirer ce tableau</button><button class="btn ghost" data-tabdraw="vierge">Le composer à la main</button>${retirer}<button type="button" class="btn ghost" data-go="tournoi">Modifier le découpage</button></div>
+        <p class="muted small">D’ici son tirage, vous pouvez inscrire des joueurs classés ${esc((Int.ajoutPossible(i).min) || '')} ou mieux et ajouter des tableaux au découpage (onglet Tournoi).</p></section>`;
+    };
     const poulesC = () => !Int.poulesOf(i).length ? '' : `<section class="card"><span class="eyebrow">Poules</span><h2>Composition des poules</h2>
       <div class="in-poules">${Int.poulesOf(i).map(po => `<div class="in-poule"><h3>${esc(po.nom)} · ${po.joueurs.length}</h3>${po.joueurs.map(id => `<div class="in-p"><span class="n">${esc(nom(id))}${(Int.joueur(i, id) || {}).cl ? ' <span class="club">' + esc(Int.joueur(i, id).cl) + '</span>' : ''}</span><select data-pmove="${esc(id)}" aria-label="Changer de poule">${Int.poulesOf(i).map(x => `<option value="${x.k}" ${x.k === po.k ? 'selected' : ''}>${esc(x.nom)}</option>`).join('')}</select></div>`).join('')}</div>`).join('')}</div>
       <p class="muted small">Un joueur déplacé dans une poule de 6 doit en échanger un autre : choisissez d’abord une poule qui a de la place.</p></section>`;
     return `<section class="card"><span class="eyebrow">Contrôles du règlement</span><h2>${ctl.length ? ctl.length + ' point' + (ctl.length > 1 ? 's' : '') + ' à vérifier' : 'Tableau conforme'}</h2>
         ${ctl.length ? `<div class="in-al">${ctl.map(c => `<p>${esc(c.txt)}</p>`).join('')}</div>` : '<p class="muted small">Chaque joueur est placé une fois ; têtes de série, exempts et qualifiés respectent les articles 45 à 49.</p>'}
-        <div class="in-row">${joue ? '' : '<button class="btn ghost" id="in-redraw">Refaire un tirage automatique</button><button class="btn ghost" id="in-revierge">Repartir d’un tableau vierge</button><button class="btn ghost" id="in-undraw">Annuler le tirage</button>'}</div></section>
-      ${poulesC()}${Int.tabsOf(i).map(unTab).join('')}`;
+        <div class="in-row">${joue ? '' : (partiel ? '' : '<button class="btn ghost" id="in-redraw">Refaire un tirage automatique</button><button class="btn ghost" id="in-revierge">Repartir d’un tableau vierge</button>') + '<button class="btn ghost" id="in-undraw">Annuler le tirage</button>'}</div></section>
+      ${suivant()}${poulesC()}${Int.tabsOf(i).map(unTab).join('')}`;
   }
   function render() {
     if (!S || !S.int) return;
@@ -469,7 +484,7 @@ main#app { min-width: 0; }
       if (qui.some(x => x.doublon)) return toast('Plusieurs adhérents portent ce nom : choisis la bonne personne dans la liste');
       const noms = qui.map(x => x.n), ks = qui.map(x => x.k).filter(Boolean);
       // simple : le classement de la fiche de l'adhérent ; double : le juge-arbitre le choisit
-      const cl = qui.length === 1 && qui[0].k ? ((membres.find(m => m.k === qui[0].k) || {}).cl || '') : '';
+      const cl = (f.cl && f.cl.value) || (qui.length === 1 && qui[0].k ? ((membres.find(m => m.k === qui[0].k) || {}).cl || '') : '');
       if (await send('int/player/add', { n: noms.join(' / '), ks, cl })) { f.reset(); f.a.focus(); }
     };
     document.querySelectorAll('[data-cl]').forEach(s => (s.onchange = () => send('int/player/cl', { id: s.dataset.cl, cl: s.value })));
@@ -501,6 +516,8 @@ main#app { min-width: 0; }
       if (vers && vers.joueurs.length >= 6) { avec = prompt('Cette poule est complète : nom exact du joueur à échanger', ''); const x = vers.joueurs.find(id => nom(id).toLowerCase() === String(avec || '').trim().toLowerCase()); if (!x) { render(); return toast('Échange annulé'); } avec = x; }
       if (!(await send('int/poule/move', { id: s.dataset.pmove, k, avec }))) render();
     }));
+    document.querySelectorAll('[data-tabdraw]').forEach(b => (b.onclick = async () => { if (await send('int/tab/draw', { vierge: b.dataset.tabdraw === 'vierge' })) toast(b.dataset.tabdraw === 'vierge' ? 'Tableau publié, à composer' : 'Tableau tiré : les joueurs sont prévenus'); }));
+    on('#in-tabundraw', async () => { if (confirm('Retirer le dernier tableau tiré ?') && await send('int/tab/undraw')) toast('Tableau retiré'); });
     on('#in-vierge', async () => { if (await send('int/draw', { vierge: true })) toast('Tableau vierge : placez chaque joueur'); });
     on('#in-revierge', async () => { if (confirm('Repartir d’un tableau vierge ? Tous les placements seront retirés.') && await send('int/draw', { vierge: true })) toast('Tableau vierge'); });
     // formule, poules, programmation : enregistrées aussitôt

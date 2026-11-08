@@ -39,6 +39,20 @@ test('Club : poules et tableau final, programmation visible dans « mon prochain
   assert.match(mur, /Programmé le sam\. 11\/05 à 10h00 · Court 2/);
 });
 
+test('Club : tableaux publiés un par un, le joueur en attente de son tableau ou qualifié pour le suivant le sait', () => {
+  // j1 (le joueur connecté, clé k1) est classé 15 : son tableau final n'est pas encore tiré
+  const T = nouveau(7, i => (i === 1 ? '15' : i === 2 ? '15/1' : ['NC', '40', '30/5', '30/4', '30/3'][i - 3]));
+  Int.reduce(T, { type: 'int/setup', payload: { struct: [{ max: '30/3', q: 1 }] } });
+  Int.reduce(T, { type: 'int/tab/draw' });
+  assert.match(afficher(T).mur, /Ton tableau n’est pas encore tiré/);
+  // un joueur du tableau 1 (connecté : on prend sa clé) qui gagne sa section : qualifié pour un tableau pas encore tiré
+  const U = nouveau(4, i => ['NC', '40', '30/5', '15'][i - 1]);
+  Int.reduce(U, { type: 'int/setup', payload: { struct: [{ max: '30/3', q: 1 }] } });
+  Int.reduce(U, { type: 'int/tab/draw' });
+  for (let k = 0; k < 4; k++) Int.allMatches(U.int).filter(m => Int.etat(m) === 'ready').forEach(m => Int.reduce(U, { type: 'int/result', payload: { m: m.id, w: m.a === 'j1' || m.b === 'j1' ? 'j1' : m.a, sc: '6-1 6-1' } }));
+  assert.match(afficher(U).mur, /Qualifié pour le tableau suivant/);
+});
+
 test('Club : arbre avec branches, exempts cachés, sections et TMC classé', () => {
   const T = nouveau(6, i => ['15', '15/1', '30', '30/1', '30/2', '40'][i - 1]);
   Int.reduce(T, { type: 'int/draw' });

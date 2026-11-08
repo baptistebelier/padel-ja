@@ -2138,3 +2138,38 @@ test('JA : tournoi interne dans « En cours », composition à la main d’un ta
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+test('JA : tournoi interne lancé avec un seul tableau à sections, joueur inscrit en cours, tableau suivant tiré ensuite', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/demo');
+  await page.waitForTimeout(400);
+  const id = await page.evaluate(async () => {
+    const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json());
+    const { id } = await post('/api/tournaments', { kind: 'interne', sport: 'Tennis', name: 'Interne progressif' });
+    const cl = ['NC', 'NC', '40', '40', '30/5', '30/5', '30/4', '30/4', '30/3', '30/3'];
+    for (let i = 0; i < cl.length; i++) await post('/api/t/' + id + '/action', { type: 'int/player/add', payload: { n: 'Joueur ' + (i + 1), ks: ['k' + i], cl: cl[i] } });
+    await post('/api/t/' + id + '/action', { type: 'int/setup', payload: { struct: [{ max: '30/3', q: 4 }] } });
+    return id;
+  });
+  await page.goto(JA + '/t/' + id + '#tirage');
+  await page.waitForSelector('[data-tabdraw="auto"]', { timeout: 8000 });
+  await page.click('[data-tabdraw="auto"]');
+  await page.waitForFunction(() => /Prochain tableau · non publié/.test(document.querySelector('#tab-tirage').textContent), null, { timeout: 8000 });
+  // inscrire un joueur classé au-dessus pendant que le tableau 1 se joue
+  await page.click('#nav button[data-tab="participants"]');
+  assert.match(await page.textContent('#tab-participants'), /classés 30\/2 ou mieux/);
+  await page.fill('#in-add input[name=a]', 'Nouveau Venu');
+  await page.selectOption('#in-add select[name=cl]', '15/4');
+  await page.click('#in-add button.btn');
+  await page.waitForFunction(() => document.querySelector('#tab-participants').textContent.includes('Nouveau Venu'), null, { timeout: 8000 });
+  // le tableau final (les 4 qualifiés et le nouveau venu) se tire depuis le Tirage
+  await page.click('#nav button[data-tab="tirage"]');
+  await page.click('#tab-tirage [data-tabdraw="auto"]');
+  await page.waitForFunction(() => !document.querySelector('#tab-tirage [data-tabdraw]'), null, { timeout: 8000 });
+  await page.click('#nav button[data-tab="tableaux"]');
+  assert.match(await page.textContent('#tab-tableaux'), /Tableau final/);
+  assert.match(await page.textContent('#tab-tableaux'), /Nouveau Venu/);
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});

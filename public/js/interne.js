@@ -174,7 +174,8 @@
   const tire = I => tabsOf(I).length > 0 || poulesOf(I).length > 0;
   const estTok = x => /^[QPL]:/.test(String(x || ''));
   // le tableau principal (celui du vainqueur) ; un tableau d'avant les rôles : le dernier tableau à un seul qualifié
-  const final = I => { const l = tabsOf(I); return l.find(t => t.role === 'final') || l.find(t => !t.role && t.q === 1 && t.id === '') || l[l.length - 1] || null; };
+  // tableau final pas encore tiré (tableaux publiés un par un) : pas de tableau principal
+  const final = I => { const l = tabsOf(I); if (l.some(t => t.role)) return l.find(t => t.role === 'final') || null; return l.find(t => t.q === 1 && t.id === '') || l[l.length - 1] || null; };
   const consolante = I => tabsOf(I).find(t => t.role === 'consol') || null;
   const LETTRES = 'abcdefgh';
   const plageNom = (lo, hi) => (lo === hi ? ECHELONS[lo] : (lo === 0 ? 'NC' : ECHELONS[lo]) + ' à ' + (hi >= ECHELONS.length ? 'numérotés' : ECHELONS[hi]));
@@ -218,12 +219,15 @@
       pos = r => { const niv = Math.ceil(r / q), k = (r - 1) % q, j = niv % 2 ? q - 1 - k : k; return j * s + sec[j][niv - 1]; };
     }
     const lines = new Array(D).fill(null), ts = {}, reserve = new Set();
-    const nPos = Math.min(D / 2, Math.max(nTS, b));
+    // exempts des joueurs directs : les têtes de série d'abord ; avec des qualifiés entrants, assez de joueurs directs
+    // restent au 1er tour pour leur servir d'adversaires, les autres exempts vont aux places des qualifiés (art. 47-4, 47-5)
+    const bd = qIn.length ? Math.min(b, Math.max(Math.min(nTS, direct.length), direct.length - qIn.length)) : b;
+    const nPos = Math.min(D / 2, Math.max(nTS, bd));
     for (let r = 1; r <= nPos; r++) {
       const L = pos(r);
       if (r <= tri.length) { lines[L] = tri[r - 1].id; if (r <= nTS) ts[tri[r - 1].id] = r; }
       else reserve.add(L);   // plus d'exempts que de joueurs directs : place gardée pour un qualifié
-      if (r <= b) lines[L ^ 1] = 'BYE';
+      if (r <= bd) lines[L ^ 1] = 'BYE';
     }
     // qualifiés entrants : une place par fraction, tirée au sort, jamais face à un autre qualifié, en non-exempt si possible ;
     // le 2e d'une poule va dans l'autre moitié que le 1er de sa poule (spec.oppose)
@@ -244,19 +248,63 @@
           for (let x = f * fs; x < (f + 1) * fs; x++) if (lines[x] === null && !reserve.has(x) && lines[x ^ 1] !== 'BYE' && !estTok(lines[x ^ 1])) libres.push(x);
           if (fs >= 4 && libres.some(x => loin(x, f))) libres = libres.filter(x => loin(x, f));
           if (!libres.length) for (let x = f * fs; x < (f + 1) * fs; x++) if (lines[x] === null && !estTok(lines[x ^ 1])) libres.push(x);
-          if (!libres.length && (!direct.length || spec.poules)) for (let x = f * fs; x < (f + 1) * fs; x++) if (lines[x] === null) libres.push(x);   // seuls qualifiés, ou sortis de poules (art. 45-3-c, 55-3)
+          if (!libres.length && (!direct.length || spec.poules || (finalTab && qIn.length > direct.length))) for (let x = f * fs; x < (f + 1) * fs; x++) if (lines[x] === null) libres.push(x);   // seuls qualifiés, ou sortis de poules (art. 45-3-c, 55-3)
           if (libres.length) { L = libres[Math.floor(R() * libres.length)]; break; }
         }
-        if (L === null) for (let x = 0; x < D && L === null; x++) if (lines[x] === null && (spec.poules || !estTok(lines[x ^ 1]))) L = x;
+        if (L === null) for (let x = 0; x < D && L === null; x++) if (lines[x] === null && (spec.poules || (finalTab && qIn.length > direct.length) || !estTok(lines[x ^ 1]))) L = x;
         if (L === null) throw new Error('Impossible de placer les qualifiés : augmente la taille du tableau ou réduis le nombre de qualifiés.');
         lines[L] = tok; reserve.delete(L);
       });
     }
-    // les autres, au sort
-    const reste = melange(tri.slice(nPos), R), vides = [];
-    lines.forEach((x, i) => { if (x === null) vides.push(i); });
-    reste.forEach((p, i) => { lines[vides[i]] = p.id; });
+    // les autres : d'abord face aux qualifiés et aux joueurs déjà placés (pas d'exempt de plus), puis dans les matchs
+    // encore vides ; s'il reste des exempts, ils vont aux mieux classés de ceux-là (art. 45-3-b), les places au sort
+    const reste = tri.slice(nPos);
+    const demi = []; lines.forEach((x, i) => { if (x === null && lines[i ^ 1] !== null && lines[i ^ 1] !== 'BYE') demi.push(i); });
+    const videsP = []; for (let i = 0; i < D; i += 2) if (lines[i] === null && lines[i + 1] === null) videsP.push(i);
+    // combien auront un exempt dans les matchs encore vides, une fois les places en face des qualifiés remplies : les mieux classés
+    const ep = videsP.length, surplus = reste.length - demi.length;
+    const nEx = surplus <= 0 ? 0 : surplus >= ep ? 2 * ep - surplus : surplus;
+    const exempts = reste.slice(0, nEx), alea = melange(reste.slice(nEx), R);
+    melange(demi, R).sort((a, b) => (estTok(lines[b ^ 1]) ? 1 : 0) - (estTok(lines[a ^ 1]) ? 1 : 0)).forEach(i => { const p = alea.shift(); if (p) lines[i] = p.id; });
+    const joueursPaires = alea;
+    melange(videsP, R).forEach((i, k) => {
+      if (k < exempts.length) { const haut = R() < 0.5 ? i : i + 1; lines[haut] = exempts[k].id; lines[haut ^ 1] = 'BYE'; }
+      else { const a = joueursPaires.shift(), c = joueursPaires.shift(); lines[i] = a ? a.id : 'BYE'; lines[i + 1] = c ? c.id : 'BYE'; }
+    });
     lines.forEach((x, i) => { if (x === null) lines[i] = 'BYE'; });
+    // un match sans aucun joueur fait entrer un tour plus tard le joueur d'à côté : ce doit être le mieux classé
+    // (la tête de série 1, puis la 2…), jamais un moins bien classé (art. 45-3-b)
+    const vide = pr => lines[2 * pr] === 'BYE' && lines[2 * pr + 1] === 'BYE';
+    const section = pr => (finalTab ? 0 : Math.floor((2 * pr) / s)), pris2 = new Set();
+    // d'abord, un match vide reçoit plutôt le mieux classé des joueurs qui jouent le 1er tour contre un qualifié :
+    // ce joueur et ce qualifié deviennent exempts (art. 47-5), personne n'entre deux tours plus tard
+    const rangTri = new Map(tri.map((p, i) => [p.id, i]));
+    for (let pr = 0; pr < D / 2; pr++) {
+      if (!vide(pr)) continue;
+      const auPremier = L => rangTri.has(lines[L]) && lines[L ^ 1] !== 'BYE';
+      const face = L => auPremier(L) && estTok(lines[L ^ 1]);
+      let ici = lines.map((x, L) => (face(L) && section(L >> 1) === section(pr) ? L : -1)).filter(L => L >= 0);
+      // aucune dans cette section : on la complète avec un joueur d'une autre section (sections équilibrées)
+      if (!ici.length) ici = lines.map((x, L) => (face(L) ? L : -1)).filter(L => L >= 0);
+      if (!ici.length) continue;
+      // le meilleur joueur du 1er tour, où qu'il soit, prend la place du candidat de cette section (art. 45-3-b sur tout le tableau)
+      const tous = lines.map((x, L) => (auPremier(L) ? L : -1)).filter(L => L >= 0).sort((a, b) => rangTri.get(lines[a]) - rangTri.get(lines[b]));
+      const L = ici[0], G = tous[0];
+      if (G !== L) [lines[G], lines[L]] = [lines[L], lines[G]];
+      lines[2 * pr] = lines[L]; lines[2 * pr + 1] = 'BYE'; lines[L] = 'BYE';
+    }
+    const tetes = tri.slice(0, nPos).map(p => lines.indexOf(p.id) >> 1).filter(pr => pr >= 0);   // dans l'ordre du classement
+    for (let pr = 0; pr < D / 2; pr++) {
+      if (!vide(pr)) continue;
+      // à côté de la meilleure tête de série de la section dont le voisin n'a pas déjà reçu un match vide
+      const t = tetes.find(x => section(x) === section(pr) && !pris2.has(x ^ 1) && !tetes.includes(x ^ 1));
+      if (t == null) continue;
+      const cible = t ^ 1; pris2.add(cible);
+      if (cible === pr) continue;
+      [lines[2 * pr], lines[2 * cible]] = [lines[2 * cible], lines[2 * pr]];
+      [lines[2 * pr + 1], lines[2 * cible + 1]] = [lines[2 * cible + 1], lines[2 * pr + 1]];
+      if (vide(pr)) pr--;   // un autre match vide vient d'arriver ici : on le replace aussi
+    }
     return tabDeLignes(spec, lines, ts, s);
   }
   /* un tableau dont les lignes du 1er tour sont connues (aussi les tableaux de classement d'un TMC) */
@@ -272,25 +320,55 @@
     return t;
   }
 
-  /* formule tableaux : du plus faible classement au tableau final */
-  function buildTableaux(I, R) {
-    const st = I.struct || [], rep = repartition(I), tabs = [];
-    let qIn = [], lo = 0;
-    for (let k = 0; k <= st.length; k++) {
-      const finalTab = k === st.length, hi = finalTab ? 999 : rang(st[k].max);
-      const spec = finalTab
-        ? { id: '', nom: st.length ? 'Tableau final' : 'Tableau', plage: st.length ? (lo >= ECHELONS.length ? 'numérotés' : 'à partir de ' + ECHELONS[lo]) : '', q: 1, role: 'final' }
-        : { id: LETTRES[k], nom: 'Tableau ' + (k + 1), plage: plageNom(lo, hi), q: Math.max(1, Math.min(16, +st[k].q || 1)), role: 'inter' };
-      const E = rep[k].length + qIn.length;
-      if (E < 2) throw new Error(`${spec.nom}${spec.plage ? ' (' + spec.plage + ')' : ''} : il faut au moins deux joueurs. Change les limites de classement des tableaux.`);
-      if (k > 0 && !finalTab && qIn.length > rep[k].length) throw new Error(`${spec.nom}${spec.plage ? ' (' + spec.plage + ')' : ''} : ${qIn.length} qualifiés entrants pour ${rep[k].length} joueur${rep[k].length > 1 ? 's' : ''} admis directement ; deux qualifiés se rencontreraient d’entrée (art. 45-3-c). Réduis le nombre de qualifiés du tableau précédent ou change les limites de classement.`);
-      if (!finalTab && E <= spec.q) throw new Error(`${spec.nom} (${spec.plage}) : ${E} joueur${E > 1 ? 's' : ''} pour ${spec.q} qualifié${spec.q > 1 ? 's' : ''}. Réduis le nombre de qualifiés.`);
-      tabs.push(construire(spec, rep[k], qIn, R));
-      qIn = finalTab ? [] : Array.from({ length: spec.q }, (_, j) => 'Q:' + spec.id + ':' + j);
-      lo = hi + 1;
-    }
-    I.tabs = tabs; I.poules = [];
+  /* formule tableaux : le découpage (I.struct) va du plus faible classement au tableau final ; chaque tableau peut
+     être tiré (publié) à son tour, les suivants plus tard, même pendant que le premier se joue */
+  const principaux = I => tabsOf(I).filter(t => t.role !== 'consol' && t.role !== 'class');
+  const publies = I => (I.mode === 'tableaux' || !I.mode ? principaux(I).length : 0);
+  // le tableau k du découpage : son nom, sa plage de classement, ses joueurs directs, ses qualifiés entrants
+  function prochain(I, k = publies(I)) {
+    const st = I.struct || [];
+    if (k > st.length) return null;
+    const finalTab = k === st.length, lo = k ? rang(st[k - 1].max) + 1 : 0, hi = finalTab ? 999 : rang(st[k].max);
+    const spec = finalTab
+      ? { id: '', nom: st.length ? 'Tableau final' : 'Tableau', plage: st.length ? (lo >= ECHELONS.length ? 'numérotés' : 'à partir de ' + ECHELONS[lo]) : '', q: 1, role: 'final' }
+      : { id: LETTRES[k], nom: 'Tableau ' + (k + 1), plage: plageNom(lo, hi), q: Math.max(1, Math.min(16, +st[k].q || 1)), role: 'inter' };
+    const direct = repartition(I)[k] || [];
+    const qIn = k ? Array.from({ length: Math.max(1, Math.min(16, +st[k - 1].q || 1)) }, (_, j) => 'Q:' + LETTRES[k - 1] + ':' + j) : [];
+    return { k, spec, direct, qIn, finalTab };
   }
+  /* tirer le tableau k du découpage (les précédents sont déjà tirés) */
+  function tirerTab(I, k) {
+    const x = prochain(I, k); if (!x) throw new Error('Tous les tableaux sont tirés.');
+    const { spec, direct, qIn, finalTab } = x, E = direct.length + qIn.length;
+    if (E < 2) throw new Error(`${spec.nom}${spec.plage ? ' (' + spec.plage + ')' : ''} : il faut au moins deux joueurs. Change les limites de classement des tableaux.`);
+    if (k > 0 && !finalTab && qIn.length > direct.length) throw new Error(`${spec.nom}${spec.plage ? ' (' + spec.plage + ')' : ''} : ${qIn.length} qualifiés entrants pour ${direct.length} joueur${direct.length > 1 ? 's' : ''} admis directement ; deux qualifiés se rencontreraient d’entrée (art. 45-3-c). Réduis le nombre de qualifiés du tableau précédent ou change les limites de classement.`);
+    if (!finalTab && E <= spec.q) throw new Error(`${spec.nom} (${spec.plage}) : ${E} joueur${E > 1 ? 's' : ''} pour ${spec.q} qualifié${spec.q > 1 ? 's' : ''}. Réduis le nombre de qualifiés.`);
+    const t = construire(spec, direct, qIn, rng((I.seed || 0) + k * 7919));
+    // rangé après les tableaux principaux déjà tirés, avant une éventuelle consolante
+    const c = I.tabs.findIndex(u => u.role === 'consol');
+    if (c >= 0) I.tabs.splice(c, 0, t); else I.tabs.push(t);
+    return t;
+  }
+  function buildTableaux(I) {
+    // tout ou rien : un tableau impossible annule le tirage entier
+    const avant = { tabs: I.tabs, poules: I.poules };
+    I.tabs = []; I.poules = [];
+    try { for (let k = 0; k <= (I.struct || []).length; k++) tirerTab(I, k); }
+    catch (e) { I.tabs = avant.tabs; I.poules = avant.poules; throw e; }
+  }
+  /* un participant peut-il encore entrer ? avant tout tirage, oui ; ensuite, si son classement le range dans un
+     tableau du découpage qui n'est pas encore tiré → { ok, min (classement minimum), raison } */
+  function ajoutPossible(I, cl) {
+    if (!tire(I)) return { ok: true };
+    if (I.mode !== 'tableaux' && I.mode) return { ok: false, raison: 'Le tableau est tiré : retire le tirage pour changer les participants.' };
+    const k = publies(I), st = I.struct || [];
+    if (k > st.length) return { ok: false, raison: 'Tous les tableaux sont tirés : plus aucun participant ne peut entrer.' };
+    const min = k ? ECHELONS[rang(st[k - 1].max) + 1] || 'numérotés' : 'NC';
+    if (cl === undefined) return { ok: true, min };
+    return rang(cl) >= (k ? rang(st[k - 1].max) + 1 : 0) ? { ok: true, min } : { ok: false, min, raison: `Les tableaux jusqu’à ${st[k - 1].max} sont tirés : un nouveau participant doit être classé ${min} ou mieux.` };
+  }
+  // un joueur est-il déjà dans un tableau tiré ou une poule ?
+  const place = (I, id) => tabsOf(I).some(t => t.lines.includes(id)) || poulesOf(I).some(po => po.joueurs.includes(id));
   /* formule poules : poules de 6 au plus (effectifs à une unité près), une tête de série par poule, réparties comme
      dans un tableau à sections (n° 1 dans la dernière poule…), les autres en serpentin pour équilibrer (art. 54) */
   function buildPoules(I, R) {
@@ -535,13 +613,16 @@
     const out = [], P = I.players, poules = poulesOf(I).length > 0;
     // chaque joueur placé une fois : dans une poule ou un tableau (hors tableaux de classement et consolante)
     const principaux = tabsOf(I).filter(T => T.role !== 'class' && T.role !== 'consol');
+    // tableaux publiés un par un : un joueur d'un tableau pas encore tiré n'a pas encore de place
+    const rep = repartition(I), attend = id => (I.mode === 'tableaux' || !I.mode) && !poules && rep.findIndex(l => l.some(x => x.id === id)) >= principaux.length;
     P.forEach(p => {
+      if (attend(p.id)) return;
       const n = principaux.reduce((s, T) => s + T.lines.filter(x => x === p.id).length, 0) + (dansPoule(I, p.id) ? 1 : 0);
       if (!n) out.push({ t: '', txt: `${p.n} n’est placé dans aucun tableau${poules ? ' ni aucune poule' : ''}.` });
       if (n > 1) out.push({ t: '', txt: `${p.n} est placé ${n} fois.` });
     });
     principaux.forEach((T, k) => {
-      if (T.role === 'inter') {
+      if (T.role === 'inter' && principaux[k + 1]) {
         for (let j = 0; j < T.q; j++) {
           const tok = 'Q:' + T.id + ':' + j, n = ouEst(I, tok).length;
           if (n !== 1) out.push({ t: T.id, txt: `${T.nom} : la place du qualifié ${j + 1} ${n ? 'figure ' + n + ' fois' : 'manque'} dans le tableau suivant.` });
@@ -551,7 +632,7 @@
       // deux qualifiés face à face pour leur premier match (sauf tableau final de seuls qualifiés, art. 45-3-c)
       for (let L = 0; L < T.lines.length; L += 2) {
         const a = T.lines[L], b = T.lines[L + 1];
-        if (/^Q:/.test(a) && /^Q:/.test(b) && directs) out.push({ t: T.id, txt: `${T.nom} : deux qualifiés se rencontrent pour leur premier match (lignes ${L + 1} et ${L + 2}, art. 45-3-c).` });
+        if (/^Q:/.test(a) && /^Q:/.test(b) && directs && !(T.q === 1 && T.lines.filter(x => /^Q:/.test(x)).length > directs)) out.push({ t: T.id, txt: `${T.nom} : deux qualifiés se rencontrent pour leur premier match (lignes ${L + 1} et ${L + 2}, art. 45-3-c).` });
       }
       // tour d'entrée des joueurs : pas plus loin qu'un mieux classé (art. 45-3-b), un même classement sur 2 tours au plus (art. 45-3-a)
       const ent = T.lines.map((x, L) => (joueur(I, x) ? { p: joueur(I, x), r: entree(T, L), L } : null)).filter(Boolean);
@@ -652,14 +733,17 @@
           I.pcfg = { n, q, max };
         }
         if (p.struct != null) {
-          exige(!deja, 'Le tableau est tiré : annule le tirage pour changer la structure.');
-          exige(Array.isArray(p.struct) && p.struct.length <= 4, 'Quatre tableaux successifs au plus avant le tableau final.');
+          // découpage : les tableaux déjà tirés ne changent plus ; les suivants s'ajoutent ou se modifient jusqu'au tirage du tableau final
+          const n = publies(I);
+          exige(!deja || (I.mode === 'tableaux' && !final(I)), 'Le tableau final est tiré : le découpage ne change plus.');
+          exige(Array.isArray(p.struct) && p.struct.length <= 6, 'Six tableaux à sections au plus avant le tableau final.');
           const st = p.struct.map(x => ({ max: clNorm(x && x.max), q: Math.floor(+(x && x.q) || 0) }));
           st.forEach((x, k) => {
             exige(x.max && rang(x.max) < 100, `Tableau ${k + 1} : choisis le classement le plus haut admis (de NC à -30).`);
             exige(x.q >= 1 && x.q <= 16, `Tableau ${k + 1} : de 1 à 16 qualifiés sortants.`);
             exige(!k || rang(x.max) > rang(st[k - 1].max), `Tableau ${k + 1} : son classement le plus haut doit dépasser celui du tableau ${k}.`);
           });
+          for (let k = 0; k < n; k++) exige(st[k] && st[k].max === I.struct[k].max && st[k].q === I.struct[k].q, `Le tableau ${k + 1} est tiré : son découpage ne change plus.`);
           I.struct = st;
         }
         if (p.prog != null) I.prog = !!p.prog;
@@ -668,28 +752,51 @@
         return T;
       }
       case 'int/player/add': {
-        exige(!deja, 'Le tableau est tiré : retire le tirage pour changer les participants.');
+        exige(!fini, 'Tournoi terminé.');
+        const cl = clNorm(p.cl), aj = ajoutPossible(I, deja ? cl : undefined);
+        exige(aj.ok, aj.raison);
         exige(I.players.length < 128, '128 participants au plus.');
         const n = String(p.n || '').trim().slice(0, 80); exige(n, 'Le nom du participant manque.');
         const ks = (Array.isArray(p.ks) ? p.ks : [p.k]).filter(Boolean).map(String).slice(0, 2);
         exige(!ks.some(k => I.players.some(x => (x.ks || []).includes(k))), 'Cet adhérent participe déjà.');
         const x = { id: 'j' + (I.players.length ? Math.max(...I.players.map(y => +String(y.id).slice(1) || 0)) + 1 : 1), n, ks };
-        const cl = clNorm(p.cl); if (cl) x.cl = cl;
+        if (cl) x.cl = cl;
         I.players.push(x);
         return T;
       }
-      case 'int/player/remove': exige(!deja, 'Le tableau est tiré.'); I.players = I.players.filter(x => x.id !== p.id); return T;
+      // après le début : seulement un participant qui n'est encore dans aucun tableau tiré
+      case 'int/player/remove': exige(!place(I, p.id), 'Ce joueur est dans un tableau tiré : il ne peut plus être retiré (déclarez un forfait).'); I.players = I.players.filter(x => x.id !== p.id); return T;
       case 'int/player/seed': {
-        exige(!deja, 'Le tableau est tiré.');
         const x = joueur(I, p.id); exige(x, 'Participant introuvable.');
+        exige(!place(I, x.id), 'Ce joueur est dans un tableau tiré : sa tête de série se change dans la composition.');
         const s = +p.seed || 0; if (s) I.players.forEach(y => { if (y !== x && +y.seed === s) delete y.seed; });
         if (s > 0 && s <= 32) x.seed = s; else delete x.seed;
         return T;
       }
       case 'int/player/cl': {
-        exige(!deja, 'Le tableau est tiré : annule le tirage pour changer un classement.');
         const x = joueur(I, p.id); exige(x, 'Participant introuvable.');
-        const cl = clNorm(p.cl); if (cl) x.cl = cl; else delete x.cl;
+        exige(!place(I, x.id), 'Ce joueur est dans un tableau tiré : son classement ne change plus.');
+        const cl = clNorm(p.cl);
+        if (deja) { const aj = ajoutPossible(I, cl); exige(aj.ok, aj.raison); }
+        if (cl) x.cl = cl; else delete x.cl;
+        return T;
+      }
+      /* tirer le tableau suivant du découpage (tableaux publiés un par un) ; vierge : à composer à la main */
+      case 'int/tab/draw': {
+        exige(!fini, 'Tournoi terminé.');
+        exige(I.mode === 'tableaux' || !I.mode, 'Les tableaux se tirent un par un dans la formule « tableaux ».');
+        const t = tirerTab(I, publies(I));
+        if (p.vierge) { t.lines = t.lines.map(x => (joueur(I, x) ? 'BYE' : x)); t.ts = {}; refaire(t); }
+        resolve(I); I.status = 'live';
+        return T;
+      }
+      /* retirer le dernier tableau tiré tant qu'aucun résultat n'y est saisi */
+      case 'int/tab/undraw': {
+        const l = principaux(I), der = l[l.length - 1];
+        exige(der && !tabJoue(der), 'Des résultats sont saisis dans ce tableau.');
+        I.tabs = I.tabs.filter(t => t !== der);
+        if (!tire(I)) I.status = 'setup';
+        resolve(I);
         return T;
       }
       case 'int/tour': {
@@ -913,5 +1020,5 @@
   }
   return { initialState, reduce, isInterne, build, resolve, etat, allMatches, findM, suivant, avant, champion, places, nomDe, joueur, tourNom, nomTour, finDe, avis, aRelancer, seedOrder, placesTS,
     tabsOf, poulesOf, tire, tsDe, repartition, repartitionPoules, rang, clNorm, ECHELONS, FORMATS, CATEGORIES, formatNom, verifScore, norm,
-    classementPoule, pouleFinie, consolables, consolante, vainqueur, final, alertes, progNom, jourFr, estTok, controles, entree, tabJoue };
+    classementPoule, pouleFinie, consolables, consolante, vainqueur, final, alertes, progNom, jourFr, estTok, controles, entree, tabJoue, prochain, publies, ajoutPossible, place };
 });

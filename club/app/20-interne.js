@@ -63,8 +63,22 @@ function intMatchCarte(p, J, pj) {
     return J.champion === pj.id
       ? `<div class="int-moi win">${ic('trophy')}<b>Vainqueur du tournoi${pour} !</b></div>`
       : '';
-  if (!m)
+  if (!m) {
+    // tableaux publiés un par un : pas encore placé, ou qualifié pour un tableau pas encore tiré
+    const joue = intMatches(J).some(x => !x.bye && (x.a === pj.id || x.b === pj.id)),
+      dedans = joue || intMatches(J).some(x => x.a === pj.id || x.b === pj.id);
+    if (!dedans && J.status !== 'done')
+      return `<div class="int-moi">${ic('clock')}<span>Ton tableau${pour} n’est pas encore tiré : tu recevras une notification avec ton premier adversaire.</span></div>`;
+    const sorti = intTabs(J).find(
+        T => T.role === 'inter' && (T.rounds[T.rounds.length - 1] || []).some(x => x.w === pj.id && x.conf)
+      ),
+      // qualifié, et pas encore dans un tableau suivant
+      qualifie =
+        !!sorti && !intTabs(J).some(T => T !== sorti && T.rounds.flat().some(x => x.a === pj.id || x.b === pj.id));
+    if (qualifie && J.status !== 'done')
+      return `<div class="int-moi">${ic('check')}<span><b>Qualifié${pour} pour le tableau suivant !</b><br>Il n’est pas encore tiré : tu recevras une notification avec ton adversaire.</span></div>`;
     return `<div class="int-moi">${ic('check')}<span>Ton parcours est terminé${pour}. Merci d’avoir participé !</span></div>`;
+  }
   const adv = m.a === pj.id ? m.b : m.a,
     fin = intFinM(J, m),
     data = `data-tid="${esc(J.tid)}" data-m="${m.id}"${kid ? ` data-kid="${kid}"` : ''}`;
