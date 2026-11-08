@@ -363,9 +363,14 @@ const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/
 const accessFails = new Map();
 const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
 setInterval(() => { const now = Date.now(); for (const [k, f] of accessFails) if (now > f.until) accessFails.delete(k); }, 15 * 60000);
+/* juge-arbitre adjoint : un compte dont l'e-mail est dans la liste du tournoi ; mêmes droits que le propriétaire,
+   sauf supprimer le tournoi et choisir les adjoints */
+const estAdjoint = (u, row) => !!(u && !u.guest && u.email && Array.isArray(row.adjoints) && row.adjoints.includes(String(u.email).toLowerCase()));
+const peutGerer = (u, row) => !!u && (u.id === row.owner || estAdjoint(u, row));
 async function access(req, url, room) {
-  const uid = ((await currentUser(req)) || {}).id;
+  const me = await currentUser(req), uid = (me || {}).id;
   if (uid && uid === room.row.owner) return 'owner';
+  if (estAdjoint(me, room.row)) return 'owner';
   const pin = req.headers['x-pin'] || url.searchParams.get('pin');
   const k = req.headers['x-key'] || url.searchParams.get('k');
   if (!pin && !k) return null;
@@ -854,11 +859,11 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/auth/logout' && req.method === 'POST') return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, null) });
     let m = p.match(/^\/t\/([\w-]+)\/?(tv|overlay|print|remote)?$/);
     if (m) {
-      if (!m[2]) { // éditeur : réservé au propriétaire
-        const uid = ((await currentUser(req)) || {}).id;
+      if (!m[2]) { // éditeur : réservé au propriétaire et à ses juges-arbitres adjoints
+        const me = await currentUser(req);
         const row = await store.getTournament(m[1]);
         if (!row) return redirect(res, '/app');
-        if (!uid || uid !== row.owner) return redirect(res, '/connexion?retour=' + encodeURIComponent(p));
+        if (!peutGerer(me, row)) return redirect(res, '/connexion?retour=' + encodeURIComponent(p));
         return sendFile(res, Int.isInterne(row.state) ? '/interne.html' : Ani.isAnimation(row.state) ? '/animation.html' : '/editor.html');
       }
       // animation : une seule page, qui s'adapte (écran TV, saisie des scores par les joueurs)
@@ -1296,14 +1301,17 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { id: row.id });
       }
       // les deux lectures partent en même temps (avant : l'une après l'autre, deux allers-retours vers la base)
-      const [tournaments, mine] = await Promise.all([store.listTournaments(u.id), store.getTemplates(u.id)]);
+      const [own, partages, mine] = await Promise.all([store.listTournaments(u.id), u.guest ? [] : store.listShared(u.email).catch(() => []), store.getTemplates(u.id)]);
+      // tournois où je suis juge-arbitre adjoint : dans ma liste, marqués
+      const tournaments = own.concat(partages.filter(t => t.owner !== u.id && !own.some(x => x.id === t.id)).map(t => Object.assign(t, { adjoint: true })));
       return json(res, 200, { tournaments, presets: Engine.PRESETS, mine });
     }
     m = p.match(/^\/api\/tournaments\/([\w-]+)(\/duplicate|\/close|\/reopen)?$/);
     if (m) {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
       const room = await getRoom(m[1]);
-      if (!room || room.row.owner !== u.id) return json(res, 404, { error: 'Tournoi introuvable' });
+      if (!room || !peutGerer(u, room.row)) return json(res, 404, { error: 'Tournoi introuvable' });
+      if (req.method === 'DELETE' && room.row.owner !== u.id) return json(res, 403, { error: 'Seul le juge-arbitre principal supprime le tournoi.' });
       if (m[2] === '/close' && req.method === 'POST') {
         const r = await closeTournament(room, u);
         return json(res, 200, r);
@@ -1545,7 +1553,7 @@ const server = http.createServer(async (req, res) => {
           if (!u.club && String(p.club || '').trim()) { u.club = String(p.club).trim().slice(0, 120); await store.saveUser(u); await syncAccountPlayer(u).catch(() => {}); }
         } else {
           const room = b.tid && await getRoom(b.tid);
-          if (!room || room.row.owner !== u.id) return json(res, 404, { error: 'Tournoi introuvable' });
+          if (!room || !peutGerer(u, room.row)) return json(res, 404, { error: 'Tournoi introuvable' });
           await store.saveProfile(u.id, Engine.profileFromState(room.row.state));
         }
       }
@@ -1659,7 +1667,7 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'POST') {
         const b = await readBody(req);
         const room = b.tid && await getRoom(b.tid);
-        if (!room || room.row.owner !== u.id) return json(res, 404, { error: 'Tournoi introuvable' });
+        if (!room || !peutGerer(u, room.row)) return json(res, 404, { error: 'Tournoi introuvable' });
         mine.push(Engine.templateFromState(room.row.state, b.name, b.desc));
         await store.saveTemplates(u.id, mine);
       }
@@ -1668,7 +1676,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     /* ---------- API d'un tournoi ---------- */
-    m = p.match(/^\/api\/t\/([\w-]+)\/(events|action|undo|export|info|stats|membres)$/);
+    m = p.match(/^\/api\/t\/([\w-]+)\/(events|action|undo|export|info|stats|membres|adjoints)$/);
     if (m) {
       const room = await getRoom(m[1]);
       if (!room) return json(res, 404, { error: 'Tournoi introuvable' });
@@ -1699,8 +1707,34 @@ const server = http.createServer(async (req, res) => {
         if (level !== 'owner') return json(res, 403, { error: 'Réservé au juge-arbitre' });
         return json(res, 200, await jaClub.membres(room.row.state));
       }
+      // juges-arbitres adjoints : la liste (propriétaire et adjoints), l'ajout et le retrait (propriétaire seul)
+      if (what === 'adjoints') {
+        const me = await currentUser(req), proprio = !!me && me.id === room.row.owner;
+        if (level !== 'owner') return json(res, 403, { error: 'Réservé au juge-arbitre' });
+        if (req.method === 'POST') {
+          if (!proprio) return json(res, 403, { error: 'Seul le juge-arbitre principal choisit ses adjoints.' });
+          const b = await readBody(req), e = String(b.email || '').trim().toLowerCase(), l = Array.isArray(room.row.adjoints) ? room.row.adjoints.slice() : [];
+          if (b.remove) room.row.adjoints = l.filter(x => x !== e);
+          else {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return json(res, 400, { error: 'Adresse e-mail invalide.' });
+            if (e === String(me.email || '').toLowerCase()) return json(res, 400, { error: 'C’est déjà votre tournoi.' });
+            if (l.length >= 5) return json(res, 400, { error: '5 adjoints au plus.' });
+            if (!l.includes(e)) {
+              room.row.adjoints = l.concat(e);
+              const t = (room.row.state.tournament || {}).name || 'tournoi', nomMoi = [me.first, me.last].filter(Boolean).join(' ') || me.name || me.email, link = appUrl(req) + '/t/' + room.row.id;
+              if (Mail.enabled()) Mail.send(Object.assign({ to: e }, Mail.adjointMail({ by: nomMoi, tournoi: t, link }))).catch(er => console.error('E-mail adjoint :', er.message));
+              const cible = await store.getUserByEmail(e).catch(() => null);
+              if (cible) taches.enqueue('push', { uids: [cible.id], msg: { title: '/RAM JA', body: `${nomMoi} vous a ajouté comme juge-arbitre adjoint : ${t}`, url: '/t/' + room.row.id, tag: 'adjoint-' + room.row.id, app: 'ja' } });
+            }
+          }
+          room.row.updated_at = Date.now();
+          await store.saveTournament(room.row);
+        }
+        return json(res, 200, { proprio, adjoints: room.row.adjoints || [] });
+      }
       if (what === 'info') {
-        return json(res, 200, { level, pin: level === 'owner' ? room.row.pin : null, key: level === 'owner' ? room.row.key : null,
+        const me = await currentUser(req);
+        return json(res, 200, { level, proprio: !!me && me.id === room.row.owner, adjoint: estAdjoint(me, room.row), pin: level === 'owner' ? room.row.pin : null, key: level === 'owner' ? room.row.key : null,
           origin: origin(req), lan: ONLINE ? [] : lanAddresses(), port: PORT, online: ONLINE });
       }
       if (what === 'export') {

@@ -50,10 +50,10 @@
     const card = t => `
       <article class="tcard">
         <div class="tc-top"><span class="tag ${t.kind === 'animation' ? 'lime' : ''}">${esc(t.category || '')} · ${esc(t.gender || '')}</span><span class="st ${t.closed ? 'fin' : t.drawn ? 'on' : ''}">${t.closed ? (t.kind === 'animation' ? 'Terminée' : 'Clôturé') : t.drawn ? (t.kind === 'animation' ? `Manche ${t.rounds}` : `${t.done}/${t.matches} matchs`) : 'Inscriptions'}</span></div>
-        <h3>${esc(t.name || 'Sans nom')}</h3>${t.closed ? `<p class="closed-on">Clôturé le ${fmt(t.closedAt)}</p>` : ''}
+        <h3>${esc(t.name || 'Sans nom')}</h3>${t.adjoint ? '<p class="closed-on">Vous êtes juge-arbitre adjoint</p>' : ''}${t.closed ? `<p class="closed-on">Clôturé le ${fmt(t.closedAt)}</p>` : ''}
         <p>${esc([fmt(t.dateStart), t.club, t.kind === 'animation' ? t.players + ' joueurs' : t.pairs + ' paires'].filter(Boolean).join(' · '))}</p>
         <div class="tc-act"><a class="btn primary sm" href="/t/${t.id}">Ouvrir</a><a class="btn ghost sm" href="/t/${t.id}/tv" target="_blank">Écran TV</a>
-          <button class="btn ghost sm" data-dup="${t.id}">Dupliquer</button><button class="btn ghost sm danger" data-del="${t.id}">Supprimer</button></div>
+          ${t.adjoint ? '' : `<button class="btn ghost sm" data-dup="${t.id}">Dupliquer</button><button class="btn ghost sm danger" data-del="${t.id}">Supprimer</button>`}</div>
       </article>`;
     // À venir : le plus proche d'abord ; En cours : le plus récent ; Clôturés : le plus récent
     const today = new Date().toISOString().slice(0, 10), started = t => t.drawn || (t.dateStart && t.dateStart <= today);

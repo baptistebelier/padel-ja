@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/css/street.css">
 <script src="/js/theme.js"></script>
 <script src="/js/interne.js"></script>
+<script src="/js/adjoints.js" defer></script>
 <style>
 /* Tournoi interne : réglages, participants, tableau à élimination sur plusieurs semaines */
 .in-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
@@ -136,7 +137,7 @@
     $('#app').innerHTML = `<div class="page-h"><span class="eyebrow">Tournoi interne · ${esc(i.sport)} · ${i.simple ? 'simple' : 'double'}</span><h1>${esc(S.tournament.name)}</h1>
       <div class="in-row">${fini ? '<button class="btn ghost" id="in-reopen">Rouvrir le tournoi</button>' : i.bracket ? '<button class="btn ghost" id="in-close">Clôturer le tournoi</button>' : ''}</div></div>
       <div class="grid">${classement()}${tableau()}</div>
-      <div class="grid g-2" style="align-items:start;margin-top:16px"><div class="grid">${participants()}</div><div class="grid">${reglages()}</div></div>`;
+      <div class="grid g-2" style="align-items:start;margin-top:16px"><div class="grid">${participants()}</div><div class="grid">${reglages()}<section class="card" data-adjoints></section></div></div>`;
     bind();
   }
   function modal(m) {
