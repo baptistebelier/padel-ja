@@ -1266,3 +1266,56 @@ select option{background:var(--card);color:var(--fg)}
 .evh{border:var(--bw) solid var(--ink);border-radius:var(--rb)!important}
 /* puces de choix (filtres, bascules) : casse normale comme les onglets de la maquette ; seules les puces d’\état restent en majuscules */
 .chip[aria-pressed],button.chip,.seg button{text-transform:none!important;letter-spacing:.02em!important}
+/* =========================================================================
+   « Tout comme un dessin » (audit du designer, maquette Figma à la lettre)
+   1. toute boîte dont le fond diffère de son parent : trait 2 px encre sur les 4 côtés
+   2. un bouton n'a jamais la couleur de sa boîte : sur la page il est en surface, dans une carte en couleur fond
+   3. boutons icône pleins, trait et ombre 2 px
+   4. jamais de cadre dans un cadre de taille voisine
+   5. plus de couleur : avatars et pictogrammes sur citron, rose, vert
+   ========================================================================= */
+:root{--lime:#E0F50A;--pink:#FF3D6B;--green:#9BD43C;--dk:#1A0509}
+/* --- favoris : plus de cadre dans un cadre ; la pastille est un carré plein de couleur --- */
+.story{border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important}
+.ring{width:60px!important;height:60px!important;padding:0!important;border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important;background:var(--lime);color:var(--dk)}
+.story:nth-child(4n+2) .ring{background:var(--pink)}
+.story:nth-child(4n+3) .ring{background:var(--green)}
+.story:nth-child(4n+4) .ring{background:var(--card)}
+.ring.live,.ring.lsq{background:var(--pink)!important}
+.ring>span,.ring.lsq>span{background:transparent!important;border-radius:0!important;color:var(--dk)!important;font-style:normal!important}
+.ring svg{color:var(--dk)!important}
+.story:nth-child(4n+4) .ring>span,.story:nth-child(4n+4) .ring svg{color:var(--fg)!important}
+/* --- affiche des publications : bloc plein, trait 2 px, sans diagonale ni rotation --- */
+.poster{border:var(--bw) solid var(--ink)!important;box-shadow:none!important}
+.post .poster,.card .poster{box-shadow:none!important}
+.poster::before,.poster::after{display:none!important}
+.poster:not(.photo){background:var(--lime)!important;color:var(--dk)!important}
+.poster:not(.photo) .big,.poster:not(.photo) .big em,.poster:not(.photo) .kicker{color:var(--dk)!important}
+.poster.up,.poster.res{background:var(--bordeaux,#5E0A1F)!important;color:#fff!important}
+.poster.up .big,.poster.up .big em,.poster.up .kicker{color:#fff!important}
+.datepill{border:var(--bw) solid var(--ink)!important;transform:none!important;border-radius:var(--rb)!important;background:var(--card)!important;color:var(--fg)!important}
+/* le + flottant ne recouvre plus la dernière carte */
+#main{padding-bottom:max(96px,var(--padb,0px))}
+/* --- boutons : jamais la couleur de leur boîte --- */
+.btn.ghost,.btn.sec,.promo-more,.ib,.ib.favb,.sq,.chip:not([aria-pressed="true"]){background:var(--card)!important;color:var(--fg)!important;border:var(--bw) solid var(--ink)!important}
+:is(.post,.card,.sheet,.note,.lis,.poster,.ptile,.res,.perf) :is(.btn.ghost,.btn.sec,.btn.sm:not(.ac),.promo-more,.ib,.sq,.chip:not([aria-pressed="true"]),.pbtn){background:var(--bg)!important;color:var(--fg)!important}
+.btn.ghost,.btn.sec,.promo-more{box-shadow:var(--sh)!important}
+.ib,.sq,.ib.favb,.chip{box-shadow:var(--sh-sm)!important}
+.ib.acc{background:var(--accent-bg,var(--lime))!important;color:var(--on-accent-bg,var(--dk))!important}
+/* réactions : sans boîte, un trait au-dessus */
+.post .acts{border-top:var(--bw) solid color-mix(in srgb,var(--ink) 12%,transparent);padding-top:6px;margin-top:6px}
+/* --- boîtes : trait 2 px encre sur les 4 côtés --- */
+.ptile,.medal,.dblk,.res,.perf,.adband,.phero,.rt,span.pill,.pbtn,details.more,.note,.lis,.tile{border:var(--bw) solid var(--ink)!important}
+.ptile,.pbtn,.res,.perf,.phero,.adband{border-radius:var(--r)!important;box-shadow:var(--sh-sm)!important}
+.lis{box-shadow:var(--sh)!important;border-radius:var(--r)!important}
+.lis>*+*{border-top:var(--bw) solid color-mix(in srgb,var(--ink) 12%,transparent)!important}
+.medal{box-shadow:var(--sh-sm)!important}
+/* --- plus de couleur --- */
+.tile{background:var(--lime)!important;color:var(--dk)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important}
+.tile svg{color:var(--dk)!important}
+.tag.padel,.rt.padel,.sp.padel{background:var(--green)!important;color:var(--dk)!important}
+.tag.tennis,.rt.tennis,.sp:not(.padel){background:var(--lime)!important;color:var(--dk)!important}
+.av:not(.club):not([style*="url("]){background:var(--lime)!important;color:var(--dk)!important}
+:nth-child(3n+2)>.av:not(.club):not([style*="url("]),:nth-child(3n+2)>*>.av:not(.club):not([style*="url("]){background:var(--pink)!important}
+:nth-child(3n)>.av:not(.club):not([style*="url("]),:nth-child(3n)>*>.av:not(.club):not([style*="url("]){background:var(--green)!important}
+.ptile svg,.pbtn svg{color:var(--fg)!important}

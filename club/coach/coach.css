@@ -2123,3 +2123,25 @@ button.copp:hover span:last-child {
 .cohero .coey { color: #fff !important; opacity: 0.8; }
 /* listes dans leur carte : un peu d'air en haut et en bas */
 .colist { padding-block: 10px !important; }
+/* ---------- « Tout comme un dessin » (audit du designer, maquette Figma à la lettre) ---------- */
+/* raccourcis du tableau de bord : directement sur la page, plus de carte autour (pas de cadre dans un cadre) */
+.card.coshort { border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+.coshort .btn { background: var(--card) !important; color: var(--fg) !important; box-shadow: var(--sh, 4px 4px 0 #000) !important; }
+.coshort .btn svg { width: 30px; height: 30px; padding: 5px; box-sizing: border-box; background: var(--co-lime, #e0f50a); color: #1a0509 !important; border: var(--bw, 2px) solid var(--ink); }
+/* recherche : une seule boîte (trait et fond champ), le champ intérieur sans cadre */
+.cosq { border: var(--bw, 2px) solid var(--ink) !important; background: var(--field, var(--card2)) !important; box-shadow: none !important; }
+.cosq input { border: 0 !important; background: transparent !important; box-shadow: none !important; padding-inline: 4px !important; }
+.cosq:focus-within { box-shadow: 4px 4px 0 #e0f50a !important; }
+/* jours de la semaine du planning : chaque jour est une case encadrée, aujourd'hui en citron */
+.cowjs { gap: 6px; padding: 6px 0; }
+.cowj { border: var(--bw, 2px) solid var(--ink) !important; background: var(--bg) !important; color: var(--fg) !important; box-shadow: var(--sh-sm, 2px 2px 0 #000) !important; border-radius: var(--rb, 0) !important; }
+.cowj b { border-radius: 0 !important; background: transparent !important; color: inherit !important; }
+.cowj.today { background: var(--co-lime, #e0f50a) !important; color: #1a0509 !important; }
+.cowl.today { background: color-mix(in srgb, #e0f50a 22%, transparent) !important; border-left: var(--bw, 2px) solid var(--ink) !important; border-right: var(--bw, 2px) solid var(--ink) !important; }
+/* fiche enseignant dans sa carte : plus de carte dans la carte */
+.copc .prof, .card .card.prof { border: 0 !important; box-shadow: none !important; }
+/* boîtes à trait sur les 4 côtés */
+.ptile, .pbtn, .segt { border: var(--bw, 2px) solid var(--ink) !important; }
+/* boutons dans les cartes : couleur fond, jamais celle de la carte */
+.card :is(.btn.ghost, .btn.sm:not(.ac)) { background: var(--bg) !important; color: var(--fg) !important; }
+.cohd :is(.btn, button) { background: var(--bg) !important; color: var(--fg) !important; border: var(--bw, 2px) solid var(--ink) !important; box-shadow: var(--sh-sm, 2px 2px 0 #000) !important; }

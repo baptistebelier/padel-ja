@@ -10,7 +10,7 @@
 
 /* ---------- surfaces : cartes, fenêtres, alertes ---------- */
 .card, .tcard, .kpi, .modal-box, .pmodal-box, .profile-box, .ucard, .tpl, .lcard, .scol, .mm, .scard, .lteam, .rk-block, .ord, .sp-team,
-dialog.nvdlg, .in-modal > div, .in-poule, .alert, fieldset {
+dialog.nvdlg, .in-modal > div, .in-poule, .alert {
   border: var(--ui-bw) solid var(--ui-ink) !important;
   border-radius: var(--ui-r) !important;
   box-shadow: var(--ui-sh) !important;
@@ -32,7 +32,6 @@ button:not(.ab-s):not(.nm):not([data-a]):not(.ib2):not(.sh-item):not(.ab-btn):no
 .btn, button.accent, .pt, .btn.primary { min-height: 44px; }
 .btn.primary, button.accent, .pt, .btn.accent { background: var(--ui-lime, var(--ui-accent)) !important; color: var(--ui-on-accent) !important; box-shadow: var(--ui-sh) !important; }
 .btn:not(.primary):not(.ghost):not(.danger), button:not(.accent):not(.ghost):not(.danger):not(.ab-s):not(.nm):not([data-a]):not(.ib2) { background-color: var(--ui-surface); color: var(--ui-text); }
-.btn.ghost, button.ghost { background: transparent !important; box-shadow: none !important; }
 .btn.danger, button.danger { background: var(--ui-pink, #FF3D6B) !important; color: #1A0509 !important; }
 .btn:active:not(:disabled), button:active:not(:disabled):not(.ab-s), .pt:active { transform: translate(2px, 2px); box-shadow: none !important; }
 .btn:disabled, button:disabled:not(.ab-s) { background: var(--ui-off) !important; color: var(--ui-text-mut) !important; border-color: var(--ui-text-mut) !important; box-shadow: none !important; }
@@ -214,3 +213,40 @@ input:not([type=checkbox]):not([type=radio]), select, textarea { font-family: va
 /* puces sur la carte héros : blanches (rose si direct, citron si terminé) */
 .hero-t .chip:not(.live):not(.ok) { background: #fff !important; }
 .tag.ghost { color: var(--ui-text) !important; background: var(--ui-surface) !important; }
+
+/* =========================================================================
+   « Tout comme un dessin » (audit du designer, maquette Figma à la lettre)
+   ========================================================================= */
+/* un bouton n'a jamais la couleur de sa boîte : sur la page il est en surface, dans une carte en couleur fond */
+:is(.card, .tcard, .kpi, .modal-box, .pmodal-box, .profile-box, .ucard, dialog.nvdlg, .in-modal > div, .side-t, .lcard, .scard, .tpl)
+  :is(button, .btn, a.btnlike):not(.accent):not(.primary):not(.danger):not(.on):not([aria-selected="true"]):not(.chip):not(.tag):not(.tsec-tab):not(.ab-s):not(.nm):not([data-a]):not(.sh-item):not(:is(.seg, .tsec-tabs, .nvtabs, nav, .rsug, .suggest, .enc-l) *) {
+  background-color: var(--ui-bg) !important; color: var(--ui-text) !important; border: var(--ui-bw) solid var(--ui-ink) !important;
+}
+.btn:not(.primary):not(.accent):not(.danger), button.ghost, .btn.ghost { box-shadow: var(--ui-sh) !important; }
+button.sq, .btn.sm, .acts button, td button { box-shadow: var(--ui-sh-sm) !important; }
+/* actions des tableaux (modifier, forfait, supprimer) : fond propre, trait, ombre ; modifier en citron */
+.acts button, td button { background-color: var(--ui-bg) !important; border: var(--ui-bw) solid var(--ui-ink) !important; color: var(--ui-text) !important; }
+.acts button[title*="odifier"], .acts button.edit { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; }
+.hero-t :is(button, .btn):not(.accent):not(.primary) { background: var(--ui-surface) !important; color: var(--ui-text) !important; }
+
+/* calendrier : grille dessinée, aujourd'hui citron, jours hors du mois en couleur fond */
+.cal .day { border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r-sm) !important; background: var(--ui-surface-2) !important; }
+.cal .day.out { opacity: 1 !important; background: var(--ui-bg) !important; color: var(--ui-text-mut); }
+.cal .day.today { background: var(--ui-lime, #E0F50A) !important; box-shadow: var(--ui-sh-sm) !important; }
+.cal .day.today > i { color: #1A0509 !important; }
+/* raccourcis du tableau de bord : trait, ombre, pictogramme dans un carré citron */
+.quick a { border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r-sm) !important; box-shadow: var(--ui-sh-sm) !important; background: var(--ui-bg) !important; color: var(--ui-text) !important; }
+.quick .ic { width: 34px !important; height: 34px !important; padding: 6px; background: var(--ui-lime, #E0F50A); color: #1A0509 !important; border: var(--ui-bw) solid var(--ui-ink); box-sizing: border-box; }
+/* boîtes : trait 2 px sur les 4 côtés */
+.rgpd-note { border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r-sm) !important; background: var(--ui-surface-2) !important; }
+.guest { border-bottom: var(--ui-bw) solid var(--ui-ink) !important; }
+.side-t { border-color: var(--ui-ink) !important; background: var(--ui-bordeaux, #5E0A1F) !important; }
+.conn { border: var(--ui-bw) solid var(--ui-ink) !important; background: var(--ui-green, #9BD43C) !important; color: #1A0509 !important; border-radius: var(--ui-r-sm) !important; }
+.conn.off { background: var(--ui-pink, #FF3D6B) !important; }
+/* saisie rapide : plus de cadre autour des champs encadrés, et des champs assez larges pour leur texte */
+fieldset { border: 0 !important; box-shadow: none !important; padding: 0 !important; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important; }
+fieldset input, fieldset select { padding-inline: 10px !important; }
+/* avatars et pictogrammes : plus de couleur */
+.av, .avatar { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; }
+/* date des listes de tournois : boîte encadrée */
+.row .d { border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r-sm) !important; background: var(--ui-bg) !important; }
