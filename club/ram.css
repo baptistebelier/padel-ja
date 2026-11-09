@@ -988,3 +988,10 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 :root[data-coins="arrondis"] .dots i{border-radius:50%!important}
 .pips i{border-radius:0!important;border:1px solid var(--ink)}
 :root[data-coins="arrondis"] .pips i{border-radius:3px!important}
+
+/* réactions emoji : pastilles encadrées encre (messages et publications), la mienne en citron */
+.react{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;background:var(--card)!important;box-shadow:var(--sh-sm)!important}
+.react.on{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
+.msg .reacts:not(.big){border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important}
+.msg .reacts:not(.big) .react{border:0!important;box-shadow:none!important;background:transparent!important}
+.msg .reacts:not(.big) .react.on{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
