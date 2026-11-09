@@ -26,6 +26,13 @@
     <div id="users" class="ulist"><p class="muted">Chargement…</p></div>
     <dialog id="ufiche" class="nvdlg" aria-label="Fiche du compte"></dialog>
   </section>
+  <section class="card">
+    <div class="card-h"><div><span class="eyebrow">Fiche personne commune</span><h2 class="h2s">Réconciliation des fiches</h2></div>
+      <button class="btn sm" id="rcAnalyse" type="button">Analyser</button></div>
+    <p class="muted small">Une personne = une fiche, partagée par /RAM JA, /RAM Club et /RAM Coach. L’analyse repère les fiches en double (même licence, même nom sans licence contradictoire, fiche élève sans compte et adhérent du même club). Rien n’est fusionné sans votre clic ; une sauvegarde complète est faite juste avant. Deux homonymes (licences ou comptes différents) ne sont jamais fusionnés : ils restent dans « À vérifier ».</p>
+    <div id="rc"></div>
+    <p class="small" id="rcmsg" role="status"></p>
+  </section>
   <div class="grid g-2" style="align-items:start">
   <section class="card">
     <div class="card-h"><div><span class="eyebrow">Sécurité des données</span><h2 class="h2s">Sauvegardes</h2></div>
@@ -58,6 +65,28 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = s => document.querySelector(s);
   const api = (u, o) => fetch(u, Object.assign({ headers: { 'Content-Type': 'application/json' } }, o || {})).then(r => r.json());
+  /* réconciliation des fiches personnes : analyse, choix, fusion après sauvegarde */
+  async function rcAnalyser() {
+    const box = $('#rc'); box.innerHTML = '<p class="muted">Analyse en cours…</p>';
+    const d = await api('/api/admin/reconciliation').catch(() => null);
+    if (!d || d.error) { box.innerHTML = `<p class="muted">${esc((d && d.error) || 'Analyse impossible')}</p>`; return; }
+    const props = d.propositions || [], av = d.aVerifier || [];
+    box.innerHTML = `<p class="small">${d.fiches} fiches personnes, ${d.clubs} club${d.clubs > 1 ? 's' : ''}.</p>
+      ${props.length ? `<form id="rcf" class="grid" style="gap:6px"><b>À fusionner (${props.length})</b>${props.map(p => `<label class="chk" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" name="rc" value="${esc(p.id)}" checked style="margin-top:3px"><span>${p.club ? `<b>${esc(p.club)}</b> · ` : ''}${esc(p.texte)}</span></label>`).join('')}
+        <div><button class="btn sm danger" type="submit">Sauvegarder puis fusionner la sélection</button></div></form>` : '<p class="muted small">Aucune fiche en double à fusionner.</p>'}
+      ${av.length ? `<b style="display:block;margin-top:12px">À vérifier (${av.length})</b><ul class="small">${av.map(x => `<li>${x.club ? esc(x.club) + ' · ' : ''}${esc(x.texte)}</li>`).join('')}</ul>` : ''}`;
+    const f = $('#rcf');
+    if (f) f.onsubmit = async e => {
+      e.preventDefault();
+      const ids = [...f.querySelectorAll('input[name=rc]:checked')].map(x => x.value);
+      if (!ids.length || !confirm(`Fusionner ${ids.length} groupe${ids.length > 1 ? 's' : ''} de fiches ? Une sauvegarde complète est faite d’abord.`)) return;
+      $('#rcmsg').textContent = 'Sauvegarde puis fusion…';
+      const r = await api('/api/admin/reconciliation', { method: 'POST', body: JSON.stringify({ ids }) }).catch(() => null);
+      $('#rcmsg').textContent = r && !r.error ? `${r.fait} fusion${r.fait > 1 ? 's' : ''} faite${r.fait > 1 ? 's' : ''}. Sauvegarde : ${r.sauvegarde || '—'}.${(r.journal || []).filter(x => /impossible/.test(x)).map(x => ' ' + x).join('')}` : (r && r.error) || 'Fusion impossible';
+      rcAnalyser();
+    };
+  }
+  document.getElementById('rcAnalyse').onclick = rcAnalyser;
   // sauvegardes hebdomadaires : liste, téléchargement, sauvegarde immédiate
   const ago = t => { const d = Math.floor((Date.now() - t) / 864e5); return d <= 0 ? "aujourd'hui" : d === 1 ? 'hier' : `il y a ${d} jours`; };
   async function loadBackups() {

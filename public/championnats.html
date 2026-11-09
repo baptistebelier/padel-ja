@@ -208,7 +208,7 @@
         if (!n) return;
         // pas encore dans /RAM Club : une fiche du club sans compte, reprise de la base /RAM JA si on l'y a choisi
         const p = it && it.d && it.d.p, k = 'm' + Date.now().toString(36), conf = get('conf', 'main') || {};
-        const fiche = Object.assign({ n, r: (p && /^\d|NC|^-/.test(p.rank || '') ? p.rank : '') || 'NC', g: 'H', via: '/RAM JA', valid: conf.season || '' }, p && p.licence ? { lic: p.licence } : {});
+        const fiche = Object.assign({ n, r: (p && /^\d|NC|^-/.test(p.rank || '') ? p.rank : '') || 'NC', g: 'H', via: '/RAM JA', valid: conf.season || '' }, p && p.licence ? { lic: p.licence } : {}, p && p.id ? { ficheJa: p.id } : {});   // sa fiche /RAM JA, que le serveur vérifie puis rattache
         if (!confirm(n + ' n’est pas encore dans /RAM Club. Lui créer une fiche du club (sans compte) et l’ajouter à l’équipe ?')) return;
         await ops([{ coll: 'member', id: k, op: 'put', data: fiche }, { coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: k }, { p: ['roster', k], t: 'set', v: 'T' }] }], n + ' ajouté à l’équipe');
       });
