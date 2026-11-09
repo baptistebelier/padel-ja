@@ -978,3 +978,13 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 .evday{background:transparent!important}
 /* carte de l'enseignant (École) : trait sur les 4 côtés */
 #phone #main .prof,#phone #main details.card{border:var(--bw) solid var(--ink)!important}
+
+/* boîtes à l'intérieur d'une carte : trait encre et fond ton sur ton (une teinte plus claire de nuit, plus crème de jour) */
+:is(.card,.post,.sheet,.tsec,.lis,.phero) :is(.card,.nv-tier,.ptile,.res,.perf,.cinfo,.note,.teaser,details.more,.dblk,.pbtn,.empty){background:var(--card2)!important;border:var(--bw) solid var(--ink)!important}
+.nv-tier.win{background:#E0F50A!important;color:#1A0509!important}
+/* pastilles d'inscription (places d'une partie, d'un événement) : carrées en coins droits, rondes en coins arrondis */
+.dots i,.dots i.on{border-radius:0!important;border-color:var(--ink)!important;background:var(--bg)}
+.dots i.on{background:var(--accent-bg,#E0F50A)!important}
+:root[data-coins="arrondis"] .dots i{border-radius:50%!important}
+.pips i{border-radius:0!important;border:1px solid var(--ink)}
+:root[data-coins="arrondis"] .pips i{border-radius:3px!important}
