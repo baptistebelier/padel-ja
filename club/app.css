@@ -145,7 +145,7 @@ button.nm{padding-block:4px}
 .act.on{color:var(--hot)}
 .act.on svg{fill:var(--hot)}
 .perf{position:relative;background:var(--card2);border-radius:var(--rb);padding:14px;display:flex;flex-direction:column;gap:6px}
-.perf .kicker{padding-right:84px}
+.perf .kicker{padding-right:110px}
 .perf .sc{font-family:var(--f-display);font-style:italic;font-size:34px;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.05}
 .perf.lost .sc{color:var(--fg)}
 .stamp{position:absolute;top:12px;right:12px;font-family:var(--f-display);font-style:italic;font-size:17px;text-transform:uppercase;color:var(--hot);border:2.5px solid var(--hot);border-radius:50%;padding:12px 8px;transform:rotate(-12deg);line-height:1}
@@ -1197,3 +1197,72 @@ button.rsj.on{background:var(--accent);color:var(--on-accent)}
 .int-pm>div.moi{outline:2px solid var(--accent)}
 .int-pm small{color:var(--muted);font-size:11.5px}
 .int-cl li{padding:3px 0}.int-cl li.moi{font-weight:800;color:var(--accent)}
+
+/* =========================================================================
+   /Buvette et /Dojo — style néo-brutaliste validé (maquettes Figma « RAM — Composants néo-brutalistes »)
+   Couche finale : elle ne change aucune structure, seulement l'apparence.
+   Trait 2 px couleur encre (--ink), ombre dure sans flou, coins droits par défaut (« Arrondis » dans le profil).
+   ========================================================================= */
+:root{--bw:2px;--sh:4px 4px 0 var(--ink);--sh-sm:2px 2px 0 var(--ink);--r:0px;--rb:0px;--rp:0px}
+:root[data-coins="arrondis"]{--r:12px;--rb:8px;--rp:999px}
+.post,.card,.sheet,.poster,.note,.story{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;border-radius:var(--r)!important}
+.btn{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh)!important;transition:transform .08s,box-shadow .08s}
+.btn.ghost{background:var(--card)!important;color:var(--fg)!important;box-shadow:var(--sh-sm)!important}
+.btn:active{transform:translate(2px,2px);box-shadow:none!important}
+.btn:disabled,.btn[disabled]{background:var(--off)!important;color:var(--muted)!important;border-color:var(--muted)!important;box-shadow:none!important}
+.chip,.seg button,.bd,.tag{border:var(--bw) solid var(--ink)!important;border-radius:var(--rp)!important;box-shadow:var(--sh-sm)}
+.chip[aria-pressed="true"],.seg button[aria-selected="true"]{background:var(--accent)!important;color:var(--on-accent)!important}
+.seg{gap:0!important;border:var(--bw) solid var(--ink);border-radius:var(--rb);box-shadow:var(--sh-sm);background:var(--card);overflow:hidden}
+.seg button{border:0!important;border-left:var(--bw) solid var(--ink)!important;border-radius:0!important;box-shadow:none!important;background:transparent}
+.seg button:first-child{border-left:0!important}
+.av,.tile,.ib{border:var(--bw) solid var(--ink);border-radius:var(--rp)!important;box-shadow:var(--sh-sm)}
+.crest{border:var(--bw) solid var(--ink);border-radius:var(--rb)!important}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;background:var(--card)!important;box-shadow:none!important}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{outline:none;box-shadow:4px 4px 0 #E0F50A!important}
+/* interrupteur 52 × 30 : trait encre, vert si actif, éteint sinon */
+.tg::before{inset:7px 0!important;border:var(--bw) solid var(--ink);border-radius:var(--rp)!important;background:var(--off)!important}
+.tg::after{top:12px!important;left:5px!important;width:20px!important;height:20px!important;border-radius:var(--rp)!important;background:var(--card)!important;border:var(--bw) solid var(--ink)}
+.tg[aria-checked="true"]::before{background:#9BD43C!important}
+/* barre d'onglets du bas : surface, trait, onglet actif citron encadré */
+.tabs{border:var(--bw) solid var(--ink)!important;border-radius:var(--r)!important;box-shadow:var(--sh)!important;background:var(--card)!important}
+.tabs button[aria-current="page"]{background:var(--accent);color:var(--on-accent)!important;outline:var(--bw) solid var(--ink);outline-offset:-2px}
+.tabs button[aria-current="page"] svg{color:var(--on-accent)!important}
+/* listes déroulantes : ombre dure (largeur et coins copiés de la boîte d'origine) */
+.sgbox{box-shadow:var(--sh)!important;border-color:var(--ink)!important}
+.toast{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;border-radius:var(--rb)!important;background:#E0F50A!important;color:#1A0509!important}
+.bar{border:var(--bw) solid var(--ink);border-radius:var(--rp)!important;height:12px}
+/* fonds en couleur du club telle quelle (citron vif de jour comme de nuit), texte au meilleur contraste */
+.btn:not(.ghost):not(.danger),.chip[aria-pressed="true"],.seg button[aria-selected="true"],.tabs button[aria-current="page"],.addfab,.bd.ac,.tag.ac{background:var(--accent-bg,var(--accent))!important;color:var(--on-accent-bg,var(--on-accent))!important}
+.tabs button[aria-current="page"] svg{color:var(--on-accent-bg,var(--on-accent))!important}
+.addfab{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh)!important}
+/* ---------- finitions : champs à fond plein, rien de transparent, alignements ---------- */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea,.fld input,.fld select,.fld textarea{background:var(--field,var(--card2))!important;color:var(--fg)!important}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):focus,select:focus,textarea:focus{background:var(--card)!important}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
+select option{background:var(--card);color:var(--fg)}
+.sgbox{background:var(--card)!important}
+.seg button:not([aria-selected="true"]),.chip:not([aria-pressed="true"]){background:var(--card)}
+/* avatars des listes : même place quel que soit le cadre de niveau, pour aligner noms et lignes */
+.item>.av,.li .av,.go>.av{margin:0 6px!important}
+/* ---------- conformité à la maquette Figma : titres Anton droits, sans inclinaison ---------- */
+.top h1,.tilt,.tilt em,.bd.done,.ring>span,.poster .big,.poster .big em,.perf .sc,.stamp,.vs .n,.tscore,.sheet header .h3,.v-name,.adband .adi.txt span{font-style:normal!important}
+.tilt,.poster .big{transform:none!important}
+/* boutons : Barlow gras 17, casse normale, 48 de haut */
+.btn{font-family:var(--f-sub)!important;font-weight:700!important;font-size:17px!important;letter-spacing:.02em!important;text-transform:none!important;min-height:48px}
+.btn.sm,.btn.xs{font-size:15px!important;min-height:40px}
+/* puces et étiquettes : Barlow 13 majuscules, marges 4 × 10 */
+.chip,.tag,.bd{font-family:var(--f-sub)!important;font-weight:700!important;letter-spacing:.08em!important;text-transform:uppercase}
+/* ---------- finitions : rien ne se recouvre ---------- */
+/* étiquette du sport au coin : encadrée, et le bouton d'options descend sous elle */
+.sp{opacity:1!important;border:var(--bw) solid var(--ink);border-top:0;border-right:0;border-radius:0 0 0 var(--rb)!important;top:0!important;right:0!important}
+.post:has(> .sp) [data-a="pmenu"]{margin-top:20px}
+/* tampon « Perf ! » : le surtitre lui laisse la place */
+:has(> .stamp) .kicker{display:block;padding-right:96px}
+/* blocs pleins à la couleur du club : la couleur telle quelle (citron vif de jour comme de nuit), texte au meilleur contraste */
+.ib.acc,.crest,.plus,.dd,.cam,.av.club,.bd.club,.bd.cap,.tag.tennis,.sp,.datepill,.opt[aria-pressed="true"] i,.un,.msg.me .bub,.send,.pafiche,.pbi,.dblk,.rt.tennis,.wl.w,.promo-w.on,.promo-ck,.dl-pm,.club-on,.fp-me,.bd.pin,.card.setup .chk.on,.ig-ic,.ecact.go,.evday span,.rsnum,button.rsj.on,.rsgo{background:var(--accent-bg,var(--accent))!important;color:var(--on-accent-bg,var(--on-accent))!important}
+.dots i.on,.bar i,.fr-g i,.ig-bar i.hl{background:var(--accent-bg,var(--accent))!important}
+.ib.acc svg,.plus svg,.send svg,.cam svg,.rsgo svg{color:var(--on-accent-bg,var(--on-accent))!important}
+.ens{--c:var(--accent-bg,var(--accent))!important;--oc:var(--on-accent-bg,var(--on-accent))!important}
+.evh{border:var(--bw) solid var(--ink);border-radius:var(--rb)!important}
+/* puces de choix (filtres, bascules) : casse normale comme les onglets de la maquette ; seules les puces d’\état restent en majuscules */
+.chip[aria-pressed],button.chip,.seg button{text-transform:none!important;letter-spacing:.02em!important}

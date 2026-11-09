@@ -2080,3 +2080,46 @@ button.copp:hover span:last-child {
   font-size: 17px;
   font-weight: 600;
 }
+
+/* ---------- /Dojo — style néo-brutaliste validé (maquettes Figma) : couche finale, sans changer la structure ---------- */
+:root { --co-rail: #16070b; }
+:root[style*='color-scheme: light'] { --co-rail: #2a0610; }
+/* titre de section : barre surface encadrée, repère citron 6 × 22 à gauche */
+.cohd { border: var(--bw, 2px) solid var(--ink) !important; border-left-width: var(--bw, 2px) !important; box-shadow: var(--sh-sm, 2px 2px 0 #000); position: relative; padding-left: 20px !important; border-radius: var(--rb, 0) !important; }
+.cohd::before { content: ''; position: absolute; left: 6px; top: 50%; width: 6px; height: 22px; transform: translateY(-50%); background: var(--co-lime, #e0f50a); border: 1px solid var(--ink); }
+/* carte héros (prochaine séance, fiche) : garde l'ombre citron */
+.cohero { border: var(--bw, 2px) solid var(--ink) !important; box-shadow: 6px 6px 0 var(--co-lime, #e0f50a) !important; border-radius: var(--r, 0) !important; }
+/* onglets : actif plein citron */
+.tabs .pill { border: var(--bw, 2px) solid var(--ink) !important; border-radius: var(--rp, 0) !important; }
+.tabs .pill.on, .tabs .pill[aria-selected='true'], .tabs .pill[aria-pressed='true'] { background: var(--co-lime, #e0f50a) !important; color: #1a0509 !important; }
+/* ---------- finitions /Dojo ---------- */
+/* titre de section : détaché de sa carte (plus de chevauchement des traits) */
+.cohd { margin: 18px 0 10px !important; }
+/* tuiles de chiffres : même cadre que les autres cartes */
+.cotile { border: var(--bw, 2px) solid var(--ink); box-shadow: var(--sh-sm, 2px 2px 0 #000) !important; border-radius: var(--r, 0); padding: 14px 16px; }
+.cotiles { gap: 14px; margin-bottom: 18px; }
+/* raccourcis : picto et texte alignés à gauche, sur une ligne régulière */
+.coshort { gap: 12px; }
+.coshort .btn { justify-content: flex-start; text-align: left; gap: 10px; padding-inline: 14px; min-height: 56px; }
+.coshort .btn svg { flex: none; }
+/* menu latéral : libellés lisibles en entier */
+.tabs > button { padding-inline: 0 !important; letter-spacing: -0.02em !important; font-size: 12px; white-space: normal; }
+/* ---------- conformité à la maquette Figma /Dojo ---------- */
+/* menu latéral bordeaux (jour) et prune foncé (nuit), comme la maquette */
+:root { --co-rail: #1c1116; --co-rail-tx: #f7eff0; }
+:root[style*='color-scheme: light'] { --co-rail: #5e0a1f; --co-rail-tx: #f7eff0; }
+/* titres Anton droits */
+.coname, .top h1 { font-style: normal !important; }
+/* compteurs : libellé Barlow 13 majuscules en haut, chiffre Anton 40, pictogramme sur carré citron 44 à droite */
+.cotile { position: relative; padding: 16px 18px !important; min-height: 96px; justify-content: flex-start; }
+.cotile span { order: -1; font-family: var(--f-sub); font-weight: 700; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-right: 52px; }
+.cotile b { font-family: var(--f-display) !important; font-size: 40px !important; line-height: 1 !important; font-style: normal; }
+.cotile svg { position: absolute; top: 14px; right: 14px; width: 44px !important; height: 44px !important; padding: 9px; background: var(--co-lime, #e0f50a); color: #1a0509 !important; border: var(--bw, 2px) solid var(--ink); box-sizing: border-box; }
+/* menu latéral : rubrique ouverte pleine citron, encadrée */
+.tabs > button[aria-current='page'] { background: var(--co-lime, #e0f50a) !important; color: #1a0509 !important; outline: var(--bw, 2px) solid var(--ink); outline-offset: -2px; box-shadow: var(--sh-sm, 2px 2px 0 #000) !important; }
+.tabs > button[aria-current='page'] svg { color: #1a0509 !important; }
+/* surtitres : rose lisible sur les cartes de nuit comme de jour */
+.coey { color: var(--hot-tx, var(--accent2)) !important; }
+.cohero .coey { color: #fff !important; opacity: 0.8; }
+/* listes dans leur carte : un peu d'air en haut et en bas */
+.colist { padding-block: 10px !important; }

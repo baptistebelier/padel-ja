@@ -176,6 +176,14 @@ function meTabBody(T, id, m, kid) {
       ([k, l]) =>
         `<button class="chip" data-a="ustyle" data-k="${k}" aria-pressed="${(S.ustyle || '') === k}">${l}</button>`
     )
+    .join('')}</div><span class="kicker" style="margin-top:14px">Forme des coins</span><div class="chips">${[
+    ['', 'Droits'],
+    ['arrondis', 'Arrondis']
+  ]
+    .map(
+      ([k, l]) =>
+        `<button class="chip" data-a="coins" data-k="${k}" aria-pressed="${(S.coins || '') === k}">${l}</button>`
+    )
     .join(
       ''
     )}</div><p class="muted small">Les couleurs sont celles du club, choisies par le bureau. Tu choisis seulement le jour, la nuit ou le réglage de ton appareil.</p></div>`;

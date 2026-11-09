@@ -40,8 +40,9 @@ function derive(acc, bg) {
   return { col: c, adj: c.toLowerCase() !== acc.toLowerCase() };
 }
 const BASE = {
-  true: { bg: '#0B0B0B', card: '#161616', card2: '#222222', line: '#2E2E2E', fg: '#F5F3EE', muted: '#A09C93' },
-  false: { bg: '#F3F5FA', card: '#FFFFFF', card2: '#E4E9F3', line: '#D0D7E5', fg: '#0C1630', muted: '#5A647E' }
+  // néo-brutalisme validé (maquettes Figma) : nuit éclaircie pour que le trait et l'ombre noirs se voient, jour chaud
+  true: { bg: '#2A1B21', card: '#46303A', card2: '#533A45', line: '#5C4450', fg: '#F7EFF0', muted: '#DCCBD0' },
+  false: { bg: '#F2EBE4', card: '#FFFFFF', card2: '#F8F1EC', line: '#E6DCD6', fg: '#1A0509', muted: '#6E5A61' }
 };
 const HOT = '#E0123C',
   PADEL = '#2459E0';
@@ -71,6 +72,9 @@ function setTheme(i) {
   }
   r.setProperty('--hot-tx', ht);
   r.setProperty('--on-accent', onColor(acc));
+  // couleur du club telle quelle pour les fonds (boutons, onglet actif, pastilles), la version ajustée restant celle du texte
+  r.setProperty('--accent-bg', c.accent);
+  r.setProperty('--on-accent-bg', onColor(c.accent));
   r.setProperty('--hot', HOT);
   r.setProperty('--accent2', c.accent2 || HOT);
   const rl = clubLogo(c);
@@ -79,8 +83,12 @@ function setTheme(i) {
     rl ? `url("${rl}")` : `url("${c.dark ? 'img/ram-club-blanc.png' : 'img/ram-club-noir.png'}")`
   );
   r.setProperty('--on-hot', '#FFFFFF');
+  // encre des traits et des ombres dures, et couleur « éteinte » (désactivé, interrupteur coupé)
+  r.setProperty('--ink', dk ? '#000000' : '#1A0509');
+  r.setProperty('--off', dk ? '#6B5560' : '#E6DCD6');
+  r.setProperty('--field', dk ? '#33222A' : '#F8F1EC');
   r.setProperty('--padel', PADEL);
-  r.setProperty('--stage', c.dark ? '#050505' : '#DDE2EC');
+  r.setProperty('--stage', c.dark ? '#1C1116' : '#E6DCD6');
   r.colorScheme = c.dark ? 'dark' : 'light';
   try {
     localStorage.setItem('club-theme', i);

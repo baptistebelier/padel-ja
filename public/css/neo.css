@@ -1,0 +1,216 @@
+/* =========================================================================
+   /Pista (RAM JA) — style néo-brutaliste validé (maquettes Figma « RAM — Composants néo-brutalistes »)
+   Chargé en dernier : il ne change aucune structure, seulement l'apparence.
+   - trait 2 px couleur encre, ombre dure sans flou (4 px ; 2 px pour les petits éléments) ;
+   - coins droits par défaut (variables --ui-r, --ui-r-sm, --ui-r-pill ; « coins arrondis » dans le profil) ;
+   - citron pour l'action principale et l'élément actif, rose pour le direct et le danger, bordeaux pour les héros ;
+   - plus aucune ombre douce ni halo.
+   Jetons : public/css/theme.css.
+   ========================================================================= */
+
+/* ---------- surfaces : cartes, fenêtres, alertes ---------- */
+.card, .tcard, .kpi, .modal-box, .pmodal-box, .profile-box, .ucard, .tpl, .lcard, .scol, .mm, .scard, .lteam, .rk-block, .ord, .sp-team,
+dialog.nvdlg, .in-modal > div, .in-poule, .alert, fieldset {
+  border: var(--ui-bw) solid var(--ui-ink) !important;
+  border-radius: var(--ui-r) !important;
+  box-shadow: var(--ui-sh) !important;
+}
+.card, .tcard, .kpi, .modal-box, .pmodal-box, .profile-box, .ucard, dialog.nvdlg, .in-modal > div { background: var(--ui-surface) !important; }
+.in-poule, .tpl, .lcard, .scol, .mm, .scard, .lteam { box-shadow: var(--ui-sh-sm) !important; }
+.card::before, .card::after, .tcard::before { box-shadow: none; }
+
+/* surtitres et titres de carte */
+.eyebrow { color: var(--ui-accent-text) !important; letter-spacing: .24em; font-size: 12px; }
+
+/* ---------- boutons ---------- */
+button:not(.ab-s):not(.nm):not([data-a]):not(.ib2):not(.sh-item):not(.ab-btn):not(.rail button), .btn, a.btnlike, .pt, .side-btns button, .side .btnlike {
+  border: var(--ui-bw) solid var(--ui-ink) !important;
+  border-radius: var(--ui-r-sm) !important;
+  box-shadow: var(--ui-sh-sm);
+  transition: transform .08s, box-shadow .08s;
+}
+.btn, button.accent, .pt, .btn.primary { min-height: 44px; }
+.btn.primary, button.accent, .pt, .btn.accent { background: var(--ui-lime, var(--ui-accent)) !important; color: var(--ui-on-accent) !important; box-shadow: var(--ui-sh) !important; }
+.btn:not(.primary):not(.ghost):not(.danger), button:not(.accent):not(.ghost):not(.danger):not(.ab-s):not(.nm):not([data-a]):not(.ib2) { background-color: var(--ui-surface); color: var(--ui-text); }
+.btn.ghost, button.ghost { background: transparent !important; box-shadow: none !important; }
+.btn.danger, button.danger { background: var(--ui-pink, #FF3D6B) !important; color: #1A0509 !important; }
+.btn:active:not(:disabled), button:active:not(:disabled):not(.ab-s), .pt:active { transform: translate(2px, 2px); box-shadow: none !important; }
+.btn:disabled, button:disabled:not(.ab-s) { background: var(--ui-off) !important; color: var(--ui-text-mut) !important; border-color: var(--ui-text-mut) !important; box-shadow: none !important; }
+
+/* ---------- champs ---------- */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select, textarea {
+  border: var(--ui-bw) solid var(--ui-ink) !important;
+  border-radius: var(--ui-r-sm) !important;
+  background-color: var(--ui-surface) !important;
+  color: var(--ui-text);
+  box-shadow: none;
+}
+input:not([type=checkbox]):not([type=radio]):focus, select:focus, textarea:focus { outline: none; box-shadow: 4px 4px 0 var(--ui-lime, #E0F50A) !important; }
+input[aria-invalid="true"], input.err { border: 3px solid var(--ui-pink, #FF3D6B) !important; }
+
+/* interrupteur 52 × 30 : trait encre, vert si actif, éteint sinon, pastille surface avec trait */
+input[type=checkbox] {
+  width: 52px !important; height: 30px !important; border: var(--ui-bw) solid var(--ui-ink) !important;
+  border-radius: var(--ui-r-pill) !important; background: var(--ui-off) !important; position: relative; box-shadow: none !important;
+}
+input[type=checkbox]::before { top: 3px !important; left: 3px !important; width: 20px !important; height: 20px !important; border-radius: var(--ui-r-pill) !important; background: var(--ui-surface) !important; border: var(--ui-bw) solid var(--ui-ink); box-shadow: none !important; }
+input[type=checkbox]:checked { background: var(--ui-green, var(--ui-switch)) !important; }
+input[type=checkbox]:checked::before { transform: translateX(22px) !important; }
+
+/* ---------- puces, étiquettes, pastilles d'état ---------- */
+.tag, .chip, .pill, .ts, .side-st, .st, .bd {
+  border: var(--ui-bw) solid var(--ui-ink) !important;
+  border-radius: var(--ui-r-pill) !important;
+  box-shadow: var(--ui-sh-sm);
+  font-family: var(--label, inherit);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.chip.live, .st.on { background: var(--ui-pink, #FF3D6B) !important; color: #1A0509 !important; }
+.chip.ok, .st.fin { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; }
+
+/* ---------- onglets et segments : actif plein citron ---------- */
+.seg, .tsec-tabs, .nvtabs { border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r-sm) !important; box-shadow: var(--ui-sh-sm); background: var(--ui-surface) !important; padding: 0 !important; gap: 0 !important; }
+.seg button, .tsec-tabs button, .nvtabs button { border: 0 !important; border-left: var(--ui-bw) solid var(--ui-ink) !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
+.seg button:first-child, .tsec-tabs button:first-child, .nvtabs button:first-child { border-left: 0 !important; }
+.seg button.on, .seg button[aria-selected="true"], .tsec-tabs button.on, .nvtabs button.on { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; }
+
+/* ---------- compteurs (KPI) ---------- */
+.kpi b, .kpis b { font-family: var(--display, inherit); font-size: 40px; line-height: 1; }
+.kpi .ico { width: 44px !important; height: 44px !important; background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r-sm) !important; box-shadow: var(--ui-sh-sm); }
+.kpi .ico .ic { width: 22px; height: 22px; }
+
+/* ---------- carte héros (tournoi en cours) : bordeaux, texte blanc, ombre citron ---------- */
+.hero-t, .card.hero-t { background: var(--ui-bordeaux, #5E0A1F) !important; color: #fff !important; box-shadow: var(--ui-sh-hero) !important; }
+.hero-t .eyebrow, .hero-t h2, .hero-t p, .hero-t > div > span, .hero-t .hero-stats span, .hero-t .hero-stats b { color: #fff !important; }
+.hero-t::before, .hero-t::after { display: none !important; }   /* plus de halo */
+.hero-t .chip { color: #1A0509 !important; }
+.hero-t .prog { background: var(--ui-surface) !important; border: var(--ui-bw) solid var(--ui-ink); border-radius: var(--ui-r-pill); }
+.hero-t .prog i { background: var(--ui-lime, #E0F50A) !important; }
+
+/* ---------- tableaux : en-tête citron ---------- */
+.tbl th, table.in-pt th { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; border-top: var(--ui-bw) solid var(--ui-ink); border-bottom: var(--ui-bw) solid var(--ui-ink); }
+.tbl td, table.in-pt td { border-top: 1px solid var(--ui-ink) !important; }
+
+/* ---------- messages flottants et alertes : fond plein, texte foncé ---------- */
+.toast { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; border: var(--ui-bw) solid var(--ui-ink) !important; box-shadow: var(--ui-sh) !important; border-radius: var(--ui-r-sm) !important; }
+.in-al, .alert.warn { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; border: var(--ui-bw) solid var(--ui-ink) !important; box-shadow: var(--ui-sh) !important; border-radius: var(--ui-r) !important; }
+.alert.ok { background: var(--ui-green, #9BD43C) !important; color: #1A0509 !important; }
+.alert.err, .note.err { background: var(--ui-pink, #FF3D6B) !important; color: #1A0509 !important; }
+
+/* ---------- listes déroulantes : même largeur et mêmes coins que la boîte (copiés à l'ouverture), ombre dure ---------- */
+.rsug, .suggest, .enc-l, .sgbox { box-shadow: var(--ui-sh) !important; border-color: var(--ui-ink) !important; }
+.rsug button[aria-selected="true"], .suggest .sg.on { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; }
+
+/* ---------- rail (menu de gauche) : élément actif citron encadré ---------- */
+.rail { border-right: var(--ui-bw) solid var(--ui-ink) !important; box-shadow: none !important; }
+.rail a.on, .rail button.on { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; border: var(--ui-bw) solid var(--ui-ink) !important; box-shadow: var(--ui-sh-sm) !important; border-radius: var(--ui-r-sm) !important; }
+.side { border-right: var(--ui-bw) solid var(--ui-ink) !important; }
+.side-t { border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r) !important; box-shadow: var(--ui-sh-sm) !important; }
+nav#nav button.on::before { background: var(--ui-lime, #E0F50A) !important; border: var(--ui-bw) solid var(--ui-ink); box-shadow: var(--ui-sh-sm); transform: none !important; }
+nav#nav button.on, nav#nav button.on i, nav#nav button.on .lg { color: #1A0509 !important; }
+
+/* barres du haut et du bas (téléphone) */
+.appbar, .mtop { border-bottom: var(--ui-bw) solid var(--ui-ink) !important; box-shadow: none !important; }
+@media (max-width: 720px) { body.editor-page .side { border-top: var(--ui-bw) solid var(--ui-ink) !important; border-right: 0 !important; } }
+
+/* avatars et pictogrammes ronds */
+.av, .avatar { border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r-pill) !important; box-shadow: var(--ui-sh-sm); }
+
+/* rubriques des menus (menu du tournoi, sous-menu, rail) : pas d'encadré de bouton, l'élément actif seul est citron */
+nav#nav button, nav#nav .subnav button, .rail button:not(.on), .tsec-tab { border: 0 !important; box-shadow: none !important; background: transparent !important; }
+nav#nav button { color: var(--ui-side-text); }
+.rail button:not(.on) { color: inherit !important; }
+
+/* =========================================================================
+   Finitions : marges, fonds pleins, lisibilité, alignements
+   ========================================================================= */
+/* champs et listes de choix : jamais transparents, fond « champ » choisi selon le fond de base
+   (crème sur les cartes blanches de jour, prune foncé sur les cartes prune de nuit) */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select, textarea { background-color: var(--ui-field) !important; color: var(--ui-text) !important; }
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):focus, select:focus, textarea:focus { background-color: var(--ui-surface) !important; }
+input::placeholder, textarea::placeholder { color: var(--ui-text-mut); opacity: 1; }
+select option { background: var(--ui-surface); color: var(--ui-text); }
+.rsug, .suggest, .enc-l, .sgbox { background: var(--ui-surface) !important; color: var(--ui-text); }
+.rsug button, .suggest .sg { background: var(--ui-surface) !important; color: var(--ui-text) !important; border: 0 !important; box-shadow: none !important; }
+/* boutons secondaires : plus de fond transparent */
+.btn.ghost, button.ghost { background: var(--ui-surface) !important; color: var(--ui-text) !important; box-shadow: var(--ui-sh-sm) !important; }
+.seg button:not(.on):not([aria-selected="true"]), .tsec-tabs button:not(.on), .nvtabs button:not(.on) { background: var(--ui-surface) !important; color: var(--ui-text) !important; }
+.seg, .tsec-tabs, .nvtabs { overflow: hidden; }
+.seg button, .tsec-tabs button, .nvtabs button { padding-inline: 14px !important; }
+
+/* lisibilité : texte foncé sur le rose et sur le citron, texte clair sur le bordeaux */
+.guest, .guest a { color: #1A0509 !important; }
+.tag, #hTag { color: #1A0509 !important; }
+.kpi small { color: var(--ui-accent-text) !important; }
+.rail a:not(.on), .rail button:not(.on) { color: #F7EFF0 !important; }
+.rail a:not(.on) .r-sh, .rail button:not(.on) .r-sh { color: #F7EFF0 !important; }
+/* menu du tournoi : rubrique active sur fond citron plein (le texte foncé devient lisible) */
+nav#nav button.on { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; border: var(--ui-bw) solid var(--ui-ink) !important; box-shadow: var(--ui-sh-sm) !important; border-radius: var(--ui-r-sm) !important; }
+nav#nav button.on::before { display: none !important; }
+nav#nav button.on .sh, nav#nav button.on .lg, nav#nav button.on i, nav#nav button.on svg { color: #1A0509 !important; }
+nav#nav button:not(.on) { color: #F7EFF0 !important; }
+
+/* titres avec surtitre : un peu d'air pour que le surtitre ne touche pas le titre */
+.eyebrow { display: inline-block; margin-bottom: 6px; line-height: 1.2; }
+.eyebrow + h1, .eyebrow + h2 { margin-top: 0; line-height: 1.05; }
+
+/* =========================================================================
+   Conformité à la maquette Figma (« RAM — Composants néo-brutalistes », pages Composants et Maquette /Pista)
+   ========================================================================= */
+/* titres Anton droits (plus d'italique), sans mot surligné */
+.phead h1, .kpi b, .kpis b, .hero-t h2, .tcard h3, .cal-head h2, .pmodal-box h2, .pk b, .who b, .pf-h, .st-rk, .st-nums b, .top-t h1, .ptitle, .side-t b, .mtop-logo b { font-style: normal !important; }
+.acct .band, .band { background: transparent !important; color: inherit !important; padding: 0 !important; transform: none !important; border-radius: 0 !important; }
+/* surtitre : Barlow Condensed 12, espacement .24em, couleur accent-texte */
+.eyebrow, .acct .eyebrow { font-family: var(--label); font-weight: 700; font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: var(--ui-accent-text) !important; }
+/* boutons : Barlow Condensed gras 17, casse normale, 48 de haut, marges 12 × 20 */
+.btn, button.accent, .pt, .phead .btn, a.btnlike { font-family: var(--label) !important; font-weight: 700 !important; font-size: 17px !important; letter-spacing: .02em !important; text-transform: none !important; min-height: 48px; padding: 12px 20px !important; line-height: 1.1; }
+/* compteur : libellé Barlow 13 majuscules couleur atténuée, chiffre Anton 40 droit, détail Work Sans 13, carré citron 44 */
+.kpi { padding: 16px 18px !important; align-items: flex-start !important; }
+.kpi small { font-family: var(--label); font-weight: 700; font-size: 13px !important; letter-spacing: .08em !important; text-transform: uppercase; color: var(--ui-text-mut) !important; margin-bottom: 2px !important; }
+.kpi b { font-size: 40px !important; line-height: 1 !important; }
+.kpi span:not(.ico), .kpi em { font-family: var(--body); font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--ui-text-mut); font-style: normal; }
+/* carte : marges 22, titre Barlow 22 */
+.card { padding: 22px; }
+.card h3, .card .ttl { font-family: var(--label); font-weight: 700; font-size: 22px; line-height: 1.1; text-transform: none; font-style: normal; }
+/* puces d'état : Barlow 13 majuscules, marges 4 × 10, texte foncé */
+.chip, .tag, .pill, .ts, .side-st, .st, .bd { font-family: var(--label) !important; font-weight: 700 !important; font-size: 13px !important; letter-spacing: .08em !important; padding: 4px 10px !important; line-height: 1.2 !important; }
+/* carte héros : marges 24, surtitre blanc à 80 %, chiffres Barlow 22, jauge 14 px (piste surface, remplissage citron) */
+.hero-t { padding: 24px !important; }
+.hero-t .eyebrow { color: #fff !important; opacity: .8; }
+.hero-t .hero-stats b { font-family: var(--label) !important; font-weight: 700; font-size: 22px !important; font-style: normal !important; }
+.hero-t .hero-stats span { font-family: var(--body) !important; font-size: 13px !important; letter-spacing: 0 !important; text-transform: none !important; opacity: .75; }
+.hero-t .prog { height: 14px !important; border-radius: 0 !important; overflow: hidden; }
+.hero-t .prog i { height: 100% !important; border-radius: 0 !important; display: block; }
+/* jauges de progression en général : 14 px, piste surface encadrée, remplissage citron (vert pour le repos) */
+.prog, .bar, progress { height: 14px; border: var(--ui-bw) solid var(--ui-ink); background: var(--ui-surface); border-radius: var(--ui-r-pill); overflow: hidden; }
+.prog > i, .bar > i { background: var(--ui-lime, #E0F50A); border-radius: 0; }
+/* onglets : 44 de haut, Barlow 17 casse normale, ombre 4 */
+.seg, .tsec-tabs, .nvtabs { box-shadow: var(--ui-sh) !important; }
+.seg button, .tsec-tabs button, .nvtabs button { min-height: 44px; font-family: var(--label) !important; font-weight: 700 !important; font-size: 17px !important; letter-spacing: .02em !important; text-transform: none !important; padding-inline: 18px !important; }
+/* champs : 48 de haut, marges 14, étiquette Barlow 13 majuscules */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select { min-height: 48px; padding-inline: 14px !important; font-family: var(--body); font-size: 15px; }
+.card label:not(.chk):not(.inline):not(:has(input[type=checkbox])):not(:has(input[type=radio])) { font-family: var(--label); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ui-text); gap: 6px; }
+/* menus bordeaux comme la maquette : rail et panneau du tournoi */
+:root { --ui-rail-bg: #74102A; --ui-rail-text: #F7EFF0; }
+:root[data-theme="light"] { --ui-rail-bg: #5E0A1F; --ui-rail-text: #F7EFF0; }
+.rail { border-right: var(--ui-bw) solid var(--ui-ink) !important; }
+/* carte du tournoi dans le panneau : trait clair, ombre citron */
+.side-t { border-color: #F7EFF0 !important; box-shadow: 6px 6px 0 var(--ui-lime, #E0F50A) !important; }
+/* rubriques du menu du tournoi : Barlow 17 gras blanc */
+nav#nav button { font-family: var(--label) !important; font-weight: 700 !important; font-size: 17px; letter-spacing: .01em; }
+/* menu du tournoi : quand le sous-menu est ouvert, seule la partie active est citron (la rubrique garde un repère citron) */
+nav#nav button.on:has(+ .subnav:not(:empty)) { background: transparent !important; color: #fff !important; border: 0 !important; box-shadow: inset 4px 0 0 var(--ui-lime, #E0F50A) !important; }
+nav#nav button.on:has(+ .subnav:not(:empty)) .ic, nav#nav button.on:has(+ .subnav:not(:empty)) svg, nav#nav button.on:has(+ .subnav:not(:empty)) span { color: #fff !important; }
+nav#nav .subnav button { font-size: 15px !important; }
+/* texte saisi : Work Sans normal 15 (l'étiquette seule est en Barlow gras) */
+input:not([type=checkbox]):not([type=radio]), select, textarea { font-family: var(--body) !important; font-weight: 400 !important; font-size: 15px !important; letter-spacing: 0 !important; text-transform: none !important; }
+/* boutons d'en-tête de page (éditeur, tableau de bord) : même texte que les boutons de la maquette */
+.top-actions button, .phead button, .phead a.btn { font-family: var(--label) !important; font-weight: 700 !important; font-size: 17px !important; letter-spacing: .02em !important; text-transform: none !important; min-height: 44px; padding: 10px 18px !important; }
+/* détails sous les chiffres : Work Sans normal */
+.kpi b + *, .hero-t .hero-stats b + * { font-family: var(--body) !important; font-weight: 400 !important; font-size: 13px !important; letter-spacing: 0 !important; text-transform: none !important; }
+/* textes roses lisibles : le rose vif reste pour les fonds, le texte prend la couleur accent-texte */
+.row .d span { letter-spacing: .04em !important; }
+.row .d span, .ptable .oc, .st-list li.p2 .st-rk, .st-list li.p3 .st-rk, .msg.err, .acct .btn.danger { color: var(--ui-accent-text) !important; }
+/* puces sur la carte héros : blanches (rose si direct, citron si terminé) */
+.hero-t .chip:not(.live):not(.ok) { background: #fff !important; }
+.tag.ghost { color: var(--ui-text) !important; background: var(--ui-surface) !important; }

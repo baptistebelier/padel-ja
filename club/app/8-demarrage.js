@@ -606,6 +606,24 @@ try {
 } catch (e) {
   setUStyle('');
 }
+/* forme des coins : droits (par défaut) ou arrondis, comme /Pista et /Dojo */
+function setCoins(v) {
+  S.coins = v === 'arrondis' ? 'arrondis' : '';
+  if (S.coins) document.documentElement.dataset.coins = S.coins;
+  else delete document.documentElement.dataset.coins;
+  try {
+    localStorage.setItem('club-coins', S.coins);
+  } catch (e) {}
+}
+try {
+  setCoins(localStorage.getItem('club-coins') || '');
+} catch (e) {
+  setCoins('');
+}
+A.coins = d => {
+  setCoins(d.k);
+  render(true);
+};
 A.ustyle = d => {
   setUStyle(d.k);
   render(true);

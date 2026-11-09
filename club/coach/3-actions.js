@@ -625,34 +625,36 @@ Object.assign(A, {
 /* couleurs de /RAM JA (nuit bordeaux, jour rosé, lime et rose /RAM), jamais celles du club : un logiciel de gestion */
 const CO_THEME = {
   true: {
-    bg: '#120A0C',
-    card: '#1C1215',
-    card2: '#2A1C20',
-    line: '#3A2A30',
+    bg: '#2A1B21',
+    card: '#46303A',
+    card2: '#533A45',
+    line: '#5C4450',
+    field: '#33222A',
     fg: '#F7EFF0',
-    muted: '#B5A0A6',
+    muted: '#DCCBD0',
     accent: '#E0F50A',
     'on-accent': '#1A0509',
     accent2: '#FF3D6B',
     hot: '#FF3D6B',
-    'hot-tx': '#FF6F8F',
+    'hot-tx': '#FF8FA8',
     'on-hot': '#FFFFFF',
-    stage: '#0A0506'
+    stage: '#1C1116'
   },
   false: {
-    bg: '#F6F1F1',
+    bg: '#F2EBE4',
     card: '#FFFFFF',
-    card2: '#F1E6E8',
-    line: '#E0D0D4',
-    fg: '#2A0A12',
-    muted: '#86717A',
+    card2: '#F8F1EC',
+    line: '#E6DCD6',
+    field: '#F8F1EC',
+    fg: '#1A0509',
+    muted: '#6E5A61',
     accent: '#A30F35',
     'on-accent': '#FFFFFF',
     accent2: '#D0103A',
     hot: '#D0103A',
     'hot-tx': '#B3123D',
     'on-hot': '#FFFFFF',
-    stage: '#E9DDE0'
+    stage: '#E6DCD6'
   }
 };
 const coSetTheme = setTheme;
@@ -664,7 +666,7 @@ setTheme = function (i) {
   r.setProperty('--rail-logo', `url("img/coach-v2-logo-${dk ? 'blanc' : 'noir'}.png")`);
   r.colorScheme = dk ? 'dark' : 'light';
   const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.content = dk ? '#120A0C' : '#74102A';
+  if (m) m.content = dk ? '#2A1B21' : '#74102A';
 };
 /* ma fiche enseignant : rangée dans mon profil du club, visible de tous les adhérents (École, Enseignants) */
 A.coPro = () => {

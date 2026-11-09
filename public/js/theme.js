@@ -7,7 +7,7 @@
   function apply(t) {
     root.dataset.theme = t;
     const m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.content = t === 'light' ? '#F6F1F1' : '#120A0C';
+    if (m) m.content = t === 'light' ? '#F2EBE4' : '#2A1B21';
     document.querySelectorAll('[data-theme-toggle]').forEach(b => {
       b.setAttribute('aria-label', t === 'light' ? 'Passer en mode nuit' : 'Passer en mode jour');
       const s = b.querySelector('span'); if (s) s.textContent = t === 'light' ? 'Mode nuit' : 'Mode jour';
@@ -16,6 +16,8 @@
   apply(saved() || system());
   // style de l'interface : épuré, street dosé (par défaut) ou full street
   try { const st = localStorage.getItem('padelja-style'); if (st) root.dataset.style = st; } catch (e) {}
+  // forme des coins : droits par défaut, arrondis au choix (Profil)
+  try { const co = localStorage.getItem('padelja-coins'); if (co) root.dataset.coins = co; } catch (e) {}
   // fond de l'interface : motif /RAM padel et tennis par défaut ; points, padel, tennis ou uni au choix
   let fond = 'ram-mixte'; try { fond = localStorage.getItem('padelja-fond') || fond; } catch (e) {}
   root.dataset.fond = fond;
