@@ -21,6 +21,7 @@ Object.assign(TITLES, {
   seance: () => {
     const id = view().id,
       g = grp(id.slice(0, id.lastIndexOf('.')));
+    if (REGLES.planDe(id)) return [g ? g.name : 'Séance', 'À planifier'];
     return [g ? g.name : 'Séance', fmtD(id.slice(id.lastIndexOf('.') + 1))];
   },
   eleve: () => [svName(view().id), 'Fiche élève'],
@@ -62,6 +63,12 @@ function coPop(sel, burst) {
   el.classList.add('copop');
   if (burst && typeof fxBurst === 'function') fxBurst(fxAt(el));
 }
+/* la dernière date qui garde l'ancien enseignant : hier, ou aujourd'hui si l'appel du jour est fait */
+const coCoupure = g =>
+  REGLES.coupureDe(
+    TODAY,
+    trainOn(g, TODAY) && Object.values(REGLES.presDe(sesFind(g, TODAY), g, TODAY)).some(v => v === 'P')
+  );
 const coSave = msg => {
   render(true);
   if (msg) toast(msg);
@@ -307,7 +314,9 @@ Object.assign(A, {
     const g = grp(d.g);
     g.mem = g.mem.filter(k => k !== d.k);
     if (g.ext) g.ext = g.ext.filter(k => k !== d.k);
-    coSave(svFirst(d.k) + ' retiré du groupe');
+    // il garde ce qu'il a consommé de l'attribution du groupe, sans les séances suivantes
+    const n = typeof coGrpLeave === 'function' ? coGrpLeave(g, d.k) : 0;
+    coSave(svFirst(d.k) + ' retiré du groupe' + (n ? ' · sa formule du groupe s’arrête aujourd’hui' : ''));
   }
 });
 /* fiche d'un élève (créée à la première écriture, pour un adhérent qui n'en a pas encore) */
@@ -470,7 +479,8 @@ document.addEventListener('submit', e => {
       prix = parseFloat(val('co-prix').replace(',', '.')) || 0,
       max = parseInt(val('co-max'), 10) || 0;
     if ($('co-coach') && val('co-coach') && val('co-coach') !== g.coach) {
-      g.coach = val('co-coach');
+      // les séances passées gardent leur enseignant (regles.js coachDe, historique g.coachH)
+      REGLES.changeCoach(g, val('co-coach'), coCoupure(g));
       g.sub = g.sub ? g.sub.replace(/ · [^·]+$/, ' · ' + first(g.coach)) : g.sub;
     }
     g.tarif = { mode, prix };
@@ -507,13 +517,18 @@ document.addEventListener('submit', e => {
   if (f.id === 'co-add') {
     const g = grp(id),
       ks = [...f.querySelectorAll('input[type=checkbox]:checked')].map(i => i.value);
+    let att = 0;
     ks.forEach(k => {
       if (M[k]) {
         if (!g.mem.includes(k)) g.mem.push(k);
       } else g.ext = [...new Set((g.ext || []).concat(k))];
+      // l'attribution du groupe (pack ou abonnement du cycle) le suit, à partir de son arrivée
+      if (typeof coGrpJoin === 'function') att += coGrpJoin(g, k);
     });
     closeSheet();
-    return coSave(ks.length ? plural(ks.length, 'élève ajouté', 'élèves ajoutés') : '');
+    return coSave(
+      ks.length ? plural(ks.length, 'élève ajouté', 'élèves ajoutés') + (att ? ' · formule du groupe notée' : '') : ''
+    );
   }
 });
 

@@ -1645,6 +1645,32 @@ const ELEVES = [],
   SEANCES = [],
   SUIVI = [],
   BROUILLONS = []; // bilans de séance préparés (par Claude, via le connecteur /RAM), publiés par l'enseignant
+/* la séance d'un groupe à une date (enregistrée dans le club du groupe), ou rien */
+const sesDu = (g, iso) =>
+  g ? SEANCES.find(s => s.id === g.id + '.' + iso && (s._club || '') === (g._club || '')) : null;
+/* qui enseigne ce jour-là : remplaçant de la séance, enseignant du cycle, puis du groupe (regles.js) */
+const coachDu = (g, iso) => REGLES.coachDe(g, iso, sesDu(g, iso));
+/* une seule source de présence (regles.js presDe) : l'appel, de /RAM Club comme de /RAM Coach, s'écrit dans la séance
+   (s.pres : P, E ou A) et dans le groupe (g.att, recopié dans les présences du club). v vide : retiré de l'appel */
+function appelNote(g, iso, k, v) {
+  if (!g) return;
+  let s = sesDu(g, iso);
+  if (!s && v) {
+    s = { id: g.id + '.' + iso, g: g.id, d: iso };
+    if (g._club) s._club = g._club;
+    SEANCES.push(s);
+  }
+  if (s) {
+    s.pres = s.pres || {};
+    if (v) s.pres[k] = v;
+    else delete s.pres[k];
+  }
+  if (!M[k]) return; // g.att : seulement pour les adhérents (comme avant)
+  g.att = g.att || {};
+  g.att[iso] = g.att[iso] || {};
+  if (v === 'P' || v === 'A') g.att[iso][k] = v === 'P';
+  else delete g.att[iso][k];
+}
 (() => {
   const at = (d, h) => +new Date(d + 'T' + String(h).padStart(2, '0') + ':00:00');
   SEANCES.push(

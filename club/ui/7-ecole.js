@@ -29,7 +29,7 @@ function sessCard(g, iso, who, manage) {
     t: g.h,
     cx,
     title: g.name,
-    lines: [g.coach && ['user', first(g.coach)], ['clock', g.dur]],
+    lines: [coachDu(g, iso) && M[coachDu(g, iso)] && ['user', first(coachDu(g, iso))], ['clock', g.dur]],
     tags:
       (cx ? evCx('Cours annulé') : evLoc(loc)) +
       sportTag(g.sport) +
@@ -160,7 +160,10 @@ function ecoleBody(t) {
       whos.forEach(w => {
         if (g.mem.includes(w)) sessions(g, 21).forEach(iso => items.push({ g, iso, w }));
       });
-      if (g.coach === me) sessions(g, 21).forEach(iso => items.push({ g, iso, w: null, c: 1 }));
+      // les séances que j'enseigne : celles de mes groupes, de mes cycles et celles où je remplace
+      sessions(g, 21)
+        .filter(iso => coachDu(g, iso) === me)
+        .forEach(iso => items.push({ g, iso, w: null, c: 1 }));
     });
     items.sort((a, b) => a.iso.localeCompare(b.iso) || hMin(a.g.h) - hMin(b.g.h));
     b = items.length

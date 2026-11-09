@@ -606,6 +606,27 @@
   background: var(--accent2) !important;
   color: #fff !important;
 }
+/* « Abonné » : sur la fiche de l'élève et sur ses séances ; états d'une attribution */
+.tag.coabo {
+  background: var(--accent) !important;
+  color: var(--on-accent, #fff) !important;
+  margin-left: 4px;
+  font-size: 11px;
+}
+.tag.coetat.utilise {
+  background: var(--hot) !important;
+  color: #fff !important;
+}
+.coabocard .colk {
+  display: inline-block;
+}
+/* séances à planifier d'un cycle (sans date) */
+.coplan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 10px;
+}
 .tag.coghost {
   background: #ffffff1f !important;
   color: #fff !important;
@@ -2059,4 +2080,3 @@ button.copp:hover span:last-child {
   font-size: 17px;
   font-weight: 600;
 }
-

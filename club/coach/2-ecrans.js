@@ -44,7 +44,8 @@ const coIsGrp = g => !g.once;
 // cycle terminé : sa dernière séance est passée, ou l'enseignant l'a terminé lui-même (fini)
 const coOver = g => !!g.to && (g.to < TODAY || !!g.fini);
 /* créneau d'un groupe : « mardi 18 h » chaque semaine, ou la date d'une séance ponctuelle */
-const coSlot = g => (g.once ? fmtD(g.once) + ' · ' + g.h : DAYS[g.day] + ' ' + g.h);
+const coSlot = g =>
+  g.once ? fmtD(g.once) + ' · ' + g.h : g.libre ? 'Sans créneau, dates une par une' : DAYS[g.day] + ' ' + g.h;
 const sesKey = (g, d) => g.id + '.' + d;
 /* autres clubs où j'enseigne, lus à part (coach/4-finitions.js) : { id: { name, key, role, groups, seances } }.
    Leurs groupes ont _club ; on les voit dans Aujourd'hui, Planning et Statistiques, on les modifie en ouvrant ce club. */
@@ -67,11 +68,34 @@ const monday = off => {
 };
 const coAllGroups = scope => coGroups(scope);
 /* toutes les séances d'une période, triées : { g, d, s } ; all : de tous mes clubs */
+/* les autres groupes que j'enseigne en partie : enseignant d'un cycle, remplaçant d'une séance (regles.js coachDe) */
+const coMentionsMe = g =>
+  (g.cycles || []).some(c => coIsMe(c.coach) || (c.coachH || []).some(h => coIsMe(h.coach))) ||
+  (g.coachH || []).some(h => coIsMe(h.coach)) ||
+  SEANCES.some(s => s.g === g.id && (s._club || '') === (g._club || '') && coIsMe(s.coach));
 function coSessions(from, to, scope, all) {
-  return (all ? coAllGroups(scope) : coGroups(scope))
+  const mine = all ? coAllGroups(scope) : coGroups(scope),
+    autres = GROUPS.filter(
+      g => g.type === 'train' && !g.old && !mine.includes(g) && (all || coInClub(g)) && coMentionsMe(g)
+    );
+  return mine
     .flatMap(g => coDates(g, from, to).map(d => ({ g, d, s: sesFind(g, d) })))
+    .concat(
+      autres.flatMap(g =>
+        coDates(g, from, to)
+          .map(d => ({ g, d, s: sesFind(g, d) }))
+          .filter(x => coIsMe(REGLES.coachDe(x.g, x.d, x.s)))
+      )
+    )
     .sort((a, b) => a.d.localeCompare(b.d) || hMin(a.g.h) - hMin(b.g.h));
 }
+/* présence fusionnée d'une séance (appel de /RAM Coach et de /RAM Club : regles.js presDe) */
+const coPresOf = x => REGLES.presDe(x.s, x.g, x.d);
+/* l'enseignant effectif d'une séance : remplaçant, cycle, groupe */
+const coCoachOf = (g, d) => REGLES.coachDe(g, d, sesFind(g, d));
+/* un élève abonné (abonnement en cours) : étiquette sur sa fiche et sur ses séances */
+const coAbonne = k => !!REGLES.aboEnCours((coEl(k) || {}).achats, TODAY);
+const coAboTag = k => (coAbonne(k) ? '<span class="tag coabo">Abonné</span>' : '');
 /* élèves suivis : ceux de mes groupes (ou de toute l'école) et les fiches créées à la main */
 function coStudents() {
   const ids = new Set();
@@ -149,8 +173,11 @@ function coSesCard(x, big) {
   const { g, d, s } = x,
     cx = isCx(g, d),
     st = coStu(g),
-    nP = s && s.pres ? Object.values(s.pres).filter(v => v === 'P').length : null,
-    loc = (g.loc || {})[d] || g.defLoc || 'En salle';
+    pr = coPresOf(x),
+    nP = Object.keys(pr).length ? Object.values(pr).filter(v => v === 'P').length : null,
+    loc = (g.loc || {})[d] || g.defLoc || 'En salle',
+    qui = REGLES.coachDe(g, d, s),
+    cyTh = (REGLES.cycleDe(g, d) || {}).theme;
   return evCard({
     cat: 'ens',
     t: g.h,
@@ -162,12 +189,22 @@ function coSesCard(x, big) {
       st.length
         ? [
             'user',
-            `<span class="coppl">${st.map(k => `<span class="copp${s && s.pres && s.pres[k] === 'A' ? ' abs' : ''}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span></span>`).join('')}</span>`,
+            `<span class="coppl">${st.map(k => `<span class="copp${pr[k] === 'A' ? ' abs' : ''}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span>${coAboTag(k)}</span>`).join('')}</span>`,
             'costu'
           ]
         : ['user', 'Aucun élève', 'muted'],
-      ['clock', g.dur + (g.coach && !coIsMe(g.coach) && M[g.coach] ? ' · ' + first(g.coach) : ''), 'muted'],
-      s && s.theme ? ['ladder', esc(s.theme), 'cotheme'] : big && !cx ? ['ladder', 'Thème à définir', 'muted'] : null
+      [
+        'clock',
+        g.dur + (qui && !coIsMe(qui) && M[qui] ? ' · ' + first(qui) : '') + (s && s.coach ? ' · remplaçant' : ''),
+        'muted'
+      ],
+      s && s.theme
+        ? ['ladder', esc(s.theme), 'cotheme']
+        : cyTh
+          ? ['ladder', 'Cycle : ' + esc(cyTh), 'muted']
+          : big && !cx
+            ? ['ladder', 'Thème à définir', 'muted']
+            : null
     ],
     tags:
       (cx ? evCx('Cours annulé') : evLoc(loc)) +
@@ -570,7 +607,36 @@ function coActs(g, d, loc, cx) {
   }${cx ? t('cancelCourse', 'undo', 'Rétablir le cours', 'Élèves prévenus', at, 'on') : t('cancelCourse', 'ban', 'Annuler le cours', 'Reste affiché · élèves prévenus', at)}${coIsGrp(g) && d >= TODAY ? t('coShift', 'forward', 'Reporter', 'Les suivantes glissent', at) : ''}${t('coMove', 'calmove', 'Changer la date', 'Cette séance seulement', at)}${t('delCourse', 'trash', 'Supprimer', 'Personne n’est prévenu', at, 'danger')}</div>`;
 }
 /* ---------- Séance : thème, appel, bilan du groupe et commentaires personnels ---------- */
+/* les enseignants qu'on peut choisir (cycle, remplaçant, groupe) */
+const coCoachList = () =>
+  Object.keys(M).filter(
+    k =>
+      k !== 'club' &&
+      (window.RAM && RAM.live ? ['coach', 'bureau'].includes(RAM.roles[k]) : GROUPS.some(x => x.coach === k))
+  );
+/* le remplaçant d'une séance : il reste prioritaire même si l'enseignant du cycle change ensuite */
+function coRempl(g, d, s, form) {
+  const base = REGLES.coachDe(g, d, null),
+    cs = coCoachList().filter(k => k !== base);
+  return `<div class="fld" style="margin-top:10px"><label for="co-rp">Enseignant de cette séance</label><select id="co-rp" data-g="${g.id}" data-d="${d}"${form ? ' form="' + form + '"' : ''}><option value="">${esc(M[base] ? name(base) : 'Enseignant du groupe')} (${REGLES.cycleDe(g, d) ? 'cycle' : 'groupe'})</option>${cs.map(k => `<option value="${k}" ${s && s.coach === k ? 'selected' : ''}>${esc(name(k))} · remplaçant</option>`).join('')}</select></div>`;
+}
+/* une séance à planifier (« groupe.pK-cycle », regles.js aPlanifier) : pas encore de date, déjà son thème et son remplaçant */
+function coSeancePlan(P) {
+  const g = grp(P.g),
+    c = g && (g.cycles || []).find(x => x.id === P.c),
+    x = g && c && REGLES.aPlanifier(g, c)[P.rang - 1];
+  if (!x)
+    return `<div class="pad">${none('cal', 'Séance déjà planifiée', 'Elle a reçu une date : retrouve-la au planning.')}</div>`;
+  const num = REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).posees + P.rang;
+  return `<div class="pad"><div class="card"><span class="kicker">${esc(c.nom || 'Cycle')} · séance ${num} sur ${REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).prevues}</span><span class="h3">${esc(g.name)}</span><p class="muted small">Cette séance n’a pas encore de date. Dès qu’elle en a une, elle apparaît au planning, dans l’Agenda et l’École de /RAM Club.</p><button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button></div><form class="card" id="co-aplan" data-g="${g.id}" data-c="${c.id}" data-r="${P.rang}"><div class="fld"><label for="co-ap-d">Date</label><input id="co-ap-d" type="date" value=""></div><div class="fld"><label for="co-ap-t">Thème</label><input id="co-ap-t" list="co-thl" value="${esc(x.theme || '')}" placeholder="Thème de la séance"><datalist id="co-thl">${(THEMES[g.sport] || []).map(t => `<option value="${esc(t)}">`).join('')}</datalist></div><div class="fld"><label for="co-ap-c">Enseignant</label><select id="co-ap-c"><option value="">Enseignant du cycle</option>${coCoachList()
+    .map(k => `<option value="${k}" ${x.coach === k ? 'selected' : ''}>${esc(name(k))} · remplaçant</option>`)
+    .join(
+      ''
+    )}</select></div><button class="btn full">Enregistrer</button><p class="muted small">Sans date, le thème et l’enseignant sont gardés pour cette séance.</p></form></div>`;
+}
 function coSeance(id) {
+  const P = REGLES.planDe(id);
+  if (P) return coSeancePlan(P);
   const i = id.lastIndexOf('.'),
     g = grp(id.slice(0, i)),
     d = id.slice(i + 1);
@@ -591,17 +657,18 @@ function coSeance(id) {
         : (SUIVI.find(x => x.k === 'bilan' && x.ses === id && x.to === k) || {}).txt || '';
   const roll = st
     .map(k => {
-      const at = ((g.att || {})[d] || {})[k],
-        v = (s.pres || {})[k] || (at === true ? 'P' : at === false ? 'A' : ''),
+      const v = REGLES.presDe(s, g, d)[k] || '',
         ann = M[k] ? respOf(g, d, k) : '';
-      return `<div class="corow">${coAv(k)}<span class="grow"><button class="nm" data-a="open" data-v="eleve" data-id="${k}">${esc(svName(k))}</button>${ann ? `<br><span class="muted small">A annoncé : ${ann === 'ok' ? 'présent' : 'absent'}</span>` : ''}${plus.includes(k) ? `<br><span class="tag">Ponctuel</span>${v === 'P' && coDue(k, d) ? ' <span class="tag cost todo">À payer</span>' : ''}` : ''}<br><button class="colk" data-a="coSesRm" data-id="${id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} de cette séance">Retirer de la séance</button></span><span class="pea" role="group" aria-label="Présence de ${esc(svName(k))}">${['P', 'E', 'A'].map(x => `<button class="${v === x ? 'on ' + x : ''}" data-a="coPres" data-id="${id}" data-k="${k}" data-s="${x}" aria-pressed="${v === x}" aria-label="${presLbl[x]}">${ic(PRES_IC[x])}<span>${presLbl[x]}</span></button>`).join('')}</span></div>`;
+      return `<div class="corow">${coAv(k)}<span class="grow"><button class="nm" data-a="open" data-v="eleve" data-id="${k}">${esc(svName(k))}</button>${coAboTag(k)}${ann ? `<br><span class="muted small">A annoncé : ${ann === 'ok' ? 'présent' : 'absent'}</span>` : ''}${plus.includes(k) ? `<br><span class="tag">Ponctuel</span>${v === 'P' && coDue(k, d) ? ' <span class="tag cost todo">À payer</span>' : ''}` : ''}<br><button class="colk" data-a="coSesRm" data-id="${id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} de cette séance">Retirer de la séance</button></span><span class="pea" role="group" aria-label="Présence de ${esc(svName(k))}">${['P', 'E', 'A'].map(x => `<button class="${v === x ? 'on ' + x : ''}" data-a="coPres" data-id="${id}" data-k="${k}" data-s="${x}" aria-pressed="${v === x}" aria-label="${presLbl[x]}">${ic(PRES_IC[x])}<span>${presLbl[x]}</span></button>`).join('')}</span></div>`;
     })
     .join('');
-  const nP = Object.values(s.pres || {}).filter(v => v === 'P').length;
-  return `<div class="pad">${g.goal && !g.nv ? `<div class="card cogoalc"><span class="kicker">${ic('target')}Objectif de l’élève</span><p>${esc(g.goal)}</p></div>` : ''}<div class="card"><span class="kicker">${DAYS[coDow(d)]} ${fmtD(d, 1)} · ${g.h} · ${g.dur}</span><span class="h3">${esc(g.name)}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag">${loc}</span>`}${sportTag(g.sport)}${g.coach && M[g.coach] ? `<span class="tag">${first(g.coach)}</span>` : ''}</span>
+  const nP = Object.values(REGLES.presDe(s, g, d)).filter(v => v === 'P').length,
+    qui = REGLES.coachDe(g, d, s),
+    cyc = REGLES.cycleDe(g, d);
+  return `<div class="pad">${g.goal && !g.nv ? `<div class="card cogoalc"><span class="kicker">${ic('target')}Objectif de l’élève</span><p>${esc(g.goal)}</p></div>` : ''}<div class="card"><span class="kicker">${DAYS[coDow(d)]} ${fmtD(d, 1)} · ${g.h} · ${g.dur}</span><span class="h3">${esc(g.name)}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag">${loc}</span>`}${sportTag(g.sport)}${qui && M[qui] ? `<span class="tag">${first(qui)}${s.coach ? ' · remplaçant' : ''}</span>` : ''}</span>${cyc && cyc.theme ? `<p class="muted small">Thème du cycle : ${esc(cyc.theme)}</p>` : ''}
 ${coIsGrp(g) ? `<button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button>` : ''}${st.length ? `<div class="coppl">${st.map(k => `<button class="copp" data-a="open" data-v="eleve" data-id="${k}" aria-label="Fiche de ${esc(svName(k))}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span></button>`).join('')}</div>` : ''}
 <form id="co-theme" data-id="${id}" class="row" style="gap:8px;margin-top:10px"><input id="co-th" class="grow" placeholder="Thème de la séance" value="${esc(s.theme || '')}" aria-label="Thème de la séance" list="co-thl"><datalist id="co-thl">${THEMES[g.sport].map(t => `<option value="${esc(t)}">`).join('')}</datalist><button class="btn sm">OK</button></form>
-${coActs(g, d, loc, cx)}</div>
+${coIsGrp(g) ? coRempl(g, d, s) : ''}${coActs(g, d, loc, cx)}</div>
 ${
   cx
     ? '<div class="card"><p>Les élèves et leurs parents sont prévenus dans /RAM Club.</p></div>'
@@ -641,7 +708,7 @@ function coEleves() {
               const lv = coLvl(k),
                 gs = coGroupsOf(k),
                 un = svOf(k).length ? svUnread(k) : 0;
-              return `<button class="item" data-a="open" data-v="eleve" data-id="${k}">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span>${M[k] ? '' : ' <span class="tag">Sans compte</span>'}<br><span class="muted small">${[lv ? 'Niv. ' + lv.n + ' ' + lv.t : '', dn[k] ? plural(dn[k].n, 'séance') + ' · ' + fr(dn[k].h) + ' h de cours' : 'Aucune séance', gs.map(g => esc(g.name)).join(', ')].filter(Boolean).join(' · ')}</span></span>${un ? `<span class="cnt">${un}</span>` : ''}</button>`;
+              return `<button class="item" data-a="open" data-v="eleve" data-id="${k}">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span>${M[k] ? '' : ' <span class="tag">Sans compte</span>'}${coAbonne(k) ? ' ' + coAboTag(k) : ''}<br><span class="muted small">${[lv ? 'Niv. ' + lv.n + ' ' + lv.t : '', dn[k] ? plural(dn[k].n, 'séance') + ' · ' + fr(dn[k].h) + ' h de cours' : 'Aucune séance', gs.map(g => esc(g.name)).join(', ')].filter(Boolean).join(' · ')}</span></span>${un ? `<span class="cnt">${un}</span>` : ''}</button>`;
             })
             .join('')
         )
@@ -683,7 +750,7 @@ function coEleve(id) {
     mail = e.mail || ct.mail || '';
   let b = '';
   if (tab === 'fiche')
-    b = `<div class="cotiles${sp === 'Padel' ? '' : ' n3'}">${coTile(sp === 'Padel' ? 'padel' : 'ball', sp, 'Sport', 1)}<div class="cotile cotile-hi">${ic('ladder')}<b>${lv ? lv.n : '–'}</b><span>${lv ? esc(lv.t) : 'Niveau à donner'}</span></div>${coTile('hand', e.hand === 'G' ? 'Gaucher' : e.hand === 'D' ? 'Droitier' : '–', 'Main', 1)}${sp === 'Padel' ? coTile('side', { G: 'Gauche', D: 'Droite', 2: 'Les deux' }[e.side] || '–', 'Côté', 1) : ''}</div>
+    b = `${typeof coAboCard === 'function' ? coAboCard(id) : ''}<div class="cotiles${sp === 'Padel' ? '' : ' n3'}">${coTile(sp === 'Padel' ? 'padel' : 'ball', sp, 'Sport', 1)}<div class="cotile cotile-hi">${ic('ladder')}<b>${lv ? lv.n : '–'}</b><span>${lv ? esc(lv.t) : 'Niveau à donner'}</span></div>${coTile('hand', e.hand === 'G' ? 'Gaucher' : e.hand === 'D' ? 'Droitier' : '–', 'Main', 1)}${sp === 'Padel' ? coTile('side', { G: 'Gauche', D: 'Droite', 2: 'Les deux' }[e.side] || '–', 'Côté', 1) : ''}</div>
 <div class="cobento"><div class="cobmain">${hd(ic('users') + 'Groupes')}${gs.length ? list(gs.map(g => `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('users')}</span><span class="grow"><span class="nm">${esc(g.name)}</span><br><span class="muted small">${coSlot(g)} · ${g.dur}</span></span></button>`).join('')) : '<div class="card"><p class="muted small">Dans aucun groupe en cours.</p></div>'}
 ${coAchatsCard(id)}</div>
 <div class="cobside">${hd(ic('target') + 'Objectifs')}<div class="card"><p>${esc(e.goals || 'Aucun objectif noté.')}</p></div>
@@ -841,12 +908,12 @@ function coChiffre(from, to) {
   const el = ELEVES.filter(e => coInClub(e)),
     first = el.reduce((m, e) => (e.achats || []).reduce((m2, a) => (a.d && a.d < m2 ? a.d : m2), m), from),
     seances = coSessions(isoIn(-14, first), to)
-      .filter(x => !isCx(x.g, x.d) && x.s && x.s.pres)
+      .filter(x => !isCx(x.g, x.d) && Object.keys(coPresOf(x)).length)
       .map(x => ({
         g: x.g,
         d: x.d,
         n: coStu(x.g).length,
-        presents: Object.keys(x.s.pres).filter(k => x.s.pres[k] === 'P')
+        presents: REGLES.presents(x.s, x.g, x.d)
       }));
   return REGLES.chiffre({ eleves: Object.fromEntries(el.map(e => [e.id, e])), seances, offres: OFFRES, from, to });
 }
@@ -1200,7 +1267,8 @@ function coSesRow(g, d) {
     past = d <= TODAY,
     id = sesKey(g, d),
     dr = BROUILLONS.some(b => b.id === id && (b._club || '') === (g._club || '')),
-    nP = s && s.pres ? Object.values(s.pres).filter(v => v === 'P').length : null,
+    pr = REGLES.presDe(s, g, d),
+    nP = Object.keys(pr).length ? Object.values(pr).filter(v => v === 'P').length : null,
     tag = cx
       ? ['Annulée', 'cx']
       : !past
@@ -1240,7 +1308,12 @@ function coGroupe(id) {
     up = coDates(g, isoIn(1), g.to && g.to > isoIn(1) ? g.to : isoIn(180)),
     next = up.slice(0, 5),
     past = coDates(g, g.from || isoIn(-365), TODAY).reverse(),
-    c = chans.find(x => x.id === g.id),
+    // un groupe d'un autre club : sa discussion est dans ce club (vue à la lecture du club, coach/4-finitions.js)
+    c = g._club
+      ? CO_EXT[g._club] && CO_EXT[g._club].chans && CO_EXT[g._club].chans.has(g.id)
+        ? { id: g.id, name: g.name, ext: g._club }
+        : null
+      : chans.find(x => x.id === g.id),
     todo = past.filter(d => {
       const s = sesFind(g, d);
       return !isCx(g, d) && !(s && (s.recap || s.noRecap)) && !BROUILLONS.some(b => b.id === sesKey(g, d));
@@ -1252,7 +1325,7 @@ function coGroupe(id) {
 ${hd(ic('chat') + 'Discussion du groupe')}${
     c
       ? list(
-          `<button class="item" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">Dans /RAM Club pour les élèves et les parents</span></span></button><button class="item" data-a="chanDel" data-id="${c.id}"><span class="tile">${ic('x')}</span><span class="grow"><span class="nm">Supprimer la discussion</span><br><span class="muted small">Le groupe et ses séances restent</span></span></button>`
+          `${c.ext ? `<div class="item"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">Dans /RAM Club, ${esc(coClubName(g))}</span></span></div>` : `<button class="item" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">Dans /RAM Club pour les élèves et les parents</span></span></button>`}<button class="item" data-a="coChanDel" data-id="${g.id}"><span class="tile">${ic('x')}</span><span class="grow"><span class="nm">Supprimer la discussion</span><br><span class="muted small">Le groupe et ses séances restent</span></span></button>`
         )
       : `<div class="card"><p class="muted small">Ce groupe n'a pas de discussion dans /RAM Club.</p><button class="btn sm full ghost" data-a="coChanNew" data-id="${g.id}">${ic('plus')}Créer la discussion du groupe</button></div>`
   }
