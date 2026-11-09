@@ -424,3 +424,55 @@ test('la veille à 18 h : rappel du cours de groupe, résumé à l’enseignant 
   sent.length = 0;
 });
 
+test('séance : nouveau thème, remplaçant, élève ajouté ou retiré de la séance : l’élève avec compte est prévenu', async () => {
+  const { coach, club, key, el, p, ek, pk } = await clubDeux(29);
+  const REGLES = require('../club/regles.js');
+  await ops(coach, club, [{ coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Collectif', day: REGLES.dowOf(D), h: '17 h', dur: '1 h', coach: key, mem: [ek] } }]);
+  let l = await ops(coach, club, [{ coll: 'seance', id: 'g1.' + D, op: 'put', data: { g: 'g1', d: D, theme: 'Lob défensif' } }]);
+  assert.deepEqual(l.map(x => x[0]), [el], 'l’élève, pas l’enseignant');
+  assert.match(corps(l), /Collectif, .* : thème « Lob défensif »/);
+  l = await ops(coach, club, [{ coll: 'seance', id: 'g1.' + D, op: 'patch', patch: [{ p: ['coach'], t: 'set', v: pk }] }]);
+  assert.match(corps(l), /Paul remplace ton enseignant/);
+  l = await ops(coach, club, [{ coll: 'seance', id: 'g1.' + D, op: 'patch', patch: [{ p: ['plus'], t: 'set', v: [pk] }] }]);
+  assert.deepEqual(l.map(x => x[0]), [p]);
+  assert.match(corps(l), /Tu es ajouté à la séance Collectif/);
+  l = await ops(coach, club, [{ coll: 'seance', id: 'g1.' + D, op: 'patch', patch: [{ p: ['out'], t: 'set', v: [ek] }] }]);
+  assert.deepEqual(l.map(x => x[0]), [el]);
+  assert.match(corps(l), /Tu es retiré de la séance Collectif/);
+  // une séance passée : personne
+  l = await ops(coach, club, [{ coll: 'seance', id: 'g1.2020-01-07', op: 'put', data: { g: 'g1', d: '2020-01-07', theme: 'Vieux' } }]);
+  assert.equal(l.length, 0);
+  // la veille, le rappel nomme le remplaçant
+  await ops(coach, club, [{ coll: 'seance', id: 'g1.' + D, op: 'patch', patch: [{ p: ['out'], t: 'set', v: [] }] }]);
+  await notifier.veille(REGLES.addDays(D, -1));
+  const r = sent.filter(x => x[1].tag.startsWith(club.id) && /Rappel/.test(x[1].body));
+  assert.match(r.find(x => x[0] === el)[1].body, /avec Paul/);
+  sent.length = 0;
+});
+
+test('cycle : nouvel enseignant, nouveau thème, bilan de fin de cycle : les élèves du groupe sont prévenus', async () => {
+  const { coach, club, key, el, ek, pk } = await clubDeux(30);
+  const g = c => ({ type: 'train', name: 'Collectif', day: 2, h: '17 h', dur: '1 h', coach: key, mem: [ek], cycles: [Object.assign({ id: 'c1', nom: 'Automne', dates: [D, D2] }, c)] });
+  await ops(coach, club, [{ coll: 'group', id: 'g1', op: 'put', data: g({}) }]);
+  let l = await ops(coach, club, [{ coll: 'group', id: 'g1', op: 'put', data: g({ coach: pk, coachH: [{ au: '2031-01-01', coach: '' }] }) }]);
+  assert.deepEqual(l.map(x => x[0]), [el]);
+  assert.match(corps(l), /Paul enseigne désormais le cycle « Automne »/);
+  l = await ops(coach, club, [{ coll: 'group', id: 'g1', op: 'put', data: g({ coach: pk, theme: 'Jeu au filet' }) }]);
+  assert.match(corps(l), /thème du cycle « Jeu au filet »/);
+  l = await ops(coach, club, [{ coll: 'group', id: 'g1', op: 'put', data: g({ coach: pk, theme: 'Jeu au filet', bilan: 'Beaux progrès' }) }]);
+  assert.match(corps(l), /bilan de fin de cycle « Automne »/);
+});
+
+test('appel fait depuis /RAM Club : il compte pour les paiements comme celui de /RAM Coach', async () => {
+  const { coach, club, key, ek } = await clubDeux(31);
+  await ops(coach, club, [
+    { coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Cours', day: 1, h: '9 h', dur: '1 h', sport: 'Padel', coach: key, mem: [ek], att: { '2026-01-05': { [ek]: true } }, cycles: [{ id: 'c1', dates: ['2026-01-05', '2026-01-12'] }] } },
+    { coll: 'eleve', id: ek, op: 'put', data: { n: 'Nina Anglade', achats: [
+      { id: 'hc', t: 'pack', ref: 'p3', d: '2026-01-01', nom: 'Cycle', n: 10, prix: 200, cycle: 'g1:c1', groupe: 'g1', pay: { ech: [{ s: 2, m: 100, ok: '' }] } }
+    ] } }
+  ]);
+  // la séance du 5 n'a que l'appel du Club (g.att) ; celle du 12, l'appel écrit par le Club dans la séance
+  const l = await ops(coach, club, [{ coll: 'seance', id: 'g1.2026-01-12', op: 'put', data: { g: 'g1', d: '2026-01-12', pres: { [ek]: 'P' } } }]);
+  assert.match(corps(l), /Nina : paiement attendu de 100 €, Cycle/, 'les deux séances comptent');
+});
+

@@ -552,11 +552,11 @@ const A = {
     );
   },
   att(d) {
-    const g = grp(d.id);
-    g.att = g.att || {};
-    const a = (g.att[d.d] = g.att[d.d] || {}),
-      v = d.s === '1';
-    a[d.u] = a[d.u] === v ? undefined : v;
+    // le même appel que /RAM Coach (data.js appelNote) : il compte pour les jauges, les cycles et les paiements
+    const g = grp(d.id),
+      cur = REGLES.presDe(sesDu(g, d.d), g, d.d)[d.u],
+      v = d.s === '1' ? 'P' : 'A';
+    appelNote(g, d.d, d.u, cur === v ? '' : v);
     render(true);
   },
   cancelCourse(d) {

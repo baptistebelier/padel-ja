@@ -82,7 +82,18 @@ function coCyclesHtml(g) {
     ligne = c => {
       const E = REGLES.cycleEtat(g, c, coCycleSes(g), TODAY),
         trop = c.n && E.posees > c.n;
-      return `<div class="cokv"><span class="grow"><b>${esc(c.nom)}</b><br><span class="muted small">${E.faites} faites sur ${E.prevues}${E.sansDate ? ' · ' + plural(E.sansDate, 'date', 'dates') + ' à poser' : ''}${E.aVerifier ? ' · ' + E.aVerifier + ' à vérifier' : ''}${(c.pay || []).length ? ' · paiement aux séances ' + c.pay.join(', ') : ''}</span>${trop ? `<br><span class="small" style="color:var(--hot)">${E.posees} séances rattachées pour un pack de ${c.n}</span>` : ''}</span><button class="btn sm ghost" data-a="coCycleSeances" data-id="${g.id}" data-c="${c.id}">Séances</button><button class="ib" data-a="coPlan" data-id="${g.id}" data-c="${c.id}" aria-label="Modifier ${esc(c.nom)}">${ic('edit')}</button></div>`;
+      const qui = c.coach || g.coach,
+        ap = REGLES.aPlanifier(g, c);
+      return `<div class="cokv"><span class="grow"><b>${esc(c.nom)}</b><br><span class="muted small">${E.faites} faites sur ${E.prevues}${E.sansDate ? ' · ' + plural(E.sansDate, 'date', 'dates') + ' à poser' : ''}${E.aVerifier ? ' · ' + E.aVerifier + ' à vérifier' : ''}${(c.pay || []).length ? ' · paiement aux séances ' + c.pay.join(', ') : ''}${qui && M[qui] ? ' · ' + esc(first(qui)) : ''}${c.theme ? ' · ' + esc(c.theme) : ''}${c.bilan ? ' · bilan envoyé' : ''}</span>${trop ? `<br><span class="small" style="color:var(--hot)">${E.posees} séances rattachées pour un pack de ${c.n}</span>` : ''}</span><button class="btn sm ghost" data-a="coCycleSeances" data-id="${g.id}" data-c="${c.id}">Séances</button><button class="ib" data-a="coCycleCfg" data-id="${g.id}" data-c="${c.id}" aria-label="Réglages de ${esc(c.nom)} : enseignant, thème, bilan">${ic('gear')}</button><button class="ib" data-a="coPlan" data-id="${g.id}" data-c="${c.id}" aria-label="Modifier ${esc(c.nom)}">${ic('edit')}</button></div>${
+        ap.length
+          ? `<div class="coplan">${ap
+              .map(
+                x =>
+                  `<button class="chip" data-a="open" data-v="seance" data-id="${g.id}.${x.k}">${ic('cal')}Séance ${E.posees + x.rang} · à planifier${x.theme ? ' · ' + esc(x.theme) : ''}</button>`
+              )
+              .join('')}</div>`
+          : ''
+      }`;
     };
   return `<span class="kicker" style="margin-top:12px">Cycles</span>${l.map(ligne).join('')}${hors && l.length ? `<p class="muted small">${plural(hors, 'séance passée', 'séances passées')} dans aucun cycle : rattache-les avec « Séances ».</p>` : ''}<button class="btn sm ghost full" data-a="coPlan" data-id="${g.id}" data-c="new">${ic('plus')}${l.length ? 'Nouveau cycle' : hors ? 'Créer le cycle avec les séances déjà faites' : 'Créer un cycle'}</button>`;
 }
@@ -107,8 +118,9 @@ function coCycleAchats(g, c) {
   const o = (t === 'pack' ? OFFRES.packs : OFFRES.abos).find(x => x.id === ref);
   if (!o) return 0;
   const cle = g.id + ':' + c.id,
-    d0 = (c.dates || [])[0] || TODAY,
-    nums = (o.ech || []).length ? o.ech : (c.pay || []).length ? c.pay : [1];
+    d0 = [...(c.dates || [])].sort()[0] || TODAY;
+  // l'attribution est rattachée au groupe : un élève qui arrive ensuite la reçoit (coGrpJoin)
+  c.attrib = { t, ref };
   let n = 0;
   coStu(g).forEach(k => {
     const e = coElGet(k);
@@ -118,20 +130,83 @@ function coCycleAchats(g, c) {
     );
     if (deja) {
       deja.cycle = cle;
+      deja.groupe = g.id;
       return;
     }
-    const a = {
-      id: 'h' + Date.now().toString(36) + n,
+    e.achats = (e.achats || []).concat(coAttribAchat(g, c, o, d0, 0, n));
+    n++;
+  });
+  return n;
+}
+/* fin d'un abonnement acheté à cette date */
+function coAboFin(ab, d) {
+  const months = ({ mois: 1, trimestre: 3, '6 mois': 6, an: 12 }[ab.periode] || 1) * (ab.duree || 1),
+    [y, m, dd] = d.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1 + months, dd - 1)).toISOString().slice(0, 10);
+}
+/* l'achat d'un élève pour l'attribution du cycle ; arrivé en cours de cycle (du) : les séances qui restent, au
+   prorata du prix */
+function coAttribAchat(g, c, o, d0, du, i) {
+  const t = String(c.offre || '').split(':')[0],
+    total = t === 'pack' ? o.seances : 0,
+    reste = du ? Math.max(0, REGLES.cycleEtat(g, c, coCycleSes(g), du).prevues - coCycleAvant(g, c, du)) : total,
+    prix = total && du ? Math.round(((+o.prix || 0) * reste * 100) / total) / 100 : +o.prix || 0,
+    nums = (o.ech || []).length ? o.ech : (c.pay || []).length ? c.pay : [1],
+    a = {
+      id: 'h' + Date.now().toString(36) + (i || 0),
       t,
-      ref,
-      d: d0,
-      nom: ofLabel(t, ref),
-      prix: +o.prix || 0,
-      cycle: cle,
-      pay: { ech: coPayPlan(o.prix, nums, nums === o.ech ? o.echm : null) }
+      ref: o.id,
+      d: du || d0,
+      nom: ofLabel(t, o.id),
+      prix,
+      cycle: g.id + ':' + c.id,
+      groupe: g.id,
+      pay: {
+        ech: coPayPlan(
+          prix,
+          nums.filter(s => !du || s <= reste),
+          !du && nums === o.ech ? o.echm : null
+        )
+      }
     };
-    if (t === 'pack') a.n = o.seances;
-    e.achats = (e.achats || []).concat(a);
+  if (!a.pay.ech.length) a.pay.ech = coPayPlan(prix, [1]);
+  if (du) a.du = du;
+  if (t === 'pack') a.n = du ? reste : o.seances;
+  if (t === 'abo') {
+    a.fin = coAboFin(o, a.d);
+    if (+o.parSemaine > 0) a.freq = +o.parSemaine;
+  }
+  return a;
+}
+/* séances du cycle déjà passées (non annulées) avant une date */
+const coCycleAvant = (g, c, d) => (c.dates || []).filter(x => x < d && !isCx(g, x)).length;
+/* un élève rejoint le groupe : il reçoit l'attribution de chaque cycle attribué au groupe qui n'est pas terminé,
+   à partir de son arrivée ; s'il l'a déjà (il était parti), elle reprend */
+function coGrpJoin(g, k) {
+  let n = 0;
+  (g.cycles || []).forEach(c => {
+    if (!c.attrib) return;
+    const E = REGLES.cycleEtat(g, c, coCycleSes(g), TODAY);
+    if (!E.aVenir && !E.sansDate) return; // cycle terminé
+    const [t, ref] = String(c.offre || '').split(':'),
+      o = (t === 'pack' ? OFFRES.packs : OFFRES.abos).find(x => x.id === ref);
+    if (!o) return;
+    const e = coElGet(k),
+      cle = g.id + ':' + c.id,
+      l = (e.achats || []).filter(a => a.cycle === cle);
+    if (l.some(a => !a.sortie)) return;
+    e.achats = (e.achats || []).concat(coAttribAchat(g, c, o, TODAY, TODAY, n));
+    n++;
+  });
+  return n;
+}
+/* un élève quitte le groupe : ses attributions du groupe s'arrêtent aujourd'hui (il garde ce qu'il a consommé) */
+function coGrpLeave(g, k) {
+  const e = coEl(k);
+  let n = 0;
+  ((e && e.achats) || []).forEach(a => {
+    if (a.sortie || !(a.groupe === g.id || String(a.cycle || '').split(':')[0] === g.id)) return;
+    a.sortie = TODAY;
     n++;
   });
   return n;
@@ -141,7 +216,15 @@ function coCycleUsed(a, k) {
   const [gid, cid] = String(a.cycle || '').split(':'),
     g = grp(gid),
     c = g && (g.cycles || []).find(x => x.id === cid);
-  return c ? c.dates.filter(d => !isCx(g, d) && ((sesFind(g, d) || {}).pres || {})[k] === 'P').length : 0;
+  return c
+    ? c.dates.filter(
+        d =>
+          !isCx(g, d) &&
+          REGLES.presDe(sesFind(g, d), g, d)[k] === 'P' &&
+          (!a.du || d >= a.du) &&
+          (!a.sortie || d <= a.sortie)
+      ).length
+    : 0;
 }
 /* sur la fiche d'une séance : son cycle, à tout moment */
 function coSesCycle(g, d) {
@@ -927,10 +1010,13 @@ Object.assign(A, {
   /* la discussion d'un groupe qui n'en a pas (ou plus) : la même que celle créée avec le groupe */
   coChanNew(d) {
     const g = grp(d.id);
-    if (!g || chans.some(c => c.id === g.id)) return;
+    if (!g || (!g._club && chans.some(c => c.id === g.id))) return;
     const ch = { id: g.id, g: 'train', sport: g.sport, name: g.name, desc: g.sub || coSlot(g), kid: 0 };
     if (g._club) {
-      if (CO_EXT[g._club] && CO_EXT[g._club].base)
+      const X = CO_EXT[g._club];
+      if (X) (X.chans = X.chans || new Set()).add(g.id);
+      render(true);
+      if (X && X.base)
         fetch('/api/ram/c/' + g._club + '/ops', {
           method: 'POST',
           credentials: 'include',
@@ -943,6 +1029,36 @@ Object.assign(A, {
     }
     chans.push(Object.assign({ msgs: [{ by: 'club', x: 'Groupe ouvert. Bienvenue !', t: "À l'instant" }], un: 0 }, ch));
     coSave('Discussion du groupe créée dans /RAM Club');
+  },
+  /* supprimer la discussion d'un groupe depuis /RAM Coach (pas seulement depuis l'administration du Club) ;
+     le groupe et ses séances restent, la discussion se recrée depuis cette page */
+  coChanDel(d) {
+    const g = grp(d.id);
+    if (!g) return;
+    sheet(
+      'Supprimer la discussion',
+      `<div class="body"><p>La discussion <b>${esc(g.name)}</b> et tous ses messages seront supprimés pour tout le monde. Le groupe, ses élèves et ses séances restent ; tu peux recréer la discussion ensuite.</p><button class="btn full hot" data-a="coChanDelOk" data-id="${g.id}">${ic('trash')}Supprimer la discussion</button><button class="btn full ghost" data-a="closeSheet">Annuler</button></div>`
+    );
+  },
+  coChanDelOk(d) {
+    const g = grp(d.id);
+    closeSheet();
+    if (!g) return;
+    if (g._club) {
+      const X = CO_EXT[g._club];
+      if (X && X.chans) X.chans.delete(g.id);
+      if (X && X.base)
+        fetch('/api/ram/c/' + g._club + '/ops', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ops: [{ coll: 'chan', id: g.id, op: 'del' }] })
+        }).catch(() => {});
+    } else {
+      const i = chans.findIndex(x => x.id === g.id);
+      if (i >= 0) chans.splice(i, 1);
+    }
+    coSave('Discussion supprimée : tu peux la recréer depuis la page du groupe');
   },
   /* Programmer des séances : produit, nombre, rythme, puis chaque date modifiable */
   coPlan(d) {
@@ -1112,7 +1228,10 @@ document.addEventListener('submit', e => {
     c.nom = $('co-pl-nom').value.trim().slice(0, 60) || (pk ? ofLabel('pack', pk.id) : 'Cycle ' + g.cycles.length);
     if (o) c.offre = o;
     else delete c.offre;
+    // un cycle de N séances : N séances, datées ou « à planifier » (regles.js aPlanifier)
+    const nIn = parseInt($('co-pl-n').value, 10) || 0;
     if (pk) c.n = pk.seances;
+    else if (nIn > list.length) c.n = nIn;
     else delete c.n;
     c.pay = coCycleNums($('co-pl-pay').value);
     coCycleSet(g, c, list);
@@ -1123,4 +1242,87 @@ document.addEventListener('submit', e => {
   }
   closeSheet();
   coSave(plural(list.length, 'séance programmée', 'séances programmées') + ' pour ' + g.name + note);
+});
+
+/* ---------- réglages propres à un cycle : enseignant, thème, bilan de fin de cycle ----------
+   c.coach : l'enseignant du cycle (par défaut celui du groupe) ; le changer vaut pour les séances à venir du cycle,
+   sauf celles qui ont un remplaçant (regles.js coachDe, historique c.coachH). c.theme : le thème du cycle, montré
+   sur les séances qui n'ont pas le leur. c.bilan : le bilan de fin de cycle, lu par les élèves dans /RAM Club
+   (École, Mon espace) comme les bilans de séance. */
+Object.assign(A, {
+  coCycleCfg(d) {
+    const g = grp(d.id),
+      c = g && (g.cycles || []).find(x => x.id === d.c);
+    if (!c) return;
+    const cs = coCoachList();
+    sheet(
+      'Réglages · ' + c.nom,
+      `<form class="body" id="co-cyc" data-id="${g.id}" data-c="${c.id}"><div class="fld"><label for="co-cy-co">Enseignant du cycle</label><select id="co-cy-co"><option value="">${esc(M[g.coach] ? name(g.coach) : 'Enseignant du groupe')} (celui du groupe)</option>${cs
+        .filter(k => k !== g.coach)
+        .map(k => `<option value="${k}" ${c.coach === k ? 'selected' : ''}>${esc(name(k))}</option>`)
+        .join(
+          ''
+        )}</select></div><p class="muted small">Le changement vaut pour les séances à venir du cycle, pas pour celles déjà passées ni pour celles qui ont un remplaçant.</p><div class="fld"><label for="co-cy-th">Thème du cycle</label><input id="co-cy-th" maxlength="80" value="${esc(c.theme || '')}" placeholder="Jeu au filet, préparation tournoi…"></div><div class="fld"><label for="co-cy-bi">Bilan de fin de cycle</label><textarea id="co-cy-bi" rows="4" placeholder="Ce qui a été travaillé, les progrès, la suite">${esc(c.bilan || '')}</textarea></div><p class="muted small">Le bilan est lu par les élèves du groupe dans /RAM Club, comme les bilans de séance. Les élèves sont prévenus d’un nouvel enseignant ou d’un nouveau thème.</p><button class="btn full">Enregistrer</button></form>`
+    );
+  }
+});
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (f.id === 'co-cyc') {
+    e.preventDefault();
+    const g = grp(f.dataset.id),
+      c = g && (g.cycles || []).find(x => x.id === f.dataset.c);
+    if (!c) return;
+    const k = $('co-cy-co').value,
+      th = $('co-cy-th').value.trim().slice(0, 80),
+      bi = $('co-cy-bi').value.trim().slice(0, 4000);
+    const chg = REGLES.changeCoach(c, k, coCoupure(g));
+    if (th) c.theme = th;
+    else delete c.theme;
+    if (bi) c.bilan = bi;
+    else delete c.bilan;
+    closeSheet();
+    coSave(chg ? 'Cycle enregistré · nouvel enseignant pour les séances à venir' : 'Cycle enregistré');
+  }
+  // une séance à planifier : sa date (elle devient une séance du planning), son thème, son remplaçant
+  if (f.id === 'co-aplan') {
+    e.preventDefault();
+    const g = grp(f.dataset.g),
+      c = g && (g.cycles || []).find(x => x.id === f.dataset.c),
+      r = +f.dataset.r;
+    if (!c) return;
+    const d = $('co-ap-d').value,
+      info = { theme: $('co-ap-t').value.trim().slice(0, 80), coach: $('co-ap-c').value };
+    Object.keys(info).forEach(k => !info[k] && delete info[k]);
+    c.aplan = (c.aplan || []).slice();
+    while (c.aplan.length < r) c.aplan.push({});
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      c.aplan[r - 1] = info;
+      while (c.aplan.length && !Object.keys(c.aplan[c.aplan.length - 1]).length) c.aplan.pop();
+      if (!c.aplan.length) delete c.aplan;
+      return coSave('Séance à planifier enregistrée');
+    }
+    if ((c.dates || []).includes(d) || (!g.libre && coDates(g, d, d).length && REGLES.cycleDe(g, d)))
+      return toast('Le groupe a déjà une séance ce jour-là');
+    c.aplan.splice(r - 1, 1);
+    if (!c.aplan.length) delete c.aplan;
+    coCycleSet(g, c, (c.dates || []).concat(d));
+    if (g.to && d > g.to) g.to = d;
+    if (g.from && d < g.from) g.from = d;
+    if (info.theme || info.coach) Object.assign(sesGet(g.id + '.' + d), info);
+    S.stack[S.stack.length - 1] = { v: 'seance', id: g.id + '.' + d };
+    coSave('Séance planifiée le ' + fmtD(d));
+  }
+});
+/* le remplaçant d'une séance (fiche séance) */
+document.addEventListener('change', e => {
+  if (e.target.id !== 'co-rp') return;
+  const g = grp(e.target.dataset.g),
+    d = e.target.dataset.d;
+  if (!g) return;
+  const s = sesGet(g.id + '.' + d),
+    k = e.target.value;
+  if (k) s.coach = k;
+  else delete s.coach;
+  coSave(k ? first(k) + ' remplace pour cette séance · élèves prévenus' : 'Séance rendue à l’enseignant du cycle');
 });

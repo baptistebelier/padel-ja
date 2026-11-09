@@ -101,10 +101,25 @@ function dmView(id) {
     )
   }${canVid ? `<button class="btn full ghost" data-a="svVideo" data-id="${id}">${ic('video')}Envoyer une vidéo à analyser</button>` : ''}</div>`;
 }
+/* bilans de fin de cycle (c.bilan, écrits dans /RAM Coach) des groupes de l'élève, comme les bilans de séance */
+function cycBilans(k) {
+  const l = GROUPS.filter(g => g.type === 'train' && [...(g.mem || []), ...(g.ext || [])].includes(k)).flatMap(g =>
+    (g.cycles || []).filter(c => c.bilan).map(c => ({ g, c }))
+  );
+  return l.length
+    ? `<span class="kicker">Bilans de fin de cycle</span>` +
+        l
+          .map(
+            ({ g, c }) =>
+              `<div class="card svc"><div class="row" style="gap:10px;align-items:flex-start"><span class="tile">${ic('doc')}</span><div class="grow"><span class="kicker">${esc(g.name)} · ${esc(c.nom || 'Cycle')}</span>${c.theme ? `<span class="muted small">${esc(c.theme)}</span>` : ''}<p>${esc(c.bilan)}</p></div></div></div>`
+          )
+          .join('')
+    : '';
+}
 /* École, Mon espace : tout ce que l'enseignant m'a envoyé (et à mes enfants), et l'historique des séances */
 function persoBody() {
   const ids = svMine().filter(k => M[k]),
-    withSv = ids.filter(k => svOf(k).length || SEANCES.some(s => s.pres && s.pres[k]));
+    withSv = ids.filter(k => svOf(k).length || SEANCES.some(s => s.pres && s.pres[k]) || cycBilans(k));
   if (!withSv.length)
     return empty(
       'user',
@@ -136,6 +151,7 @@ function persoBody() {
               ? `<button class="btn sm ghost full" data-a="svAll" data-id="${k}">Voir tout (${bil.length})</button>`
               : '')
           : '') +
+        cycBilans(k) +
         (hist.length
           ? `<span class="kicker">Historique des séances · ${nP} présence${nP > 1 ? 's' : ''} sur ${hist.length}</span>` +
             evDays(

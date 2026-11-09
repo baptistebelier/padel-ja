@@ -117,11 +117,33 @@ TITLES.formules = () => ['Formules et tarifs', 'Séances, packs et abonnements']
    séance (« payé au mois ») la compte aussi : jusqu'à 14 jours avant la date d'achat. La règle est dans regles.js
    (REGLES.couverture), la même que celle du serveur et du chiffre d'affaires. */
 /* séances faites où l'élève était présent : { d, min, n (inscrits : le format), sport } */
-const coVenues = id =>
-  SEANCES.filter(s => s.d <= TODAY && s.pres && s.pres[id] === 'P')
-    .map(s => ({ s, g: GROUPS.find(g => g.id === s.g && (g._club || '') === (s._club || '')) }))
-    .filter(x => x.g && !isCx(x.g, x.s.d))
-    .map(x => ({ d: x.s.d, min: durMin(x.g.dur), n: coStu(x.g).length, sport: x.g.sport }));
+/* une seule source de présence (regles.js presDe) : l'appel fait dans /RAM Club (g.att) compte comme celui de Coach ;
+   chaque venue dit son groupe (gid) et son cycle (cy) : une attribution du groupe s'y rattache */
+const coVenues = id => {
+  const out = [],
+    vu = new Set();
+  const add = (g, d) => {
+    const k = (g._club || '') + '|' + g.id + '|' + d;
+    if (vu.has(k) || d > TODAY || isCx(g, d)) return;
+    vu.add(k);
+    if (REGLES.presDe(sesFind(g, d), g, d)[id] !== 'P') return;
+    out.push({
+      d,
+      min: durMin(g.dur),
+      n: coStu(g).length,
+      sport: g.sport,
+      gid: g.id,
+      cy: (REGLES.cycleDe(g, d) || {}).id
+    });
+  };
+  SEANCES.forEach(s => {
+    if (!s.pres || !s.pres[id]) return;
+    const g = GROUPS.find(x => x.id === s.g && (x._club || '') === (s._club || ''));
+    if (g) add(g, s.d);
+  });
+  GROUPS.forEach(g => Object.keys(g.att || {}).forEach(d => (g.att[d] || {})[id] === true && add(g, d)));
+  return out;
+};
 /* cette présence n'est couverte par aucun achat de l'élève (le pack ne correspond pas, ou il n'en a pas) */
 function coDue(id, d) {
   const vs = coVenues(id),
@@ -131,6 +153,72 @@ function coDue(id, d) {
 function coPacks(id) {
   return REGLES.couverture((coEl(id) || {}).achats || [], coVenues(id), OFFRES).achats;
 }
+/* un pack individuel et ses séances à planifier : un groupe sans créneau (g.libre : seulement les dates posées,
+   regles.js trainOn) avec un cycle de N séances ; l'achat y est rattaché (cycle, groupe). Chaque séance reçoit sa
+   date depuis le cycle, à tout moment. */
+function coPackGroupe(el, ref, a) {
+  const pk = OFFRES.packs.find(p => p.id === ref),
+    f = pk && foOf(pk.formule);
+  if (!pk) return null;
+  const gid = 'g' + Date.now().toString(36),
+    cid = 'c' + Date.now().toString(36),
+    dur = f ? minTxt(f.duree) : '1 h',
+    g = {
+      id: gid,
+      type: 'train',
+      libre: 1,
+      name: (pk.nom || 'Pack') + ' · ' + svFirst(el.id),
+      sport: (f && f.sport) || el.sport || 'Padel',
+      day: coDow(TODAY),
+      h: '18 h',
+      dur,
+      defLoc: 'En salle',
+      locPref: 1,
+      coach: coKeyIn(el._club),
+      mem: M[el.id] ? [el.id] : [],
+      ext: M[el.id] ? [] : [el.id],
+      sub: 'Séances à planifier · ' + dur,
+      offre: 'pack:' + ref,
+      cycles: [{ id: cid, nom: pk.nom || 'Pack ' + pk.seances + ' séances', offre: 'pack:' + ref, n: a.n, dates: [] }],
+      at: Date.now()
+    };
+  if (el._club) g._club = el._club;
+  GROUPS.push(g);
+  a.cycle = gid + ':' + cid;
+  a.groupe = gid;
+  return g;
+}
+/* état d'une attribution (regles.js etatAchat) : En cours, Utilisé, Terminé */
+const coEtatTag = (et, plus) =>
+  `<span class="tag coetat ${et}${et === 'encours' ? ' copink' : ''}">${REGLES.ETATS[et]}${plus || ''}</span>`;
+/* l'abonnement en cours : l'étiquette « Abonné », avec sa fréquence */
+function coAboCard(id) {
+  const a = REGLES.aboEnCours((coEl(id) || {}).achats, TODAY);
+  if (!a) return '';
+  return `<div class="card coabocard"><span class="tag coabo">Abonné</span> <b>${esc(a.nom || ofLabel('abo', a.ref))}</b><br><span class="muted small">${a.freq ? plural(+a.freq, 'séance') + ' par semaine' : 'Fréquence à régler'}${a.fin ? ' · jusqu’au ' + fmtD(a.fin) : ''}</span> <button class="colk" data-a="coFreq" data-id="${id}" data-x="${a.id}">Modifier la fréquence</button></div>`;
+}
+Object.assign(A, {
+  /* fréquence d'un abonnement (séances par semaine), enregistrée sur l'achat de l'élève */
+  coFreq(d) {
+    const a = ((coEl(d.id) || {}).achats || []).find(x => x.id === d.x);
+    if (!a) return;
+    sheet(
+      'Fréquence · ' + (a.nom || 'Abonnement'),
+      `<form class="body" id="co-freq" data-id="${d.id}" data-x="${d.x}"><div class="fld"><label for="co-fq">Séances par semaine</label><input id="co-fq" type="number" min="0" max="14" step="1" inputmode="numeric" value="${a.freq || ''}"></div><p class="muted small">L’abonnement couvre au plus ce nombre de séances par semaine sur sa durée ; quand elles sont faites avant la date de fin, il passe à « Utilisé ». Vide : sans limite.</p><button class="btn full">Enregistrer</button></form>`
+    );
+  }
+});
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'co-freq') return;
+  e.preventDefault();
+  const a = ((coEl(e.target.dataset.id) || {}).achats || []).find(x => x.id === e.target.dataset.x),
+    n = Math.round(+$('co-fq').value || 0);
+  if (!a) return;
+  if (n > 0) a.freq = n;
+  else delete a.freq;
+  closeSheet();
+  coSave(n ? 'Fréquence enregistrée : ' + plural(n, 'séance') + ' par semaine' : 'Abonnement sans limite de séances');
+});
 function coAchatsCard(id) {
   const l = coPacks(id).reverse();
   return (
@@ -139,8 +227,14 @@ function coAchatsCard(id) {
       l
         .map(a => {
           const pct = a.t === 'pack' && a.n ? Math.round((a.used * 100) / a.n) : 0,
-            fin = a.t === 'abo' && a.fin;
-          return `<div class="coach-a"><div class="row" style="gap:10px;align-items:center"><div class="grow"><b>${esc(a.nom || ofLabel(a.t, a.ref))}</b><br><span class="muted small">Acheté le ${fmtD(a.d)}${a.prix ? ' · ' + eur(a.prix) : ''}${fin ? (fin < TODAY ? ' · terminé le ' : ' · jusqu’au ') + fmtD(fin) : ''}${a.note ? ' · ' + esc(a.note) : ''}</span></div>${a.t === 'pack' ? `<span class="tag${a.used >= a.n ? '' : ' copink'}">${a.n - a.used > 0 ? a.n - a.used + ' restante' + (a.n - a.used > 1 ? 's' : '') : 'Terminé'}</span>` : ''}<button class="ib" data-a="coAchatDel" data-id="${id}" data-x="${a.id}" aria-label="Retirer cet achat">${ic('x')}</button></div><button class="copayb" data-a="coPay" data-id="${id}" data-x="${a.id}">${coPayTag(coPayState(a))}<span class="muted small">${coPayLine(a)}</span></button>${a.t === 'pack' ? `<div class="cobarre" role="img" aria-label="${a.used} séances sur ${a.n}"><i style="width:${pct}%"></i></div><span class="muted small">${a.used} séance${a.used > 1 ? 's' : ''} sur ${a.n}</span>` : ''}</div>`;
+            fin = a.t === 'abo' && a.fin,
+            et = REGLES.etatAchat(a, TODAY),
+            g = a.groupe || a.cycle ? grp(a.groupe || String(a.cycle).split(':')[0]) : null,
+            reste =
+              a.t === 'pack' && et === 'encours'
+                ? ' · ' + (a.n - a.used) + ' restante' + (a.n - a.used > 1 ? 's' : '')
+                : '';
+          return `<div class="coach-a"><div class="row" style="gap:10px;align-items:center"><div class="grow"><b>${esc(a.nom || ofLabel(a.t, a.ref))}</b><br><span class="muted small">Acheté le ${fmtD(a.d)}${a.prix ? ' · ' + eur(a.prix) : ''}${fin ? (fin < TODAY ? ' · terminé le ' : ' · jusqu’au ') + fmtD(fin) : ''}${g ? ' · ' + esc(g.name) : ''}${a.du ? ' · arrivé le ' + fmtD(a.du) : ''}${a.sortie ? ' · parti le ' + fmtD(a.sortie) : ''}${a.note ? ' · ' + esc(a.note) : ''}</span>${a.t === 'abo' ? `<br><button class="colk" data-a="coFreq" data-id="${id}" data-x="${a.id}">${a.freq ? plural(+a.freq, 'séance') + ' par semaine' : 'Fréquence à régler'} · modifier</button>` : ''}</div>${coEtatTag(et, reste)}<button class="ib" data-a="coAchatDel" data-id="${id}" data-x="${a.id}" aria-label="Retirer cet achat">${ic('x')}</button></div><button class="copayb" data-a="coPay" data-id="${id}" data-x="${a.id}">${coPayTag(coPayState(a))}<span class="muted small">${coPayLine(a)}</span></button>${a.t === 'pack' ? `<div class="cobarre" role="img" aria-label="${a.used} séances sur ${a.n}"><i style="width:${pct}%"></i></div><span class="muted small">${a.used} séance${a.used > 1 ? 's' : ''} sur ${a.n}</span>` : ''}</div>`;
         })
         .join('') || '<p class="muted small">Aucun achat noté.</p>'
     }<button class="btn sm full" data-a="coAchat" data-id="${id}">${ic('plus')}Noter un achat</button></div>`
@@ -301,13 +395,14 @@ function coPayPage(C) {
     enCours = [];
   ELEVES.filter(coInClub).forEach(e =>
     coPacks(e.id).forEach(a => {
-      if ((a.t === 'pack' && a.used < a.n) || (a.t === 'abo' && (!a.fin || a.fin >= TODAY))) enCours.push([e, a]);
+      // en cours et utilisées (consommées, pas encore réglées) : il reste quelque chose à suivre
+      if ((a.t === 'pack' || a.t === 'abo') && REGLES.etatAchat(a, TODAY) !== 'termine') enCours.push([e, a]);
     })
   );
   const cycles = coGroups().filter(g => coIsGrp(g) && !coOver(g) && g.offre);
   return `<div class="cotiles n3">${coTile('euro', eurs(C.encaisse), 'Encaissé cette saison')}${coTile('timer', eurs(C.aEncaisser), 'À encaisser')}${coTile('ball', eurs(C.prepaye), 'Packs pas encore utilisés')}</div>
 ${hd(ic('euro') + 'À régulariser · ' + todo.length)}${todo.length ? list(todo.map(p => `<button class="item" ${p.go}><span class="tile">${ic('euro')}</span><span class="grow"><span class="nm">${p.t}</span><br><span class="muted small">${p.sub}</span></span>${p.m ? `<span class="tag cost todo">${eur(p.m)}</span>` : ''}</button>`).join('')) : none('check', 'Rien à régulariser', 'Les paiements attendus et les séances non réglées apparaissent ici.')}
-${hd(ic('ball') + 'Formules en cours · ' + enCours.length)}${enCours.length ? list(enCours.map(([e, a]) => `<button class="item" data-a="coPay" data-id="${e.id}" data-x="${a.id}"><span class="tile">${ic(a.t === 'pack' ? 'ball' : 'cal')}</span><span class="grow"><span class="nm">${esc(svName(e.id))}</span><br><span class="muted small">${esc(a.nom || ofLabel(a.t, a.ref))}${a.t === 'pack' ? ' · ' + a.used + ' sur ' + a.n + ' séances' : ''} · ${coPayLine(a)}</span></span>${coPayTag(coPayState(a))}</button>`).join('')) : '<div class="card"><p class="muted small">Aucun pack ni abonnement en cours.</p></div>'}
+${hd(ic('ball') + 'Formules en cours · ' + enCours.length)}${enCours.length ? list(enCours.map(([e, a]) => `<button class="item" data-a="coPay" data-id="${e.id}" data-x="${a.id}"><span class="tile">${ic(a.t === 'pack' ? 'ball' : 'cal')}</span><span class="grow"><span class="nm">${esc(svName(e.id))}</span><br><span class="muted small">${esc(a.nom || ofLabel(a.t, a.ref))}${a.t === 'pack' ? ' · ' + a.used + ' sur ' + a.n + ' séances' : ''} · ${coPayLine(a)}</span></span>${coEtatTag(REGLES.etatAchat(a, TODAY))}${coPayTag(coPayState(a))}</button>`).join('')) : '<div class="card"><p class="muted small">Aucun pack ni abonnement en cours.</p></div>'}
 ${cycles.length ? hd(ic('cal') + 'Cycles en cours') + `<div class="card">${cycles.map(g => `<button class="coact2" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="cokv2"><span class="grow">${esc(g.name)}</span></span>${coCycleBar(g)}</button>`).join('')}</div>` : ''}
 <div class="card"><p class="muted small">Encaissé : les règlements notés dans les fiches des élèves. À encaisser : les paiements attendus, et ${plural(C.nonCouvertes, 'présence')} sans achat qui la couvre, au prix de ta formule correspondante. Aucun rappel n'est envoyé aux élèves.</p></div>`;
 }
@@ -510,7 +605,7 @@ Object.assign(A, {
           ['plus', 'En plusieurs fois']
         ],
         'paye'
-      )}${O('co-aps', 'Paiement demandé aux séances n° (facultatif)', '4  ou 1, 4, 8')}${O('co-apn', 'Nombre de paiements (en plusieurs fois)', '3')}${O('co-amo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify')}${O('co-an2', 'Note (facultatif)', 'Payé en 2 fois, offert…')}<button class="btn full">Enregistrer</button></form>`
+      )}${O('co-aps', 'Paiement demandé aux séances n° (facultatif)', '4  ou 1, 4, 8')}${O('co-apn', 'Nombre de paiements (en plusieurs fois)', '3')}${O('co-amo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify')}${O('co-an2', 'Note (facultatif)', 'Payé en 2 fois, offert…')}<div class="fld"><label class="chk" for="co-aplf"><input type="checkbox" id="co-aplf">Pack : créer ses séances à planifier (sans date pour l’instant)</label></div><button class="btn full">Enregistrer</button></form>`
     );
   },
   coAchatDel(d) {
@@ -603,6 +698,8 @@ document.addEventListener('submit', e => {
         months = { mois: 1, trimestre: 3, '6 mois': 6, an: 12 }[ab.periode] * (ab.duree || 1),
         [y, m, dd] = d.split('-').map(Number);
       a.fin = new Date(Date.UTC(y, m - 1 + months, dd - 1)).toISOString().slice(0, 10);
+      // fréquence de l'abonnement, enregistrée sur l'achat (modifiable depuis la fiche)
+      if (+ab.parSemaine > 0) a.freq = +ab.parSemaine;
     }
     const prix =
       n('co-ax') ||
@@ -629,8 +726,14 @@ document.addEventListener('submit', e => {
       };
     if (reg === 'paye' && nums.length) a.pay = { ech: coPayPlan(a.prix, nums) };
     if (moy) a.pay = Object.assign(a.pay || { ech: [{ s: 0, m: a.prix || 0, ok: d }] }, { moyen: moy });
+    // un pack attribué : ses N séances « à planifier », dans un groupe sans créneau rattaché à l'achat
+    let plan = '';
+    if (t === 'pack' && $('co-aplf') && $('co-aplf').checked && a.n) {
+      const g = coPackGroupe(el, ref, a);
+      if (g) plan = ' · ' + plural(a.n, 'séance') + ' à planifier';
+    }
     el.achats = (el.achats || []).concat(a);
     closeSheet();
-    coSave('Achat noté');
+    coSave('Achat noté' + plan);
   }
 });

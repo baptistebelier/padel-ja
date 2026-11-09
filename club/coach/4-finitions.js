@@ -171,6 +171,13 @@ function coApply(cid, it) {
     }
     return;
   }
+  // les discussions de ce club : seulement savoir lesquelles existent (supprimer ou recréer celle d'un groupe)
+  if (it.coll === 'chan') {
+    c.chans = c.chans || new Set();
+    if (it.del) c.chans.delete(it.id);
+    else c.chans.add(it.id);
+    return;
+  }
   if (!CO_COLL[it.coll] || (it.coll === 'group' && it.data && (it.data.type !== 'train' || it.data.old))) return;
   const L = CO_COLL[it.coll](),
     cur = L.find(o => o._club === cid && o.id === it.id);
