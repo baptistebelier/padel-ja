@@ -861,3 +861,6 @@ html, body { background: var(--bg); }
 :is(.card,.lis,.sheet) .li .ib.ib{background:var(--bg)!important}
 /* message vide dans une carte : pas de cadre dans le cadre */
 :is(.card,.lis,.sheet,.post) .empty{border:0!important;box-shadow:none!important}
+/* listes des groupes : de nouveau une carte encadrée (les boutons couleur fond des lignes ressortent) */
+#phone #main .lis.lis{background:var(--card)!important;border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;border-radius:var(--r)!important}
+#phone #main .lis.lis>*+*{border-top:var(--bw) solid color-mix(in srgb,var(--ink) 12%,transparent)!important}
