@@ -297,15 +297,20 @@ async function getRoom(id) {
 /* enregistrer tout de suite (clôture, réouverture) au lieu d'attendre le délai de saveRoom */
 async function enregistrerTout(room) {
   clearTimeout(room.timer); room.timer = null;
-  room.row.updated_at = Date.now();
+  room.row.updated_at = Date.now(); clubDuTournoi(room);
   await store.saveTournament(room.row).catch(e => console.error('Sauvegarde impossible :', e.message));
   jaClub.schedule(room, msg => console.error(msg));
   if (Ani.isAnimation(room.row.state)) aniParticipations(room).catch(e => console.error('Animation, historique des joueurs :', e.message));
 }
+/* club organisateur relié dès l'enregistrement (référentiel des clubs, sans en créer : une faute de frappe ne crée pas de club) */
+function clubDuTournoi(room) {
+  const nom = (room.row.state.tournament || {}).club, c = nom && clubs.lookup(nom);
+  if (c && room.row.club_id !== c.id) room.row.club_id = c.id;
+}
 function saveRoom(room) {
   clearTimeout(room.timer);
   room.timer = setTimeout(() => {
-    room.row.updated_at = Date.now();
+    room.row.updated_at = Date.now(); clubDuTournoi(room);
     store.saveTournament(room.row).catch(e => console.error('Sauvegarde impossible :', e.message));
     jaClub.schedule(room, msg => console.error(msg));   // publication /RAM Club tenue à jour
     if (Ani.isAnimation(room.row.state)) aniParticipations(room).catch(e => console.error('Animation, historique des joueurs :', e.message));
@@ -648,12 +653,41 @@ async function interClubRankings(season) {
   return data;
 }
 
-async function closeTournament(room, u) {
+/* clôture : une à la fois par tournoi (deux clics, ou le juge-arbitre et un adjoint ensemble, ne doublent pas les résultats) */
+function closeTournament(room, u) {
+  const suite = (room.cloture || Promise.resolve()).catch(() => {}).then(() => cloturer(room, u));
+  room.cloture = suite;
+  return suite;
+}
+/* tournoi interne : chaque participant classé reçoit son résultat sur sa fiche personne (par son profil du club) */
+async function resultatsInterne(room) {
+  const T = room.row.state, I = T.int, t = T.tournament || {};
+  const c = t.club && clubs.lookup(t.club), sp = c && (await ram.spaces()).find(x => x.club_id === c.id);
+  if (!sp) return [];
+  const rows = [], places = Int.places(I);
+  // un participant dont le profil n'est pas encore relié à sa fiche (rattachement différé) : relié maintenant
+  const relie = async k => { const m = await ram.memberByKey(sp.id, k).catch(() => null); return m && m.data && m.data._ja; };
+  for (const x of places) { const pj = Int.joueur(I, x.id); if (pj && (await Promise.all((pj.ks || []).map(relie))).some(v => !v)) { await fiches.syncSpace(sp.id).catch(() => {}); break; } }
+  for (const x of places) {
+    const pj = Int.joueur(I, x.id); if (!pj) continue;
+    for (const k of pj.ks || []) {
+      const m = await ram.memberByKey(sp.id, k).catch(() => null), pid = m && m.data && m.data._ja;
+      if (!pid) continue;
+      const partenaire = (pj.n || '').split(' / ').filter(n => n.trim() !== String(m.data.n || '').trim()).join(' / ');
+      rows.push({ id: 'pa' + Auth.randomId(12), player_id: pid, tournament_id: room.row.id, owner: room.row.owner, t_name: t.name, t_club: t.club, t_category: 'Tournoi interne', t_gender: I.sport,
+        t_date: t.dateStart, place: x.place, place_lo: x.lo || x.place, points: 0, partner: I.simple ? '' : partenaire, n_pairs: I.players.length, closed_at: Date.now(), club_id: c.id });
+    }
+  }
+  return rows;
+}
+async function cloturer(room, u) {
   const T = room.row.state;
-  // tournoi interne : terminé par son moteur
+  // tournoi interne : terminé par son moteur, puis l'historique de chaque participant
   if (Int.isInterne(T)) {
     try { applyServerAction(room, { type: 'int/finish' }); } catch (e) { return { error: e.message }; }
-    return { ok: true, saved: 0, skipped: 0, unfinished: 0, guest: !!u.guest };
+    let saved = 0;
+    if (!u.guest) { await store.deleteParticipationsForTournament(room.row.id); const rows = await resultatsInterne(room).catch(() => []); await store.addParticipations(rows); saved = rows.length; }
+    return { ok: true, saved, skipped: 0, unfinished: 0, guest: !!u.guest };
   }
   // animation : terminée par son moteur (classement figé), sans résultats FFT à enregistrer
   if (Ani.isAnimation(T)) {
@@ -675,15 +709,15 @@ async function closeTournament(room, u) {
       if (!pair || pair.demo) { skipped++; continue; }
       for (const [pl, mate] of [[pair.p1, pair.p2], [pair.p2, pair.p1]]) {
         if (!pl || !String(pl.last || '').trim()) continue;
-        const player = await upsertPlayerFrom(pl, u.id);
+        const player = await upsertPlayerFrom(pl, room.row.owner);   // l'historique reste au juge-arbitre principal, même clôturé par un adjoint
         pl.playerId = player.id;
-        rows.push({ id: 'pa' + Auth.randomId(12), player_id: player.id, tournament_id: room.row.id, owner: u.id,
+        rows.push({ id: 'pa' + Auth.randomId(12), player_id: player.id, tournament_id: room.row.id, owner: room.row.owner,
           t_name: t.name, t_club: t.club, t_category: t.category, t_gender: t.gender, t_date: t.dateStart,
           place: res.place, place_lo: res.placeLo, points: res.points, partner: pname(mate || {}), n_pairs: results.length, closed_at: Date.now() });
       }
     }
     // club organisateur : entre dans le référentiel avec le premier tournoi clôturé qui a des résultats
-    const club = rows.length && !t.example ? await clubs.resolve(t.club, { by: u.id }).catch(() => null) : null;
+    const club = rows.length && !t.example ? await clubs.resolve(t.club, { by: room.row.owner }).catch(() => null) : null;
     if (club) { room.row.club_id = club.id; rows.forEach(r => { r.club_id = club.id; }); }
     await store.addParticipations(rows);
     saved = rows.length;
@@ -1363,7 +1397,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (req.method === 'DELETE') {
         for (const c of room.clients) c.res.end();
-        rooms.delete(m[1]); await store.deleteTournament(m[1]);
+        rooms.delete(m[1]); await store.deleteParticipationsForTournament(m[1]).catch(() => {}); await store.deleteTournament(m[1]);   // ses résultats partent avec lui
         return json(res, 200, { ok: true });
       }
     }

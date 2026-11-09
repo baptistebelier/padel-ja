@@ -26,7 +26,7 @@
 <main class="page">
   <header class="phead">
     <div><span class="eyebrow" id="who">Juge-arbitre</span><h1>Mes <span class="band lime">tournois</span></h1></div>
-    <div class="phead-act"><span id="plan" class="tag" hidden></span><a class="btn" href="/calendrier">Calendrier</a><a class="btn primary" href="#nouveau">+ Nouveau tournoi</a></div>
+    <div class="phead-act"><span id="plan" class="tag" hidden></span><label class="ufilter" style="margin:0">Sport<select id="fsport" aria-label="Filtrer par sport"><option value="">Tous</option><option>Padel</option><option>Tennis</option></select></label><a class="btn" href="/calendrier">Calendrier</a><a class="btn primary" href="#nouveau">+ Nouveau tournoi</a></div>
   </header>
   <div class="tboard">
     <section><div class="tcol-h"><span class="eyebrow">À venir</span><span class="tag" id="nUp">0</span></div><div class="tlist" id="tup"><p class="muted">Chargement…</p></div></section>
@@ -44,12 +44,18 @@
     if (!d.user.guest) { $('#plan').hidden = false; $('#plan').textContent = d.user.planLabel; $('#plan').className = 'tag ' + (d.user.admin ? 'pink' : d.user.free ? 'lime' : 'ink'); }
     $('#guestBar').hidden = !d.user.guest;
   });
+  const sportChoisi = () => { try { return localStorage.getItem('ja-sport') || ''; } catch (e) { return ''; } };
+  const garderSport = v => { try { localStorage.setItem('ja-sport', v); } catch (e) {} };
+  const TYPES = { tournoi: 'Tournoi', animation: 'Animation', interne: 'Tournoi interne' };
   async function load() {
     const d = await fetch('/api/tournaments').then(r => r.json());
+    // filtre par sport (chaque événement porte son sport et son type)
+    const fs0 = document.getElementById('fsport'); if (fs0 && !fs0.dataset.pret) { fs0.dataset.pret = 1; fs0.value = sportChoisi(); fs0.onchange = () => { garderSport(fs0.value); load(); }; }
+    if (d.tournaments && sportChoisi()) d.tournaments = d.tournaments.filter(t => (t.sport || 'Padel') === sportChoisi());
     const fmt = s => s ? new Date(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     const card = t => `
       <article class="tcard">
-        <div class="tc-top"><span class="tag ${t.kind === 'animation' ? 'lime' : ''}">${esc(t.category || '')} · ${esc(t.gender || '')}</span><span class="st ${t.closed ? 'fin' : t.drawn ? 'on' : ''}">${t.closed ? (t.kind === 'animation' ? 'Terminée' : 'Clôturé') : t.drawn ? (t.kind === 'animation' ? `Manche ${t.rounds}` : `${t.done}/${t.matches} matchs`) : 'Inscriptions'}</span></div>
+        <div class="tc-top"><span class="tag ${t.kind === 'animation' ? 'lime' : ''}">${esc([t.sport || 'Padel', TYPES[t.type] || (t.kind === 'animation' ? 'Animation' : 'Tournoi'), t.type === 'interne' ? '' : t.category].filter(Boolean).join(' · '))}</span><span class="st ${t.closed ? 'fin' : t.drawn ? 'on' : ''}">${t.closed ? (t.kind === 'animation' ? 'Terminée' : 'Clôturé') : t.drawn ? (t.kind === 'animation' ? `Manche ${t.rounds}` : `${t.done}/${t.matches} matchs`) : 'Inscriptions'}</span></div>
         <h3>${esc(t.name || 'Sans nom')}</h3>${t.adjoint ? '<p class="closed-on">Vous êtes juge-arbitre adjoint</p>' : ''}${t.closed ? `<p class="closed-on">Clôturé le ${fmt(t.closedAt)}</p>` : ''}
         <p>${esc([fmt(t.dateStart), t.club, t.kind === 'animation' ? t.players + ' joueurs' : t.pairs + ' paires'].filter(Boolean).join(' · '))}</p>
         <div class="tc-act"><a class="btn primary sm" href="/t/${t.id}">Ouvrir</a><a class="btn ghost sm" href="/t/${t.id}/tv" target="_blank">Écran TV</a>

@@ -23,7 +23,7 @@
 <main class="page">
   <header class="phead">
     <div><span class="eyebrow">Planning</span><h1>Mon <span class="band lime">calendrier</span></h1></div>
-    <div class="phead-act"><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div>
+    <div class="phead-act"><label class="ufilter" style="margin:0">Sport<select id="fsport" aria-label="Filtrer par sport"><option value="">Tous</option><option>Padel</option><option>Tennis</option></select></label><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div>
   </header>
   <div class="grid g-main">
     <section class="card">
@@ -50,11 +50,16 @@
   const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const todayIso = iso(new Date());
   let cur = new Date(); cur.setDate(1);
-  let tours = [];
+  let toutes = [];
   const kind = t => t.closed ? 'closed' : t.drawn && t.done < t.matches ? 'live' : '';
   const covers = (t, day) => t.dateStart && day >= t.dateStart && day <= (t.dateEnd && t.dateEnd >= t.dateStart ? t.dateEnd : t.dateStart);
 
+  const sportChoisi = () => { try { return localStorage.getItem('ja-sport') || ''; } catch (e) { return ''; } };
+  const garderSport = v => { try { localStorage.setItem('ja-sport', v); } catch (e) {} };
+  const TYPES = { tournoi: 'Tournoi', animation: 'Animation', interne: 'Tournoi interne' };
   function render() {
+    const fs0 = document.getElementById('fsport'); if (fs0 && !fs0.dataset.pret) { fs0.dataset.pret = 1; fs0.value = sportChoisi(); fs0.onchange = () => { garderSport(fs0.value); render(); }; }
+    const tours = toutes.filter(t => !sportChoisi() || (t.sport || 'Padel') === sportChoisi());
     const y = cur.getFullYear(), m = cur.getMonth();
     $('#month').textContent = MOIS[m] + ' ' + y;
     const first = new Date(y, m, 1), start = new Date(first);
@@ -89,7 +94,7 @@
   render();
   fetch('/api/tournaments').then(r => r.json()).then(d => {
     if (d.error) return location.href = '/connexion';
-    tours = d.tournaments || []; render();
+    toutes = d.tournaments || []; render();
   });
 })();
 </script>
