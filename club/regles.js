@@ -35,6 +35,8 @@
     if ((g.extra || []).includes(iso)) return true;
     // périodes sans cours (vacances scolaires…) : du … au …, bornes comprises
     if ((g.off || []).some(o => iso >= o.du && iso <= o.au)) return false;
+    // groupe sans créneau (un pack individuel et ses séances à planifier) : seulement les dates posées (extra)
+    if (g.libre) return false;
     if ((g.skip || []).includes(iso) || (g.from && iso < g.from) || (g.to && iso > g.to)) return false;
     // un groupe sans date de début commence le jour de sa création (at) : pas de séances imaginaires avant
     if (!g.from && g.at && iso < isoOfAt(g.at)) return false;
@@ -74,16 +76,39 @@
   }
 
   /* Ce que les achats d'un élève couvrent.
-     achats : [{ id, t: 'pack' | 'seance' | 'abo', ref, d, n (séances d'un pack), fin (abonnement), prix }]
-     venues : séances où il est venu [{ d, min, n (élèves de la séance), sport }], dans n'importe quel ordre.
-     Les séances se décomptent dans l'ordre, du plus ancien achat au plus récent. Un pack ou une séance à l'unité
-     couvre une séance de sa formule (même format, même durée), faite au plus tôt 14 jours avant l'achat
-     (« payé au mois ») ; un abonnement couvre les séances faites pendant sa durée.
+     achats : [{ id, t: 'pack' | 'seance' | 'abo', ref, d, n (séances d'un pack), fin (abonnement), prix,
+                 cycle ('groupe:cycle'), groupe, du (arrivée dans le groupe), sortie (départ du groupe), freq }]
+     venues : séances où il est venu [{ d, min, n (élèves de la séance), sport, gid (groupe), cy (cycle) }], dans
+     n'importe quel ordre.
+     Un achat rattaché à un cycle (a.cycle) ou à un groupe (a.groupe) — attribué depuis le groupe — couvre les séances
+     de ce cycle ou de ce groupe, quel que soit leur format, entre l'arrivée de l'élève (a.du) et son départ (a.sortie) ;
+     il passe avant les achats individuels. Les autres achats se décomptent dans l'ordre, du plus ancien au plus récent :
+     un pack ou une séance à l'unité couvre une séance de sa formule (même format, même durée), faite au plus tôt
+     14 jours avant l'achat (« payé au mois ») ; un abonnement couvre les séances faites pendant sa durée, et au plus
+     son nombre de séances quand sa fréquence est notée (a.freq séances par semaine).
+     Une venue sans groupe connu (gid) se décompte comme avant, par sa formule.
      Renvoie { achats: [achat + { used }], couvre: Map(venue → achat) }. */
+  const lienDe = a => {
+    if (a.cycle) {
+      const [g, c] = String(a.cycle).split(':');
+      return { g, c };
+    }
+    return a.groupe ? { g: String(a.groupe), c: null } : null;
+  };
+  const gidOf = v => (v.gid != null ? v.gid : v.g && typeof v.g === 'object' ? v.g.id : v.g);
+  /* nombre de séances d'un abonnement à fréquence notée : sa durée en semaines × sa fréquence ; sinon sans limite */
+  function seancesAbo(a) {
+    if (!(+a.freq > 0) || !a.fin || !a.d) return Infinity;
+    const j = Math.round((Date.parse(a.fin) - Date.parse(a.d)) / 864e5) + 1;
+    return Math.max(1, Math.round((j / 7) * +a.freq));
+  }
   function couverture(achats, venues, offres) {
     const O = offres || {},
-      list = (achats || []).slice().sort((a, b) => String(a.d).localeCompare(String(b.d)));
-    const vs = (venues || []).slice().sort((a, b) => String(a.d).localeCompare(String(b.d))),
+      byD = (a, b) => String(a.d).localeCompare(String(b.d)),
+      all = (achats || []).slice().sort(byD),
+      // les achats rattachés d'abord : les séances de leur groupe leur reviennent
+      list = all.filter(lienDe).concat(all.filter(a => !lienDe(a)));
+    const vs = (venues || []).slice().sort(byD),
       couvre = new Map();
     const formuleOf = a => {
       if (a.t === 'pack') {
@@ -97,29 +122,145 @@
       return (O.formules || []).find(f => f.id === a.ref) || null;
     };
     const fits = (v, f) => !f || (+v.min === +f.duree && fmt(v.n) === fmt(f.joueurs));
-    const out = list.map(a => {
+    // une venue pour un achat rattaché : celle du bon groupe (et du bon cycle), pendant que l'élève y est ;
+    // null : venue sans groupe connu, la règle de la formule s'applique
+    const dansLien = (a, L, v) => {
+      const gid = gidOf(v);
+      if (gid == null) return null;
+      if (String(gid) !== L.g || (L.c && v.cy != null && v.cy !== L.c)) return false;
+      return (!a.du || v.d >= a.du) && (!a.sortie || v.d <= a.sortie);
+    };
+    const out = new Map();
+    list.forEach(a => {
       const o = Object.assign({}, a, { used: 0 }),
-        f = formuleOf(a);
+        f = formuleOf(a),
+        L = lienDe(a),
+        ok = v => {
+          const x = L ? dansLien(a, L, v) : null;
+          return x === null ? fits(v, f) : x;
+        };
+      out.set(a, o);
       if (a.t === 'abo') {
+        const max = seancesAbo(a);
         vs.forEach(v => {
-          if (!couvre.has(v) && v.d >= a.d && (!a.fin || v.d <= a.fin) && fits(v, f)) {
+          if (o.used < max && !couvre.has(v) && v.d >= (a.du || a.d) && (!a.fin || v.d <= a.fin) && ok(v)) {
             couvre.set(v, o);
             o.used++;
           }
         });
-        return o;
+        return;
       }
       const max = a.t === 'pack' ? +a.n || 0 : 1,
-        from = addDays(String(a.d), -14);
+        from = L ? '' : addDays(String(a.d), -14);
       for (const v of vs) {
         if (o.used >= max) break;
-        if (couvre.has(v) || v.d < from || !fits(v, f)) continue;
+        if (couvre.has(v) || v.d < from || !ok(v)) continue;
         couvre.set(v, o);
         o.used++;
       }
-      return o;
     });
-    return { achats: out, couvre };
+    // dans l'ordre des achats, comme avant
+    return { achats: all.map(a => out.get(a)), couvre };
+  }
+
+  /* État d'une attribution (pack, abonnement, séance), après la couverture (a.used) :
+     - « encours » : des séances restent ;
+     - « utilise » : toutes les séances consommées, mais des paiements restent à régler (un abonnement qui a fait
+       toutes ses séances avant sa date de fin est aussi « utilisé ») ;
+     - « termine » : consommé et réglé, ou date de fin dépassée.
+     Un élève parti du groupe (a.sortie) a consommé son attribution : ce qu'il a fait ; un paiement prévu à une séance
+     qu'il ne fera pas n'est plus attendu. Un paiement retiré de la liste par l'enseignant (pay.off) ne bloque pas. */
+  function etatAchat(a, today) {
+    const used = +a.used || 0;
+    if (a.t === 'abo' && a.fin && a.fin < today) return 'termine';
+    const total = a.sortie ? used : a.t === 'pack' ? +a.n || 0 : a.t === 'abo' ? seancesAbo(a) : 1;
+    if (used < total) return 'encours';
+    const ech = a.pay && Array.isArray(a.pay.ech) && !a.pay.off ? a.pay.ech : [],
+      solde = ech.filter(x => (+x.s || 0) <= total).every(x => x.ok);
+    // abonnement au bout de ses séances avant sa date de fin : utilisé
+    if (a.t === 'abo' && a.fin && !a.sortie) return 'utilise';
+    return solde ? 'termine' : 'utilise';
+  }
+  const ETATS = { encours: 'En cours', utilise: 'Utilisé', termine: 'Terminé' };
+  /* l'abonnement en cours d'un élève (le plus récent), ou rien : son étiquette « Abonné » */
+  function aboEnCours(achats, today) {
+    return (
+      (achats || [])
+        .filter(a => a.t === 'abo' && a.d <= today && (!a.fin || a.fin >= today) && !a.sortie)
+        .sort((x, y) => String(y.d).localeCompare(String(x.d)))[0] || null
+    );
+  }
+
+  /* Une seule source de présence : l'appel de /RAM Coach (s.pres : P présent, E excusé, A absent) et celui de
+     /RAM Club (g.att[date][clé] : true présent, false absent) comptent pareil. Les deux applis écrivent désormais
+     les deux ; pour un ancien appel fait seulement dans /RAM Club, g.att suffit. s.pres prime quand les deux existent. */
+  function presDe(s, g, d) {
+    const out = {},
+      att = ((g && g.att) || {})[d] || {};
+    Object.keys(att).forEach(k => {
+      if (att[k] === true) out[k] = 'P';
+      else if (att[k] === false) out[k] = 'A';
+    });
+    return Object.assign(out, (s && s.pres) || {});
+  }
+  function presents(s, g, d) {
+    const p = presDe(s, g, d);
+    return Object.keys(p).filter(k => p[k] === 'P');
+  }
+
+  /* Qui enseigne une séance : le remplaçant noté sur la séance (s.coach) prime ; sinon l'enseignant de son cycle
+     (c.coach, par défaut celui du groupe) ; sinon celui du groupe. Changer l'enseignant d'un cycle ou d'un groupe ne
+     touche pas les séances passées : l'ancien est gardé dans un historique coachH = [{ au: date, coach }]
+     (« jusqu'au … inclus, c'était … » ; coach vide : le cycle suivait l'enseignant du groupe). */
+  function coachAu(h, cur, d) {
+    const x = (h || [])
+      .slice()
+      .sort((a, b) => String(a.au).localeCompare(String(b.au)))
+      .find(e => d <= e.au);
+    return x ? x.coach || '' : cur || '';
+  }
+  function coachDe(g, d, s) {
+    if (s && s.coach) return s.coach;
+    if (!g) return '';
+    const c = !g.once ? cycleDe(g, d) : null,
+      k = c ? coachAu(c.coachH, c.coach, d) : '';
+    return k || coachAu(g.coachH, g.coach, d) || g.coach || '';
+  }
+  /* nouvel enseignant (o : un groupe ou un cycle), à partir du lendemain de « coupure » (la dernière date qui garde
+     l'ancien) ; renvoie false si rien ne change */
+  function changeCoach(o, nouveau, coupure) {
+    const old = o.coach || '';
+    if (old === (nouveau || '')) return false;
+    // changé deux fois le même jour : le premier enseignant reste celui des séances passées
+    const deja = (o.coachH || []).find(e => e.au === coupure);
+    o.coachH = (o.coachH || []).filter(e => e.au < coupure).concat(deja || { au: coupure, coach: old });
+    if (nouveau) o.coach = nouveau;
+    else delete o.coach;
+    return true;
+  }
+  /* la dernière date qui garde l'ancien enseignant : hier, ou aujourd'hui si la séance du jour a déjà son appel */
+  const coupureDe = (today, faiteAujourdhui) => (faiteAujourdhui ? today : addDays(today, -1));
+
+  /* Séances « à planifier » d'un cycle : un pack ou un cycle de N séances en a N, datées ou non. Celles qui n'ont pas
+     encore de date n'ont pas d'enregistrement dans les séances (dont l'identifiant est « groupe.AAAA-MM-JJ ») : elles
+     sont comptées par le cycle (c.n moins ses séances datées) et désignées « groupe.pK-cycle » (K : rang parmi les
+     séances sans date, à partir de 1). Ce qu'on en sait déjà (thème, remplaçant) est gardé dans c.aplan[K-1].
+     Quand l'enseignant lui donne une date, elle devient une séance ordinaire « groupe.AAAA-MM-JJ » du cycle et
+     apparaît au planning ; son thème et son remplaçant la suivent. */
+  function aPlanifier(g, c) {
+    const n = Math.max(0, restant(g, c));
+    return Array.from({ length: n }, (x, i) =>
+      Object.assign({ k: 'p' + (i + 1) + '-' + c.id, rang: i + 1 }, (c.aplan || [])[i] || {})
+    );
+  }
+  const PLAN_RE = /^p(\d+)-(.+)$/;
+  /* « groupe.p2-c1 » → { g: 'groupe', rang: 2, c: 'c1' } ; null pour une séance datée */
+  function planDe(id) {
+    const i = String(id).lastIndexOf('.'),
+      m = String(id)
+        .slice(i + 1)
+        .match(PLAN_RE);
+    return i > 0 && m ? { g: String(id).slice(0, i), rang: +m[1], c: m[2] } : null;
   }
 
   /* Chiffre d'affaires réel d'une période [from, to].
@@ -176,7 +317,11 @@
       const n = x.n || (x.presents || []).length,
         min = durMin(x.g && x.g.dur),
         sport = x.sport || (x.g && x.g.sport);
-      (x.presents || []).forEach(k => (venues[k] = venues[k] || []).push({ d: x.d, min, n, sport, g: x.g }));
+      const gid = x.gid != null ? x.gid : x.g && x.g.id,
+        cy = x.cy != null ? x.cy : x.g && gid != null ? (cycleDe(x.g, x.d) || {}).id : undefined;
+      (x.presents || []).forEach(k =>
+        (venues[k] = venues[k] || []).push({ d: x.d, min, n, sport, gid: gid == null ? undefined : gid, cy })
+      );
     });
     const keys = new Set(Object.keys(eleves || {}).concat(Object.keys(venues)));
     let encaisse = 0,
@@ -275,7 +420,7 @@
       .sort()
       .map(d => {
         const cx = (g.cancel || []).includes(d),
-          present = Object.values(((sesOf && sesOf(d)) || {}).pres || {}).some(v => v === 'P');
+          present = Object.values(presDe(sesOf && sesOf(d), g, d)).some(v => v === 'P');
         return {
           d,
           etat: cx ? 'cx' : d > today ? 'next' : present ? 'done' : d === today ? 'now' : 'vide',
@@ -350,6 +495,18 @@
   ];
 
   return {
+    seancesAbo,
+    etatAchat,
+    ETATS,
+    aboEnCours,
+    presDe,
+    presents,
+    coachAu,
+    coachDe,
+    changeCoach,
+    coupureDe,
+    aPlanifier,
+    planDe,
     cycleDe,
     cycleEtat,
     cycleCourant,
