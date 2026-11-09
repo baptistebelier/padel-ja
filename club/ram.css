@@ -864,3 +864,96 @@ html, body { background: var(--bg); }
 /* listes des groupes : de nouveau une carte encadrée (les boutons couleur fond des lignes ressortent) */
 #phone #main .lis.lis{background:var(--card)!important;border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;border-radius:var(--r)!important}
 #phone #main .lis.lis>*+*{border-top:var(--bw) solid color-mix(in srgb,var(--ink) 12%,transparent)!important}
+
+/* =========================================================================
+   Revue des captures du 9 novembre (validée par Baptiste) : cohérence avec le design system Figma
+   ========================================================================= */
+/* G1 barre d'onglets : l'onglet actif suffit (plus d'indicateur glissant qui dépassait ou se décalait) */
+.tabs .pill{display:none!important}
+.tabs button[aria-current="page"]{outline:var(--bw) solid var(--ink)!important;outline-offset:-2px;box-shadow:none!important}
+/* G7 étiquettes : neutres en couleur fond encadrée ; seules les étiquettes d'état gardent leur couleur */
+.tag:not(.tennis):not(.padel):not(.ac):not(.live):not(.hot){background:var(--bg)!important;color:var(--fg)!important}
+/* G8 sous-titre de l'en-tête : petit texte droit, majuscules espacées, couleur atténuée (plus de ruban incliné) */
+.top h1,:root[data-style] .top h1{transform:none!important}
+.top h1 .sub,:root[data-style] .top h1 .sub,:root[data-style="street"] .top h1 .sub{background:transparent!important;color:var(--muted)!important;transform:none!important;padding:0!important;box-shadow:none!important;border:0!important;font-family:var(--f-sub)!important;font-weight:700!important;font-size:12px!important;letter-spacing:.14em!important;margin-top:4px!important}
+/* G9 titres de section : surtitre rose espacé, comme dans Figma */
+#main :is(.card,.stack,.pad,.body,section)>.kicker,.sheet .kicker{color:var(--hot-tx,#A30F35)!important;font-family:var(--f-sub)!important;font-weight:700!important;font-size:12px!important;letter-spacing:.24em!important;text-transform:uppercase!important}
+/* G10 textes posés sur le motif : sur une bande de fond uni pour rester lisibles */
+#main .pad>.muted.small,#main .stack>.muted.small,#main .pad>p.muted,.swipehint,.lphelp{background:var(--bg);padding:8px 12px!important;border:var(--bw) solid var(--ink);border-radius:var(--rb)}
+/* G11 séparateurs : 2 px encre à 12 % */
+.item,.prow{border-bottom-width:0!important}
+.item+.item,.prow+.prow,.ct+.ct,.li+.li{border-top:var(--bw) solid color-mix(in srgb,var(--ink) 12%,transparent)!important}
+/* G12 cadre argent : gris soutenu, lisible sur les deux fonds */
+:is(:root[data-style],:root) #phone #main .tcard.cf2,.av.fr2{box-shadow:5px 5px 0 #8E99A6!important}
+.av.sm.fr2{--frc:#8E99A6}
+/* G13 plus de ronds : bouton photo, séparateurs de date */
+.cam{border-radius:var(--rb)!important;border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;color:var(--fg)!important}
+.cam svg{color:var(--fg)!important}
+.daysep span{border-radius:var(--rb)!important;border:var(--bw) solid var(--ink)!important;background:var(--card)!important;color:var(--fg)!important}
+/* P1 onglets du profil : casse normale, Barlow 17 */
+.bar-tabs button{text-transform:none!important;letter-spacing:.02em!important;font-size:17px!important}
+/* P2 corbeille d'un résultat glissé : encadrée, rose, picto foncé */
+.del{border:var(--bw) solid var(--ink)!important;background:#FF3D6B!important;color:#1A0509!important}
+/* P3 bouton principal dans une carte ou une fiche : citron, trait encre, texte sur une ligne */
+.btn.grow{white-space:nowrap}
+:is(.card,.sheet) .btn:not(.ghost):not(.sec):not(.danger):not(.sm){background:var(--accent-bg,var(--accent))!important;color:var(--on-accent-bg,var(--on-accent))!important;border:var(--bw) solid var(--ink)!important}
+/* P4 pictos des lignes d'infos : dans un carré citron encadré */
+.ct>svg{width:34px!important;height:34px!important;padding:6px;box-sizing:border-box;background:#E0F50A;color:#1A0509!important;border:var(--bw) solid var(--ink);box-shadow:var(--sh-sm);flex:none}
+/* P5 interrupteur : pastille claire */
+.tg::after{background:#F7EFF0!important}
+/* P6 P7 cartes de cadre : plus de dégradé ni de halo, trait encre */
+.fp-card,.fp-st.lock .fp-card,.fp-st.now .fp-card{background:var(--card)!important;border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important}
+.fp-st.now .fp-card{background:#E0F50A!important;color:#1A0509!important}
+.fp-st.now .fp-card b{color:#1A0509!important}
+.fp-lock{border-radius:var(--rb)!important;border:var(--bw) solid var(--ink)!important}
+/* P8 jauge des cadres : piste encadrée de 14 px, remplissage citron sans lueur */
+.fp-rail{height:14px!important;border-radius:0!important;background:var(--bg)!important;box-shadow:none!important;border:var(--bw) solid var(--ink)}
+.fp-rail i{border-radius:0!important;background:#E0F50A!important;box-shadow:none!important}
+.fp-dia{border-color:var(--ink)!important}
+.fp-me{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important}
+/* P9 paliers (bronze, argent…) encadrés */
+.tier{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;color:#1A0509!important}
+/* P10 avatar du profil : la photo reste visible (seule la couleur de fond change) */
+.phero .av{background-color:#E0F50A!important}
+/* P11 choix de fonction : sur plusieurs lignes, le choix en cours en citron */
+.card>.chips{flex-wrap:wrap!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important;padding-right:0!important}
+.chip[aria-pressed="true"]{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
+/* P12 sous-onglets : barre encadrée, séparateurs pleine hauteur */
+:is(#main,#subnav)>.seg{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;gap:0!important;padding:0!important;overflow:hidden}
+:is(#main,#subnav)>.seg button{border:0!important;border-left:var(--bw) solid var(--ink)!important;border-radius:0!important;margin:0!important;text-transform:none!important;letter-spacing:.02em!important}
+:is(#main,#subnav)>.seg button:first-child{border-left:0!important}
+/* P13 tuiles d'accès du club : trait et ombre, le texte ne touche plus le bord */
+.caccb{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;padding-right:12px!important;overflow-wrap:anywhere}
+/* P14 listes de choix : chevron du système, texte entier */
+select{-webkit-appearance:none!important;appearance:none!important;padding-right:38px!important;text-overflow:ellipsis;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 12px center!important}
+.two select{font-size:15px!important}
+/* P16 carrés citron des contacts : encadrés */
+.pbi{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important}
+/* P17 filtres de l'agenda : le carré garde la couleur du type, la coche suffit à dire « choisi » */
+.chip.plf .sq{background:var(--c)!important;border:var(--bw) solid var(--ink)!important;border-radius:0!important;box-shadow:none!important;width:16px!important;height:16px!important}
+.chip.plf[aria-pressed="false"]{background:var(--bg)!important;color:var(--muted)!important}
+/* G6 parties dirigées : vert de la palette (fini le bleu) ; texte foncé sur le vert du padel */
+.jeu{--c:#9BD43C!important;--oc:#1A0509!important}
+.tag.padel,.rt.padel,.sp.padel,.sp.duo i.padel{color:#1A0509!important}
+/* P19 fiche qui monte du bas : trait encre en haut */
+.sheet{border:var(--bw) solid var(--ink)!important;border-bottom:0!important}
+/* P20 titres d'une seule couleur */
+.tilt em,.poster .big em{color:inherit!important}
+/* P22 liste des groupes : même marge que les autres cartes */
+#phone #main .lis.lis{margin-left:16px!important;margin-right:16px!important}
+/* P23 discussion : citation et heure lisibles sur le citron, coches sans bleu */
+.msg.me .bub .quote{color:#1A0509!important;background:rgba(26,5,9,.08)!important;border-left:var(--bw) solid #1A0509!important;opacity:1!important}
+.msg.me .bub .quote *{color:#1A0509!important}
+.msg.me .bub time,.msg.me .bub time *{color:#1A0509!important;opacity:.75!important}
+.bub time svg{color:currentColor!important}
+.msg:not(.me) .bub .quote{color:var(--fg)!important;border-left:var(--bw) solid var(--ink)!important}
+/* G3 plus de panneau fantôme sous les onglets, quel que soit le style (l'ombre « full street » passait devant) */
+:root:root[data-style] #phone #main>.seg+*,:root:root[data-style] #phone.hassub #main>:first-child:not(.seg),#phone #main>.seg+*,#phone.hassub #main>:first-child:not(.seg){box-shadow:none!important;border:0!important;background:transparent!important}
+/* fil des rencontres : cartes encadrées */
+#phone #main .card{border:var(--bw) solid var(--ink)!important}
+/* filtres de l'agenda : le carré prend la couleur de son type */
+.chip.plf .sq.ens,.chip.plf .sq.repas{background:#E0F50A!important}.chip.plf .sq.jeu{background:#9BD43C!important}.chip.plf .sq.ani,.chip.plf .sq.eq{background:#FF3D6B!important}.chip.plf .sq.tour{background:#F2A93B!important}
+/* ombres des cartes en style « full street » : ombre dure encre de 4 px, comme Figma (sauf les cadres de niveau) */
+:root:root[data-style] #phone #main :is(.card:not([class*="cf"]),.lis,.palm .res){box-shadow:var(--sh)!important}
+/* cartes de rencontre du fil : trait et ombre encre */
+#phone #main .rec{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;border-radius:var(--r)!important}

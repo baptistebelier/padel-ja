@@ -1363,7 +1363,7 @@ test('Club : le cadre de la carte des trophées reste dans chaque apparence, sur
     await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; render(); });
     for (const st of ['epure', '', 'street']) {
       const r = await page.evaluate(st => { A.ustyle({ k: st }); const c = document.querySelector('.tcard'); return [1, 2, 3, 4, 5].map(n => { c.className = 'card tcard cf' + n; return getComputedStyle(c).boxShadow; }); }, st);
-      ['200, 131, 75', '221, 227, 234', '242, 194, 48', '127, 227, 216', '111, 183, 255'].forEach((rgb, i) => assert.ok(r[i].includes(rgb), `largeur ${w}, style « ${st} », cadre ${i + 1} : ${r[i]}`));
+      ['200, 131, 75', '142, 153, 166', '242, 194, 48', '127, 227, 216', '111, 183, 255'].forEach((rgb, i) => assert.ok(r[i].includes(rgb), `largeur ${w}, style « ${st} », cadre ${i + 1} : ${r[i]}`));
     }
     await page.close();
   }

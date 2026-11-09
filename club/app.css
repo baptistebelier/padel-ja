@@ -1203,25 +1203,25 @@ button.rsj.on{background:var(--accent);color:var(--on-accent)}
    Couche finale : elle ne change aucune structure, seulement l'apparence.
    Trait 2 px couleur encre (--ink), ombre dure sans flou, coins droits par défaut (« Arrondis » dans le profil).
    ========================================================================= */
-:root{--bw:2px;--sh:4px 4px 0 var(--ink);--sh-sm:2px 2px 0 var(--ink);--r:0px;--rb:0px;--rp:0px}
-:root[data-coins="arrondis"]{--r:12px;--rb:8px;--rp:999px}
+:root{--bw:2px;--sh:4px 4px 0 var(--ink);--sh-sm:2px 2px 0 var(--ink);--r:0px;--rb:0px;--rpill:0px}
+:root[data-coins="arrondis"]{--r:12px;--rb:8px;--rpill:999px}
 .post,.card,.sheet,.poster,.note,.story{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;border-radius:var(--r)!important}
 .btn{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh)!important;transition:transform .08s,box-shadow .08s}
 .btn.ghost{background:var(--card)!important;color:var(--fg)!important;box-shadow:var(--sh-sm)!important}
 .btn:active{transform:translate(2px,2px);box-shadow:none!important}
 .btn:disabled,.btn[disabled]{background:var(--off)!important;color:var(--muted)!important;border-color:var(--muted)!important;box-shadow:none!important}
-.chip,.seg button,.bd,.tag{border:var(--bw) solid var(--ink)!important;border-radius:var(--rp)!important;box-shadow:var(--sh-sm)}
+.chip,.seg button,.bd,.tag{border:var(--bw) solid var(--ink)!important;border-radius:var(--rpill)!important;box-shadow:var(--sh-sm)}
 .chip[aria-pressed="true"],.seg button[aria-selected="true"]{background:var(--accent)!important;color:var(--on-accent)!important}
 .seg{gap:0!important;border:var(--bw) solid var(--ink);border-radius:var(--rb);box-shadow:var(--sh-sm);background:var(--card);overflow:hidden}
 .seg button{border:0!important;border-left:var(--bw) solid var(--ink)!important;border-radius:0!important;box-shadow:none!important;background:transparent}
 .seg button:first-child{border-left:0!important}
-.av,.tile,.ib{border:var(--bw) solid var(--ink);border-radius:var(--rp)!important;box-shadow:var(--sh-sm)}
+.av,.tile,.ib{border:var(--bw) solid var(--ink);border-radius:var(--rpill)!important;box-shadow:var(--sh-sm)}
 .crest{border:var(--bw) solid var(--ink);border-radius:var(--rb)!important}
 input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;background:var(--card)!important;box-shadow:none!important}
 input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{outline:none;box-shadow:4px 4px 0 #E0F50A!important}
 /* interrupteur 52 × 30 : trait encre, vert si actif, éteint sinon */
-.tg::before{inset:7px 0!important;border:var(--bw) solid var(--ink);border-radius:var(--rp)!important;background:var(--off)!important}
-.tg::after{top:12px!important;left:5px!important;width:20px!important;height:20px!important;border-radius:var(--rp)!important;background:var(--card)!important;border:var(--bw) solid var(--ink)}
+.tg::before{inset:7px 0!important;border:var(--bw) solid var(--ink);border-radius:var(--rpill)!important;background:var(--off)!important}
+.tg::after{top:12px!important;left:5px!important;width:20px!important;height:20px!important;border-radius:var(--rpill)!important;background:var(--card)!important;border:var(--bw) solid var(--ink)}
 .tg[aria-checked="true"]::before{background:#9BD43C!important}
 /* barre d'onglets du bas : surface, trait, onglet actif citron encadré */
 .tabs{border:var(--bw) solid var(--ink)!important;border-radius:var(--r)!important;box-shadow:var(--sh)!important;background:var(--card)!important}
@@ -1230,7 +1230,7 @@ input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{o
 /* listes déroulantes : ombre dure (largeur et coins copiés de la boîte d'origine) */
 .sgbox{box-shadow:var(--sh)!important;border-color:var(--ink)!important}
 .toast{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;border-radius:var(--rb)!important;background:#E0F50A!important;color:#1A0509!important}
-.bar{border:var(--bw) solid var(--ink);border-radius:var(--rp)!important;height:12px}
+.bar{border:var(--bw) solid var(--ink);border-radius:var(--rpill)!important;height:12px}
 /* fonds en couleur du club telle quelle (citron vif de jour comme de nuit), texte au meilleur contraste */
 .btn:not(.ghost):not(.danger),.chip[aria-pressed="true"],.seg button[aria-selected="true"],.tabs button[aria-current="page"],.addfab,.bd.ac,.tag.ac{background:var(--accent-bg,var(--accent))!important;color:var(--on-accent-bg,var(--on-accent))!important}
 .tabs button[aria-current="page"] svg{color:var(--on-accent-bg,var(--on-accent))!important}

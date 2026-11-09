@@ -44,8 +44,9 @@ const BASE = {
   true: { bg: '#2A1B21', card: '#46303A', card2: '#533A45', line: '#5C4450', fg: '#F7EFF0', muted: '#DCCBD0' },
   false: { bg: '#F2EBE4', card: '#FFFFFF', card2: '#F8F1EC', line: '#E6DCD6', fg: '#1A0509', muted: '#6E5A61' }
 };
-const HOT = '#E0123C',
-  PADEL = '#2459E0';
+// rose /RAM (maquette Figma) pour le direct et le danger, texte foncé dessus ; vert pour le padel
+const HOT = '#FF3D6B',
+  PADEL = '#9BD43C';
 /* logo entier du club qui ressort sur son fond : logo clair sur fond sombre, logo sombre sur fond clair (l'autre en secours) */
 const clubLogo = c => ((c = c || club()), effDark(c) ? c.logoL || c.logoD : c.logoD || c.logoL) || '';
 function setTheme(i) {
@@ -82,7 +83,7 @@ function setTheme(i) {
     '--rail-logo',
     rl ? `url("${rl}")` : `url("${c.dark ? 'img/ram-club-blanc.png' : 'img/ram-club-noir.png'}")`
   );
-  r.setProperty('--on-hot', '#FFFFFF');
+  r.setProperty('--on-hot', '#1A0509');
   // encre des traits et des ombres dures, et couleur « éteinte » (désactivé, interrupteur coupé)
   r.setProperty('--ink', dk ? '#000000' : '#1A0509');
   r.setProperty('--off', dk ? '#6B5560' : '#E6DCD6');

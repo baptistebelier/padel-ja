@@ -2090,7 +2090,7 @@ button.copp:hover span:last-child {
 /* carte héros (prochaine séance, fiche) : garde l'ombre citron */
 .cohero { border: var(--bw, 2px) solid var(--ink) !important; box-shadow: 6px 6px 0 var(--co-lime, #e0f50a) !important; border-radius: var(--r, 0) !important; }
 /* onglets : actif plein citron */
-.tabs .pill { border: var(--bw, 2px) solid var(--ink) !important; border-radius: var(--rp, 0) !important; }
+.tabs .pill { border: var(--bw, 2px) solid var(--ink) !important; border-radius: var(--rpill, 0) !important; }
 .tabs .pill.on, .tabs .pill[aria-selected='true'], .tabs .pill[aria-pressed='true'] { background: var(--co-lime, #e0f50a) !important; color: #1a0509 !important; }
 /* ---------- finitions /Dojo ---------- */
 /* titre de section : détaché de sa carte (plus de chevauchement des traits) */
