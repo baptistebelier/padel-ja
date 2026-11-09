@@ -763,3 +763,52 @@ html, body { background: var(--bg); }
   .mscnt { flex: none; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; display: grid; place-items: center; background: var(--hot); color: var(--on-hot); font-size: 12px; font-weight: 700; }
   .msmore { align-self: flex-start; margin-top: 6px; padding: 6px 0; border: 0; background: none; color: var(--accent-tx, var(--accent)); font-family: var(--f-sub); font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
 }
+
+/* =========================================================================
+   Maquette Figma /Buvette à la lettre (Agenda, Équipe, Bar, Mon profil) — chargé en dernier
+   ========================================================================= */
+/* barre d'onglets : collée en bas, trait encre en haut, onglet actif carré citron à ombre encre */
+.tabs{left:0!important;right:0!important;bottom:0!important;border:0!important;border-top:var(--bw) solid var(--ink)!important;border-radius:0!important;box-shadow:none!important;background:var(--card)!important;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))!important;transform:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.tabs.drag{transform:none!important;box-shadow:none!important}
+.pill{box-shadow:var(--sh-sm)!important;border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important}
+.tabs .cnt{border:var(--bw) solid var(--ink)!important;border-radius:0!important;background:#FF3D6B!important;color:#1A0509!important}
+/* avatars et médailles carrés, comme dans la maquette */
+.av,.medal{border-radius:var(--rb)!important}
+/* agenda : le jour en petit surtitre rose, l'heure en colonne pleine à gauche de la carte */
+.evday span{background:transparent!important;color:var(--hot-tx,#A30F35)!important;font-family:var(--f-sub)!important;font-weight:700!important;font-size:12px!important;letter-spacing:.24em!important;padding:0!important;transform:none!important;text-transform:uppercase}
+.card.evx{padding:0!important;gap:0!important;align-items:stretch!important}
+.evx .evh{border:0!important;border-right:var(--bw) solid var(--ink)!important;border-radius:0!important;margin:0!important;min-width:68px;display:flex!important;flex-direction:column;justify-content:center;align-items:center;font-family:var(--f-sub)!important;font-weight:700;font-size:18px!important;background:var(--c)!important;color:var(--oc)!important}
+.evx .evb{padding:12px 14px!important}
+.evpic{display:none!important}
+.ens,.repas,.train{--c:#E0F50A!important;--oc:#1A0509!important}
+.eq,.ani{--c:#FF3D6B!important;--oc:#1A0509!important}
+/* discussion : bulles encadrées à ombre encre, sans pointe ; auteur en surtitre rose */
+.bub,.bub.tail,.msg.me .bub,.msg.me .bub.tail{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important;filter:none!important}
+.bub.tail::before,.bub.tail::after{display:none!important}
+.msg .hd>:first-child{color:var(--hot-tx,#A30F35)!important;font-family:var(--f-sub);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.composer input:not([type=file]),.composer textarea.ta{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;background:var(--field,var(--card))!important}
+.composer button,.composer label{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important}
+.composer button:not(.send),.composer label{background:var(--card)!important;color:var(--fg)!important}
+/* mon profil : carte bordeaux à ombre citron, avatar carré citron, chiffres encadrés */
+.phero{background:#5E0A1F!important;color:#fff!important;border:var(--bw) solid var(--ink)!important;box-shadow:6px 6px 0 #E0F50A!important}
+.phero::before,.phero::after{display:none!important}
+.phero .tilt,.phero .muted,.phero h2{color:#fff!important}
+.phero .av{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:#E0F50A!important;color:#1A0509!important;margin:0!important}
+.stats>*{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;border-radius:var(--rb)!important}
+.tcard[class*="cf"]{box-shadow:var(--sh)!important}
+/* cadres de niveau (bronze, argent, or, diamant, légende) : gardés, mais dessinés en ombre dure de leur couleur sous le trait encre */
+:is(:root[data-style],:root) #phone #main .tcard.cf1,.av.fr1{box-shadow:5px 5px 0 #C8834B!important}
+:is(:root[data-style],:root) #phone #main .tcard.cf2,.av.fr2{box-shadow:5px 5px 0 #DDE3EA!important}
+:is(:root[data-style],:root) #phone #main .tcard.cf3,.av.fr3{box-shadow:5px 5px 0 #F2C230!important}
+:is(:root[data-style],:root) #phone #main .tcard.cf4,.av.fr4{box-shadow:5px 5px 0 #7FE3D8!important}
+:is(:root[data-style],:root) #phone #main .tcard.cf5,.av.fr5{box-shadow:5px 5px 0 #6FB7FF!important}
+.av.sm[class*="fr"]{box-shadow:3px 3px 0 var(--frc,#F2C230)!important}
+.av.sm.fr1{--frc:#C8834B}.av.sm.fr2{--frc:#DDE3EA}.av.sm.fr3{--frc:#F2C230}.av.sm.fr4{--frc:#7FE3D8}.av.sm.fr5{--frc:#6FB7FF}
+/* classement sur la carte bordeaux du profil : texte foncé sur sa tuile */
+.phero .rt{color:#1A0509!important}
+.phero .rt:not(.tennis):not(.padel){background:#F8F1EC!important}
+.phero .rt b{color:#1A0509!important}
+/* sous les onglets : plus de grand panneau autour du contenu, les cartes sont posées sur la page */
+:is(#main > .seg + *, .hassub #main > :first-child:not(.seg)){background:transparent!important;border:0!important;box-shadow:none!important}
+:is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) .card{box-shadow:var(--sh)!important}
+:is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) .evday{background:var(--bg)!important}
