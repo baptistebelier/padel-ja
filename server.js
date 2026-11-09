@@ -44,7 +44,11 @@ const adhesions = require('./lib/adhesions.js').createAdhesions({ store, ram, on
 const progression = require('./lib/progression.js').createProgression({ store, ram });   // trophées et points de chaque adhérent, par club et saison
 const groupes = require('./lib/groupes.js').createGroupes({ store, ram });   // groupes d'entraînement et équipes, avec leurs membres
 const coachTables = require('./lib/coach-tables.js').createCoachTables({ ram, store });
-const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id) });   // profil sportif et enfants → fiches joueurs
+// fiche personne commune : profils d'adhérents, fiches élèves et compte reliés à une seule fiche (lib/fiches.js)
+const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf: id => mainClubOf(id),
+  relier: (spaceId, de, vers) => reconciliation.relier(spaceId, de, vers),
+  accountPlayer: async u => { const id = await store.getIdentity(u.id).catch(() => null); if (id && id.player) return id.player; const full = await store.getUser(u.id).catch(() => null); return full && !full.guest ? syncAccountPlayer(full) : null; } });   // profil sportif et enfants → fiches joueurs
+const reconciliation = require('./lib/reconciliation.js').createReconciliation({ store, ram });   // fusion des fiches en double (Administration)
 // notifications sur le téléphone ; heures calmes : ce qui attend part au réveil, par la file de tâches (une seule fois par nuit et par compte)
 const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m), planifier: (uid, at) => taches.enqueue('push-reveil', { uid }, { at, key: 'reveil:' + uid + ':' + at }) });
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
@@ -543,7 +547,7 @@ async function ensureClubLinks(log) {
   await adhesions.syncAllSpaces();
   await progression.syncAllSpaces();
   await groupes.syncAllSpaces();
-  await fiches.syncAllSpaces();
+  await fiches.syncAllSpaces({ premier: true });
   await ram.eachSpace(id => syncClubIdentity(id));
   for (const meta of await store.listAllTournaments()) {
     const s = meta.summary || meta;
@@ -987,6 +991,15 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/api/admin/')) {
       const u = await currentUser(req);
       if (!isAdmin(u)) return json(res, 403, { error: 'Réservé aux administrateurs' });
+      // réconciliation des fiches personnes : analyse (GET), puis fusions choisies après une sauvegarde complète (POST)
+      if (p === '/api/admin/reconciliation') {
+        if (req.method === 'POST') {
+          const b = await readBody(req), journal = [];
+          const r = await reconciliation.appliquer(Array.isArray(b.ids) ? b.ids.map(String) : [], m => journal.push(m));
+          return json(res, 200, Object.assign(r, { journal }));
+        }
+        return json(res, 200, await reconciliation.analyser());
+      }
       // mesures du serveur (?zero pour repartir de zéro)
       if (p === '/api/admin/mesures') {
         const r = Mesures.report({ clubs_en_memoire: ram.loaded(), tournois_en_memoire: rooms.size, taches: await taches.stats().catch(() => null) });
