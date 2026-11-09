@@ -2209,3 +2209,109 @@ test('JA : tournoi interne lancé avec un seul tableau à sections, joueur inscr
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+test('Coach : réglages d’un cycle, remplaçant, séances à planifier, Abonné et états, attribution qui suit le groupe, discussion supprimée', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  // un groupe avec un cycle de 6 séances dont 2 seulement ont une date
+  const r = await page.evaluate(() => {
+    const g = GROUPS.find(x => x.type === 'train' && !x.once && coIsMe(x.coach));
+    const d1 = isoIn(-7), d2 = isoIn(7);
+    // un groupe sans créneau (comme un pack individuel) : seules ses dates posées existent
+    g.libre = 1; g.extra = []; g.skip = [];
+    g.cycles = [{ id: 'cz', nom: 'Hiver', n: 6, dates: [d1, d2], offre: 'pack:p2' }];
+    coDateOn(g, d1); coDateOn(g, d2);
+    const autre = Object.keys(M).find(k => k !== 'club' && k !== g.coach && M[k].n);
+    S.stack = [{ v: 'cgroupe', id: g.id }]; render();
+    return { id: g.id, coach: g.coach, autre, d1, d2 };
+  });
+  console.log('DBG', JSON.stringify(r), errs, await page.evaluate(() => [view(), (document.querySelector('#view, main, body').innerText || '').slice(0, 1500)]));
+  await page.waitForSelector('.coplan [data-v="seance"]');
+  assert.equal(await page.locator('.coplan [data-v="seance"]').count(), 4, '4 séances à planifier');
+  // réglages du cycle : un autre enseignant, un thème, un bilan ; la séance passée garde son enseignant
+  await page.click(`[data-a="coCycleCfg"][data-c="cz"]`);
+  await page.waitForSelector('#co-cyc');
+  await page.evaluate(k => { const s = $('co-cy-co'); s.insertAdjacentHTML('beforeend', `<option value="${k}">x</option>`); s.value = k; }, r.autre);
+  await page.fill('#co-cy-th', 'Jeu au filet');
+  await page.fill('#co-cy-bi', 'Beaux progrès au filet');
+  await page.click('#co-cyc .btn.full');
+  const eff = await page.evaluate(x => { const g = grp(x.id); return [REGLES.coachDe(g, x.d1), REGLES.coachDe(g, x.d2), g.cycles[0].theme, g.cycles[0].bilan]; }, r);
+  assert.deepEqual(eff, [r.coach, r.autre, 'Jeu au filet', 'Beaux progrès au filet']);
+  // remplaçant sur la séance à venir : prioritaire même si le cycle change ensuite
+  await page.evaluate(x => { S.stack = [{ v: 'seance', id: x.id + '.' + x.d2 }]; render(); }, r);
+  await page.waitForSelector('#co-rp');
+  await page.evaluate(k => { const s = $('co-rp'); s.insertAdjacentHTML('beforeend', `<option value="${k}">x</option>`); s.value = k; s.dispatchEvent(new Event('change', { bubbles: true })); }, r.coach);
+  assert.equal(await page.evaluate(x => REGLES.coachDe(grp(x.id), x.d2, sesFind(grp(x.id), x.d2)), r), r.coach);
+  // une séance à planifier : sa fiche, puis une date ; elle apparaît au planning
+  const dp = await page.evaluate(x => { S.stack = [{ v: 'seance', id: x.id + '.p1-cz' }]; render(); return isoIn(14); }, r);
+  await page.waitForSelector('#co-aplan');
+  await page.fill('#co-ap-t', 'Smash');
+  await page.fill('#co-ap-d', dp);
+  await page.click('#co-aplan .btn.full');
+  const pl = await page.evaluate(([x, d]) => { const g = grp(x.id); return { dans: g.cycles[0].dates.includes(d), theme: (sesFind(g, d) || {}).theme, plan: REGLES.aPlanifier(g, g.cycles[0]).length, planning: coSessions(d, d, 'me', 1).some(s => s.g === g) }; }, [r, dp]);
+  assert.deepEqual(pl, { dans: true, theme: 'Smash', plan: 3, planning: true });
+  // appel depuis /RAM Club (g.att) : compté par la jauge et les présences de Coach
+  const club = await page.evaluate(x => { const g = grp(x.id), k = g.mem[0]; delete (sesFind(g, x.d1) || {}).pres; g.att = { [x.d1]: { [k]: true } }; return { faites: REGLES.cycleEtat(g, g.cycles[0], coCycleSes(g), TODAY).faites, venue: coVenues(k).some(v => v.d === x.d1 && v.gid === g.id) }; }, r);
+  assert.deepEqual(club, { faites: 1, venue: true });
+  // abonnement en cours : étiquette « Abonné », fréquence enregistrée ; états des attributions
+  const ab = await page.evaluate(x => {
+    const g = grp(x.id), k = g.mem[0], e = coElGet(k);
+    e.achats = [{ id: 'hab', t: 'abo', ref: 'a1', d: isoIn(-10), fin: isoIn(60), nom: 'Academy', freq: 1 }, { id: 'hpk', t: 'pack', ref: 'p1', d: isoIn(-300), n: 1, nom: 'Vieux pack' }];
+    S.elTab = 'fiche'; S.stack = [{ v: 'eleve', id: k }]; render();
+    return k;
+  }, r);
+  await page.waitForSelector('.coabocard .tag.coabo');
+  assert.match(await page.textContent('.coabocard'), /1 séance par semaine/);
+  assert.ok(await page.locator('.tag.coetat').count() >= 2, 'états affichés');
+  await page.click('.coabocard [data-a="coFreq"]');
+  await page.fill('#co-fq', '2');
+  await page.click('#co-freq .btn.full');
+  assert.equal(await page.evaluate(k => coEl(k).achats.find(a => a.id === 'hab').freq, ab), 2);
+  // attribution du groupe : un élève qui arrive la reçoit, un élève qui part la garde arrêtée
+  const att = await page.evaluate(x => {
+    const g = grp(x.id), c = g.cycles[0];
+    coCycleAchats(g, c);
+    const k = g.mem[0], nouveau = ELEVES.find(e => !M[e.id]) || { id: 'e1' };
+    g.ext = (g.ext || []).filter(y => y !== nouveau.id);
+    coGrpJoin(g, nouveau.id);
+    const a = coEl(nouveau.id).achats.find(h => h.cycle === g.id + ':cz');
+    coGrpLeave(g, k);
+    return { du: a.du === TODAY, groupe: a.groupe === g.id, sortie: coEl(k).achats.find(h => h.cycle === g.id + ':cz').sortie === TODAY };
+  }, r);
+  assert.deepEqual(att, { du: true, groupe: true, sortie: true });
+  // discussion du groupe : supprimée depuis Coach, puis recréée
+  await page.evaluate(x => { S.stack = [{ v: 'cgroupe', id: x.id }]; if (!chans.some(c => c.id === x.id)) A.coChanNew({ id: x.id }); render(); }, r);
+  await page.click(`[data-a="coChanDel"][data-id="${r.id}"]`);
+  await page.click(`[data-a="coChanDelOk"][data-id="${r.id}"]`);
+  assert.equal(await page.evaluate(id => chans.some(c => c.id === id), r.id), false);
+  await page.waitForSelector(`[data-a="coChanNew"][data-id="${r.id}"]`);
+  await page.click(`[data-a="coChanNew"][data-id="${r.id}"]`);
+  assert.equal(await page.evaluate(id => chans.some(c => c.id === id), r.id), true);
+  // sur iPad en portrait et sur téléphone : rien ne déborde
+  for (const w of [768, 360]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    await page.evaluate(x => { S.stack = [{ v: 'cgroupe', id: x.id }]; render(); }, r);
+    assert.ok((await overflow(page)) <= 1, 'débordement à ' + w + ' px');
+  }
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('Club : l’appel de l’enseignant s’écrit dans la séance, comme dans /RAM Coach', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 760 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof appelNote === 'function');
+  const r = await page.evaluate(() => {
+    const g = GROUPS.find(x => x.type === 'train' && !x.once && x.mem.length), k = g.mem[0], d = TODAY;
+    A.att({ id: g.id, d, u: k, s: '1' });
+    const p1 = (sesDu(g, d) || {}).pres[k], a1 = g.att[d][k];
+    A.att({ id: g.id, d, u: k, s: '1' });
+    return { p1, a1, p2: ((sesDu(g, d) || {}).pres || {})[k], a2: g.att[d][k] };
+  });
+  assert.deepEqual(r, { p1: 'P', a1: true, p2: undefined, a2: undefined });
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
