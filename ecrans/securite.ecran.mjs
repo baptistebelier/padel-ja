@@ -65,3 +65,25 @@ for (const url of PAGES.concat(CONNECTE)) {
     await ctx.close();
   });
 }
+
+/* navigation sans rechargement (menu de gauche) : la page garde la règle de la première page ouverte ; chaque page
+   d'arrivée doit pourtant lancer ses scripts (bug : tournois, calendrier et tableau de bord restaient vides) */
+test('menu sans rechargement : chaque page d’arrivée lance ses scripts, rien n’est bloqué', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 }, serviceWorkers: 'block' });
+  const page = await ctx.newPage(), errs = [], viol = [];
+  page.on('pageerror', e => errs.push(e.message));
+  page.on('console', m => { if (/Content Security Policy|Refused to/i.test(m.text())) viol.push(page.url() + ' ' + m.text().slice(0, 160)); });
+  await page.goto(B + '/demo'); await page.waitForTimeout(600);
+  await page.goto(B + '/app'); await page.waitForSelector('.tboard .tcard', { timeout: 8000 });
+  const parcours = [['/calendrier', () => !/Chargement/.test(document.querySelector('main').innerText)], ['/dashboard', () => !/Chargement/.test(document.querySelector('#current').innerText)],
+    ['/joueurs', () => true], ['/statistiques', () => true], ['/profil', () => true], ['/app', () => document.querySelectorAll('.tboard .tcard').length > 0]];
+  for (const [u, pret] of parcours) {
+    await page.click(`.rail a[href="${u}"]`);
+    await page.waitForFunction(x => location.pathname === x, u, { timeout: 8000 });
+    await page.waitForFunction(pret, null, { timeout: 8000 });
+    await page.waitForTimeout(400);
+  }
+  assert.deepEqual(viol, [], 'aucun script bloqué en naviguant par le menu');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
