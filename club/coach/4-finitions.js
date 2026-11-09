@@ -68,7 +68,7 @@ AIDE.splice(
       ],
       [
         'Un élève sans compte',
-        'Élèves, « Ajouter un élève sans compte ». Le jour où il crée son compte /RAM Club, ouvre sa fiche et « Relier à un compte du club » : il retrouve tout.'
+        'Élèves, « Ajouter un élève sans compte ». Le jour où il crée son compte /RAM Club, ouvre sa fiche et « Relier à un compte /RAM » (même si son compte est dans un autre de tes clubs) : il retrouve tout.'
       ]
     ]
   },

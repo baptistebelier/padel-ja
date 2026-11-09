@@ -178,10 +178,11 @@ Object.assign(A, {
     $('co-note').required = false;
     $('co-tel').type = 'tel';
   },
-  /* élève sans compte : rattaché à l'adhérent qui vient de créer le sien ; il retrouve tout */
+  /* élève sans compte : rattaché à l'adhérent qui vient de créer le sien ; il retrouve tout.
+     Tous les comptes de mes clubs sont proposés, pas seulement ceux du club où les cours ont eu lieu :
+     le club qui compte est celui du compte /RAM (un élève a pu changer de club). */
   coLink(d) {
-    const cid = coClubOf(coEl(d.id)),
-      cands = Object.keys(M).filter(k => k !== 'club' && k !== d.id && !isMinor(k) && coClubOf(M[k]) === cid),
+    const cands = Object.keys(M).filter(k => k !== 'club' && k !== d.id && !isMinor(k)),
       el = coEl(d.id),
       mots = fold(el.n || '')
         .split(/\s+/)
@@ -190,7 +191,9 @@ Object.assign(A, {
         (M[k].mail && el.mail && fold(M[k].mail) === fold(el.mail) ? 9 : 0) +
         mots.filter(x => fold(name(k)).includes(x)).length;
     if (!cands.length)
-      return toast('Aucun compte dans ce club : l’élève doit d’abord rejoindre le club dans /RAM Club');
+      return toast(
+        'Aucun compte /RAM Club dans tes clubs : l’élève doit d’abord créer son compte et rejoindre un club'
+      );
     sheet(
       'Relier ' + svFirst(d.id),
       `<form class="body" id="co-link" data-id="${d.id}">${Who(
@@ -431,15 +434,19 @@ document.addEventListener('submit', e => {
   if (f.id === 'co-link') {
     const k = val('co-who'),
       old = coEl(id);
-    if (!k || !old) return;
-    // la fiche, les groupes, les séances et le suivi passent sur le compte de l'adhérent
-    const deja = coEl(k);
+    if (!k || !old || !M[k]) return;
+    // la fiche, les groupes, les séances et le suivi passent sur le compte de l'adhérent ;
+    // ils restent rangés dans le club où les cours ont eu lieu, même si son compte est dans un autre club
+    const ici = coClubOf(old),
+      membreIci = coClubOf(M[k]) === ici,
+      deja = ELEVES.find(e => e.id === k && coClubOf(e) === ici);
     ELEVES.splice(ELEVES.indexOf(old), 1);
     if (deja) ELEVES.splice(ELEVES.indexOf(deja), 1);
     ELEVES.push(
       Object.assign({}, old, deja, {
         id: k,
         n: name(k),
+        ...(M[k].mail || old.mail ? { mail: M[k].mail || old.mail } : {}),
         ...(old.achats || (deja && deja.achats)
           ? { achats: [...((deja && deja.achats) || []), ...(old.achats || [])] }
           : {})
@@ -448,7 +455,10 @@ document.addEventListener('submit', e => {
     GROUPS.forEach(g => {
       if ((g.ext || []).includes(id)) {
         g.ext = g.ext.filter(x => x !== id);
-        if (!g.mem.includes(k)) g.mem.push(k);
+        // adhérent de ce club : parmi les membres ; compte d'un autre club : reste parmi les élèves extérieurs
+        if (membreIci) {
+          if (!g.mem.includes(k)) g.mem.push(k);
+        } else if (!g.ext.includes(k)) g.ext.push(k);
       }
     });
     SEANCES.forEach(s => {

@@ -204,6 +204,17 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal((await ram.itemsOf(club.id, 'seance')).find(x => x.id === gm.groupe_id + '.2030-04-03').data.pres[d2.eleve_id], 'P');
   assert.equal((await ram.itemsOf(club.id, 'suivi')).filter(x => x.data.to === d1.eleve_id).length, 0);
   await assert.rejects(w('coach_relier_fiche', { eleve_id: d2.eleve_id, compte: 'Personne' }), /introuvable/);
+  // ---------- relier à un compte d'un autre club : le club qui compte est celui du compte /RAM ----------
+  const clubB = await ram.create({ id: 'U5', name: 'Bureau B' }, { name: 'Padel B', short: 'pb' });
+  const moiB = await ram.join({ id: 'U1', name: 'Sarah Benali', email: 'coach@test.fr' }, clubB.code);
+  await ram.setRole('U5', clubB.id, moiB.key, 'coach');   // elle enseigne aussi dans le club B
+  const ines = await ram.join({ id: 'U6', name: 'Inès Morel', email: 'ines@test.fr' }, clubB.code);
+  const rel = await w('coach_relier_fiche', { club: club.id, eleve_id: d2.eleve_id, compte: 'Inès Morel' });
+  assert.equal(rel.eleve_id, ines.key, 'relié au compte du club B');
+  const fichesA = (await ram.itemsOf(club.id, 'eleve')).map(x => x.id);
+  assert.ok(fichesA.includes(ines.key) && !fichesA.includes(d2.eleve_id), 'la fiche reste dans le club où les cours ont eu lieu, sous le compte');
+  assert.ok((await gr2()).ext.includes(ines.key) && !(await gr2()).ext.includes(d2.eleve_id), 'le groupe suit');
+  assert.equal((await ram.itemsOf(club.id, 'seance')).find(x => x.id === gm.groupe_id + '.2030-04-03').data.pres[ines.key], 'P', 'les présences suivent');
   // ---------- page publique, vacances, collectifs ----------
   const pg = await w('coach_page_reservation', { ouvrir: true });
   assert.equal(pg.page_ouverte, true); assert.ok(pg.lien_page.startsWith('/r/' + club.id));
