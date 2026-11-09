@@ -140,9 +140,19 @@ function sgPlace() {
   const hote = sgCur.parentElement;
   if (getComputedStyle(hote).position === 'static') hote.style.position = 'relative';
   if (sgBox.parentElement !== hote) hote.appendChild(sgBox);
-  sgBox.style.left = sgCur.offsetLeft + 'px';
-  sgBox.style.top = sgCur.offsetTop + sgCur.offsetHeight + 4 + 'px';
-  sgBox.style.width = sgCur.offsetWidth + 'px';
+  // règle commune aux trois applis : la liste prend la largeur exacte et le style de la boîte d'où elle part
+  const cs = getComputedStyle(sgCur);
+  Object.assign(sgBox.style, {
+    left: sgCur.offsetLeft + 'px',
+    top: sgCur.offsetTop + sgCur.offsetHeight + 'px',
+    width: sgCur.offsetWidth + 'px',
+    borderRadius: cs.borderRadius,
+    fontFamily: cs.fontFamily,
+    fontSize: cs.fontSize,
+    borderWidth: cs.borderTopWidth,
+    borderColor: cs.borderTopColor,
+    borderStyle: cs.borderTopStyle
+  });
 }
 function sgDraw() {
   if (!sgBox) {

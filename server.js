@@ -290,6 +290,14 @@ async function getRoom(id) {
   rooms.set(id, room);
   return room;
 }
+/* enregistrer tout de suite (clôture, réouverture) au lieu d'attendre le délai de saveRoom */
+async function enregistrerTout(room) {
+  clearTimeout(room.timer); room.timer = null;
+  room.row.updated_at = Date.now();
+  await store.saveTournament(room.row).catch(e => console.error('Sauvegarde impossible :', e.message));
+  jaClub.schedule(room, msg => console.error(msg));
+  if (Ani.isAnimation(room.row.state)) aniParticipations(room).catch(e => console.error('Animation, historique des joueurs :', e.message));
+}
 function saveRoom(room) {
   clearTimeout(room.timer);
   room.timer = setTimeout(() => {
@@ -1315,12 +1323,14 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'DELETE' && room.row.owner !== u.id) return json(res, 403, { error: 'Seul le juge-arbitre principal supprime le tournoi.' });
       if (m[2] === '/close' && req.method === 'POST') {
         const r = await closeTournament(room, u);
+        await enregistrerTout(room);   // la liste des tournois (panneau « Tournoi en cours », Mes tournois) le montre aussitôt
         return json(res, 200, r);
       }
       if (m[2] === '/reopen' && req.method === 'POST') {
         // les résultats seront réenregistrés à la prochaine clôture
         await store.deleteParticipationsForTournament(room.row.id).catch(() => {});
         applyServerAction(room, { type: 'tournament/setClosed', payload: { closed: false } });
+        await enregistrerTout(room);
         return json(res, 200, { ok: true });
       }
       if (m[2] === '/duplicate' && req.method === 'POST') {

@@ -372,11 +372,18 @@
     box.innerHTML = sug.items.map((p, i) => `<div class="sg ${i === sug.active ? 'on' : ''}" data-i="${i}">${p.photo && /^(https?:\/\/|\/)[^"'()\s]+$/.test(p.photo) ? `<i class="sg-pp" style="background-image:url('${esc(p.photo)}')"></i>` : `<i class="sg-pp">${esc(((p.first || '')[0] || '') + ((p.last || '')[0] || '')).toUpperCase()}</i>`}<b>${esc(p.last)}</b> ${esc(p.first)}${p.mail ? ` <span>${esc(p.mail)}</span>` : ''}
       <span>${p.licence ? 'Lic. ' + esc(p.licence) : ''}${p.rank ? ' · Clt ' + esc(p.rank) : ''}</span><em>${p.source === 'club' ? '/RAM Club · ' + esc(p.club || '') : (p.club ? esc(p.club) + ' · ' : '') + p.tournaments + ' tournoi' + (p.tournaments > 1 ? 's' : '')}</em></div>`).join('');
     box.hidden = false; sug.open = true; sug.n = n;
+    // règle commune aux trois applis : la liste prend la largeur exacte et le style du champ tapé, collée dessous
+    const inp = sug.inp && document.body.contains(sug.inp) ? sug.inp : null;
+    if (inp && box.offsetParent) {
+      const r = inp.getBoundingClientRect(), pr = box.offsetParent.getBoundingClientRect(), cs = getComputedStyle(inp);
+      Object.assign(box.style, { left: r.left - pr.left + 'px', right: 'auto', width: r.width + 'px', top: r.bottom - pr.top + 'px', borderRadius: cs.borderRadius, fontFamily: cs.fontFamily, boxSizing: 'border-box' });
+    }
     $$('.sg', box).forEach(el => el.onmousedown = e => { e.preventDefault(); pickSuggestion(n, sug.items[+el.dataset.i]); });
   }
   ['l', 'f', 'i'].forEach(k => [1, 2].forEach(n => {
     const inp = form[k + n];
     inp.addEventListener('input', () => {
+      sug.inp = inp;
       setKnown(n, null);
       const q = inp.value.trim();
       clearTimeout(sug.timer);

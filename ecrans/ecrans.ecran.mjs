@@ -2025,6 +2025,42 @@ test('JA : panneau « Tournoi en cours » quand plusieurs tournois se jouent, on
   // sur le tableau de bord aussi
   await page.goto(JA + '/dashboard');
   await page.waitForSelector('[data-encours] details.enc', { timeout: 8000 });
+  // un 3e et un 4e tournoi en cours ; le 4e est clôturé puis rouvert : la liste suit, sans recharger la page
+  const [c, d] = await page.evaluate(async () => {
+    const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) }).then(r => r.json());
+    const out = [];
+    for (const name of ['Interne double mixte', 'Interne jeunes']) {
+      const { id } = await post('/api/tournaments', { kind: 'interne', sport: 'Tennis', name });
+      for (let i = 1; i <= 4; i++) await post('/api/t/' + id + '/action', { type: 'int/player/add', payload: { n: 'Joueur ' + i, ks: ['k' + i] } });
+      out.push(id);
+    }
+    return out;
+  });
+  for (let i = 0; i < 60; i++) { const n = await page.evaluate(() => fetch('/api/tournaments').then(r => r.json()).then(x => x.tournaments.filter(t => t.kind === 'interne' && t.players && !t.closed).length)); if (n >= 4) break; await page.waitForTimeout(250); }
+  await page.goto(JA + '/t/' + ids[0]);
+  await page.waitForSelector('details.enc summary');
+  await page.click('details.enc summary');
+  await page.waitForFunction(() => document.querySelectorAll('.enc-l a').length === 4, null, { timeout: 8000 });
+  // la liste a exactement la largeur du bouton, sans coins arrondis ajoutés
+  const tailles = await page.evaluate(() => { const s = document.querySelector('details.enc summary').getBoundingClientRect(), l = document.querySelector('.enc-l').getBoundingClientRect(); return { s: Math.round(s.width), l: Math.round(l.width), r: getComputedStyle(document.querySelector('.enc-l')).borderTopLeftRadius, rs: getComputedStyle(document.querySelector('details.enc summary')).borderTopLeftRadius }; });
+  assert.ok(Math.abs(tailles.s - tailles.l) <= 1, 'largeur de la liste = largeur du bouton : ' + JSON.stringify(tailles));
+  assert.equal(tailles.r, tailles.rs, 'mêmes coins que le bouton');
+  await page.evaluate(id => fetch('/api/tournaments/' + id + '/close', { method: 'POST' }), d);
+  await page.click('details.enc summary'); await page.click('details.enc summary');   // refermer, rouvrir : relu
+  await page.waitForFunction(() => document.querySelectorAll('.enc-l a').length === 3, null, { timeout: 8000 });
+  await page.evaluate(id => fetch('/api/tournaments/' + id + '/reopen', { method: 'POST' }), d);
+  await page.click('details.enc summary'); await page.click('details.enc summary');
+  await page.waitForFunction(() => document.querySelectorAll('.enc-l a').length === 4, null, { timeout: 8000 });
+  // sur un tournoi clôturé (ouvert depuis Mes tournois) : les tournois clôturés, et le menu marque « Tournois »
+  await page.evaluate(async ([x, y]) => { await fetch('/api/tournaments/' + x + '/close', { method: 'POST' }); await fetch('/api/tournaments/' + y + '/close', { method: 'POST' }); }, [c, d]);
+  await page.goto(JA + '/t/' + c);
+  await page.waitForSelector('details.enc summary', { timeout: 8000 });
+  assert.match(await page.textContent('details.enc summary'), /2 tournois clôturés/);
+  assert.equal(await page.getAttribute('.rail a[data-r="tournois"]', 'class'), 'on');
+  // « En cours » ne mène jamais à un tournoi clôturé
+  await page.goto(JA + '/en-cours');
+  const vers = new URL(page.url()).pathname.split('/')[2];
+  assert.ok(ids.includes(vers), 'En cours ouvre un tournoi non terminé');
   assert.deepEqual(errs, []);
   await ctx.close();
 });

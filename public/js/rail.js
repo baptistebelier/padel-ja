@@ -270,7 +270,7 @@
     const q = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     let box = null, cur = null, items = [], act = -1, seq = 0, timer = null, skip = false;
     const css = document.createElement('style');
-    css.textContent = '.rsug{position:absolute;z-index:60;max-height:280px;overflow-y:auto;background:var(--ui-surface,#fff);color:var(--ui-text,#111);border:2px solid var(--ui-accent-line,#E0284A);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:4px}.rsug button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:9px 10px;border-radius:7px;cursor:pointer;min-height:44px;justify-content:center}.rsug button b{font-weight:700}.rsug button small{font-size:12px;opacity:.7}.rsug button[aria-selected="true"],.rsug button:hover{background:var(--ui-surface-2,#f2f2f2)}.rsug button.pp{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px}.rsug .pp-t{display:flex;flex-direction:column;min-width:0}.rsug .pp-t small{overflow-wrap:anywhere}.rsug .pp-a{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:var(--ui-surface-2,#eee) center/cover no-repeat;display:grid;place-items:center;font-size:12px;font-weight:800}';
+    css.textContent = '.rsug{position:absolute;z-index:60;box-sizing:border-box;max-height:280px;overflow-y:auto;background:var(--ui-surface,#fff);color:var(--ui-text,#111);border:2px solid var(--ui-accent-line,#E0284A);border-radius:0;box-shadow:4px 4px 0 var(--ui-hard,rgba(0,0,0,.3));padding:0}.rsug button{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;border-top:1px solid var(--ui-border,rgba(0,0,0,.1));background:transparent;color:inherit;font:inherit;text-transform:none;letter-spacing:normal;padding:8px 10px;border-radius:0;box-shadow:none;cursor:pointer;min-height:44px;justify-content:center}.rsug button:first-child{border-top:0}.rsug button b{font-weight:700}.rsug button small{font-size:12px;opacity:.7}.rsug button[aria-selected="true"],.rsug button:hover{background:var(--ui-surface-2,#f2f2f2)}.rsug button.pp{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px}.rsug .pp-t{display:flex;flex-direction:column;min-width:0}.rsug .pp-t small{overflow-wrap:anywhere}.rsug .pp-a{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:var(--ui-surface-2,#eee) center/cover no-repeat;display:grid;place-items:center;font-size:12px;font-weight:800}';
     document.head.appendChild(css);
     const rule = el => el && el.tagName === 'INPUT' && rules.find(r => { try { return r.match(el); } catch (e) { return false; } });
     const close = () => { if (box) box.hidden = true; items = []; act = -1; };
@@ -279,7 +279,9 @@
       const hote = cur.parentElement;
       if (getComputedStyle(hote).position === 'static') hote.style.position = 'relative';
       if (box.parentElement !== hote) hote.appendChild(box);
-      box.style.left = cur.offsetLeft + 'px'; box.style.top = cur.offsetTop + cur.offsetHeight + 4 + 'px'; box.style.width = cur.offsetWidth + 'px';
+      // règle commune aux trois applis : la liste prend la largeur exacte et le style de la boîte d'où elle part
+      const cs = getComputedStyle(cur);
+      Object.assign(box.style, { left: cur.offsetLeft + 'px', top: cur.offsetTop + cur.offsetHeight + 'px', width: cur.offsetWidth + 'px', borderRadius: cs.borderRadius, fontFamily: cs.fontFamily, fontSize: cs.fontSize, borderWidth: cs.borderTopWidth, borderColor: cs.borderTopColor, borderStyle: cs.borderTopStyle });
     }
     function draw() {
       if (!box) {
