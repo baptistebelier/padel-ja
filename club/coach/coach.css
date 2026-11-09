@@ -2161,3 +2161,4 @@ button.copp:hover span:last-child {
 .card.coshort .btn.btn { background: var(--card) !important; color: var(--fg) !important; border: var(--bw, 2px) solid var(--ink) !important; box-shadow: var(--sh, 4px 4px 0 #000) !important; }
 /* fiche enseignant : même fond que sa carte */
 .copc details.card.prof, .copc .prof { background: transparent !important; }
+.coshort.cotools .btn.ghost.ghost, .coshort.cotools .btn.btn.btn { background: var(--card) !important; }

@@ -814,7 +814,7 @@ html, body { background: var(--bg); }
 :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) .evday{background:var(--bg)!important}
 /* --- recontrôle du designer --- */
 /* boutons et étiquettes dans une boîte : couleur fond, jamais celle de la boîte (gagne sur les règles plus anciennes) */
-:is(.post,.card,.sheet,.note,.lis,.ptile,.res,.perf,.promo-w,.tcard,.poster) :is(.btn.ghost,.btn.sec,.btn.sm:not(.ac),.btn.grow:not(.ac):not(:first-child),.promo-more,.ib:not(.acc),.sq,.chip:not([aria-pressed="true"]),.pbtn,.tag:not(.tennis):not(.padel):not(.ac):not(.cap):not(.club):not(.live)){background:var(--bg)!important;color:var(--fg)!important}
+:is(.post,.card,.sheet,.note,.lis,.ptile,.res,.perf,.promo-w,.tcard,.poster) :is(.btn.ghost,.btn.sec,.btn.sm:not(.ac),.btn.grow:not(.ac,:first-child),.promo-more,.ib:not(.acc),.sq,.chip:not([aria-pressed="true"]),.pbtn,.tag:not(.tennis,.padel,.ac,.cap,.club,.live)){background:var(--bg)!important;color:var(--fg)!important}
 .promo-more{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important}
 .card .card{background:var(--bg)!important}
 /* agenda : le titre laisse la place au bouton « … » */
@@ -855,3 +855,9 @@ html, body { background: var(--bg); }
 .motifs button{border:var(--bw) solid var(--ink)!important;background:var(--bg)!important;box-shadow:var(--sh-sm)!important;border-radius:var(--rb)!important;color:var(--fg)!important}
 .motifs button[aria-pressed="true"]{background:#E0F50A!important;color:#1A0509!important;box-shadow:var(--sh-sm)!important}
 .motifs i{border:var(--bw) solid var(--ink)}
+/* --- recontrôle carnet72 --- */
+/* lignes posées sur la page : boutons en surface ; dans une carte : couleur fond */
+.li .ib.ib,.promo-w .promo-more.promo-more.promo-more{background:var(--card)!important}
+:is(.card,.lis,.sheet) .li .ib.ib{background:var(--bg)!important}
+/* message vide dans une carte : pas de cadre dans le cadre */
+:is(.card,.lis,.sheet,.post) .empty{border:0!important;box-shadow:none!important}
