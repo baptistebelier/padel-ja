@@ -837,3 +837,21 @@ html, body { background: var(--bg); }
 .bq,.nban .bq{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important}
 .stamp{border:var(--bw) solid var(--ink)!important;color:var(--fg)!important}
 .story:nth-child(n) .ring.live,.story:nth-child(n) .ring.lsq{background:#FF3D6B!important}
+/* --- recontrôle carnet71 --- */
+/* boutons icône des lignes de liste : couleur fond (surface si la ligne est en couleur fond) */
+.li .ib,.lis .ib,.card .li .ib{background:var(--bg)!important;color:var(--fg)!important;border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important}
+.promo-w .promo-more.promo-more{background:var(--bg)!important;color:var(--fg)!important}
+/* onglets du bar : barre encadrée, choix en citron, comme les segments */
+.bar-tabs{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;border-radius:var(--rb)!important;overflow:hidden}
+.bar-tabs button{margin:0!important;border:0!important;border-left:var(--bw) solid var(--ink)!important;background:var(--card)!important;color:var(--fg)!important;font-family:var(--f-sub);font-weight:700}
+.bar-tabs button:first-child{border-left:0!important}
+.bar-tabs button[aria-selected="true"]{background:#E0F50A!important;color:#1A0509!important}
+.bar-tabs button[aria-selected="true"] svg{color:#1A0509!important}
+/* boîtes : trait 2 px encre */
+.cinfo,.empty,.teaser,.row.thead{border:var(--bw) solid var(--ink)!important;border-radius:var(--r)!important}
+.cinfo,.empty{box-shadow:var(--sh-sm)!important}
+.tcard .row.thead{border:0!important;border-bottom:var(--bw) solid color-mix(in srgb,var(--ink) 12%,transparent)!important;border-radius:0!important}
+/* motifs du fond : barre de choix encadrée, choix en citron */
+.motifs button{border:var(--bw) solid var(--ink)!important;background:var(--bg)!important;box-shadow:var(--sh-sm)!important;border-radius:var(--rb)!important;color:var(--fg)!important}
+.motifs button[aria-pressed="true"]{background:#E0F50A!important;color:#1A0509!important;box-shadow:var(--sh-sm)!important}
+.motifs i{border:var(--bw) solid var(--ink)}
