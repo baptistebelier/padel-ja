@@ -812,3 +812,28 @@ html, body { background: var(--bg); }
 :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)){background:transparent!important;border:0!important;box-shadow:none!important}
 :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) .card{box-shadow:var(--sh)!important}
 :is(#main > .seg + *, .hassub #main > :first-child:not(.seg)) .evday{background:var(--bg)!important}
+/* --- recontrôle du designer --- */
+/* boutons et étiquettes dans une boîte : couleur fond, jamais celle de la boîte (gagne sur les règles plus anciennes) */
+:is(.post,.card,.sheet,.note,.lis,.ptile,.res,.perf,.promo-w,.tcard,.poster) :is(.btn.ghost,.btn.sec,.btn.sm:not(.ac),.btn.grow:not(.ac):not(:first-child),.promo-more,.ib:not(.acc),.sq,.chip:not([aria-pressed="true"]),.pbtn,.tag:not(.tennis):not(.padel):not(.ac):not(.cap):not(.club):not(.live)){background:var(--bg)!important;color:var(--fg)!important}
+.promo-more{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important}
+.card .card{background:var(--bg)!important}
+/* agenda : le titre laisse la place au bouton « … » */
+.evx .evt{padding-right:36px}
+/* sondage : chaque option encadrée, celle choisie en citron avec une ombre */
+.opt{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;background:var(--bg)!important;overflow:hidden}
+.opt[aria-pressed="true"]{background:var(--bg)!important;box-shadow:var(--sh-sm)!important;color:var(--fg)!important;font-weight:700}
+.opt[aria-pressed="true"] i{background:#E0F50A!important}
+.opt[aria-pressed="true"] span{color:#1A0509}
+/* favoris : citron, vert, rose, surface sans répéter ; « Direct » au-dessus du score sans le toucher */
+.story:nth-child(4n+1) .ring{background:#E0F50A!important}
+.story:nth-child(4n+2) .ring{background:#9BD43C!important}
+.story:nth-child(4n+3) .ring{background:#FF3D6B!important}
+.story:nth-child(4n+4) .ring{background:var(--card)!important}
+.ring.live,.ring.lsq{background:#FF3D6B!important}
+.story:has(.ring.live)+.story .ring,.story:has(.ring.lsq)+.story .ring{background:#E0F50A!important}
+.ring.lsq .lsq-k{top:5px!important}
+.ring.lsq .lsq-s{align-items:flex-end!important;padding-bottom:6px}
+/* petits restes */
+.bq,.nban .bq{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important}
+.stamp{border:var(--bw) solid var(--ink)!important;color:var(--fg)!important}
+.story:nth-child(n) .ring.live,.story:nth-child(n) .ring.lsq{background:#FF3D6B!important}

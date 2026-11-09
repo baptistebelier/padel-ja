@@ -227,6 +227,8 @@
     try { if (v) localStorage.setItem('padelja-style', v); else localStorage.removeItem('padelja-style'); } catch (e) {}
     if (v) document.documentElement.dataset.style = v; else delete document.documentElement.dataset.style;
     markStyle();
+  });
+  markStyle();
   // forme des coins : droits (par défaut) ou arrondis, comme /Buvette et /Dojo
   const markCoins = () => { const v = document.documentElement.dataset.coins || ''; document.querySelectorAll('#segCoins button').forEach(x => x.classList.toggle('on', x.dataset.v === v)); };
   document.querySelectorAll('#segCoins button').forEach(x => x.onclick = () => {
@@ -236,8 +238,6 @@
     markCoins();
   });
   markCoins();
-  });
-  markStyle();
   // fond de l'interface : points, motifs /RAM ou uni
   const markFond = () => { const v = document.documentElement.dataset.fond || ''; document.querySelectorAll('#segFond button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); };
   document.querySelectorAll('#segFond button').forEach(b => b.onclick = () => {

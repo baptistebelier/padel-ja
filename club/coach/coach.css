@@ -2145,3 +2145,14 @@ button.copp:hover span:last-child {
 /* boutons dans les cartes : couleur fond, jamais celle de la carte */
 .card :is(.btn.ghost, .btn.sm:not(.ac)) { background: var(--bg) !important; color: var(--fg) !important; }
 .cohd :is(.btn, button) { background: var(--bg) !important; color: var(--fg) !important; border: var(--bw, 2px) solid var(--ink) !important; box-shadow: var(--sh-sm, 2px 2px 0 #000) !important; }
+/* --- recontrôle du designer --- */
+/* blocs de séance du planning semaine : trait et ombre ; aujourd'hui encadré sur les 4 côtés */
+.cogb.cowb { border: var(--bw, 2px) solid var(--ink) !important; box-shadow: var(--sh-sm, 2px 2px 0 #000) !important; }
+.cowl.today { border: var(--bw, 2px) solid var(--ink) !important; }
+/* segments du profil : le choix en cours en citron */
+.coseg button[aria-pressed='true'] { background: var(--co-lime, #e0f50a) !important; color: #1a0509 !important; }
+/* recherche des élèves : le cadre seulement sur le champ */
+.cosq { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+.cosq input { border: var(--bw, 2px) solid var(--ink) !important; background: var(--field, var(--card2)) !important; padding-inline: 14px !important; min-height: 48px; }
+.cosq:focus-within { box-shadow: none !important; }
+.cosq input:focus { box-shadow: 4px 4px 0 #e0f50a !important; }

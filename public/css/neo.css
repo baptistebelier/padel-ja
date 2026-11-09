@@ -250,3 +250,8 @@ fieldset input, fieldset select { padding-inline: 10px !important; }
 .av, .avatar { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; }
 /* date des listes de tournois : boîte encadrée */
 .row .d { border: var(--ui-bw) solid var(--ui-ink) !important; border-radius: var(--ui-r-sm) !important; background: var(--ui-bg) !important; }
+/* état choisi toujours en citron : vues de l'écran TV, segments */
+.tvviews button.on, .tvviews button[aria-pressed="true"] { background: var(--ui-lime, #E0F50A) !important; color: #1A0509 !important; box-shadow: var(--ui-sh-sm) !important; }
+.tvviews button.on b { background: #fff !important; color: #1A0509 !important; border: var(--ui-bw) solid var(--ui-ink); }
+/* « Supprimer » : bouton danger rose, même en version légère */
+.btn.ghost.danger, button.ghost.danger { background: var(--ui-pink, #FF3D6B) !important; color: #1A0509 !important; }
