@@ -347,8 +347,8 @@ function grpCardEns0(g) {
       vis =
         E.seances.length <= 12
           ? `<div class="cocycb gcases" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}">${E.seances.map(x => `<i class="${x.etat}" title="${x.d ? fmtD(x.d) : 'Date à poser'}"></i>`).join('')}</div>`
-          : `<div class="cocycb gbar" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}"><span class="gbt"><i style="width:${pct}%"></i></span><span class="gbd"><small>${dated[0] ? fmtD(dated[0].d) : ''}</small><small>${dated.length ? fmtD(dated[dated.length - 1].d) : ''}</small></span></div>`;
-    prog = `<div class="gprog"><div class="gpt"><b>${E.faites}</b><span>/ ${E.prevues} séance${pl(E.prevues, '', 's')} faite${pl(E.faites, '', 's')}</span><span class="grow"></span><small>${lab}</small></div>${vis}<div class="glg"><span><i class="done"></i>Faites</span><span><i class="now"></i>Aujourd’hui</span><span><i class="next"></i>À venir</span></div></div>`;
+          : `<div class="cocycb gbar" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}"><span class="gbt"><i style="width:${pct}%"></i>${nowS ? `<i class="gnow" style="width:${Math.max(2, Math.round(100 / Math.max(1, E.prevues)))}%"></i>` : ''}</span><span class="gbd"><small>${dated[0] ? fmtD(dated[0].d) : ''}</small><small>${dated.length ? fmtD(dated[dated.length - 1].d) : ''}</small></span></div>`;
+    prog = `<div class="gprog"><div class="gpt"><b>${E.faites}</b><span>/ ${E.prevues} séance${pl(E.prevues, '', 's')} faite${pl(E.faites, '', 's')}</span><span class="grow"></span><small>${lab}</small></div>${vis}<div class="glg"><span><i class="done"></i>Faites</span>${nowS ? '<span><i class="now"></i>Aujourd’hui</span>' : ''}<span><i class="next"></i>À venir</span></div></div>`;
   } else prog = cycleBar(g);
   const pile = elevesDe(g).slice(0, 3).map(avOuInit).join(''),
     chan = typeof chans !== 'undefined' && chans.some(x => x.id === g.id),
@@ -742,8 +742,8 @@ grpCardEns = function (g) {
     vis =
       l.length <= 12
         ? `<div class="cocycb gcases" role="img" aria-label="${faites} séances faites sur ${total}">${l.map(d => `<i class="${st(d)}" title="${fmtD(d)}"></i>`).join('')}</div>`
-        : `<div class="cocycb gbar" role="img" aria-label="${faites} séances faites sur ${total}"><span class="gbt"><i style="width:${Math.round((100 * faites) / Math.max(1, total))}%"></i></span><span class="gbd"><small>${fmtD(l[0])}</small><small>${fmtD(l[l.length - 1])}</small></span></div>`,
-    prog = `<div class="gprog"><div class="gpt"><b>${faites}</b><span>/ ${total} séance${pl(total, '', 's')} faite${pl(faites, '', 's')}</span><span class="grow"></span><small>${lab}</small></div>${vis}<div class="glg"><span><i class="done"></i>Faites</span><span><i class="now"></i>Aujourd’hui</span><span><i class="next"></i>À venir</span></div></div>`;
+        : `<div class="cocycb gbar" role="img" aria-label="${faites} séances faites sur ${total}"><span class="gbt"><i style="width:${Math.round((100 * (faites - (now ? 1 : 0))) / Math.max(1, total))}%"></i>${now ? `<i class="gnow" style="width:${Math.max(2, Math.round(100 / Math.max(1, total)))}%"></i>` : ''}</span><span class="gbd"><small>${fmtD(l[0])}</small><small>${fmtD(l[l.length - 1])}</small></span></div>`,
+    prog = `<div class="gprog"><div class="gpt"><b>${faites}</b><span>/ ${total} séance${pl(total, '', 's')} faite${pl(faites, '', 's')}</span><span class="grow"></span><small>${lab}</small></div>${vis}<div class="glg"><span><i class="done"></i>Faites</span>${now ? '<span><i class="now"></i>Aujourd’hui</span>' : ''}<span><i class="next"></i>À venir</span></div></div>`;
   const h = grpCardBase(g),
     a = h.indexOf('<div class="cocycle">'),
     e = a >= 0 ? sectionAt(h, 'div', a) : -1;

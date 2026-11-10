@@ -54,7 +54,8 @@ function barView() {
     return `<div class="pad">${wtop}${top}${barVouchers()}<span class="kicker">Commandes</span>${when}${barOrders(B.d)}${barProducts()}</div>`;
   const open = barOpen(B.d),
     mine = ORDERS.filter(o => myBarKeys().includes(o.by) && o.st !== 'annule'),
-    list = BAR.filter(it => it.on !== false);
+    // la carte du moment choisi (Midi ou Soir) : les plats servis seulement à l'autre moment n'y sont pas
+    list = BAR.filter(it => it.on !== false && barMoments(it).includes(B.m));
   const card = it => {
     const ok = it.on !== false && it.resa && barMoments(it).includes(B.m),
       got = mine.filter(o => o.item === it.id && o.date === B.d && o.moment === B.m).reduce((a, o) => a + o.qty, 0);

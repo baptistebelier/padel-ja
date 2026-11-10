@@ -388,3 +388,21 @@
 .gcard .gbar .gbt { display: block !important; width: 100%; height: 16px; }
 .gcard .gbar .gbd { display: flex !important; justify-content: space-between; width: 100%; }
 .gcard .gbar .gbd small { font-size: 12px !important; }
+
+/* ---------- Contrôle 3 du designer ---------- */
+/* en-tête : la hauteur de ligne du titre laisse de la place aux accents des majuscules sous le surtitre */
+.top h1, :root[data-style] .top h1 { line-height: 1.12 !important; gap: 6px !important; }
+#phone .top h1 { line-height: 1.12 !important; }
+/* barre du cycle : repère d'aujourd'hui en citron, juste après les séances faites */
+.gbt { display: flex !important; }
+.gbt i { flex: none; }
+.gbt i.gnow { background: var(--accent-bg, #E0F50A) !important; border-left: var(--bw) solid var(--ink); border-right: var(--bw) solid var(--ink); }
+/* Profil : plus de liseré de cadre à droite de l'investissement */
+/* Profil : le cadre de niveau en filet de sa couleur en haut de la carte, plus de bande sur le côté */
+#phone #main .bpr .meclub .tcard.cf1 { box-shadow: inset 0 3px 0 rgb(200, 131, 75) !important; }
+#phone #main .bpr .meclub .tcard.cf2 { box-shadow: inset 0 3px 0 rgb(142, 153, 166) !important; }
+#phone #main .bpr .meclub .tcard.cf3 { box-shadow: inset 0 3px 0 rgb(242, 194, 48) !important; }
+#phone #main .bpr .meclub .tcard.cf4 { box-shadow: inset 0 3px 0 rgb(127, 227, 216) !important; }
+#phone #main .bpr .meclub .tcard.cf5 { box-shadow: inset 0 3px 0 rgb(111, 183, 255) !important; }
+.gcard .gbar .gbt { display: flex !important; flex-wrap: nowrap; overflow: hidden; }
+.gcard .gbar .gbt i { display: block !important; height: 100% !important; flex: none; }
