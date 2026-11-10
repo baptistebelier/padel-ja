@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-10-carnet81';
+const VERSION = '2026-11-10-carnet82';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -14,6 +14,7 @@ const CORE = [
   'index.html',
   'app.css',
   'ram.css',
+  'buvette.css',
   'ram-sync.js',
   'img/ram-club-blanc.png',
   'img/ram-club-noir.png',
@@ -60,6 +61,7 @@ const CORE = [
   'app/20-interne.js',
   'app/21-equipes.js',
   'app/22-suggestions.js',
+  'app/23-refonte.js',
   'manifest.webmanifest',
   'icon-180.png',
   'icon-512.png'

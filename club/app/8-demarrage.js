@@ -835,7 +835,7 @@ A.motif = d => {
 })();
 
 /* ---------- version ordinateur, comme /RAM JA : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
-function ramRail(title) {
+function ramRail(title, sub) {
   let rb = $('rbot');
   if (!rb) {
     rb = document.createElement('div');
@@ -851,9 +851,21 @@ function ramRail(title) {
   if (seg && !seg.querySelector('.segt'))
     seg.insertAdjacentHTML(
       'afterbegin',
-      `<div class="segt"><span>${esc(club().name)}</span><b>${title || ''}</b></div>`
+      `<div class="segt"><span>${sub || esc(club().name)}</span><b>${title || ''}</b><button class="segx" data-a="subFold" aria-label="${S.subFold ? 'Déplier le sous-menu' : 'Replier le sous-menu'}" aria-expanded="${!S.subFold}">${ic('back')}</button></div>`
     );
+  $('phone').classList.toggle('subfold', !!S.subFold);
 }
+/* grand écran : le sous-menu se replie (bouton ‹) et se déplie ; le choix est gardé sur l'appareil */
+try {
+  S.subFold = localStorage.getItem('club-subfold') === '1';
+} catch (e) {}
+A.subFold = () => {
+  S.subFold = !S.subFold;
+  try {
+    localStorage.setItem('club-subfold', S.subFold ? '1' : '0');
+  } catch (e) {}
+  render(true);
+};
 A.ramMode = () => {
   S.mode = effDark() ? 'jour' : 'nuit';
   try {

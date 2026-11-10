@@ -210,7 +210,11 @@ function render(keep) {
           ? '<div class="muted small" style="text-align:center;padding:8px">Seul le club publie dans ce groupe.</div>'
           : `<div class="att" id="att" hidden></div><form class="composer" id="composer"><label class="attach" aria-label="Joindre une photo">${ic('image')}<input type="file" id="m-img" accept="image/*"></label><textarea id="msg-input" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="${c ? (c.ro ? 'Publier au nom du club' : 'Écrire dans ' + esc(c.name)) : "Encourager l'équipe"}" aria-label="Message"></textarea><button class="send" aria-label="Envoyer">${ic('send')}</button></form>`;
     }
-  } else foot.hidden = true;
+  } else {
+    foot.hidden = true;
+    // pas de seconde barre de saisie cachée : la discussion côte à côte (grand écran) a la sienne
+    foot.innerHTML = '';
+  }
   if (showTabs) {
     tabs.hidden = false;
     // pastilles : messages non lus dans les groupes ; nouveautés depuis la dernière visite des autres onglets
@@ -222,12 +226,17 @@ function render(keep) {
       };
     tabs.innerHTML = TABBAR.map(x => tb(x[0], x[1], x[2])).join('');
     tabs.insertAdjacentHTML('afterbegin', '<span class="pill" id="tpill" aria-hidden="true"></span>');
+    // grand écran : l'écusson du club en tête du menu (son logo, ou son sigle)
+    tabs.insertAdjacentHTML(
+      'afterbegin',
+      `<span class="rcrest" aria-hidden="true"${club().logo ? ` style="background-image:url(${club().logo})"` : ''}>${club().logo ? '' : esc(club().short || '')}</span>`
+    );
     pillTo(tabs.querySelector('[aria-current]'), true);
   }
   if (pending() && !lockOk(v)) foot.hidden = true;
   $('phone').classList.toggle('notabs', tabs.hidden);
   $('phone').classList.toggle('hassub', !!main.querySelector(':scope > .seg:not(.haut)'));
-  ramRail(t);
+  ramRail(t, sub);
   $('phone').classList.toggle('withfoot', !foot.hidden);
   /* ordinateur : les pages ne glissent pas ; seul le sous-menu glisse, quand il apparaît ou disparaît (pas entre deux pages qui en ont un) */
   const wide = matchMedia('(min-width: 1024px)').matches,

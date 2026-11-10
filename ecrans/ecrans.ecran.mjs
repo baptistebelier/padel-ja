@@ -635,26 +635,25 @@ test('Club : favoris avec du nouveau en tête, réglages d’une discussion, fil
   await page.click('#chan-cfg .btn.full');
   const r = await page.evaluate(k => { const c = chans.find(x => x.id === 'general'), o = chans.find(x => x.id === 'annonces'); return { name: c.name, acces: c.acces, plus: c.plus, autre: o.acces || '' }; }, k);
   assert.deepEqual(r, { name: 'Le grand salon', acces: 'invite', plus: [k], autre: '' }, 'seule cette discussion change');
-  // agenda : les quatre vues occupent toute la largeur
+  // agenda : les vues occupent toute leur colonne ; sur grand écran, le mois et les filtres sont toujours visibles à droite (refonte)
   await page.evaluate(() => { S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = 'week'; render(); });
   await page.waitForSelector('#plan .pllegend');
-  const large = () => page.evaluate(() => { const m = document.getElementById('main').clientWidth, p = document.getElementById('plan').offsetWidth; return p >= m - 2; });
+  const large = () => page.evaluate(() => { const b = document.querySelector('.bento2 .bmain'), m = b ? b.clientWidth : document.getElementById('main').clientWidth, p = document.getElementById('plan').offsetWidth; return p >= m - 2; });
   assert.ok(await large(), 'semaine sur toute la largeur');
-  assert.equal(await page.locator('.fbtn svg').evaluate(s => getComputedStyle(s).display !== 'none'), true, 'pictogramme des filtres');
+  assert.equal(await page.locator('.bside .calf .chip.plf').first().isVisible(), true, 'filtres toujours visibles à droite');
   assert.equal(await page.locator('[data-a="planMode"][data-m="list"]').count(), 0, 'plus de vue Liste');
   await page.evaluate(() => { S.plan.mode = 'events'; render(); });
   await page.waitForSelector('.plk .plc');
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).gridAutoFlow), 'column', 'en colonnes');
-  assert.ok(await page.locator('.plk .plc').count() >= 7, 'une colonne par jour, au moins sept');
-  assert.ok(await page.evaluate(() => { const p = document.querySelector('.plk'); return p.scrollWidth > p.clientWidth || p.querySelectorAll('.plc').length * 242 <= p.clientWidth; }), 'les colonnes défilent');
+  // refonte : sur grand écran, une liste verticale (la date, puis ses cartes), le mois et les filtres à droite
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.plk')).flexDirection), 'column', 'en liste');
+  assert.ok(await page.locator('.plk .plc').count() >= 7, 'un bloc par jour, au moins sept');
+  assert.ok(await page.evaluate(() => document.querySelectorAll('.bside .calm .cmd.today').length === 1), 'le mois, avec aujourd’hui');
   assert.ok(await large(), 'rien ne déborde de la page');
-  // filtres : la couleur reste visible, l'état actif a sa coche
-  await page.click('[data-a="planFilters"]');
-  const f = page.locator('.chip.plf', { hasText: 'Tournois' });
+  // filtres (dans la colonne de droite sur grand écran) : la couleur reste visible, l'état actif a sa coche
+  const f = page.locator('.bside .chip.plf', { hasText: 'Tournois' });
   assert.equal(await f.getAttribute('aria-pressed'), 'true');
   assert.ok(await f.locator('svg').count() >= 2, 'pictogramme et coche');
   assert.notEqual(await f.evaluate(b => getComputedStyle(b).backgroundColor), await f.locator('.sq').evaluate(s => getComputedStyle(s).backgroundColor), 'le carré se distingue');
-  await page.click('[data-a="close"]');
   // Mes groupes : plus de planning ni de création de stage
   const html = await page.evaluate(() => ecoleBody('manage'));
   assert.ok(!html.includes('Planning des cours'));
@@ -1335,9 +1334,9 @@ test('Club : répondre à un commentaire, modifier sa recherche, glisser entre s
   assert.equal(await glisse(300, 100), 'agenda');
   await page.evaluate(() => { S.tab = 'chans'; render(); });
   assert.equal(await glisse(100, 300), 'home');
-  // profil : trophées au-dessus des onglets, chiffres qui mènent au palmarès, abonnés
+  // profil : sous-menu Mon jeu / Mes infos / Réglages / Investissement, en-tête compact avec les chiffres (refonte)
   await page.evaluate(() => { S.tab = 'me'; S.stack = []; S.meTab = 'reglages'; render(); });
-  assert.ok(await page.evaluate(() => document.querySelector('.stats + *').compareDocumentPosition(document.querySelector('.me-tabs')) & 4), 'avant les onglets');
+  assert.ok(await page.evaluate(() => !!document.querySelector('.mesub [data-k="reglages"][aria-selected="true"]') && !!document.querySelector('.mehead .stats')), 'sous-menu et en-tête compact');
   assert.equal(await page.locator('.stats svg').count(), 4);
   await page.click('.stats [data-a="palmGo"]');
   await page.waitForSelector('#palmares');
@@ -1624,7 +1623,7 @@ test('Club : profil en section Club, classement en trois choix, agenda sans épi
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof A.rankMenu === 'function', { polling: 300 });
   await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); });
   await page.waitForSelector('.meclub');
-  assert.ok(await page.evaluate(() => { const c = document.querySelector('.meclub'); return !!c.querySelector('.tcard') && (document.querySelector('.stats').compareDocumentPosition(c) & 4) && (c.compareDocumentPosition(document.querySelector('.me-tabs')) & 4); }), 'entre les statistiques et les onglets, avec les trophées');
+  assert.ok(await page.evaluate(() => { const c = document.querySelector('.meclub'); return !!c.querySelector('.tcard') && !!c.closest('.bpr') && (document.querySelector('.stats').compareDocumentPosition(c) & 4); }), 'dans la colonne du club, après les statistiques, avec les trophées');
   assert.ok(await page.locator('.meclub [data-a="admin"] svg').count(), 'gestion en pictogramme');
   assert.equal(await page.locator('.phero ~ .btn[data-a="admin"]').count(), 0, 'plus de gros bouton');
   assert.equal(await page.locator('.meshort .btn').count(), 2, 'deux boutons');
@@ -1677,10 +1676,10 @@ test('Club : section Club avec de vrais comptes, plusieurs clubs, club principal
   assert.match(await page.locator('.meclubh .tag').innerText(), /Club principal/i);
   assert.equal(await page.locator('.meclub [data-a="ramMain"]').count(), 0, 'le bouton disparaît');
   assert.equal(await page.locator('#sheet.open, #sheet .menu').count(), 0, 'pas de fenêtre ouverte en plus');
-  // le code du club : plus en haut, juste au-dessus de la déconnexion
+  // le code du club : plus en haut, en dernier dans les réglages, juste avant la déconnexion
   await page.evaluate(() => { S.meTab = 'reglages'; render(); });
   await page.waitForSelector('.logout');
-  assert.ok(await page.evaluate(() => { const l = document.querySelector('.logout'), c = [...document.querySelectorAll('.card')].find(x => /Code du club/.test(x.textContent)); return c && c.nextElementSibling === l && !!(document.querySelector('.phero').compareDocumentPosition(c) & 4); }), 'code du club au-dessus de la déconnexion');
+  assert.ok(await page.evaluate(() => { const l = document.querySelector('.logout'), c = [...document.querySelectorAll('.card')].find(x => /Code du club/.test(x.textContent)); return c && !c.nextElementSibling && c.parentElement.classList.contains('bpl') && !!(c.compareDocumentPosition(l) & 4) && !!(document.querySelector('.phero').compareDocumentPosition(c) & 4); }), 'code du club au-dessus de la déconnexion');
   assert.deepEqual(errs, []);
   await ctx.close();
 });

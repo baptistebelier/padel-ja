@@ -1038,3 +1038,4 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 /* dans la carte héros (couleur du club) : avatar et étiquettes d’une autre couleur que la carte */
 .phero .av:not([style*="url("]){background-color:var(--hero-sh,#E0F50A)!important;color:#1A0509!important}
 .phero .bd.cap,.phero .bd.club{background:var(--card)!important;color:var(--fg)!important}
+.rcrest,.segx{display:none}

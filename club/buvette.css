@@ -1,0 +1,206 @@
+/* =========================================================================
+   /Buvette — refonte de l'agencement (maquette Figma « Refonte /Buvette », validée le 10/11/2026)
+   Chargée après app.css et ram.css, uniquement par index.html (/Dojo garde sa mise en page).
+   Navigation à deux niveaux :
+   - téléphone : en-tête (surtitre + titre), barre de sous-menu couleur du menu collée en haut,
+     barre du bas couleur du menu, élément actif en carré d'accent ;
+   - iPad et ordinateur : menu principal en colonne 1 (écusson du club en tête), sous-menu en
+     colonne 2 qui se replie, en-tête de page (surtitre + grand titre + actions), contenu en bento.
+   ========================================================================= */
+
+/* ---------- en-tête de page : surtitre au-dessus du titre ---------- */
+.top h1, :root[data-style] .top h1 { display: flex !important; flex-direction: column-reverse; justify-content: center; gap: 2px; white-space: normal; }
+.top h1 .sub, :root[data-style] .top h1 .sub { color: var(--kick, var(--hot-tx)) !important; font-size: 12px !important; letter-spacing: .2em !important; margin: 0 !important; }
+.toplogo, .toplogo.sub { display: none !important; }
+
+/* ---------- téléphone et tablette portrait ---------- */
+@media (max-width: 1023px) {
+  .top h1 { font-size: 26px !important; line-height: 1 !important; font-style: normal !important; }
+  /* barre du bas : couleur du menu, pictogramme sur libellé en majuscules, actif en carré d'accent */
+  #phone .tabs { background: var(--menu, #74102A) !important; border-top: var(--bw) solid var(--ink) !important; padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px)) !important; gap: 0 !important; }
+  #phone .tabs button { color: var(--on-menu, #fff) !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .06em !important; text-transform: uppercase !important; gap: 4px !important; flex-direction: column !important; min-height: 54px !important; outline: 0 !important; }
+  #phone .tabs button svg { color: var(--on-menu, #fff) !important; width: 22px !important; height: 22px !important; }
+  #phone .tabs button[aria-current="page"] { background: var(--menu-act, #E0F50A) !important; color: var(--on-menu-act, #1A0509) !important; border: var(--bw) solid var(--ink) !important; box-shadow: var(--sh-sm) !important; }
+  #phone .tabs button[aria-current="page"] svg { color: var(--on-menu-act, #1A0509) !important; }
+  /* barre de sous-menu : bande couleur du menu sous l'en-tête, collée en haut au défilement */
+  #main > .seg:not(.haut) {
+    position: sticky !important; top: var(--segt, 0px); z-index: 4; margin: 0 0 14px !important; padding: 10px 12px !important;
+    background: var(--menu, #74102A) !important; border: 0 !important; border-top: var(--bw) solid var(--ink) !important; border-bottom: var(--bw) solid var(--ink) !important;
+    box-shadow: none !important; gap: 6px !important; overflow-x: auto; -webkit-mask-image: none !important; mask-image: none !important; border-radius: 0 !important;
+  }
+  #main > .seg:not(.haut) button {
+    flex: 0 0 auto !important; flex-direction: column !important; gap: 4px !important; min-width: 64px; min-height: 52px !important; padding: 6px 10px !important;
+    border: var(--bw) solid transparent !important; border-left: var(--bw) solid transparent !important; background: transparent !important; color: var(--on-menu, #fff) !important; box-shadow: none !important;
+    font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .06em !important; text-transform: uppercase !important;
+  }
+  #main > .seg:not(.haut) button .lb { display: block !important; }
+  #main > .seg:not(.haut) button svg { width: 20px !important; height: 20px !important; color: currentColor !important; }
+  #main > .seg:not(.haut) button[aria-selected="true"] { background: var(--menu-act, #E0F50A) !important; color: var(--on-menu-act, #1A0509) !important; border-color: var(--ink) !important; box-shadow: var(--sh-sm) !important; }
+  /* bouton + : carré d'accent au-dessus de la barre du bas */
+  .addfab { border-radius: 0 !important; }
+}
+
+/* ---------- iPad paysage et ordinateur ---------- */
+@media (min-width: 1024px) {
+  :root { --side: 92px; --sub: 224px; }
+  .phone.subfold { --sub: 52px; }
+  /* menu principal : couleur du menu, écusson du club en tête */
+  #phone .tabs, :root[style*="color-scheme: light"] #phone .tabs {
+    background: var(--menu, #74102A) !important; border-right: var(--bw) solid var(--ink) !important;
+    padding-top: calc(96px + env(safe-area-inset-top, 0px)) !important; gap: 6px !important;
+  }
+  #phone .tabs::before { display: none !important; }
+  .rcrest {
+    position: absolute; left: calc(18px + env(safe-area-inset-left, 0px)); top: calc(16px + env(safe-area-inset-top, 0px)); width: 56px; height: 56px;
+    display: grid; place-items: center; background: var(--menu-act, #E0F50A) center / cover no-repeat; color: var(--on-menu-act, #1A0509);
+    border: var(--bw) solid var(--ink); box-shadow: var(--sh-sm); font-family: var(--f-display); font-size: 18px; text-transform: uppercase; overflow: hidden;
+  }
+  .rcrest[style*="url("] { background-color: var(--card); }
+  #phone .tabs button {
+    width: 74px !important; min-height: 56px !important; color: var(--on-menu, #fff) !important; background: transparent !important; border: var(--bw) solid transparent !important; box-shadow: none !important;
+    font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .08em !important; text-transform: uppercase !important; outline: 0 !important;
+  }
+  #phone .tabs button svg { color: var(--on-menu, #fff) !important; }
+  #phone .tabs button::before { display: none !important; }
+  #phone .tabs button:hover { background: rgba(255, 255, 255, .08) !important; }
+  #phone .tabs button[aria-current="page"] { background: var(--menu-act, #E0F50A) !important; color: var(--on-menu-act, #1A0509) !important; border-color: var(--ink) !important; box-shadow: var(--sh-sm) !important; }
+  #phone .tabs button[aria-current="page"] svg { color: var(--on-menu-act, #1A0509) !important; }
+  /* bas du menu : mode jour / nuit et sortie (le profil est déjà dans le menu) */
+  .rbot { background: transparent !important; }
+  .rbot button { color: var(--on-menu, #fff) !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .08em !important; text-transform: uppercase !important; }
+  .rbot button svg { color: var(--on-menu, #fff) !important; }
+  .rbot button[data-t="me"], .rbot .sep { display: none !important; }
+  /* sous-menu : colonne plus sombre, en-tête (surtitre, titre, bouton ‹), éléments pleine largeur */
+  :is(#main, #subnav) > .seg {
+    background: var(--menu2, #4A0A1B) !important; border-right: var(--bw) solid var(--ink) !important; padding: calc(18px + env(safe-area-inset-top, 0px)) 12px 24px !important; gap: 6px !important;
+  }
+  :is(#main, #subnav) > .seg .segt { display: grid !important; grid-template-columns: 1fr auto; align-items: start; gap: 2px 8px; padding: 0 0 18px; margin: 0 0 4px; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+  .segt span { grid-column: 1; color: rgba(255, 255, 255, .78) !important; font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .24em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .segt b { grid-column: 1; color: #fff !important; font-family: var(--f-display) !important; font-weight: 400 !important; font-size: 28px !important; line-height: 1 !important; text-transform: uppercase; letter-spacing: 0 !important; }
+  .segx { grid-column: 2; grid-row: 1 / span 2; width: 32px; height: 32px; display: grid; place-items: center; background: var(--menu, #74102A); color: #fff; border: var(--bw) solid var(--ink); box-shadow: var(--sh-sm); cursor: pointer; }
+  .segx svg { width: 18px; height: 18px; color: #fff; }
+  :is(#main, #subnav) > .seg button {
+    min-height: 44px !important; padding: 0 12px !important; gap: 12px !important; color: #fff !important; background: transparent !important; border: var(--bw) solid transparent !important; box-shadow: none !important;
+    font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 17px !important; letter-spacing: .01em !important; text-transform: none !important;
+  }
+  :is(#main, #subnav) > .seg button::before { display: none !important; }
+  :is(#main, #subnav) > .seg button svg { color: #fff !important; }
+  :is(#main, #subnav) > .seg button:hover { background: rgba(255, 255, 255, .08) !important; }
+  :is(#main, #subnav) > .seg button[aria-selected="true"] { background: var(--menu-act, #E0F50A) !important; color: var(--on-menu-act, #1A0509) !important; border-color: var(--ink) !important; box-shadow: var(--sh-sm) !important; }
+  :is(#main, #subnav) > .seg button[aria-selected="true"] svg { color: var(--on-menu-act, #1A0509) !important; }
+  /* sous-menu replié : seule reste la colonne étroite avec le bouton › */
+  .phone.subfold :is(#main, #subnav) > .seg { padding: calc(18px + env(safe-area-inset-top, 0px)) 8px 0 !important; overflow: hidden; }
+  .phone.subfold :is(#main, #subnav) > .seg > button, .phone.subfold .segt span, .phone.subfold .segt b { display: none !important; }
+  .phone.subfold .segt { grid-template-columns: 1fr; padding: 0; }
+  .phone.subfold .segx { grid-row: 1; transform: scaleX(-1); }
+  /* en-tête de page : surtitre, grand titre, actions à droite, sans barre */
+  #phone .top { background: transparent !important; border: 0 !important; box-shadow: none !important; padding-top: calc(22px + env(safe-area-inset-top, 0px)) !important; padding-bottom: 8px !important; min-height: 92px; align-items: flex-start; }
+  #phone .top h1 { font-size: 48px !important; line-height: .95 !important; font-style: normal !important; }
+  #phone .top h1 .sub { font-size: 12px !important; margin-bottom: 6px !important; }
+  /* bouton Publier : dans l'en-tête, à droite, carré d'accent avec libellé */
+  .addfab {
+    position: fixed !important; left: auto !important; right: max(28px, calc((100% - var(--side) - 1288px) / 2)) !important; top: calc(26px + env(safe-area-inset-top, 0px)) !important; bottom: auto !important;
+    width: auto !important; min-height: 44px !important; flex-direction: row !important; gap: 8px !important; padding: 0 16px !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 16px !important; z-index: 7;
+  }
+  .addfab span { display: inline !important; font-size: 0 !important; }
+  .addfab span::after { content: 'Publier'; font-size: 16px; }
+  .phone.fab .top { padding-right: 170px !important; }
+}
+
+/* ---------- pages en deux colonnes (iPad paysage et ordinateur) ---------- */
+@media (min-width: 1024px) {
+  /* le Profil reste dans le menu principal (6 entrées, comme la maquette) */
+  #phone .tabs button[data-t="me"] { display: flex !important; }
+  #main { padding-left: 28px !important; padding-right: 28px !important; }
+  /* Groupes : liste à gauche, discussion à droite */
+  .split2 { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(360px, 1.25fr); gap: 22px; align-items: start; padding: 4px 0 24px; }
+  .splitl .lis, #phone.hassub #main .splitl .lis.lis { margin: 0 0 16px !important; background: var(--card) !important; border: var(--bw) solid var(--ink) !important; box-shadow: var(--sh) !important; }
+  .splitl .pad { padding: 0 !important; }
+  .splitl .li:has(.go[aria-current]) { background: var(--card2); outline: var(--bw) solid var(--ink); outline-offset: -2px; }
+  .splitchat { display: flex; flex-direction: column; background: var(--card); border: var(--bw) solid var(--ink); box-shadow: var(--sh); max-height: calc(100vh - 150px); position: sticky; top: 8px; }
+  .sch { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: var(--bw) solid var(--ink); }
+  .sch b { display: block; font-family: var(--f-sub); font-weight: 700; font-size: 18px; }
+  .sch small { display: block; color: var(--muted); font-size: 13px; }
+  .schb { flex: 1 1 auto; overflow-y: auto; padding: 4px 6px; background: var(--card2); min-height: 260px; }
+  .schb .chat { padding: 8px 6px; }
+  .schf { border-top: var(--bw) solid var(--ink); padding: 10px 12px; }
+  .schf .composer { display: flex; gap: 8px; align-items: flex-end; }
+  .schro { text-align: center; padding: 6px; }
+  /* Agenda : contenu à gauche, mois et filtres à droite */
+  .bento2 { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start; }
+  .bento2 .bmain > .pad { padding: 0 !important; }
+  .bside { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 8px; }
+  .bside .card { padding: 16px !important; }
+  .calh { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .calh b { font-family: var(--f-sub); font-weight: 700; font-size: 20px; }
+  .calh > svg { width: 20px; height: 20px; color: var(--kick, currentColor); }
+  .cmg { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cmw { text-align: center; font-family: var(--f-sub); font-weight: 700; font-size: 12px; color: var(--muted); }
+  .cmd { aspect-ratio: 1.3; display: grid; place-items: center; border: var(--bw) solid var(--ink); background: var(--bg); color: var(--fg); font-family: var(--f-sub); font-weight: 700; font-size: 15px; cursor: pointer; padding: 0; }
+  .cmd.off { border-color: transparent; background: transparent; cursor: default; }
+  .cmd.busy { background: var(--card2); box-shadow: inset 0 -4px 0 var(--accent-bg, #E0F50A); }
+  .cmd.today { background: var(--accent-bg, #E0F50A); color: var(--on-accent-bg, #1A0509); box-shadow: var(--sh-sm); }
+  .cmd.on { outline: 3px solid var(--hot, #FF3D6B); outline-offset: -3px; }
+  .calf .kicker { margin-top: 6px; }
+  .calf .chips { flex-wrap: wrap !important; overflow: visible !important; -webkit-mask-image: none !important; mask-image: none !important; padding-right: 0 !important; }
+  .bento2 .plan-modes .fbtn { display: none !important; }
+  .bento2 .plan-modes { justify-content: flex-end; }
+}
+/* invitation du bureau : bandeau d'accent avec son bouton */
+.note[data-v="join"] { background: var(--accent-bg, #E0F50A) !important; color: var(--on-accent-bg, #1A0509) !important; }
+.note[data-v="join"] b { color: inherit !important; text-decoration: underline; }
+@media (min-width: 1024px) {
+  /* pages en deux colonnes : toute la largeur utile (1288 px au plus), en-tête aligné sur le contenu */
+  #main > :is(.split2, .bento2, .bentop) { max-width: 1288px !important; width: 100%; }
+  #phone .top { padding-left: max(30px, calc((100% - 1288px) / 2)) !important; padding-right: max(30px, calc((100% - 1288px) / 2)) !important; }
+  #main > .pad:has(> .bento2), #main > #plan { max-width: 1288px !important; }
+  /* Agenda, vue Événements : une liste verticale (date, puis cartes avec l'heure à gauche) */
+  .bento2 .plk { display: flex !important; flex-direction: column; gap: 14px; overflow: visible !important; cursor: auto !important; scroll-snap-type: none !important; padding: 0 !important; }
+  .bento2 .plc { display: flex; flex-direction: column; gap: 12px; }
+  .bento2 .plk .evx { flex-direction: row !important; flex-wrap: nowrap !important; }
+  .bento2 .plk .evb { flex: 1 1 auto !important; width: auto !important; }
+  .bento2 .plk .evh { min-width: 86px !important; font-size: 20px !important; }
+  .bento2 .plk .evday { margin: 6px 0 0 !important; }
+  .bento2 .plk .evday span { font-size: 18px !important; }
+  .bento2 .plan-modes { gap: 0 !important; }
+  .bento2 .plan-modes .chip { border-left-width: 0 !important; box-shadow: none !important; }
+  .bento2 .plan-modes .chip:first-child { border-left-width: var(--bw) !important; }
+  .bento2 .plan-modes { box-shadow: var(--sh-sm); width: fit-content; margin-left: auto; }
+}
+@media (min-width: 1024px) { .bento2 .plk > *, .bento2 .plk .card.evx { width: 100% !important; max-width: none !important; } }
+
+/* ---------- Profil : en-tête compact, puis deux colonnes ---------- */
+.mehead { display: flex; flex-direction: column; gap: 14px; background: var(--card); border: var(--bw) solid var(--ink); box-shadow: var(--sh); padding: 16px; margin-bottom: 18px; }
+.mehead .phero { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; color: var(--fg) !important; }
+.mehead .phero .tilt, .mehead .phero h2, .mehead .phero .muted { color: var(--fg) !important; }
+.mehead .phero .tilt { font-size: 30px !important; }
+.mehead .phero .av { width: 72px !important; height: 72px !important; font-size: 26px !important; }
+.mehead .stats { gap: 8px; }
+.mehead .stats > * { background: var(--bg) !important; padding: 8px 4px !important; }
+.mehead .stats b { font-size: 26px !important; }
+.mehead .stats span { font-family: var(--f-sub); font-weight: 700; font-size: 12px !important; letter-spacing: .08em; text-transform: uppercase; }
+.mehead .stats svg { display: none !important; }
+.bentop { display: flex; flex-direction: column; gap: 18px; }
+.bpr:empty { display: none; }
+@media (min-width: 1024px) {
+  .mehead { flex-direction: row; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 22px; }
+  .mehead .phero { flex: 1 1 auto; }
+  .mehead .phero .av { width: 84px !important; height: 84px !important; }
+  .mehead .phero .tilt { font-size: 34px !important; }
+  .mehead .stats { display: flex !important; flex: none; }
+  .mehead .stats > * { width: 80px; }
+  .bentop { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr); gap: 22px; align-items: start; }
+  .bpl { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .bpr { position: sticky; top: 8px; display: flex; flex-direction: column; gap: 18px; }
+  #main > .pad:has(> .bentop) { max-width: 1288px !important; }
+  /* le sous-menu du profil prend place dans la 2e colonne : rien en double dans la page */
+  #main > .pad > .logout { max-width: 360px; }
+}
+@media (min-width: 1024px) {
+  .bside .ecs .ctl { display: flex; gap: 10px; margin-top: 12px; }
+  .bside .ecb { margin: 0 0 12px; color: var(--fg); }
+  .bside .wallet { margin: 0 !important; }
+  .bento2 .bmain > .pad > .bar-it, .bento2 .bmain .bar-it { margin-bottom: 0; }
+}
+@media (min-width: 1024px) { .bside .wallet { background: var(--accent-bg, #E0F50A) !important; color: var(--on-accent-bg, #1A0509) !important; } .bside .wallet .kicker, .bside .wallet .wal-n, .bside .wallet .muted { color: var(--on-accent-bg, #1A0509) !important; } .bside .wallet .wal-n { font-size: 44px !important; } }
+@media (min-width: 1024px) { #phone.fab .top { padding-right: 200px !important; } }

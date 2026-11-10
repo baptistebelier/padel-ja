@@ -79,6 +79,15 @@ function setTheme(i) {
   r.setProperty('--on-hero', onColor(hero));
   r.setProperty('--hero-sh', accs.find(x => x.toLowerCase() !== hero.toLowerCase()) || '#E0F50A');
   r.setProperty('--kick', main ? derive(main, c.bg || b.bg).col : KICK_BASE[dk]);
+  /* menus (refonte Figma) : couleur principale du club si elle est foncée, bordeaux /RAM sinon ;
+     sous-menu plus sombre ; élément actif à la couleur d'accent, citron si elle se confond avec le menu */
+  const menu = main && lum(main) < 0.2 ? main : '#74102A',
+    act = contrast(c.accent, menu) >= 2.5 ? c.accent : '#E0F50A';
+  r.setProperty('--menu', menu);
+  r.setProperty('--menu2', mix(menu, '#000000', 0.38));
+  r.setProperty('--on-menu', onColor(menu));
+  r.setProperty('--menu-act', act);
+  r.setProperty('--on-menu-act', onColor(act));
   /* Rouge d'alerte utilisé comme couleur de texte (« Perf ! », « En jeu », « Supprimer ») : ajusté pour atteindre 4,5:1 sur la surface la plus défavorable du thème */
   const sf = [c.bg || b.bg, c.card || b.card, c.card2 || b.card2],
     to = c.dark ? '#FFFFFF' : '#000000';

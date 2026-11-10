@@ -28,7 +28,13 @@ document.addEventListener('submit', e => {
       img = S.img;
     if (!x && !img) return;
     const v = view(),
-      c = v.v === 'chan' ? chans.find(c => c.id === v.id) : null,
+      // grand écran : la discussion ouverte à côté de la liste des groupes (app/23-refonte.js)
+      c =
+        v.v === 'chan'
+          ? chans.find(c => c.id === v.id)
+          : v.v === 'chans' && S.chanSel
+            ? chans.find(c => c.id === S.chanSel)
+            : null,
       list = v.v === 'rec' ? recs.find(r => r.id === v.id).chat : c && c.msgs;
     if (!list) return;
     list.push({ by: c && c.ro && isAdmin() ? 'club' : ME(), x, img, t: "À l'instant", rep: S.reply || undefined });
