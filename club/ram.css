@@ -775,12 +775,12 @@ html, body { background: var(--bg); }
 /* avatars et médailles carrés, comme dans la maquette */
 .av,.medal{border-radius:var(--rb)!important}
 /* agenda : le jour en petit surtitre rose, l'heure en colonne pleine à gauche de la carte */
-.evday span{background:transparent!important;color:var(--hot-tx,#A30F35)!important;font-family:var(--f-sub)!important;font-weight:700!important;font-size:12px!important;letter-spacing:.24em!important;padding:0!important;transform:none!important;text-transform:uppercase}
+.evday span{background:transparent!important;color:var(--kick,#A30F35)!important;font-family:var(--f-sub)!important;font-weight:700!important;font-size:12px!important;letter-spacing:.24em!important;padding:0!important;transform:none!important;text-transform:uppercase}
 .card.evx{padding:0!important;gap:0!important;align-items:stretch!important}
 .evx .evh{border:0!important;border-right:var(--bw) solid var(--ink)!important;border-radius:0!important;margin:0!important;min-width:68px;display:flex!important;flex-direction:column;justify-content:center;align-items:center;font-family:var(--f-sub)!important;font-weight:700;font-size:18px!important;background:var(--c)!important;color:var(--oc)!important}
 .evx .evb{padding:12px 14px!important}
 .evpic{display:none!important}
-.ens,.repas,.train{--c:#E0F50A!important;--oc:#1A0509!important}
+.ens,.repas,.train{--c:var(--accent-bg,#E0F50A)!important;--oc:var(--on-accent-bg,#1A0509)!important}
 .eq,.ani{--c:#FF3D6B!important;--oc:#1A0509!important}
 /* discussion : bulles encadrées à ombre encre, sans pointe ; auteur en surtitre rose */
 .bub,.bub.tail,.msg.me .bub,.msg.me .bub.tail{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important;filter:none!important}
@@ -790,9 +790,9 @@ html, body { background: var(--bg); }
 .composer button,.composer label{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important}
 .composer button:not(.send),.composer label{background:var(--card)!important;color:var(--fg)!important}
 /* mon profil : carte bordeaux à ombre citron, avatar carré citron, chiffres encadrés */
-.phero{background:#5E0A1F!important;color:#fff!important;border:var(--bw) solid var(--ink)!important;box-shadow:6px 6px 0 #E0F50A!important}
+.phero{background:var(--hero,#5E0A1F)!important;color:var(--on-hero,#fff)!important;border:var(--bw) solid var(--ink)!important;box-shadow:6px 6px 0 var(--hero-sh,var(--accent-bg,#E0F50A))!important}
 .phero::before,.phero::after{display:none!important}
-.phero .tilt,.phero .muted,.phero h2{color:#fff!important}
+.phero .tilt,.phero .muted,.phero h2{color:var(--on-hero,#fff)!important}
 .phero .av{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;color:#1A0509!important;margin:0!important}
 .stats>*{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;border-radius:var(--rb)!important}
 .tcard[class*="cf"]{box-shadow:var(--sh)!important}
@@ -822,15 +822,15 @@ html, body { background: var(--bg); }
 /* sondage : chaque option encadrée, celle choisie en citron avec une ombre */
 .opt{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;background:var(--bg)!important;overflow:hidden}
 .opt[aria-pressed="true"]{background:var(--bg)!important;box-shadow:var(--sh-sm)!important;color:var(--fg)!important;font-weight:700}
-.opt[aria-pressed="true"] i{background:#E0F50A!important}
+.opt[aria-pressed="true"] i{background:var(--accent-bg,#E0F50A)!important}
 .opt[aria-pressed="true"] span{color:#1A0509}
 /* favoris : citron, vert, rose, surface sans répéter ; « Direct » au-dessus du score sans le toucher */
-.story:nth-child(4n+1) .ring{background:#E0F50A!important}
+.story:nth-child(4n+1) .ring{background:var(--accent-bg,#E0F50A)!important}
 .story:nth-child(4n+2) .ring{background:#9BD43C!important}
 .story:nth-child(4n+3) .ring{background:#FF3D6B!important}
 .story:nth-child(4n+4) .ring{background:var(--card)!important}
 .ring.live,.ring.lsq{background:#FF3D6B!important}
-.story:has(.ring.live)+.story .ring,.story:has(.ring.lsq)+.story .ring{background:#E0F50A!important}
+.story:has(.ring.live)+.story .ring,.story:has(.ring.lsq)+.story .ring{background:var(--accent-bg,#E0F50A)!important}
 .ring.lsq .lsq-k{top:5px!important}
 .ring.lsq .lsq-s{align-items:flex-end!important;padding-bottom:6px}
 /* petits restes */
@@ -845,7 +845,7 @@ html, body { background: var(--bg); }
 .bar-tabs{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;border-radius:var(--rb)!important;overflow:hidden}
 .bar-tabs button{margin:0!important;border:0!important;border-left:var(--bw) solid var(--ink)!important;background:var(--card)!important;color:var(--fg)!important;font-family:var(--f-sub);font-weight:700}
 .bar-tabs button:first-child{border-left:0!important}
-.bar-tabs button[aria-selected="true"]{background:#E0F50A!important;color:#1A0509!important}
+.bar-tabs button[aria-selected="true"]{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
 .bar-tabs button[aria-selected="true"] svg{color:#1A0509!important}
 /* boîtes : trait 2 px encre */
 .cinfo,.empty,.teaser,.row.thead{border:var(--bw) solid var(--ink)!important;border-radius:var(--r)!important}
@@ -853,7 +853,7 @@ html, body { background: var(--bg); }
 .tcard .row.thead{border:0!important;border-bottom:var(--bw) solid color-mix(in srgb,var(--ink) 12%,transparent)!important;border-radius:0!important}
 /* motifs du fond : barre de choix encadrée, choix en citron */
 .motifs button{border:var(--bw) solid var(--ink)!important;background:var(--bg)!important;box-shadow:var(--sh-sm)!important;border-radius:var(--rb)!important;color:var(--fg)!important}
-.motifs button[aria-pressed="true"]{background:#E0F50A!important;color:#1A0509!important;box-shadow:var(--sh-sm)!important}
+.motifs button[aria-pressed="true"]{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important;box-shadow:var(--sh-sm)!important}
 .motifs i{border:var(--bw) solid var(--ink)}
 /* --- recontrôle carnet72 --- */
 /* lignes posées sur la page : boutons en surface ; dans une carte : couleur fond */
@@ -877,7 +877,7 @@ html, body { background: var(--bg); }
 .top h1,:root[data-style] .top h1{transform:none!important}
 .top h1 .sub,:root[data-style] .top h1 .sub,:root[data-style="street"] .top h1 .sub{background:transparent!important;color:var(--muted)!important;transform:none!important;padding:0!important;box-shadow:none!important;border:0!important;font-family:var(--f-sub)!important;font-weight:700!important;font-size:12px!important;letter-spacing:.14em!important;margin-top:4px!important}
 /* G9 titres de section : surtitre rose espacé, comme dans Figma */
-#main :is(.card,.stack,.pad,.body,section)>.kicker,.sheet .kicker{color:var(--hot-tx,#A30F35)!important;font-family:var(--f-sub)!important;font-weight:700!important;font-size:12px!important;letter-spacing:.24em!important;text-transform:uppercase!important}
+#main :is(.card,.stack,.pad,.body,section)>.kicker,.sheet .kicker{color:var(--kick,#A30F35)!important;font-family:var(--f-sub)!important;font-weight:700!important;font-size:12px!important;letter-spacing:.24em!important;text-transform:uppercase!important}
 /* G10 textes posés sur le motif : sur une bande de fond uni pour rester lisibles */
 #main .pad>.muted.small,#main .stack>.muted.small,#main .pad>p.muted,.swipehint,.lphelp{background:var(--bg);padding:8px 12px!important;border:var(--bw) solid var(--ink);border-radius:var(--rb)}
 /* G11 séparateurs : 2 px encre à 12 % */
@@ -898,26 +898,26 @@ html, body { background: var(--bg); }
 .btn.grow{white-space:nowrap}
 :is(.card,.sheet) .btn:not(.ghost):not(.sec):not(.danger):not(.sm){background:var(--accent-bg,var(--accent))!important;color:var(--on-accent-bg,var(--on-accent))!important;border:var(--bw) solid var(--ink)!important}
 /* P4 pictos des lignes d'infos : dans un carré citron encadré */
-.ct>svg{width:34px!important;height:34px!important;padding:6px;box-sizing:border-box;background:#E0F50A;color:#1A0509!important;border:var(--bw) solid var(--ink);box-shadow:var(--sh-sm);flex:none}
+.ct>svg{width:34px!important;height:34px!important;padding:6px;box-sizing:border-box;background:var(--accent-bg,#E0F50A);color:var(--on-accent-bg,#1A0509)!important;border:var(--bw) solid var(--ink);box-shadow:var(--sh-sm);flex:none}
 /* P5 interrupteur : pastille claire */
 .tg::after{background:#F7EFF0!important}
 /* P6 P7 cartes de cadre : plus de dégradé ni de halo, trait encre */
 .fp-card,.fp-st.lock .fp-card,.fp-st.now .fp-card{background:var(--card)!important;border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;box-shadow:var(--sh-sm)!important}
-.fp-st.now .fp-card{background:#E0F50A!important;color:#1A0509!important}
+.fp-st.now .fp-card{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
 .fp-st.now .fp-card b{color:#1A0509!important}
 .fp-lock{border-radius:var(--rb)!important;border:var(--bw) solid var(--ink)!important}
 /* P8 jauge des cadres : piste encadrée de 14 px, remplissage citron sans lueur */
 .fp-rail{height:14px!important;border-radius:0!important;background:var(--bg)!important;box-shadow:none!important;border:var(--bw) solid var(--ink)}
-.fp-rail i{border-radius:0!important;background:#E0F50A!important;box-shadow:none!important}
+.fp-rail i{border-radius:0!important;background:var(--accent-bg,#E0F50A)!important;box-shadow:none!important}
 .fp-dia{border-color:var(--ink)!important}
 .fp-me{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important}
 /* P9 paliers (bronze, argent…) encadrés */
 .tier{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;color:#1A0509!important}
 /* P10 avatar du profil : la photo reste visible (seule la couleur de fond change) */
-.phero .av:not([style*="url("]){background-color:#E0F50A!important}
+.phero .av:not([style*="url("]){background-color:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
 /* P11 choix de fonction : sur plusieurs lignes, le choix en cours en citron */
 .card>.chips{flex-wrap:wrap!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important;padding-right:0!important}
-.chip[aria-pressed="true"]{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
+.chip[aria-pressed="true"]{background:var(--accent-bg,var(--accent-bg,#E0F50A))!important;color:var(--on-accent-bg,#1A0509)!important}
 /* P12 sous-onglets : barre encadrée, séparateurs pleine hauteur */
 :is(#main,#subnav)>.seg{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;gap:0!important;padding:0!important;overflow:hidden}
 :is(#main,#subnav)>.seg button{border:0!important;border-left:var(--bw) solid var(--ink)!important;border-radius:0!important;margin:0!important;text-transform:none!important;letter-spacing:.02em!important}
@@ -952,7 +952,7 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 /* fil des rencontres : cartes encadrées */
 #phone #main .card{border:var(--bw) solid var(--ink)!important}
 /* filtres de l'agenda : le carré prend la couleur de son type */
-.chip.plf .sq.ens,.chip.plf .sq.repas{background:#E0F50A!important}.chip.plf .sq.jeu{background:#9BD43C!important}.chip.plf .sq.ani,.chip.plf .sq.eq{background:#FF3D6B!important}.chip.plf .sq.tour{background:#F2A93B!important}
+.chip.plf .sq.ens,.chip.plf .sq.repas{background:var(--accent-bg,#E0F50A)!important}.chip.plf .sq.jeu{background:#9BD43C!important}.chip.plf .sq.ani,.chip.plf .sq.eq{background:#FF3D6B!important}.chip.plf .sq.tour{background:#F2A93B!important}
 /* ombres des cartes en style « full street » : ombre dure encre de 4 px, comme Figma (sauf les cadres de niveau) */
 :root:root[data-style] #phone #main :is(.card:not([class*="cf"]),.lis,.palm .res){box-shadow:var(--sh)!important}
 /* cartes de rencontre du fil : trait et ombre encre */
@@ -968,7 +968,7 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 :root:root[data-style] #phone #main .tsec,.tsec{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;background:var(--card)!important}
 /* fourchettes de niveau d'une partie dirigée : encadrées ; celle qui est complète en citron */
 .nv-tier{border:var(--bw) solid var(--ink)!important;background:var(--bg)!important;box-shadow:none!important}
-.nv-tier.win{background:#E0F50A!important;color:#1A0509!important;box-shadow:var(--sh-sm)!important}
+.nv-tier.win{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important;box-shadow:var(--sh-sm)!important}
 /* textes d'aide posés sur la page : sur une carte (plus de boîte couleur fond qui paraît transparente) */
 #main .pad>.muted.small,#main .stack>.muted.small,#main .pad>p.muted,.swipehint,.lphelp{background:var(--card)!important;box-shadow:var(--sh-sm)}
 /* interrupteur : pastille centrée verticalement dans sa piste (piste de 30 px, pastille de 24 px) */
@@ -981,20 +981,20 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 
 /* boîtes à l'intérieur d'une carte : trait encre et fond ton sur ton (une teinte plus claire de nuit, plus crème de jour) */
 :is(.card,.post,.sheet,.tsec,.lis,.phero) :is(.card,.nv-tier,.ptile,.res,.perf,.cinfo,.note,.teaser,details.more,.dblk,.pbtn,.empty){background:var(--card2)!important;border:var(--bw) solid var(--ink)!important}
-.nv-tier.win{background:#E0F50A!important;color:#1A0509!important}
+.nv-tier.win{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
 /* pastilles d'inscription (places d'une partie, d'un événement) : carrées en coins droits, rondes en coins arrondis */
 .dots i,.dots i.on{border-radius:0!important;border-color:var(--ink)!important;background:var(--bg)}
-.dots i.on{background:var(--accent-bg,#E0F50A)!important}
+.dots i.on{background:var(--accent-bg,var(--accent-bg,#E0F50A))!important}
 :root[data-coins="arrondis"] .dots i{border-radius:50%!important}
 .pips i{border-radius:0!important;border:1px solid var(--ink)}
 :root[data-coins="arrondis"] .pips i{border-radius:3px!important}
 
 /* réactions emoji : pastilles encadrées encre (messages et publications), la mienne en citron */
 .react{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;background:var(--card)!important;box-shadow:var(--sh-sm)!important}
-.react.on{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
+.react.on{background:var(--accent-bg,var(--accent-bg,#E0F50A))!important;color:var(--on-accent-bg,#1A0509)!important}
 .msg .reacts:not(.big){border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important}
 .msg .reacts:not(.big) .react{border:0!important;box-shadow:none!important;background:transparent!important}
-.msg .reacts:not(.big) .react.on{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
+.msg .reacts:not(.big) .react.on{background:var(--accent-bg,var(--accent-bg,#E0F50A))!important;color:var(--on-accent-bg,#1A0509)!important}
 
 /* =========================================================================
    Revue du 10 novembre (2) : pictos lisibles sur le citron, pastilles et chargement encadrés,
@@ -1013,23 +1013,28 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 :root[data-coins="arrondis"] .ptr i{border-radius:50%!important}
 /* dates de l'agenda : grosse étiquette rose pétante, aujourd'hui en citron */
 .evday span{background:#FF3D6B!important;color:#1A0509!important;font-family:var(--f-display)!important;font-weight:400!important;font-size:20px!important;letter-spacing:.03em!important;padding:6px 12px!important;border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;line-height:1.1!important}
-.plc.today .evday span{background:#E0F50A!important}
+.plc.today .evday span{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
 .evday{padding:12px 0 10px!important}
 /* légende des couleurs et carrés de type : la couleur de chaque type */
 .sq{border:var(--bw) solid var(--ink)!important;border-radius:0!important}
-.sq.ens,.sq.repas{background:#E0F50A!important}.sq.jeu{background:#9BD43C!important}.sq.ani,.sq.eq{background:#FF3D6B!important}.sq.tour{background:#F2A93B!important}
+.sq.ens,.sq.repas{background:var(--accent-bg,#E0F50A)!important}.sq.jeu{background:#9BD43C!important}.sq.ani,.sq.eq{background:#FF3D6B!important}.sq.tour{background:#F2A93B!important}
 .pllegend{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important}
 /* vues semaine et jour : grille encadrée, lignes nettes, séances encadrées, aujourd'hui citron */
 #plan .grid{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;background:var(--card)!important;overflow:hidden}
 #plan .ghead{border-bottom:var(--bw) solid var(--ink)!important}
-#plan .gday.today{background:#E0F50A!important;color:#1A0509!important}
+#plan .gday.today{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
 #plan .gday.today *{color:#1A0509!important}
 #plan .gcol,#plan .ghours{border-color:color-mix(in srgb,var(--ink) 35%,transparent)!important}
 #plan .gev{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;border-radius:0!important;color:var(--oc,#1A0509)!important;font-weight:700}
 /* bandeau des jours (vue jour) : cases encadrées, aujourd'hui citron, jour choisi encadré en rose */
 .wk .wd{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;border-radius:0!important;background:var(--card)!important;color:var(--fg)!important}
-.wk .wd.today{background:#E0F50A!important;color:#1A0509!important}
+.wk .wd.today{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
 .wk .wd[aria-pressed="true"],.wk .wd.on,.wk .wd[aria-current="date"],.wk .wd[aria-selected="true"]{background:#FF3D6B!important;color:#1A0509!important}
 .wk .wd *{color:inherit!important}
 /* logo du club (avatar et écusson) : le logo reste visible, sur fond surface */
 .av.club.logo,.crest.logo{background-color:var(--card)!important}
+.story:nth-child(4n+1) .ring>span,.story:nth-child(4n+1) .ring svg{color:var(--on-accent-bg,#1A0509)!important}
+.story:nth-child(n) .ring.live>span,.story:nth-child(n) .ring.lsq>span{color:#1A0509!important}
+/* dans la carte héros (couleur du club) : avatar et étiquettes d’une autre couleur que la carte */
+.phero .av:not([style*="url("]){background-color:var(--hero-sh,#E0F50A)!important;color:#1A0509!important}
+.phero .bd.cap,.phero .bd.club{background:var(--card)!important;color:var(--fg)!important}

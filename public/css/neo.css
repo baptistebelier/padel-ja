@@ -190,7 +190,7 @@ nav#nav button:not(.on) { color: #F7EFF0 !important; }
 input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select { min-height: 48px; padding-inline: 14px !important; font-family: var(--body); font-size: 15px; }
 .card label:not(.chk):not(.inline):not(:has(input[type=checkbox])):not(:has(input[type=radio])) { font-family: var(--label); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ui-text); gap: 6px; }
 /* menus bordeaux comme la maquette : rail et panneau du tournoi */
-:root { --ui-rail-bg: #74102A; --ui-rail-text: #F7EFF0; }
+:root { --ui-rail-bg: #A11C40; --ui-rail-text: #F7EFF0; }
 :root[data-theme="light"] { --ui-rail-bg: #5E0A1F; --ui-rail-text: #F7EFF0; }
 .rail { border-right: var(--ui-bw) solid var(--ui-ink) !important; }
 /* carte du tournoi dans le panneau : trait clair, ombre citron */

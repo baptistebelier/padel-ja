@@ -2106,7 +2106,7 @@ button.copp:hover span:last-child {
 .tabs > button { padding-inline: 0 !important; letter-spacing: -0.02em !important; font-size: 12px; white-space: normal; }
 /* ---------- conformité à la maquette Figma /Dojo ---------- */
 /* menu latéral bordeaux (jour) et prune foncé (nuit), comme la maquette */
-:root { --co-rail: #1c1116; --co-rail-tx: #f7eff0; }
+:root { --co-rail: #22060f; --co-rail-tx: #f7eff0; }
 :root[style*='color-scheme: light'] { --co-rail: #5e0a1f; --co-rail-tx: #f7eff0; }
 /* titres Anton droits */
 .coname, .top h1 { font-style: normal !important; }

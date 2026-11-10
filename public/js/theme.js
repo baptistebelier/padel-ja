@@ -7,7 +7,7 @@
   function apply(t) {
     root.dataset.theme = t;
     const m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.content = t === 'light' ? '#F2EBE4' : '#2A1B21';
+    if (m) m.content = t === 'light' ? '#F2EBE4' : '#3A0C1B';
     document.querySelectorAll('[data-theme-toggle]').forEach(b => {
       b.setAttribute('aria-label', t === 'light' ? 'Passer en mode nuit' : 'Passer en mode jour');
       const s = b.querySelector('span'); if (s) s.textContent = t === 'light' ? 'Mode nuit' : 'Mode jour';

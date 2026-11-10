@@ -39,11 +39,16 @@ function derive(acc, bg) {
   }
   return { col: c, adj: c.toLowerCase() !== acc.toLowerCase() };
 }
+/* Base neutre (maquette Figma « /Buvette v2 », choix de Baptiste) : crème le jour, anthracite gris-bleu la nuit,
+   légèrement teintée par la couleur principale du club (TEINTE : part de la couleur du club, [jour, nuit]) */
 const BASE = {
-  // néo-brutalisme validé (maquettes Figma) : nuit éclaircie pour que le trait et l'ombre noirs se voient, jour chaud
-  true: { bg: '#2A1B21', card: '#46303A', card2: '#533A45', line: '#5C4450', fg: '#F7EFF0', muted: '#DCCBD0' },
-  false: { bg: '#F2EBE4', card: '#FFFFFF', card2: '#F8F1EC', line: '#E6DCD6', fg: '#1A0509', muted: '#6E5A61' }
+  true: { bg: '#1C1F24', card: '#2A2E35', card2: '#343941', line: '#454B55', fg: '#F2F0EB', muted: '#C7CAD1' },
+  false: { bg: '#F1ECE3', card: '#FFFCF7', card2: '#F6F1E8', line: '#E3DDD2', fg: '#16191E', muted: '#5B606B' }
 };
+const TEINTE = { bg: [0.07, 0.1], card: [0.025, 0.07], card2: [0.05, 0.08], line: [0.08, 0.1] };
+/* héros et surtitres sans couleur de club réglée */
+const HERO_BASE = { true: '#3B4250', false: '#2A2F38' },
+  KICK_BASE = { true: '#FF94AD', false: '#B0123F' };
 // rose /RAM (maquette Figma) pour le direct et le danger, texte foncé dessus ; vert pour le padel
 const HOT = '#FF3D6B',
   PADEL = '#9BD43C';
@@ -58,10 +63,22 @@ function setTheme(i) {
         ? c0
         : Object.assign({}, c0, { dark: dk, bg: null, card: null, card2: null, line: null, fg: null, muted: null }),
     r = document.documentElement.style,
-    b = BASE[dk],
+    main = c.main || c.accent,
+    // base neutre teintée par la couleur principale du club ; une couleur réglée par le club garde la priorité
+    b = Object.fromEntries(
+      Object.entries(BASE[dk]).map(([k, v]) => [k, TEINTE[k] && main ? mix(v, main, TEINTE[k][dk ? 1 : 0]) : v])
+    ),
     acc = derive(c.accent, c.bg || b.bg).col;
   Object.keys(b).forEach(k => r.setProperty('--' + k, c[k] || b[k]));
   r.setProperty('--accent', acc);
+  // carte héros à la couleur principale du club (texte au meilleur contraste), ombre de l'autre accent ;
+  // surtitres à la couleur du club rendue lisible sur le fond
+  const hero = main || HERO_BASE[dk],
+    accs = [c.accent, c.accent2, HOT].filter(Boolean);
+  r.setProperty('--hero', hero);
+  r.setProperty('--on-hero', onColor(hero));
+  r.setProperty('--hero-sh', accs.find(x => x.toLowerCase() !== hero.toLowerCase()) || '#E0F50A');
+  r.setProperty('--kick', main ? derive(main, c.bg || b.bg).col : KICK_BASE[dk]);
   /* Rouge d'alerte utilisé comme couleur de texte (« Perf ! », « En jeu », « Supprimer ») : ajusté pour atteindre 4,5:1 sur la surface la plus défavorable du thème */
   const sf = [c.bg || b.bg, c.card || b.card, c.card2 || b.card2],
     to = c.dark ? '#FFFFFF' : '#000000';
@@ -85,11 +102,11 @@ function setTheme(i) {
   );
   r.setProperty('--on-hot', '#1A0509');
   // encre des traits et des ombres dures, et couleur « éteinte » (désactivé, interrupteur coupé)
-  r.setProperty('--ink', dk ? '#000000' : '#1A0509');
-  r.setProperty('--off', dk ? '#6B5560' : '#E6DCD6');
-  r.setProperty('--field', dk ? '#33222A' : '#F8F1EC');
+  r.setProperty('--ink', dk ? '#000000' : '#16191E');
+  r.setProperty('--off', b.line);
+  r.setProperty('--field', dk ? mix(b.bg, b.card, 0.5) : b.card2);
   r.setProperty('--padel', PADEL);
-  r.setProperty('--stage', c.dark ? '#1C1116' : '#E6DCD6');
+  r.setProperty('--stage', dk ? mix(b.bg, '#000000', 0.25) : b.line);
   r.colorScheme = c.dark ? 'dark' : 'light';
   try {
     localStorage.setItem('club-theme', i);

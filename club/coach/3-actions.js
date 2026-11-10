@@ -635,20 +635,21 @@ Object.assign(A, {
 /* couleurs de /RAM JA (nuit bordeaux, jour rosé, lime et rose /RAM), jamais celles du club : un logiciel de gestion */
 const CO_THEME = {
   true: {
-    bg: '#2A1B21',
-    card: '#46303A',
-    card2: '#533A45',
-    line: '#5C4450',
-    field: '#33222A',
+    bg: '#3A0C1B',
+    card: '#5A1630',
+    card2: '#6A1D3A',
+    line: '#8A3350',
+    field: '#4A1226',
+    off: '#8A3350',
     fg: '#F7EFF0',
-    muted: '#DCCBD0',
+    muted: '#EBCFD8',
     accent: '#E0F50A',
     'on-accent': '#1A0509',
     accent2: '#FF3D6B',
     hot: '#FF3D6B',
-    'hot-tx': '#FF8FA8',
+    'hot-tx': '#FF94AD',
     'on-hot': '#FFFFFF',
-    stage: '#1C1116'
+    stage: '#22060F'
   },
   false: {
     bg: '#F2EBE4',
@@ -676,7 +677,7 @@ setTheme = function (i) {
   r.setProperty('--rail-logo', `url("img/coach-v2-logo-${dk ? 'blanc' : 'noir'}.png")`);
   r.colorScheme = dk ? 'dark' : 'light';
   const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.content = dk ? '#2A1B21' : '#74102A';
+  if (m) m.content = dk ? '#3A0C1B' : '#74102A';
 };
 /* ma fiche enseignant : rangée dans mon profil du club, visible de tous les adhérents (École, Enseignants) */
 A.coPro = () => {

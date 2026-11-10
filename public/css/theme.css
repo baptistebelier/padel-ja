@@ -1,15 +1,15 @@
 /* /RAM JA — variables d'interface (thèmes jour / nuit), partagées par l'éditeur et l'espace juge-arbitre */
-/* ---------- nuit (par défaut) : néo-brutalisme validé (maquettes Figma) — fond et cartes éclaircis pour que
+/* ---------- nuit (par défaut) : bordeaux B (choix de Baptiste, Figma « Essai nuit bordeaux ») — fond et cartes éclaircis pour que
    le trait et l'ombre noirs se voient ---------- */
 :root {
-  --ui-bg: #2A1B21; --ui-surface: #46303A; --ui-surface-2: #533A45; --ui-sunken: #3A262E;
+  --ui-bg: #3A0C1B; --ui-surface: #5A1630; --ui-surface-2: #6A1D3A; --ui-sunken: #4A1226;
   --ui-border: #000000; --ui-border-2: #000000;
-  --ui-text: #F7EFF0; --ui-text-mut: #DCCBD0; --ui-text-mut2: #B9A5AC;
-  --ui-side-bg: #74102A; --ui-side-text: #F6DDE3; --ui-side-on: #ffffff22;
-  --ui-inverse: #74102A; --ui-on-inverse: #FFFFFF; --ui-on-inverse-mut: #F2C9D3;
-  --ui-accent: #E0F50A; --ui-on-accent: #1A0509; --ui-accent-text: #FF8FA8; --ui-field: #33222A; --ui-accent-line: #E0F50A;
+  --ui-text: #F7EFF0; --ui-text-mut: #EBCFD8; --ui-text-mut2: #B9A5AC;
+  --ui-side-bg: #A11C40; --ui-side-text: #F6DDE3; --ui-side-on: #ffffff22;
+  --ui-inverse: #A11C40; --ui-on-inverse: #FFFFFF; --ui-on-inverse-mut: #F2C9D3;
+  --ui-accent: #E0F50A; --ui-on-accent: #1A0509; --ui-accent-text: #FF94AD; --ui-field: #4A1226; --ui-accent-line: #E0F50A;
   --ui-accent2: #FF3D6B; --ui-switch: #9BD43C;
-  --ui-ink: #000000; --ui-off: #6B5560; --ui-green: #9BD43C; --ui-pink: #FF3D6B; --ui-lime: #E0F50A; --ui-bordeaux: #74102A;
+  --ui-ink: #000000; --ui-off: #8A3350; --ui-green: #9BD43C; --ui-pink: #FF3D6B; --ui-lime: #E0F50A; --ui-bordeaux: #A11C40;
   --ui-sh: 4px 4px 0 var(--ui-ink); --ui-sh-sm: 2px 2px 0 var(--ui-ink); --ui-sh-hero: 6px 6px 0 var(--ui-lime);
   --ui-shadow: var(--ui-sh); --ui-shadow-lg: 6px 6px 0 var(--ui-ink);
   --ui-r: 0px; --ui-r-sm: 0px; --ui-r-pill: 0px; --ui-tilt: -1.5deg; --ui-bw: 2px; --ui-hard: var(--ui-ink);
