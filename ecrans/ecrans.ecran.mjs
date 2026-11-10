@@ -1408,10 +1408,15 @@ test('Club : agenda du club réduit aux événements, sans vue Liste ; raccourci
   assert.deepEqual(r.filtres, ['ani', 'tour', 'eq']);
   assert.deepEqual(r.cats.filter(c => !['ani', 'tour', 'eq'].includes(c)), []);
   await page.evaluate(() => { const g = GROUPS.find(x => x.type === 'train' && !x.once); document.getElementById('main').insertAdjacentHTML('afterbegin', sessCard(g, TODAY, null, 1)); });
-  assert.equal(await page.locator('.ecact svg').count(), 4);
-  assert.ok(await page.locator('.ecact.del [d*="M4 7h16"]').count(), 'une corbeille pour supprimer');
-  assert.ok(await page.evaluate(() => { const s = document.querySelector('.ecact svg').getBoundingClientRect().height, f = parseFloat(getComputedStyle(document.querySelector('.ecact')).fontSize); return s > f; }), 'picto plus gros que le texte');
-  assert.ok(await page.evaluate(() => { const e = document.querySelector('.ecact.del'); return getComputedStyle(e).backgroundColor !== getComputedStyle(document.querySelector('.ecact:not(.go):not(.warn):not(.del)')).backgroundColor; }), 'code couleur');
+  // refonte (vue enseignant) : l'appel en principal, extérieur et annulation en secondaire, supprimer dans le menu « … »
+  assert.equal(await page.locator('.ecacts [data-a="appel"]').count(), 1, 'faire l’appel');
+  assert.equal(await page.locator('.ecacts [data-a="loc"]').count(), 1, 'salle ou extérieur');
+  assert.equal(await page.locator('.ecacts [data-a="cancelCourse"]').count(), 1, 'annuler');
+  assert.equal(await page.locator('.ecacts [data-a="delCourse"]').count(), 0, 'supprimer n’est plus en vue');
+  assert.equal(await page.locator('.ecpres .ecn > span').count(), 3, 'présences annoncées en trois compteurs');
+  await page.click('.ecacts [data-a="seMenu"]');
+  assert.equal(await page.locator('#sheet [data-a="delCourse"] svg').count(), 1, 'supprimer dans le menu, avec sa corbeille');
+  await page.evaluate(() => closeSheet());
   assert.deepEqual(errs, []);
   await ctx.close();
 });

@@ -229,3 +229,432 @@ barView = function () {
     h.slice(e)
   );
 };
+
+/* =========================================================================
+   École, vue enseignant (maquette Figma « Refonte /Buvette », sections 7 à 9, feu vert de Baptiste)
+   ========================================================================= */
+const initiales = s =>
+  String(s || '')
+    .replace(/<[^>]*>/g, '')
+    .split(/\s+/)
+    .filter(w => w && /[A-Za-zÀ-ÿ0-9]/.test(w[0]))
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join('') || '·';
+const elevesDe = g => [...(g.mem || []), ...(g.ext || [])];
+const nomEl = k => (typeof svName === 'function' ? svName(k) : name(k));
+const avOuInit = k => (M[k] ? av(k, 'sm') : `<span class="av sm ini">${esc(initiales(nomEl(k)))}</span>`);
+const pl = (x, a, b) => (x > 1 ? b : a);
+
+/* 7. Mes cours : présences annoncées en compteurs, appel en principal, extérieur et annulation en secondaire,
+   supprimer dans le menu « … » */
+function sessFootEns(g, iso, cx, loc, nOk, nNo) {
+  const n = grpN(g),
+    sr = Math.max(0, n - nOk - nNo),
+    ext = (g.ext || []).length,
+    more = `<button class="ib" data-a="seMenu" data-id="${g.id}" data-d="${iso}" aria-label="Autres actions">${ic('more')}</button>`;
+  if (cx)
+    return `<div class="ecacts"><span class="tag hot">Séance annulée</span><span class="grow"></span><button class="btn ghost" data-a="cancelCourse" data-id="${g.id}" data-d="${iso}">${ic('undo')}Rétablir</button>${more}</div>`;
+  return (
+    `<div class="ecpres"><span class="kicker">Présences annoncées</span><div class="ecn"><span class="ok"><b>${nOk}</b>${pl(nOk, 'présent', 'présents')}</span><span class="no"><b>${nNo}</b>${pl(nNo, 'absent', 'absents')}</span><span><b>${sr}</b>sans réponse</span></div>` +
+    (ext
+      ? `<p class="muted small">${ext} élève${pl(ext, '', 's')} sans compte : leur présence se note pendant l’appel.</p>`
+      : '') +
+    `</div><div class="ecacts"><button class="btn" data-a="appel" data-id="${g.id}" data-d="${iso}">${ic('check')}Faire l’appel</button><button class="btn ghost" data-a="loc" data-g="${g.id}" data-d="${iso}">${ic(loc === 'En salle' ? 'sun' : 'home')}${loc === 'En salle' ? 'Passer en extérieur' : 'Repasser en salle'}</button><button class="btn ghost" data-a="cancelCourse" data-id="${g.id}" data-d="${iso}">${ic('ban')}Annuler la séance</button>${more}</div>`
+  );
+}
+/* le menu « … » d'une séance : ouvrir le groupe, supprimer (personne n'est prévenu) */
+A.seMenu = d => {
+  const g = grp(d.id);
+  if (!g) return;
+  sheet(
+    esc(g.name) + ' · ' + fmtD(d.d),
+    `<div class="body"><div class="menu"><button data-a="open" data-v="grp" data-id="${g.id}">${ic('users')}Ouvrir le groupe</button><button class="danger" data-a="delCourse" data-id="${g.id}" data-d="${d.d}">${ic('trash')}Supprimer la séance</button></div></div>`
+  );
+};
+
+/* l'appel : une ligne par élève, Présent / Absent ; à droite sur grand écran, panneau du bas au téléphone */
+function appelBox(g, iso) {
+  const att = REGLES.presDe(sesDu(g, iso), g, iso),
+    ab = (g.abs || {})[iso] || [],
+    l = elevesDe(g),
+    nP = l.filter(k => att[k] === 'P').length,
+    nA = l.filter(k => att[k] === 'A').length;
+  const ligne = k => {
+    const v = att[k],
+      etat = M[k] ? (ab.includes(k) ? 'Absence signalée' : 'Compte /RAM') : 'Sans compte';
+    return `<div class="apl">${avOuInit(k)}<span class="grow"><span class="nm">${esc(nomEl(k))}</span><br><span class="muted small">${etat}</span></span><span class="apt"><button class="${v === 'P' ? 'on ok' : ''}" data-a="att" data-id="${g.id}" data-d="${iso}" data-u="${k}" data-s="1" aria-pressed="${v === 'P'}">Présent</button><button class="${v === 'A' ? 'on no' : ''}" data-a="att" data-id="${g.id}" data-d="${iso}" data-u="${k}" data-s="0" aria-pressed="${v === 'A'}">Absent</button></span></div>`;
+  };
+  return (
+    `<div class="appel" data-g="${g.id}" data-d="${iso}"><div class="calh">${ic('check')}<b>Appel</b><span class="grow"></span><span class="tag ac">${esc(g.h || '')}</span></div><p class="muted small">${esc(g.name)} · ${fmtD(iso)} · ${l.length} élève${pl(l.length, '', 's')}</p>` +
+    (l.length ? l.map(ligne).join('') : '<p class="muted small">Aucun élève dans ce groupe.</p>') +
+    `<div class="ecn"><span class="ok"><b>${nP}</b>${pl(nP, 'présent', 'présents')}</span><span class="no"><b>${nA}</b>${pl(nA, 'absent', 'absents')}</span><span><b>${l.length - nP - nA}</b>à noter</span></div><div class="ecacts"><button class="btn ghost" data-a="appelTous" data-id="${g.id}" data-d="${iso}">${ic('check')}Tous présents</button><button class="btn grow" data-a="appelOk" data-id="${g.id}" data-d="${iso}">${ic('check')}Valider l’appel</button></div></div>`
+  );
+}
+const appelSheet = (g, d, keep) => sheet('Appel', `<div class="body">${appelBox(g, d)}</div>`, keep);
+A.appel = d => {
+  S.appelSel = { g: d.id, d: d.d };
+  if (wideNav() && S.tab === 'ecole' && !S.stack.length) return render(true);
+  const g = grp(d.id);
+  if (g) appelSheet(g, d.d);
+};
+A.appelTous = d => {
+  const g = grp(d.id);
+  if (!g) return;
+  elevesDe(g).forEach(k => appelNote(g, d.d, k, 'P'));
+  render(true);
+  if ($('sheet') && $('sheet').querySelector('.appel')) appelSheet(g, d.d, true);
+};
+A.appelOk = d => {
+  const g = grp(d.id);
+  closeSheet();
+  toast(`Appel enregistré · ${g ? esc(g.name) : 'séance'} du ${fmtD(d.d)}`);
+};
+/* un clic Présent / Absent dans le panneau du bas : il se met à jour sans se fermer */
+const attApp = A.att;
+A.att = d => {
+  attApp(d);
+  const g = grp(d.id);
+  if (g && $('sheet') && $('sheet').querySelector('.appel')) appelSheet(g, d.d, true);
+};
+
+/* 8. Mes groupes : une carte par groupe, progression du cycle en cases (12 séances au plus) ou en barre */
+function cycleInfo(g) {
+  const c = REGLES.cycleCourant(g, TODAY);
+  return c ? REGLES.cycleEtat(g, c, cycleSes(g), TODAY) : null;
+}
+function grpCardEns(g) {
+  const E = cycleInfo(g),
+    n = grpN(g),
+    nowS = E && E.seances.find(x => x.etat === 'now'),
+    nextS = E && E.seances.find(x => x.etat === 'next'),
+    fin = !!E && !nextS && E.seances.length > 0,
+    proche = !!E && (fin || E.seances.filter(x => x.etat === 'next').length <= 1),
+    loc = locOf(g, nowS ? nowS.d : TODAY) || '';
+  let prog = '';
+  if (E && E.seances.length) {
+    const dated = E.seances.filter(x => x.d),
+      lab = nowS
+        ? nextS
+          ? `Séance ${nowS.num || E.faites} aujourd’hui`
+          : 'Dernière séance aujourd’hui'
+        : nextS
+          ? 'Prochaine : ' + fmtD(nextS.d)
+          : 'Cycle terminé',
+      pct = Math.round((100 * E.faites) / Math.max(1, E.prevues)),
+      vis =
+        E.seances.length <= 12
+          ? `<div class="cocycb gcases" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}">${E.seances.map(x => `<i class="${x.etat}" title="${x.d ? fmtD(x.d) : 'Date à poser'}"></i>`).join('')}</div>`
+          : `<div class="cocycb gbar" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}"><span class="gbt"><i style="width:${pct}%"></i></span><span class="gbd"><small>${dated[0] ? fmtD(dated[0].d) : ''}</small><small>${dated.length ? fmtD(dated[dated.length - 1].d) : ''}</small></span></div>`;
+    prog = `<div class="gprog"><div class="gpt"><b>${E.faites}</b><span>/ ${E.prevues} séance${pl(E.prevues, '', 's')} faite${pl(E.faites, '', 's')}</span><span class="grow"></span><small>${lab}</small></div>${vis}<div class="glg"><span><i class="done"></i>Faites</span><span><i class="now"></i>Aujourd’hui</span><span><i class="next"></i>À venir</span></div></div>`;
+  } else prog = cycleBar(g);
+  const pile = elevesDe(g).slice(0, 3).map(avOuInit).join(''),
+    chan = typeof chans !== 'undefined' && chans.some(x => x.id === g.id),
+    etat = fin ? 'Cycle terminé' : proche ? 'Fin proche' : 'En cours',
+    finTxt = fin
+      ? 'Le cycle est terminé.'
+      : nowS
+        ? 'Le cycle se termine aujourd’hui.'
+        : 'Le cycle se termine à la prochaine séance.';
+  return (
+    `<div class="card grpc gcard"><div class="gh"><span class="tile">${esc(initiales(g.name))}</span><span class="grow"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${esc([DAYS[g.day], g.h, g.dur].filter(Boolean).join(' · '))}${loc ? ' · ' + esc(loc) : ''}</span></span><span class="tag ${proche ? 'hot' : 'ac'}">${etat}</span></div>` +
+    prog +
+    `<div class="gel"><span class="gpile">${pile}</span><b>${n}${g.max ? ' / ' + g.max : ''} élève${pl(n, '', 's')}</b><span class="grow"></span>${grpFull(g) ? '<span class="tag hot">Complet</span>' : ''}</div>` +
+    (proche
+      ? `<div class="note gfin">${ic('info')}<span>${finTxt} Renouvelle-le depuis la fiche du groupe pour garder les mêmes élèves et le même créneau.</span></div>`
+      : '') +
+    `<div class="ecacts"><button class="btn ghost grow" data-a="open" data-v="grp" data-id="${g.id}">${ic('users')}Ouvrir le groupe</button>${chan ? `<button class="btn ghost grow" data-a="open" data-v="chan" data-id="${g.id}">${ic('chat')}Message</button>` : ''}</div></div>`
+  );
+}
+
+/* 9. Stages : fiche du stage (infos en tuiles, déroulé en frise), inscriptions à droite */
+function stageCardEns(p, staff) {
+  const y = (p.yes || 0) + (p.my === 'yes' ? 1 : 0),
+    tuile = (i, l, v) =>
+      v ? `<div class="sti"><span class="pbi">${ic(i)}</span><span><small>${l}</small><b>${v}</b></span></div>` : '',
+    ouvert = !p.done && !p.arch && !(p.close && p.close < TODAY),
+    dl = Array.isArray(p.dl) && p.dl.length,
+    date = p.date ? p.date.split(' · ')[0] : p.d ? fmtD(p.d) : '',
+    heures = p.h1 ? p.h1 + (p.h2 ? ' – ' + p.h2 : '') : '',
+    places = p.cap ? `${y} / ${p.cap} inscrits` : `${y} inscrit${pl(y, '', 's')}`,
+    frise = dl
+      ? `<div class="stdl"><div class="calh"><b>Déroulé du stage</b><span class="grow"></span><span class="tag">${p.dl.length} étape${pl(p.dl.length, '', 's')}</span></div><ol class="dl-f">${p.dl.map(x => `<li><span class="dl-h">${esc(x.h1 || '')}${x.h2 ? `<small>${esc(x.h2)}</small>` : ''}</span><span class="dl-t">${esc(x.t || x.txt || '')}</span></li>`).join('')}</ol></div>`
+      : '';
+  return (
+    `<div class="card stc"><div class="row" style="gap:6px;flex-wrap:wrap"><span class="tag">Stage</span><span class="tag ${ouvert ? 'padel' : ''}">${ouvert ? 'Inscriptions ouvertes' : 'Inscriptions closes'}</span>${p.mur === false ? '<span class="tag">Hors du mur</span>' : ''}</div>` +
+    `<div class="row" style="align-items:flex-start;gap:12px"><span class="grow"><span class="stt">${p.title}</span>${p.body ? `<br><span class="muted small">${p.body}</span>` : ''}</span>${staff ? `<button class="btn ghost" data-a="pedit" data-id="${p.id}">${ic('edit')}Modifier</button>` : ''}</div>` +
+    `<div class="stg">${tuile('cal', 'Date', esc(date))}${tuile('clock', 'Horaires', esc(heures))}${tuile('pin', 'Lieu', esc(p.place || ''))}${tuile('euro', 'Tarif', esc(typeof prixTxt === 'function' ? prixTxt(p) : ''))}${tuile('user', 'Encadrant', esc(typeof ensTxt === 'function' ? ensTxt(p) : ''))}${tuile('users', 'Places', places)}</div>` +
+    frise +
+    `<div class="ecacts">${p.mur === false && (isAdmin() || p.by === ME()) ? `<button class="btn grow" data-a="promo" data-id="${p.id}">${ic('send')}Promouvoir sur le mur</button>` : ''}<button class="btn ghost" data-a="stIns" data-id="${p.id}">${ic('users')}Voir les inscrits</button><button class="ib" data-a="open" data-v="post" data-id="${p.id}" aria-label="Ouvrir la fiche du stage">${ic('more')}</button></div></div>`
+  );
+}
+A.stIns = d => {
+  const p = posts.find(x => x.id === d.id);
+  if (!p) return;
+  const l = (p.ins || []).filter(k => M[k]),
+    y = p.yes || 0;
+  sheet(
+    'Inscrits · ' + String(p.title).replace(/<[^>]*>/g, ''),
+    `<div class="body">${
+      l.length
+        ? l
+            .map(
+              k =>
+                `<button class="item" data-a="member" data-id="${k}">${av(k, 'sm')}<span class="grow"><span class="nm">${esc(M[k].n)}</span></span></button>`
+            )
+            .join('')
+        : `<p class="muted">${y ? y + ' inscrit' + pl(y, '', 's') + ' : la liste nominative n’est pas disponible.' : 'Aucun inscrit pour l’instant.'}</p>`
+    }</div>`
+  );
+};
+
+/* colonnes de droite de l'École, vue enseignant (grand écran) */
+function ecoleSideEns(t) {
+  const me = ME(),
+    mine = GROUPS.filter(g => g.type === 'train' && g.coach === me && grpLive(g));
+  if (t === 'mine') {
+    let sel = S.appelSel && grp(S.appelSel.g) ? { g: grp(S.appelSel.g), d: S.appelSel.d } : null;
+    if (!sel) {
+      const g = mine.find(x => sessions(x, 1).includes(TODAY) && !(x.cancel || []).includes(TODAY));
+      if (g) sel = { g, d: TODAY };
+    }
+    const sem = [0, 1, 2, 3, 4, 5, 6]
+      .map(i => isoIn(i))
+      .map(d => {
+        const l = mine.filter(g => sessions(g, 7).includes(d)),
+          cx = l.filter(g => (g.cancel || []).includes(d)).length,
+          txt = l.length
+            ? l.length + ' séance' + pl(l.length, '', 's') + (cx ? ' · ' + cx + ' annulée' + pl(cx, '', 's') : '')
+            : 'Pas de séance';
+        return `<div class="item"><span class="grow"><span class="nm">${fmtD(d)}</span><br><span class="muted small">${txt}</span></span>${cx ? '<span class="tag hot">Annulée</span>' : ''}</div>`;
+      });
+    return (
+      (sel ? `<div class="card ecs">${appelBox(sel.g, sel.d)}</div>` : '') +
+      `<div class="card ecs"><div class="calh">${ic('cal')}<b>Cette semaine</b></div>${sem.join('')}</div>`
+    );
+  }
+  if (t === 'manage') {
+    const el = new Set(mine.flatMap(elevesDe)),
+      // séances faites depuis la rentrée (1er septembre) : celles du cycle, ou à défaut celles du créneau
+      rentree = (TODAY.slice(5) >= '09-01' ? TODAY.slice(0, 4) : String(+TODAY.slice(0, 4) - 1)) + '-09-01',
+      faitesDe = g => {
+        let n = 0;
+        for (let d = g.from && g.from > rentree ? g.from : rentree; d <= TODAY; d = isoIn(1, d))
+          if (trainOn(g, d) && !(g.cancel || []).includes(d)) n++;
+        return n;
+      },
+      faites = mine.reduce((a, g) => a + (cycleInfo(g) ? cycleInfo(g).faites : faitesDe(g)), 0),
+      fin = mine.filter(g => {
+        const E = cycleInfo(g);
+        return E && E.seances.filter(x => x.etat === 'next').length <= 1;
+      }),
+      ext = mine.reduce((a, g) => a + (g.ext || []).length, 0),
+      todo = [
+        ...fin.map(
+          g =>
+            `<button class="item" data-a="open" data-v="grp" data-id="${g.id}"><span class="grow"><span class="nm">Renouveler le cycle</span><br><span class="muted small">${esc(g.name)}</span></span></button>`
+        ),
+        ...mine
+          .filter(g => sessions(g, 1).includes(TODAY) && !(g.cancel || []).includes(TODAY))
+          .map(
+            g =>
+              `<button class="item" data-a="appel" data-id="${g.id}" data-d="${TODAY}"><span class="grow"><span class="nm">Faire l’appel</span><br><span class="muted small">${esc(g.name)} · ${esc(g.h || '')}</span></span></button>`
+          ),
+        ...(ext
+          ? [
+              `<div class="item"><span class="grow"><span class="nm">Inviter ${ext} élève${pl(ext, '', 's')} sans compte</span><br><span class="muted small">Ils pourront annoncer leur présence</span></span></div>`
+            ]
+          : [])
+      ];
+    return (
+      `<div class="card ecs"><div class="calh">${ic('school')}<b>Ma saison</b></div><div class="ecn"><span><b>${mine.length}</b>groupe${pl(mine.length, '', 's')}</span><span><b>${el.size}</b>élève${pl(el.size, '', 's')}</span><span class="ac"><b>${faites}</b>séance${pl(faites, '', 's')} faite${pl(faites, '', 's')}</span></div></div>` +
+      (todo.length
+        ? `<div class="card ecs"><div class="calh">${ic('bell')}<b>À faire</b><span class="grow"></span><span class="tag ac">${todo.length}</span></div>${todo.join('')}</div>`
+        : '')
+    );
+  }
+  if (t === 'stages') {
+    const st = posts.filter(p => p.stage && !p.arch),
+      p = st[0];
+    if (!p) return '';
+    const y = (p.yes || 0) + (p.my === 'yes' ? 1 : 0),
+      m = (p.maybe || 0) + (p.my === 'maybe' ? 1 : 0),
+      cap = p.cap || 0,
+      autres = st
+        .slice(1)
+        .map(
+          x =>
+            `<button class="item" data-a="open" data-v="post" data-id="${x.id}"><span class="grow"><span class="nm">${x.title}</span><br><span class="muted small">${esc(x.date || '')}</span></span></button>`
+        );
+    return (
+      `<div class="card ecs"><div class="calh">${ic('users')}<b>Inscriptions</b>${p.close ? `<span class="grow"></span><span class="tag">Clôture ${fmtD(p.close)}</span>` : ''}</div><div class="gpt"><b>${y}</b><span>${cap ? '/ ' + cap + ' places' : 'inscrit' + pl(y, '', 's')}</span></div>${cap ? `<span class="gbt"><i style="width:${Math.min(100, Math.round((100 * y) / cap))}%"></i></span>` : ''}<div class="ecn"><span><b>${y}</b>inscrit${pl(y, '', 's')}</span><span><b>${m}</b>peut-être</span>${cap ? `<span><b>${Math.max(0, cap - y)}</b>libre${pl(cap - y, '', 's')}</span>` : ''}</div></div>` +
+      (autres.length
+        ? `<div class="card ecs"><div class="calh">${ic('star')}<b>Autres stages</b></div>${autres.join('')}</div>`
+        : '')
+    );
+  }
+  return '';
+}
+/* l'École sur grand écran : colonne de droite selon l'onglet pour l'enseignant ; l'adhérent garde la sienne */
+const ecoleEnsView = V.ecole;
+V.ecole = () => {
+  const prof = S.role === 'coach' || !!S.super || isAdmin(),
+    t = S.ecTab;
+  if (!wideNav() || !prof || !['mine', 'manage', 'stages'].includes(t)) return ecoleEnsView();
+  // l'enseignant : sa colonne remplace celle de l'adhérent
+  const h = ecolePageView(),
+    side = ecoleSideEns(t),
+    i = h.indexOf('<div class="pad">');
+  if (!side || i < 0) return ecoleEnsView();
+  return (
+    h.slice(0, i) +
+    `<div class="bento2"><div class="bmain">${h.slice(i)}</div><aside class="bside">${side}</aside></div>`
+  );
+};
+
+/* =========================================================================
+   Contrôle du designer contre Figma (10/11/2026) : corrections
+   ========================================================================= */
+/* le sous-menu porte la section, l'en-tête porte l'entrée active (avec un surtitre de contexte) */
+const SECTION = { chans: 'Groupes', agenda: 'Agenda', ecole: 'École', club: 'Le club', me: 'Profil' };
+const ENTREE = {
+  chans: () => ({ club: 'Groupes du club', train: 'Entraînements', team: 'Équipes' })[S.chanTab],
+  agenda: () => (S.plan.scope === 'me' ? 'Mon agenda' : 'Agenda du club'),
+  ecole: () =>
+    ({
+      mine: 'Mes cours',
+      perso: 'Mon espace',
+      profs: 'Enseignants',
+      stages: 'Stages',
+      coll: 'Collectifs',
+      manage: 'Mes groupes'
+    })[S.ecTab],
+  club: () => ({ teams: 'Équipes', adh: 'Adhérents', bar: 'Le bar', club: 'Le club' })[S.clubTab]
+};
+Object.keys(ENTREE).forEach(k => {
+  const base = TITLES[k];
+  if (!base) return;
+  TITLES[k] = () => {
+    const [t, s] = base(),
+      e = ENTREE[k]();
+    return [e || t, s];
+  };
+});
+/* le sous-menu (grand écran) : la section en titre, le club en surtitre ; et les actions de la page dans l'en-tête */
+const railBase = ramRail;
+ramRail = function (t, sub) {
+  railBase(SECTION[S.tab] && !S.stack.length ? SECTION[S.tab] : t, esc(club().short || club().name));
+  topActions();
+};
+function topActions() {
+  const top = $('top');
+  if (!top) return;
+  // Accueil (grand écran) : le bandeau de démonstration en tête de la colonne principale
+  const mc = $('main').querySelector('.murc'),
+    lone = $('main').querySelector(':scope > .pad:first-child');
+  if (wideNav() && mc && lone && lone.nextElementSibling && lone.nextElementSibling.classList.contains('murg')) {
+    lone.classList.add('murtop');
+    mc.prepend(lone);
+  }
+  top.querySelectorAll('.topact').forEach(e => e.remove());
+  if (!wideNav() || S.stack.length) return;
+  const v = view().v,
+    prof = S.role === 'coach' || !!S.super || isAdmin();
+  let h = '';
+  if (v === 'home' && canPublish() && !pending()) h = `<button class="btn" data-a="plus">${ic('plus')}Publier</button>`;
+  if (v === 'chans' && isAdmin())
+    h = `<button class="btn" data-a="newPost" data-k="chan">${ic('plus')}Créer un groupe</button>`;
+  if (v === 'ecole' && S.ecTab === 'mine' && !prof)
+    h = `<button class="btn" data-a="seg" data-k="ecTab" data-val="profs">${ic('plus')}Réserver un cours</button>`;
+  if (v === 'ecole' && S.ecTab === 'manage' && (S.role === 'coach' || S.super))
+    h = `<button class="btn" data-a="newPost" data-k="train">${ic('plus')}Créer un groupe</button>`;
+  if (v === 'ecole' && S.ecTab === 'stages' && isAdmin())
+    h = `<button class="btn" data-a="newPost" data-k="stage">${ic('plus')}Créer un stage</button>`;
+  if (v === 'club' && S.clubTab === 'bar')
+    h = `<button class="btn ghost" data-a="barMine">${ic('cal')}Mes réservations</button>`;
+  const box = document.createElement('div');
+  box.className = 'topact';
+  box.innerHTML = h;
+  // Agenda : les vues (Événements, Semaine, Jour) passent dans l'en-tête
+  if (v === 'agenda') {
+    const m = $('main').querySelector('.plan-modes');
+    if (m) box.prepend(m);
+  }
+  if (!box.childElementCount) return;
+  const bell = top.querySelector('[data-a="notifs"]');
+  top.insertBefore(box, top.querySelector('.favb') || bell || null);
+}
+A.barMine = () => {
+  const e = document.querySelector('.bside .ecs .kicker, .bside [data-resa]');
+  if (e) e.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+/* Accueil : le bandeau de démonstration en tête de la colonne principale */
+const homeView = V.home;
+V.home = () => {
+  let h = homeView();
+  if (!wideNav() || !h.startsWith('<div class="pad">')) return h;
+  const e = sectionAt(h, 'div', 0),
+    m = h.indexOf('<div class="murc">', e);
+  if (e < 0 || m < 0) return h;
+  const inner = h.slice('<div class="pad">'.length, e - '</div>'.length);
+  return (
+    h.slice(e, m + '<div class="murc">'.length) +
+    `<div class="murtop">${inner}</div>` +
+    h.slice(m + '<div class="murc">'.length)
+  );
+};
+
+/* Groupes : sourdine et suppression dans un menu « … » ; pastille de non-lus sur chaque entrée du sous-menu */
+const chansRowView = V.chans;
+V.chans = () => {
+  let h = chansRowView();
+  chans.forEach(c => {
+    const a = muteBtn(c),
+      b = typeof chanDelBtn === 'function' ? chanDelBtn(c) : '';
+    if (!h.includes(a)) return;
+    h = h.replace(
+      a + b,
+      `<button class="ib" data-a="chMenu" data-id="${c.id}" aria-label="Options de ${esc(c.name)}">${ic('more')}</button>`
+    );
+  });
+  ['club', 'train', 'team'].forEach(k => {
+    const n = chans.filter(c => c.g === k && chanOk(c) && !c.mute).reduce((a, c) => a + (c.un || 0), 0);
+    if (n)
+      h = h.replace(new RegExp(`(data-val="${k}">[\\s\\S]*?)</button>`), `$1<span class="cnt">${n}</span></button>`);
+  });
+  return h;
+};
+A.chMenu = d => {
+  const c = chans.find(x => x.id === d.id);
+  if (!c) return;
+  const del = typeof chanDelBtn === 'function' && chanDelBtn(c);
+  sheet(
+    esc(c.name),
+    `<div class="body"><div class="menu"><button data-a="mute" data-id="${c.id}" data-close="1">${ic(c.mute ? 'sound' : 'mute')}${c.mute ? 'Réactiver les notifications' : 'Mettre en sourdine'}</button>${del ? `<button class="danger" data-a="chanDel" data-id="${c.id}">${ic('trash')}Supprimer le groupe</button>` : ''}</div></div>`
+  );
+};
+const muteApp = A.mute;
+A.mute = (d, el) => {
+  if (d && d.close) closeSheet();
+  return muteApp(d, el);
+};
+
+/* Bar : le texte d'explication se replie */
+const barTexte = barView;
+barView = function () {
+  let h = barTexte();
+  const i = h.indexOf('<p class="muted small">Réserve ton repas');
+  if (i >= 0) {
+    const j = h.indexOf('</p>', i) + 4;
+    h =
+      h.slice(0, i) +
+      `<details class="more barhow"><summary>${ic('info')}Comment réserver</summary><div class="in">${h.slice(i, j)}</div></details>` +
+      h.slice(j);
+  }
+  return h;
+};
+
+/* Profil : le nom sur une seule ligne */
+const profilNom = V.me;
+V.me = () => profilNom().replace(/(<div class="mehead">[\s\S]*?<h2 class="tilt">[^<]*)<br>/, '$1 ');

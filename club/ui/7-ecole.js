@@ -43,9 +43,7 @@ function sessCard(g, iso, who, manage) {
       (cx || !who
         ? ''
         : `<div class="ctl"><button class="btn sm grow ${r === 'ok' ? '' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${who}" data-s="ok">${ic('check')}${who === ME() ? 'Je serai présent' : first(who) + ' sera présent'}</button><button class="btn sm grow ${r === 'no' ? 'hot' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${who}" data-s="no">${ic('x')}Absent</button></div>`) +
-      (manage
-        ? `<span class="muted small">${nOk} présent${nOk > 1 ? 's' : ''} annoncé${nOk > 1 ? 's' : ''} · ${nNo} absent${nNo > 1 ? 's' : ''} · ${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.ext && g.ext.length ? ' dont ' + g.ext.length + ' sans compte' : ''}</span><div class="ecacts"><button class="ecact go" data-a="open" data-v="grp" data-id="${g.id}">${ic('check')}Appel</button>${cx ? '' : `<button class="ecact" data-a="loc" data-g="${g.id}" data-d="${iso}">${ic(loc === 'En salle' ? 'sun' : 'home')}${loc === 'En salle' ? 'Passer en extérieur' : 'Passer en salle'}</button>`}<button class="ecact warn" data-a="cancelCourse" data-id="${g.id}" data-d="${iso}">${ic(cx ? 'undo' : 'ban')}${cx ? 'Rétablir le cours' : 'Annuler le cours'}</button><button class="ecact del" data-a="delCourse" data-id="${g.id}" data-d="${iso}">${ic('trash')}Supprimer</button></div>`
-        : '')
+      (manage ? (typeof sessFootEns === 'function' ? sessFootEns(g, iso, cx, loc, nOk, nNo) : '') : '')
   });
 }
 /* « Premiers pas » du bureau : 5 étapes cochées toutes seules, chacune ouvre son écran ; disparaît quand tout est fait */
@@ -188,9 +186,10 @@ function ecoleBody(t) {
     b =
       (st.length
         ? st
-            .map(
-              p =>
-                `<div class="card"><div class="row"><span class="h3 grow">${p.title}</span>${staff ? `<button class="btn sm ghost" data-a="pedit" data-id="${p.id}">${ic('edit')}Modifier</button>` : ''}</div><p class="muted small">${p.body}</p>${evBox(p)}</div>`
+            .map(p =>
+              typeof stageCardEns === 'function'
+                ? stageCardEns(p, staff)
+                : `<div class="card"><div class="row"><span class="h3 grow">${p.title}</span>${staff ? `<button class="btn sm ghost" data-a="pedit" data-id="${p.id}">${ic('edit')}Modifier</button>` : ''}</div><p class="muted small">${p.body}</p>${evBox(p)}</div>`
             )
             .join('')
         : empty('ball', 'Aucun stage prévu', '')) +
@@ -223,9 +222,10 @@ function ecoleBody(t) {
         ? `<button class="btn full" data-a="newPost" data-k="train">${ic('plus')}Créer un groupe</button>`
         : '<div class="note">Les groupes d\'entraînement sont créés par les enseignants.</div>') +
       gs
-        .map(
-          g =>
-            `<button class="card grpc" data-a="open" data-v="grp" data-id="${g.id}"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${g.coach && M[g.coach] && !String(g.sub || '').includes(first(g.coach)) ? esc(first(g.coach)) + ' · ' : ''}${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'En salle'}</span>${cycleBar(g)}</button>`
+        .map(g =>
+          typeof grpCardEns === 'function'
+            ? grpCardEns(g)
+            : `<button class="card grpc" data-a="open" data-v="grp" data-id="${g.id}"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${g.coach && M[g.coach] && !String(g.sub || '').includes(first(g.coach)) ? esc(first(g.coach)) + ' · ' : ''}${grpN(g)} élève${grpN(g) > 1 ? 's' : ''}${g.max ? ' sur ' + g.max : ''} · ${g.sub || DAYS[g.day] + ' ' + g.h} · ${g.defLoc || 'En salle'}</span>${cycleBar(g)}</button>`
         )
         .join('') +
       (gs.length
