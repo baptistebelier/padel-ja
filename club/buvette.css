@@ -340,7 +340,7 @@
   .topact .btn { min-height: 44px !important; height: 44px; padding: 0 16px !important; }
   .topact .plan-modes { margin: 0 !important; box-shadow: var(--sh-sm); width: auto !important; border: 0 !important; }
   .topact .plan-modes .fbtn { display: none !important; }
-  .top h1 { flex: 0 1 auto !important; }
+  .top h1 { flex: 1 1 auto !important; }
   /* le bandeau de démonstration en tête de la colonne principale, et le mur sur toute la largeur */
   #main > .murg { max-width: 1288px !important; margin: 0 !important; width: 100%; padding: 0 !important; }
   .murtop { margin: 0 0 18px; }

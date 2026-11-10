@@ -42,13 +42,14 @@ function derive(acc, bg) {
 /* Base neutre (maquette Figma « /Buvette v2 », choix de Baptiste) : crème le jour, anthracite gris-bleu la nuit,
    légèrement teintée par la couleur principale du club (TEINTE : part de la couleur du club, [jour, nuit]) */
 const BASE = {
-  true: { bg: '#1C1F24', card: '#2A2E35', card2: '#343941', line: '#454B55', fg: '#F2F0EB', muted: '#C7CAD1' },
+  // nuit : bordeaux validé, jamais teinté par la couleur du club (décision de Baptiste, « Revenir au bordeaux »)
+  true: { bg: '#2A1B21', card: '#46303A', card2: '#533A45', line: '#5C4450', fg: '#F7EFF0', muted: '#DCCBD0' },
   false: { bg: '#F1ECE3', card: '#FFFCF7', card2: '#F6F1E8', line: '#E3DDD2', fg: '#16191E', muted: '#5B606B' }
 };
-const TEINTE = { bg: [0.07, 0.1], card: [0.025, 0.07], card2: [0.05, 0.08], line: [0.08, 0.1] };
+const TEINTE = { bg: [0.07, 0], card: [0.025, 0], card2: [0.05, 0], line: [0.08, 0] };
 /* héros et surtitres sans couleur de club réglée */
-const HERO_BASE = { true: '#3B4250', false: '#2A2F38' },
-  KICK_BASE = { true: '#FF94AD', false: '#B0123F' };
+const HERO_BASE = { true: '#74102A', false: '#2A2F38' },
+  KICK_BASE = { true: '#FF6B8E', false: '#B0123F' };
 // rose /RAM (maquette Figma) pour le direct et le danger, texte foncé dessus ; vert pour le padel
 const HOT = '#FF3D6B',
   PADEL = '#9BD43C';
@@ -78,7 +79,7 @@ function setTheme(i) {
   r.setProperty('--hero', hero);
   r.setProperty('--on-hero', onColor(hero));
   r.setProperty('--hero-sh', accs.find(x => x.toLowerCase() !== hero.toLowerCase()) || '#E0F50A');
-  r.setProperty('--kick', main ? derive(main, c.bg || b.bg).col : KICK_BASE[dk]);
+  r.setProperty('--kick', main && !dk ? derive(main, c.bg || b.bg).col : KICK_BASE[dk]);
   /* menus (refonte Figma) : couleur principale du club si elle est foncée, bordeaux /RAM sinon ;
      sous-menu plus sombre ; élément actif à la couleur d'accent, citron si elle se confond avec le menu */
   const menu = main && lum(main) < 0.2 ? main : '#74102A',
