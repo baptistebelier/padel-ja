@@ -420,14 +420,14 @@ test('Coach : Tableau de bord et Statistiques, planning en colonnes, un jour sur
     page.on('pageerror', x => errs.push(x.message));
     await page.goto(JA + '/club/coach.html');
     await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
-    assert.deepEqual(await page.evaluate(() => TABBAR.slice(0, 2).map(t => t[2])), ['Tableau de bord', 'Statistiques']);
+    assert.deepEqual(await page.evaluate(() => TABBAR.slice(0, 2).map(t => t[2])), ['Accueil', 'Stats'], 'libellés courts du menu (refonte)');
     assert.equal(await page.locator('.cotile').count(), 4, 'quatre petits chiffres');
     await page.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
     await page.waitForSelector('.cowg');
     assert.equal(await page.locator('.cowj').count(), 7, 'les 7 jours, sur téléphone comme sur ordinateur');
-    assert.ok(await page.locator('.cotopact [data-a="coNewSes"]').isVisible(), 'action en haut');
+    assert.ok(await page.locator(w > 1000 ? '.topact [data-a="coNewSes"]' : '.cotopact [data-a="coNewSes"]').isVisible(), 'action en haut (dans l’en-tête sur grand écran)');
     const hauts = await page.$$eval('.cotopact .btn', l => [...new Set(l.map(x => Math.round(x.getBoundingClientRect().top)))]);
-    assert.equal(hauts.length, 1, 'les 4 boutons sur une seule ligne');
+    assert.equal(hauts.length, 1, 'les boutons sur une seule ligne');
     assert.ok(await page.$$eval('.cowb', l => l.every(x => x.getBoundingClientRect().width > 8)), 'des cours lisibles');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
     if (w < 500) {
@@ -599,8 +599,8 @@ test('Coach : le volet du menu suit le doigt, comme /RAM JA', async () => {
   assert.equal(Math.round(await pos()), -100);
   await touch('touchend', 150);
   assert.equal(await ouvert(), false);
-  // le bouton du menu fonctionne toujours
-  await page.click('.cobar-btn');
+  // refonte : « Plus », dans la barre du bas, ouvre aussi le volet
+  await page.click('#tabs .coplus');
   assert.equal(await ouvert(), true);
   assert.deepEqual(errs, []);
   await ctx.close();
@@ -726,8 +726,9 @@ test('Coach : toute la largeur sur ordinateur, club dans l’en-tête, chiffres 
   await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
   for (const t of ['eleves', 'clubs', 'dash']) {
     await page.evaluate(x => { S.stack = []; A.tab({ t: x }); }, t);
-    await page.waitForFunction(() => document.querySelector('#main > .pad'));
-    const larg = await page.evaluate(() => [document.querySelector('#main > .pad').getBoundingClientRect().width, document.querySelector('#main').getBoundingClientRect().width]);
+    // refonte : la page peut être en deux colonnes (.cobento)
+    await page.waitForFunction(() => document.querySelector('#main > .pad, #main > .cobento'));
+    const larg = await page.evaluate(() => [document.querySelector('#main > .pad, #main > .cobento').getBoundingClientRect().width, document.querySelector('#main').getBoundingClientRect().width]);
     assert.ok(larg[0] >= larg[1] - 2, t + ' : toute la largeur');
   }
   // plusieurs clubs : le choix est dans l'en-tête, plus de pastilles
@@ -856,7 +857,7 @@ test('Coach : participants d’une séance, Mes groupes, Suivi, formule d’un g
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
   // navigation
-  assert.deepEqual(await page.evaluate(() => TABBAR.map(t => t[2]).filter(t => /Suivi|Mes /.test(t))), ['Suivi', 'Mes groupes']);
+  assert.deepEqual(await page.evaluate(() => TABBAR.map(t => t[2]).filter(t => /Suivi|Groupes/.test(t))), ['Suivi', 'Groupes'], 'libellés courts du menu (refonte)');
   // participants
   const r = await page.evaluate(() => { const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x) && coStu(x).length), d = coDates(g, isoIn(-40), TODAY).slice(-1)[0], k = coStu(g)[0]; S.stack = [{ v: 'seance', id: g.id + '.' + d }]; render(); return { id: g.id + '.' + d, k, g: g.id }; });
   await page.waitForSelector('[data-a="coSesRm"]');
@@ -1206,11 +1207,16 @@ test('Coach : raccourcis en haut, carte commune, jour épinglé, paiements à su
   await page.goto(JA + '/club/coach.html');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coPayTodo === 'function');
   await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); A.tab({ t: 'today' }); });
-  await page.waitForSelector('.coshort');
-  assert.ok(await page.evaluate(() => { const r = document.querySelector('.coshort'), c = document.querySelector('.cotiles'); return r.compareDocumentPosition(c) & 4; }), 'raccourcis avant les chiffres');
-  const short = await page.locator('.coshort').innerText();
-  for (const x of ['stage', 'séance collective', 'animation', 'à un élève', 'à un groupe', 'contenu']) assert.ok(short.toLowerCase().includes(x), x);
-  assert.ok(!short.includes('Statistiques'), 'plus de raccourci Statistiques');
+  // refonte : trois raccourcis et « Plus », avant les chiffres ; les autres raccourcis dans « Plus »
+  await page.waitForSelector('.coshort3');
+  assert.ok(await page.evaluate(() => { const r = document.querySelector('.coshort3'), c = document.querySelector('.cotiles'); return r.compareDocumentPosition(c) & 4; }), 'raccourcis avant les chiffres');
+  const trois = (await page.locator('.coshort3').textContent()).toLowerCase();
+  for (const x of ['séance collective', 'à un groupe', 'contenu', 'plus']) assert.ok(trois.includes(x), x);
+  await page.click('.coshort3 [data-a="coShortMore"]');
+  const short = (await page.locator('#sheet').textContent()).toLowerCase();
+  for (const x of ['stage', 'animation', 'à un élève', 'formulaires']) assert.ok(short.includes(x), x);
+  assert.ok(!short.includes('statistiques'), 'plus de raccourci Statistiques');
+  await page.evaluate(() => closeSheet());
   // un élève fictif avec un paiement dû : il se sélectionne et se retire, l'achat reste
   await page.evaluate(() => { const k = coStudents()[0], e = coElGet(k); e.achats = [{ id: 'hz', t: 'pack', ref: 'p1', d: TODAY, nom: 'Pack essai', n: 3, prix: 90, pay: { ech: [{ s: 0, m: 90, ok: '' }] } }]; window.kz = k; A.tab({ t: 'asuivi' }); });
   await page.click('[data-a="coSelModeP"]');

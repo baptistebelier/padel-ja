@@ -1,0 +1,116 @@
+/* =========================================================================
+   /Dojo — refonte de l'agencement (maquette Figma « Refonte /Dojo », validée par Baptiste)
+   Chargée après coach.css, uniquement par coach.html. Mêmes principes que club/buvette.css :
+   en-tête surtitre + grand titre + actions, menu principal sombre (« /Dojo »), sous-menu bordeaux,
+   élément actif carré citron ; au téléphone, barre du bas à 5 entrées.
+   ========================================================================= */
+:root { --dj-rail: #22060F; --dj-sub: #74102A; }
+:root[style*='color-scheme: light'] { --dj-rail: #2A0610; --dj-sub: #74102A; }
+
+/* ---------- en-tête : surtitre au-dessus du titre ---------- */
+#phone .top h1 { display: flex !important; flex-direction: column-reverse; justify-content: center; gap: 6px; white-space: normal; line-height: 1.12 !important; font-style: normal !important; flex: 1 1 auto !important; }
+#phone .top h1 .sub { color: var(--hot-tx, #FF94AD) !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .2em !important; text-transform: uppercase; margin: 0 !important; background: none !important; transform: none !important; padding: 0 !important; }
+.toplogo { display: none !important; }
+.topact { display: none; }
+
+/* ---------- téléphone ---------- */
+@media (max-width: 1023px) {
+  .cobar { display: none !important; }
+  .top > .ib[data-a='notifs'] { display: grid !important; }
+  #phone .top h1 { font-size: 26px !important; }
+  /* barre du bas : Accueil, Planning, Élèves, Messages, Plus */
+  #phone .tabs {
+    display: flex !important; position: fixed !important; left: 0 !important; right: 0 !important; bottom: 0 !important; top: auto !important; width: auto !important; height: auto !important;
+    z-index: 8; background: var(--dj-rail) !important; border: 0 !important; border-top: var(--bw, 2px) solid #000 !important; border-radius: 0 !important; box-shadow: none !important;
+    padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px)) !important; gap: 4px !important; flex-direction: row !important; align-items: stretch !important;
+  }
+  #phone .tabs::before, #phone .tabs .pill { display: none !important; }
+  #phone .tabs > button[data-t="dash"], #phone .tabs > button[data-t="asuivi"], #phone .tabs > button[data-t="clubs"], #phone .tabs > button[data-t="me"] { display: none !important; }
+  #phone .tabs > button { flex: 1 1 0 !important; width: auto !important; min-height: 54px !important; flex-direction: column !important; gap: 4px !important; justify-content: center; padding: 4px 2px !important; color: #F7EFF0 !important; background: transparent !important; border: var(--bw, 2px) solid transparent !important; box-shadow: none !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .04em !important; text-transform: uppercase !important; }
+  #phone .tabs > button svg { width: 22px !important; height: 22px !important; color: #F7EFF0 !important; }
+  #phone .tabs > button[aria-current="page"] { background: #E0F50A !important; color: #1A0509 !important; border-color: #000 !important; box-shadow: 2px 2px 0 #000 !important; }
+  #phone .tabs > button[aria-current="page"] svg { color: #1A0509 !important; }
+  #main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+  /* sous-menu : bande bordeaux collée sous l'en-tête */
+  #main > .seg:not(.haut) { position: sticky !important; top: 0; z-index: 4; margin: 0 0 14px !important; padding: 10px 12px !important; background: var(--dj-sub) !important; border: 0 !important; border-top: var(--bw, 2px) solid #000 !important; border-bottom: var(--bw, 2px) solid #000 !important; box-shadow: none !important; gap: 6px !important; overflow-x: auto; border-radius: 0 !important; -webkit-mask-image: none !important; mask-image: none !important; }
+  #main > .seg:not(.haut) button { flex: 0 0 auto !important; flex-direction: column !important; gap: 4px !important; min-height: 52px !important; padding: 6px 10px !important; border: var(--bw, 2px) solid transparent !important; background: transparent !important; color: #F7EFF0 !important; box-shadow: none !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .06em !important; text-transform: uppercase !important; position: relative; }
+  #main > .seg:not(.haut) button .lb { display: block !important; }
+  #main > .seg:not(.haut) button[aria-selected="true"] { background: #E0F50A !important; color: #1A0509 !important; border-color: #000 !important; box-shadow: 2px 2px 0 #000 !important; }
+  .coshort3 { grid-template-columns: 1fr 1fr auto !important; }
+  .coshort3 [data-a="coContentPick"] { display: none !important; }
+}
+
+/* ---------- iPad paysage et ordinateur ---------- */
+@media (min-width: 1024px) {
+  :root { --side: 92px; --sub: 224px; }
+  .phone.subfold { --sub: 52px; }
+  /* menu principal : sombre, « /Dojo » en tête, libellés en majuscules, actif carré citron */
+  #phone .tabs, :root[style*='color-scheme: light'] #phone .tabs { background: var(--dj-rail) !important; border-right: var(--bw, 2px) solid #000 !important; padding-top: calc(78px + env(safe-area-inset-top, 0px)) !important; gap: 6px !important; }
+  #phone .tabs::before { content: '/Dojo' !important; background: none !important; display: block !important; position: absolute; left: 0; right: 0; top: calc(18px + env(safe-area-inset-top, 0px)) !important; width: auto !important; height: auto !important; text-align: center; color: #E0F50A; font-family: var(--f-display); font-size: 22px; line-height: 1; }
+  #phone .tabs > button[data-t] { width: 74px !important; min-height: 56px !important; color: #F7EFF0 !important; background: transparent !important; border: var(--bw, 2px) solid transparent !important; box-shadow: none !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .06em !important; text-transform: uppercase !important; }
+  #phone .tabs > button[data-t] svg { color: #F7EFF0 !important; }
+  #phone .tabs > button[data-t]::before { display: none !important; }
+  #phone .tabs > button[data-t]:hover { background: rgba(255, 255, 255, .08) !important; }
+  #phone .tabs > button[data-t][aria-current="page"] { background: #E0F50A !important; color: #1A0509 !important; border-color: #000 !important; box-shadow: 2px 2px 0 #000 !important; }
+  #phone .tabs > button[data-t][aria-current="page"] svg { color: #1A0509 !important; }
+  #phone .tabs .coplus { display: none !important; }
+  .rbot button { color: #F7EFF0 !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 12px !important; letter-spacing: .06em !important; text-transform: uppercase !important; }
+  .rbot button svg { color: #F7EFF0 !important; }
+  .rbot button[data-t="me"], .rbot .sep { display: none !important; }
+  /* sous-menu : colonne bordeaux, en-tête (surtitre, titre, bouton ‹), éléments pleine largeur */
+  :is(#main, #subnav) > .seg { background: var(--dj-sub) !important; border-right: var(--bw, 2px) solid #000 !important; padding: calc(18px + env(safe-area-inset-top, 0px)) 12px 24px !important; gap: 6px !important; }
+  :is(#main, #subnav) > .seg .segt { display: grid !important; grid-template-columns: 1fr auto; align-items: start; gap: 2px 8px; padding: 0 0 18px; margin: 0 0 4px; background: transparent !important; border: 0 !important; box-shadow: none !important; }
+  .segt span { grid-column: 1; color: rgba(255, 255, 255, .8) !important; font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .24em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .segt b { grid-column: 1; color: #fff !important; font-family: var(--f-display) !important; font-weight: 400 !important; font-style: normal !important; font-size: 28px !important; line-height: 1 !important; text-transform: uppercase; }
+  .segx { display: grid !important; grid-column: 2; grid-row: 1 / span 2; width: 32px; height: 32px; place-items: center; background: var(--dj-rail); color: #fff; border: var(--bw, 2px) solid #000; box-shadow: 2px 2px 0 #000; cursor: pointer; }
+  .segx svg { width: 18px; height: 18px; color: #fff; }
+  :is(#main, #subnav) > .seg button { min-height: 44px !important; padding: 0 12px !important; gap: 12px !important; color: #fff !important; background: transparent !important; border: var(--bw, 2px) solid transparent !important; box-shadow: none !important; font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 17px !important; letter-spacing: .01em !important; text-transform: none !important; }
+  :is(#main, #subnav) > .seg button::before { display: none !important; }
+  :is(#main, #subnav) > .seg button svg { color: #fff !important; }
+  :is(#main, #subnav) > .seg button[aria-selected="true"] { background: #E0F50A !important; color: #1A0509 !important; border-color: #000 !important; box-shadow: 2px 2px 0 #000 !important; }
+  :is(#main, #subnav) > .seg button[aria-selected="true"] svg { color: #1A0509 !important; }
+  :is(#main, #subnav) > .seg .cnt { position: static !important; margin-left: auto; padding: 1px 6px !important; min-width: 0 !important; height: auto !important; border: var(--bw, 2px) solid #000 !important; border-radius: 0 !important; background: #1A0509 !important; color: #fff !important; font-size: 12px !important; }
+  .phone.subfold :is(#main, #subnav) > .seg { padding: calc(18px + env(safe-area-inset-top, 0px)) 8px 0 !important; overflow: hidden; }
+  .phone.subfold :is(#main, #subnav) > .seg > button, .phone.subfold .segt span, .phone.subfold .segt b { display: none !important; }
+  .phone.subfold .segt { grid-template-columns: 1fr; padding: 0; }
+  .phone.subfold .segx { grid-row: 1; transform: scaleX(-1); }
+  /* en-tête : sans barre, grand titre, actions à droite */
+  #phone .top { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: calc(22px + env(safe-area-inset-top, 0px)) 28px 8px !important; min-height: 92px; align-items: center !important; }
+  #phone .top h1 { font-size: 48px !important; }
+  .topact { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .topact .btn { min-height: 44px !important; padding: 0 16px !important; }
+  .topact .chips, .topact .covue { margin: 0 !important; gap: 0 !important; flex-wrap: nowrap; box-shadow: 2px 2px 0 #000; overflow: visible !important; -webkit-mask-image: none !important; mask-image: none !important; padding: 0 !important; }
+  .topact .chip { border-left-width: 0 !important; box-shadow: none !important; min-height: 40px !important; }
+  .topact .chip:first-child { border-left-width: var(--bw, 2px) !important; }
+
+  #main > * { max-width: 1288px !important; }
+  .cotopact:empty { display: none !important; }
+  /* deux colonnes : contenu à gauche, colonne de droite */
+  .cobento { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); gap: 22px; align-items: start; }
+  .cob2 { grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr); }
+  .cobs { position: sticky; top: 8px; display: flex; flex-direction: column; gap: 18px; }
+  .cobm > .pad { padding: 0 !important; }
+  .cobm .item[aria-current="true"] { background: var(--card2); outline: var(--bw, 2px) solid #000; outline-offset: -2px; }
+}
+/* ---------- Tableau de bord : 3 raccourcis + Plus ---------- */
+.coshort3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; margin-bottom: 18px; }
+.coshort3 .btn { min-height: 46px; justify-content: center; gap: 10px; }
+.card.coshort, .cohd:has(+ .coshort) { display: none !important; }
+/* ---------- Élèves : aperçu ---------- */
+.coprev { display: flex; flex-direction: column; gap: 14px; padding: 18px !important; }
+.coprev .ecacts { display: flex; gap: 10px; flex-wrap: wrap; padding: 0; }
+.coprev .ecacts a.btn { width: 46px; padding: 0 !important; justify-content: center; }
+@media (max-width: 1023px) {
+  .coshort3 { grid-template-columns: 1fr 1fr 64px !important; gap: 10px; }
+  .coshort3 .btn { white-space: nowrap; font-size: 15px !important; padding: 0 10px !important; min-height: 46px !important; }
+  .coshort3 .lx { display: none; }
+  .coshort3 .coplusb { font-size: 0 !important; }
+  .coshort3 .coplusb svg { margin: 0 !important; }
+}
+/* planning : la colonne d'aujourd'hui à peine teintée (seul l'en-tête du jour est citron) */
+.cowl.today { background: rgba(224, 245, 10, .07) !important; }
+@media (min-width: 1024px) {
+  /* Suivi : les chiffres sont dans le surtitre et dans chaque colonne, plus de tuiles */
+  .cotiles.cosuivit { display: none !important; }
+}
+@media (min-width: 1024px) { #main > .cobento { margin: 0 !important; padding: 16px 24px 40px; box-sizing: border-box; max-width: none !important; } }
