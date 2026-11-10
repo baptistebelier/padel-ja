@@ -793,7 +793,7 @@ html, body { background: var(--bg); }
 .phero{background:#5E0A1F!important;color:#fff!important;border:var(--bw) solid var(--ink)!important;box-shadow:6px 6px 0 #E0F50A!important}
 .phero::before,.phero::after{display:none!important}
 .phero .tilt,.phero .muted,.phero h2{color:#fff!important}
-.phero .av{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:#E0F50A!important;color:#1A0509!important;margin:0!important}
+.phero .av{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;color:#1A0509!important;margin:0!important}
 .stats>*{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important;border-radius:var(--rb)!important}
 .tcard[class*="cf"]{box-shadow:var(--sh)!important}
 /* cadres de niveau (bronze, argent, or, diamant, légende) : gardés, mais dessinés en ombre dure de leur couleur sous le trait encre */
@@ -914,7 +914,7 @@ html, body { background: var(--bg); }
 /* P9 paliers (bronze, argent…) encadrés */
 .tier{border:var(--bw) solid var(--ink)!important;border-radius:var(--rb)!important;color:#1A0509!important}
 /* P10 avatar du profil : la photo reste visible (seule la couleur de fond change) */
-.phero .av{background-color:#E0F50A!important}
+.phero .av:not([style*="url("]){background-color:#E0F50A!important}
 /* P11 choix de fonction : sur plusieurs lignes, le choix en cours en citron */
 .card>.chips{flex-wrap:wrap!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important;padding-right:0!important}
 .chip[aria-pressed="true"]{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
@@ -995,3 +995,39 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 .msg .reacts:not(.big){border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important}
 .msg .reacts:not(.big) .react{border:0!important;box-shadow:none!important;background:transparent!important}
 .msg .reacts:not(.big) .react.on{background:var(--accent-bg,#E0F50A)!important;color:var(--on-accent-bg,#1A0509)!important}
+
+/* =========================================================================
+   Revue du 10 novembre (2) : pictos lisibles sur le citron, pastilles et chargement encadrés,
+   dates d'agenda qui ressortent, vues semaine et jour dessinées
+   ========================================================================= */
+/* pictogrammes posés sur un fond citron (ou couleur du club) : toujours foncés */
+:is(.pbi,.tile,.ib.acc,.plus,.send,.addfab,.dblk,.ig-ic,.club-on,.dl-pm,.promo-ck,.un,.bd.ac,.tag.ac,.chip[aria-pressed="true"],.tabs button[aria-current="page"],.btn:not(.ghost):not(.sec):not(.danger),.ajour span,.fp-st.now .fp-card) svg{color:var(--on-accent-bg,#1A0509)!important;stroke:currentColor}
+.pbi,.tile{color:#1A0509!important}
+/* pastilles de nouveautés (nombre, point rouge) : trait encre, carrées en coins droits */
+.cnt,.un,.bar-tabs .cnt,.plan-modes .fbtn .cnt,.tabs .cnt{border:var(--bw) solid var(--ink)!important;border-radius:var(--rpill,0)!important;box-shadow:none!important}
+.cnt{background:#FF3D6B!important;color:#1A0509!important}
+.dot{border:var(--bw) solid var(--ink)!important;border-radius:var(--rpill,0)!important;background:#FF3D6B!important;width:12px!important;height:12px!important}
+/* carré de chargement quand on tire la page vers le bas : trait et ombre encre */
+.ptr{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;border-radius:var(--rb)!important;background:var(--card)!important}
+.ptr i{border-color:var(--ink)!important;border-top-color:transparent!important}
+:root[data-coins="arrondis"] .ptr i{border-radius:50%!important}
+/* dates de l'agenda : grosse étiquette rose pétante, aujourd'hui en citron */
+.evday span{background:#FF3D6B!important;color:#1A0509!important;font-family:var(--f-display)!important;font-weight:400!important;font-size:20px!important;letter-spacing:.03em!important;padding:6px 12px!important;border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;line-height:1.1!important}
+.plc.today .evday span{background:#E0F50A!important}
+.evday{padding:12px 0 10px!important}
+/* légende des couleurs et carrés de type : la couleur de chaque type */
+.sq{border:var(--bw) solid var(--ink)!important;border-radius:0!important}
+.sq.ens,.sq.repas{background:#E0F50A!important}.sq.jeu{background:#9BD43C!important}.sq.ani,.sq.eq{background:#FF3D6B!important}.sq.tour{background:#F2A93B!important}
+.pllegend{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;background:var(--card)!important}
+/* vues semaine et jour : grille encadrée, lignes nettes, séances encadrées, aujourd'hui citron */
+#plan .grid{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh)!important;background:var(--card)!important;overflow:hidden}
+#plan .ghead{border-bottom:var(--bw) solid var(--ink)!important}
+#plan .gday.today{background:#E0F50A!important;color:#1A0509!important}
+#plan .gday.today *{color:#1A0509!important}
+#plan .gcol,#plan .ghours{border-color:color-mix(in srgb,var(--ink) 35%,transparent)!important}
+#plan .gev{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;border-radius:0!important;color:var(--oc,#1A0509)!important;font-weight:700}
+/* bandeau des jours (vue jour) : cases encadrées, aujourd'hui citron, jour choisi encadré en rose */
+.wk .wd{border:var(--bw) solid var(--ink)!important;box-shadow:var(--sh-sm)!important;border-radius:0!important;background:var(--card)!important;color:var(--fg)!important}
+.wk .wd.today{background:#E0F50A!important;color:#1A0509!important}
+.wk .wd[aria-pressed="true"],.wk .wd.on,.wk .wd[aria-current="date"],.wk .wd[aria-selected="true"]{background:#FF3D6B!important;color:#1A0509!important}
+.wk .wd *{color:inherit!important}
