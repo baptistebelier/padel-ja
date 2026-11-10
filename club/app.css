@@ -1259,7 +1259,7 @@ select option{background:var(--card);color:var(--fg)}
 /* tampon « Perf ! » : le surtitre lui laisse la place */
 :has(> .stamp) .kicker{display:block;padding-right:96px}
 /* blocs pleins à la couleur du club : la couleur telle quelle (citron vif de jour comme de nuit), texte au meilleur contraste */
-.ib.acc,.crest,.plus,.dd,.cam,.av.club,.bd.club,.bd.cap,.tag.tennis,.sp,.datepill,.opt[aria-pressed="true"] i,.un,.msg.me .bub,.send,.pafiche,.pbi,.dblk,.rt.tennis,.wl.w,.promo-w.on,.promo-ck,.dl-pm,.club-on,.fp-me,.bd.pin,.card.setup .chk.on,.ig-ic,.ecact.go,.evday span,.rsnum,button.rsj.on,.rsgo{background:var(--accent-bg,var(--accent))!important;color:var(--on-accent-bg,var(--on-accent))!important}
+.ib.acc,.crest,.plus,.dd,.cam,.av.club,.bd.club,.bd.cap,.tag.tennis,.sp,.datepill,.opt[aria-pressed="true"] i,.un,.msg.me .bub,.send,.pafiche,.pbi,.dblk,.rt.tennis,.wl.w,.promo-w.on,.promo-ck,.dl-pm,.club-on,.fp-me,.bd.pin,.card.setup .chk.on,.ig-ic,.ecact.go,.evday span,.rsnum,button.rsj.on,.rsgo{background-color:var(--accent-bg,var(--accent))!important;color:var(--on-accent-bg,var(--on-accent))!important}
 .dots i.on,.bar i,.fr-g i,.ig-bar i.hl{background:var(--accent-bg,var(--accent))!important}
 .ib.acc svg,.plus svg,.send svg,.cam svg,.rsgo svg{color:var(--on-accent-bg,var(--on-accent))!important}
 .ens{--c:var(--accent-bg,var(--accent))!important;--oc:var(--on-accent-bg,var(--on-accent))!important}

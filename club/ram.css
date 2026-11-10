@@ -1031,3 +1031,5 @@ select{-webkit-appearance:none!important;appearance:none!important;padding-right
 .wk .wd.today{background:#E0F50A!important;color:#1A0509!important}
 .wk .wd[aria-pressed="true"],.wk .wd.on,.wk .wd[aria-current="date"],.wk .wd[aria-selected="true"]{background:#FF3D6B!important;color:#1A0509!important}
 .wk .wd *{color:inherit!important}
+/* logo du club (avatar et écusson) : le logo reste visible, sur fond surface */
+.av.club.logo,.crest.logo{background-color:var(--card)!important}
