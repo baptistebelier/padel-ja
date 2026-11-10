@@ -355,3 +355,36 @@
   .bento2 .bmain > .pad > .btn.full[data-k="train"], .bento2 .bmain > .pad > .btn.full[data-k="stage"] { display: none !important; }
 }
 @media (min-width: 1024px) { .topact .plan-modes { padding-right: 0 !important; -webkit-mask-image: none !important; mask-image: none !important; background: none !important; } .topact .plan-modes::after, .topact .plan-modes::before { display: none !important; } .murc > .murtop { padding: 0 !important; max-width: none !important; } }
+
+/* ---------- Contrôle 2 du designer ---------- */
+/* panneau d'appel du téléphone : un seul en-tête (celui de la fenêtre) */
+.sheet .appel > .calh { display: none !important; }
+/* pastilles de non-lus du sous-menu : carrées, comme celles de la barre du bas */
+.seg .cnt { position: static !important; display: inline-grid !important; place-items: center; min-width: 0 !important; width: auto !important; height: auto !important; padding: 1px 6px !important; margin-left: auto; font-size: 12px !important; line-height: 1.3; border: var(--bw) solid var(--ink) !important; border-radius: 0 !important; background: #FF3D6B !important; color: #1A0509 !important; }
+@media (max-width: 1023px) { .seg .cnt { position: absolute !important; top: 2px; right: 2px; margin: 0; } #main > .seg:not(.haut) button { position: relative; } }
+/* le surtitre ne touche plus le titre (accents des majuscules) */
+.top h1 .sub, :root[data-style] .top h1 .sub { margin-bottom: 6px !important; }
+/* Bar : Midi / Soir avec un état actif visible */
+.chip[data-k="m"] { background: var(--bg) !important; color: var(--muted) !important; }
+.chip[data-k="m"][aria-pressed="true"] { background: var(--card) !important; color: var(--fg) !important; box-shadow: inset 0 4px 0 var(--accent-bg, #E0F50A) !important; }
+/* Stages : titre droit ; au téléphone, Modifier devient le carré crayon */
+.stt em, .stt i { font-style: normal !important; color: inherit !important; }
+.stvide { border-top: var(--bw) solid color-mix(in srgb, var(--ink) 12%, transparent); padding-top: 12px; }
+@media (max-width: 1023px) {
+  .stc [data-a="pedit"] { width: 44px; height: 44px; min-height: 44px !important; padding: 0 !important; font-size: 0 !important; flex: none; justify-content: center; }
+  .stc [data-a="pedit"] svg { margin: 0 !important; }
+  .ecacts [data-a="appel"] { flex: 1 1 100% !important; }
+}
+/* Accueil : titres des cartes de droite au modèle École (picto + titre) */
+#main .msb > h3.kicker { font-family: var(--f-sub) !important; font-weight: 700 !important; font-size: 19px !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--fg) !important; }
+#main .msb > h3.kicker svg { width: 20px !important; height: 20px !important; color: var(--kick, currentColor) !important; }
+/* Profil : la corbeille dans la ligne du résultat ; plus de carte dans la carte pour l'investissement */
+.palm .swipe { border: var(--bw) solid var(--ink) !important; background: var(--card) !important; box-shadow: var(--sh-sm) !important; padding-right: 8px; }
+.palm .swipe .res { border: 0 !important; box-shadow: none !important; }
+.palm .swipe .del { margin-left: 0 !important; box-shadow: none !important; }
+#phone #main .bpr .meclub .tcard, #phone #main .bpr .meclub .card { border: 0 !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; }
+/* barre de progression du cycle (plus de 12 séances) : visible, avec ses dates de début et de fin */
+.gcard .cocycb.gbar { display: block !important; height: auto !important; background: none !important; }
+.gcard .gbar .gbt { display: block !important; width: 100%; height: 16px; }
+.gcard .gbar .gbd { display: flex !important; justify-content: space-between; width: 100%; }
+.gcard .gbar .gbd small { font-size: 12px !important; }

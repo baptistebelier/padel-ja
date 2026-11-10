@@ -248,7 +248,8 @@ const pl = (x, a, b) => (x > 1 ? b : a);
 
 /* 7. Mes cours : présences annoncées en compteurs, appel en principal, extérieur et annulation en secondaire,
    supprimer dans le menu « … » */
-function sessFootEns(g, iso, cx, loc, nOk, nNo) {
+var sessFootEns = sessFootEns0;
+function sessFootEns0(g, iso, cx, loc, nOk, nNo) {
   const n = grpN(g),
     sr = Math.max(0, n - nOk - nNo),
     ext = (g.ext || []).length,
@@ -323,7 +324,8 @@ function cycleInfo(g) {
   const c = REGLES.cycleCourant(g, TODAY);
   return c ? REGLES.cycleEtat(g, c, cycleSes(g), TODAY) : null;
 }
-function grpCardEns(g) {
+var grpCardEns = grpCardEns0;
+function grpCardEns0(g) {
   const E = cycleInfo(g),
     n = grpN(g),
     nowS = E && E.seances.find(x => x.etat === 'now'),
@@ -368,7 +370,8 @@ function grpCardEns(g) {
 }
 
 /* 9. Stages : fiche du stage (infos en tuiles, déroulé en frise), inscriptions à droite */
-function stageCardEns(p, staff) {
+var stageCardEns = stageCardEns0;
+function stageCardEns0(p, staff) {
   const y = (p.yes || 0) + (p.my === 'yes' ? 1 : 0),
     tuile = (i, l, v) =>
       v ? `<div class="sti"><span class="pbi">${ic(i)}</span><span><small>${l}</small><b>${v}</b></span></div>` : '',
@@ -409,7 +412,8 @@ A.stIns = d => {
 };
 
 /* colonnes de droite de l'École, vue enseignant (grand écran) */
-function ecoleSideEns(t) {
+var ecoleSideEns = ecoleSideEns0;
+function ecoleSideEns0(t) {
   const me = ME(),
     mine = GROUPS.filter(g => g.type === 'train' && g.coach === me && grpLive(g));
   if (t === 'mine') {
@@ -546,7 +550,8 @@ ramRail = function (t, sub) {
   railBase(SECTION[S.tab] && !S.stack.length ? SECTION[S.tab] : t, esc(club().short || club().name));
   topActions();
 };
-function topActions() {
+var topActions = topActions0;
+function topActions0() {
   const top = $('top');
   if (!top) return;
   // Accueil (grand écran) : le bandeau de démonstration en tête de la colonne principale
@@ -658,3 +663,115 @@ barView = function () {
 /* Profil : le nom sur une seule ligne */
 const profilNom = V.me;
 V.me = () => profilNom().replace(/(<div class="mehead">[\s\S]*?<h2 class="tilt">[^<]*)<br>/, '$1 ');
+
+/* =========================================================================
+   Contrôle 2 du designer (10/11/2026)
+   ========================================================================= */
+/* enseignant = celui qui a des groupes à lui (le bureau de la démo voit l'École comme un adhérent) */
+const enseigne = () => GROUPS.some(g => g.type === 'train' && g.coach === ME() && grpLive(g));
+/* École : la vue enseignant seulement pour qui enseigne ; l'adhérent retrouve sa colonne (enseignant, bilan, vidéo) */
+V.ecole = () => {
+  const t = S.ecTab,
+    prof = enseigne() || ((S.role === 'coach' || !!S.super) && t !== 'mine');
+  let h = prof ? ecolePageView() : ecoleEnsView();
+  // l'introduction « Tes cours des trois prochaines semaines… » ne s'adresse qu'aux élèves
+  if (enseigne() && t === 'mine')
+    h = h.replace(/<p class="muted small">Tes cours des trois prochaines semaines[\s\S]*?<\/p>/, '');
+  if (!wideNav() || !prof || !['mine', 'manage', 'stages'].includes(t)) return h;
+  const side = ecoleSideEns(t),
+    i = h.indexOf('<div class="pad">');
+  if (!side || i < 0) return h;
+  return (
+    h.slice(0, i) +
+    `<div class="bento2"><div class="bmain">${h.slice(i)}</div><aside class="bside">${side}</aside></div>`
+  );
+};
+/* en-tête : « Ajouter une séance » (enseignant) et « Réserver un cours » (adhérent) sur Mes cours */
+const topBase = topActions;
+topActions = function () {
+  topBase();
+  const top = $('top');
+  if (
+    !top ||
+    !wideNav() ||
+    S.stack.length ||
+    view().v !== 'ecole' ||
+    S.ecTab !== 'mine' ||
+    top.querySelector('.topact')
+  )
+    return;
+  const box = document.createElement('div');
+  box.className = 'topact';
+  box.innerHTML = enseigne()
+    ? `<button class="btn" data-a="nvNew" data-m="cours">${ic('plus')}Ajouter une séance</button>`
+    : `<button class="btn" data-a="seg" data-k="ecTab" data-val="profs">${ic('plus')}Réserver un cours</button>`;
+  top.insertBefore(box, top.querySelector('.favb') || top.querySelector('[data-a="notifs"]') || null);
+};
+/* Groupes : l'aide ne parle plus du haut-parleur */
+const chansAide = V.chans;
+V.chans = () =>
+  chansAide().replace(
+    "Le haut-parleur coupe les notifications d'un groupe.",
+    'Le menu « … » d’un groupe le met en sourdine.'
+  );
+/* Bar : plus d'étiquettes Midi / Soir sur chaque plat (le choix Midi / Soir est en haut de la carte) */
+const barTags = barView;
+barView = function () {
+  return barTags().replace(/<span class="tag ghost">(Midi|Soir)<\/span>/g, '');
+};
+/* Mes groupes : groupes sans cycle, la même jauge (fenêtre des dernières et prochaines séances) */
+const grpCardBase = grpCardEns;
+grpCardEns = function (g) {
+  if (cycleInfo(g)) return grpCardBase(g);
+  const all = [],
+    end = g.to || isoIn(180);
+  for (let d = g.from || isoIn(-365); d <= end; d = isoIn(1, d)) if (trainOn(g, d)) all.push(d);
+  const l = g.to
+    ? all
+    : all
+        .filter(d => d < TODAY)
+        .slice(-8)
+        .concat(all.filter(d => d >= TODAY).slice(0, 9));
+  if (!l.length) return grpCardBase(g);
+  const st = d => ((g.cancel || []).includes(d) ? 'cx' : d === TODAY ? 'now' : d < TODAY ? 'done' : 'next'),
+    faites = l.filter(d => ['done', 'now'].includes(st(d))).length,
+    total = l.filter(d => st(d) !== 'cx').length,
+    next = l.find(d => d > TODAY && st(d) !== 'cx'),
+    now = l.includes(TODAY),
+    lab = now ? 'Séance aujourd’hui' : next ? 'Prochaine : ' + fmtD(next) : '',
+    vis =
+      l.length <= 12
+        ? `<div class="cocycb gcases" role="img" aria-label="${faites} séances faites sur ${total}">${l.map(d => `<i class="${st(d)}" title="${fmtD(d)}"></i>`).join('')}</div>`
+        : `<div class="cocycb gbar" role="img" aria-label="${faites} séances faites sur ${total}"><span class="gbt"><i style="width:${Math.round((100 * faites) / Math.max(1, total))}%"></i></span><span class="gbd"><small>${fmtD(l[0])}</small><small>${fmtD(l[l.length - 1])}</small></span></div>`,
+    prog = `<div class="gprog"><div class="gpt"><b>${faites}</b><span>/ ${total} séance${pl(total, '', 's')} faite${pl(faites, '', 's')}</span><span class="grow"></span><small>${lab}</small></div>${vis}<div class="glg"><span><i class="done"></i>Faites</span><span><i class="now"></i>Aujourd’hui</span><span><i class="next"></i>À venir</span></div></div>`;
+  const h = grpCardBase(g),
+    a = h.indexOf('<div class="cocycle">'),
+    e = a >= 0 ? sectionAt(h, 'div', a) : -1;
+  return e > 0 ? h.slice(0, a) + prog + h.slice(e) : h;
+};
+/* Stages : déroulé vide → « Ajouter le déroulé » ; carte « Autres stages » toujours présente */
+const stageBase = stageCardEns;
+stageCardEns = function (p, staff) {
+  let h = stageBase(p, staff);
+  if (!(Array.isArray(p.dl) && p.dl.length) && staff)
+    h = h.replace(
+      '<div class="ecacts">',
+      `<div class="stdl stvide"><div class="calh"><b>Déroulé du stage</b></div><p class="muted small">Aucune étape pour l’instant : les adhérents verront le programme de la journée.</p><button class="btn ghost" data-a="pedit" data-id="${p.id}">${ic('plus')}Ajouter le déroulé</button></div><div class="ecacts">`
+    );
+  return h;
+};
+const sideBase = ecoleSideEns;
+ecoleSideEns = function (t) {
+  let h = sideBase(t);
+  if (t === 'stages' && h && !h.includes('Autres stages'))
+    h += `<div class="card ecs"><div class="calh">${ic('star')}<b>Autres stages</b></div><p class="muted small">Aucun autre stage prévu.</p>${isAdmin() ? `<button class="btn ghost full" data-a="newPost" data-k="stage">${ic('plus')}Créer un stage</button>` : ''}</div>`;
+  return h;
+};
+/* présences annoncées : une case n'est colorée que si elle compte quelqu'un */
+const footBase = sessFootEns;
+sessFootEns = function (g, iso, cx, loc, nOk, nNo) {
+  let h = footBase(g, iso, cx, loc, nOk, nNo);
+  if (!nOk) h = h.replace('<span class="ok"><b>0</b>', '<span><b>0</b>');
+  if (!nNo) h = h.replace('<span class="no"><b>0</b>', '<span><b>0</b>');
+  return h;
+};
