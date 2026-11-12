@@ -1935,7 +1935,7 @@ select option { background: var(--c-surface); color: var(--c-text); }
 #phone .av:not(.phero .av):not(.costack .av):not(.copp .av) { box-shadow: 2px 2px 0 var(--c-ink); }
 #main .item > .av { margin: 0 6px 0 0; }
 /* 4. plus de cadre dans un cadre : la recherche posée sur la page, l'état vide sans cadre dans sa carte */
-#main .card:has(> .cosearch) { background: transparent; border: 0; box-shadow: none; padding: 0; }
+#phone #main .card:has(> .cosearch) { background: transparent; border: 0; box-shadow: none; padding: 0; }
 #main :is(.card, .lis) .empty { border: 0; box-shadow: none; background: transparent; }
 /* Accueil : carte « Demain », l'heure en petit carré */
 .codh.sm { min-width: 44px; padding: 6px; }
@@ -1946,11 +1946,11 @@ select option { background: var(--c-surface); color: var(--c-text); }
   #main .pad.cowide { display: flex; flex-direction: column; }
   #main .pad.cowide > .coday { order: -1; }
   #main .pad.cowide > .coshort3 { order: -2; }
-  #main .cotiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  #main .cotiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   #main .cotiles .cotile { min-height: 0; padding: 8px 6px; }
   #main .cotiles .cotile svg { display: none; }
   #main .cotiles .cotile b { font-size: 24px; }
-  #main .cotiles .cotile span { font-size: 12px; padding-right: 0; letter-spacing: 0; }
+  #main .cotiles .cotile span { font-size: 12px; padding-right: 0; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 /* Planning : la semaine et ‹ › dans l'en-tête */
 .coplnav { display: flex; align-items: center; gap: 8px; margin-right: 6px; }
