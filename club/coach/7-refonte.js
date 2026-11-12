@@ -189,13 +189,17 @@ function coGrpCard(g) {
     pct = max ? Math.min(100, Math.round((100 * n) / max)) : 0,
     c = REGLES.cycleCourant(g, TODAY),
     E = c ? REGLES.cycleEtat(g, c, cycleSes(g), TODAY) : null,
-    fin = E && E.seances.filter(x => x.etat === 'next').length <= 1,
+    reste = E ? E.seances.filter(x => x.etat === 'next').length : 0,
+    // état du cycle en pastille (comme /Buvette) ; le détail du cycle sous le créneau
     tag = E
-      ? fin
+      ? reste <= 1
         ? '<span class="tag hot">À renouveler</span>'
-        : `<span class="tag">${esc(c.nom || 'Cycle')} · ${E.faites}/${E.prevues}</span>`
-      : '';
-  return `<div class="card cogcard"><div class="row" style="gap:12px"><span class="tile">${ic('users')}</span><span class="grow"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${esc(coSlot(g))} · ${esc(g.dur || '')}</span></span>${tag}<button class="ib" data-a="open" data-v="cgroupe" data-id="${g.id}" aria-label="Ouvrir ${esc(g.name)}">${ic('back')}</button></div><div class="cogfill"><b>${n}${max ? '/' + max : ''} élève${n > 1 ? 's' : ''}</b>${max ? `<span class="gbt"><i style="width:${pct}%"></i></span>` : ''}</div></div>`;
+        : reste <= 3
+          ? '<span class="tag ac">Fin proche</span>'
+          : '<span class="tag ok">En cours</span>'
+      : '',
+    cyc = E ? ` · ${esc(c.nom || 'Cycle')} ${E.faites}/${E.prevues}` : '';
+  return `<div class="card cogcard"><div class="row" style="gap:12px"><span class="tile">${ic('users')}</span><span class="grow"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${esc(coSlot(g))} · ${esc(g.dur || '')}${cyc}</span></span>${tag}<button class="ib" data-a="open" data-v="cgroupe" data-id="${g.id}" aria-label="Ouvrir ${esc(g.name)}">${ic('back')}</button></div><div class="cogfill"><b>${n}${max ? '/' + max : ''} élève${n > 1 ? 's' : ''}</b>${max ? `<span class="gbt"><i style="width:${pct}%"></i></span>` : ''}</div></div>`;
 }
 function coHistoCard(id) {
   const l = coSessions(isoIn(-45), isoIn(-1), '', 1)
@@ -327,7 +331,10 @@ function coMergeHd() {
 const coDayBase = coDayCard;
 coDayCard = function () {
   let h = coDayBase();
-  h = h.replace(/<span class="grow"><span class="nm">([^<]*)<\/span><br><span class="muted small">À noter<\/span><\/span>/g, '<span class="grow"><span class="nm">$1</span><br><span class="muted small">Pas encore noté</span></span><span class="tag">À noter</span>');
+  h = h.replace(
+    /<span class="grow"><span class="nm">([^<]*)<\/span><br><span class="muted small">À noter<\/span><\/span>/g,
+    '<span class="grow"><span class="nm">$1</span><br><span class="muted small">Pas encore noté</span></span><span class="tag">À noter</span>'
+  );
   return h;
 };
 function coTomorrowCard() {
@@ -386,7 +393,10 @@ coTopActions = function () {
   const tools = main.querySelector('.cotopact');
   if (tools) {
     tools.remove();
-    box.insertAdjacentHTML('beforeend', `<button class="ib" data-a="coPlMore" aria-label="Autres actions">${ic('more')}</button>`);
+    box.insertAdjacentHTML(
+      'beforeend',
+      `<button class="ib" data-a="coPlMore" aria-label="Autres actions">${ic('more')}</button>`
+    );
   }
 };
 A.coPlMore = () =>
@@ -407,12 +417,17 @@ coTopActions = function () {
   if (!tri.length) return;
   const on = tri.find(b => b.getAttribute('aria-pressed') === 'true');
   tri.forEach(b => b.remove());
-  box.insertAdjacentHTML('beforeend', `<button class="chip${on ? ' on' : ''}" data-a="coDashTri" aria-pressed="${!!on}">${on ? esc(on.textContent) : 'Autre période'} ▾</button>`);
+  box.insertAdjacentHTML(
+    'beforeend',
+    `<button class="chip${on ? ' on' : ''}" data-a="coDashTri" aria-pressed="${!!on}">${on ? esc(on.textContent) : 'Autre période'} ▾</button>`
+  );
 };
 A.coDashTri = () =>
   sheet(
     'Autre période',
-    `<div class="body"><div class="menu">${coQuarters().map(([v, l]) => `<button data-a="coDashP" data-v="${v}" data-close="1">${l}</button>`).join('')}</div></div>`
+    `<div class="body"><div class="menu">${coQuarters()
+      .map(([v, l]) => `<button data-a="coDashP" data-v="${v}" data-close="1">${l}</button>`)
+      .join('')}</div></div>`
   );
 const coDashPBase = A.coDashP;
 A.coDashP = d => {

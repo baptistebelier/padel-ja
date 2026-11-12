@@ -708,7 +708,7 @@ function coEleves() {
               const lv = coLvl(k),
                 gs = coGroupsOf(k),
                 un = svOf(k).length ? svUnread(k) : 0;
-              return `<button class="item" data-a="open" data-v="eleve" data-id="${k}">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span>${M[k] ? '' : ' <span class="tag">Sans compte</span>'}${coAbonne(k) ? ' ' + coAboTag(k) : ''}<br><span class="muted small">${[lv ? 'Niv. ' + lv.n + ' ' + lv.t : '', dn[k] ? plural(dn[k].n, 'séance') + ' · ' + fr(dn[k].h) + ' h de cours' : 'Aucune séance', gs.map(g => esc(g.name)).join(', ')].filter(Boolean).join(' · ')}</span></span>${un ? `<span class="cnt">${un}</span>` : ''}</button>`;
+              return `<button class="item" data-a="open" data-v="eleve" data-id="${k}">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span>${M[k] ? '' : ' <span class="tag">Sans compte</span>'}${coAbonne(k) ? ' ' + coAboTag(k) : ''}<br><span class="muted small">${[lv ? esc(lv.t) : '', gs.map(g => esc(g.name)).join(', ')].filter(Boolean).join(' · ')}<span class="coelh">${dn[k] ? ' · ' + plural(dn[k].n, 'séance') + ' · ' + fr(dn[k].h) + ' h de cours' : ''}</span></span></span>${un ? `<span class="cnt">${un}</span>` : ''}${lv ? `<span class="tag ac colv">Niv ${esc(String(lv.n))}</span>` : ''}</button>`;
             })
             .join('')
         )
