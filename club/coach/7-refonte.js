@@ -52,6 +52,14 @@ function coTopActions0() {
   if (S.tab === 'eleves') h = `<button class="btn" data-a="coNewEl">${ic('plus')}Ajouter un élève</button>`;
   if (S.tab === 'clubs')
     h = `<button class="btn ghost" data-a="newPost" data-k="stage">${ic('plus')}Créer un stage</button><button class="btn" data-a="coNewGrp">${ic('plus')}Créer un groupe</button>`;
+  // Messages : « Nouveau message » en action d'en-tête, plus de bouton seul dans une carte
+  if (S.tab === 'msgs') {
+    const b = main.querySelector('.card > [data-a="coNewMsg"]');
+    if (b) {
+      b.parentElement.remove();
+      h = `<button class="btn" data-a="coNewMsg">${ic('plus')}Nouveau message</button>`;
+    }
+  }
   box.innerHTML = h;
   // Planning : les vues (Jour, Semaine, Mois) et la nouvelle séance passent dans l'en-tête
   if (S.tab === 'planning') {
@@ -321,7 +329,8 @@ function coMergeHd() {
   if (!main) return;
   main.querySelectorAll('h2.cohd').forEach(h => {
     const n = h.nextElementSibling;
-    if (!n || !n.classList.contains('card') || n.classList.contains('cohdin')) return;
+    // pas dans un bloc dépliable : son résumé doit rester son premier enfant
+    if (!n || !n.classList.contains('card') || n.classList.contains('cohdin') || n.tagName === 'DETAILS') return;
     h.classList.add('cohdi');
     n.classList.add('cohdin');
     n.prepend(h);
@@ -439,4 +448,20 @@ const coRailMerge = ramRail;
 ramRail = function (t, sub) {
   coRailMerge(t, sub);
   coMergeHd();
+};
+
+/* Planning au téléphone (contrôle 2 du designer) : « + » carré et « … » dans l'en-tête, plus de rangée de boutons */
+const coTopPlanTel = coTopActions;
+coTopActions = function () {
+  coTopPlanTel();
+  if (coWide() || S.stack.length || S.tab !== 'planning') return;
+  const top = $('top'),
+    tools = $('main') && $('main').querySelector('.cotopact');
+  if (!top || !tools) return;
+  tools.remove();
+  top.querySelectorAll('.coplt').forEach(e => e.remove());
+  const bell = top.querySelector('[data-a="notifs"]');
+  const h = `<button class="ib acc coplt" data-a="coNewSes" aria-label="Ajouter une séance">${ic('plus')}</button><button class="ib coplt" data-a="coPlMore" aria-label="Autres actions">${ic('more')}</button>`;
+  if (bell) bell.insertAdjacentHTML('beforebegin', h);
+  else top.insertAdjacentHTML('beforeend', h);
 };

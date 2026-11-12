@@ -841,6 +841,8 @@ ${(e.parents || []).length ? hd(ic('kid') + 'Parents') + `<div class="card">${e.
     `<div class="pad">${b}</div>`
   );
 }
+/* aperçu coupé à un mot entier, terminé par « … » */
+const coApercu = (t, n) => (t.length <= n ? t : t.slice(0, n).replace(/\s+\S*$/, '') + '…');
 /* ---------- Messages : élèves (conversations privées) et groupes (discussions du Club) ---------- */
 function coMsgs() {
   let b = '';
@@ -860,7 +862,7 @@ function coMsgs() {
                 return coFavRow(
                   'e:' + k,
                   `data-a="open" data-v="dm" data-id="${k}"`,
-                  `${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span><br><span class="muted small">${esc(((coIsMe(x.by) ? 'Moi : ' : '') + (x.txt || SV_KIND[x.k][1])).slice(0, 70))}</span></span><span class="muted small">${fmtD(svDay(x.at), 1)}</span>${un ? `<span class="cnt">${un}</span>` : ''}`,
+                  `${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span><br><span class="muted small">${esc(coApercu((coIsMe(x.by) ? 'Moi : ' : '') + (x.txt || SV_KIND[x.k][1]), 70))}</span></span><span class="muted small">${fmtD(svDay(x.at), 1)}</span>${un ? `<span class="cnt">${un}</span>` : ''}`,
                   svName(k)
                 );
               })

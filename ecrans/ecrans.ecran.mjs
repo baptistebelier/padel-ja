@@ -425,11 +425,11 @@ test('Coach : Tableau de bord et Statistiques, planning en colonnes, un jour sur
     await page.evaluate(() => { S.tab = 'planning'; S.stack = []; S.pl.v = 'semaine'; render(); });
     await page.waitForSelector('.cowg');
     assert.equal(await page.locator('.cowj').count(), 7, 'les 7 jours, sur téléphone comme sur ordinateur');
-    assert.ok(await page.locator(w > 1000 ? '.topact [data-a="coNewSes"]' : '.cotopact [data-a="coNewSes"]').isVisible(), 'action en haut (dans l’en-tête sur grand écran)');
+    assert.ok(await page.locator(w > 1000 ? '.topact [data-a="coNewSes"]' : '#top [data-a="coNewSes"]').isVisible(), 'action en haut (dans l’en-tête sur grand écran)');
     const hauts = await page.$$eval('.cotopact .btn', l => [...new Set(l.map(x => Math.round(x.getBoundingClientRect().top)))]);
     // grand écran (contrôle du designer) : Groupe, Collectif et Historique passent dans « … » de l’en-tête
     if (w > 1000) assert.ok(await page.locator('.topact [data-a="coPlMore"]').isVisible(), 'autres actions dans « … »');
-    else assert.equal(hauts.length, 1, 'les boutons sur une seule ligne');
+    else assert.ok(await page.locator('#top [data-a="coPlMore"]').isVisible() && hauts.length === 0, 'téléphone : « + » et « … » dans l’en-tête, plus de rangée de boutons');
     assert.ok(await page.$$eval('.cowb', l => l.every(x => x.getBoundingClientRect().width > 8)), 'des cours lisibles');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
     if (w < 500) {
@@ -960,7 +960,7 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
     await page.click('[data-a="coVue"][data-k="semaine"]');
     await page.waitForSelector('.cowg');
     if (await page.locator('.cotopact [data-a="nvNew"]').count()) await page.click('.cotopact [data-a="nvNew"]');
-    else { await page.click('.topact [data-a="coPlMore"]'); await page.click('#layer [data-a="nvNew"]'); }
+    else { await page.click('#top [data-a="coPlMore"]'); await page.click('#layer [data-a="nvNew"]'); }
     await page.waitForSelector('#nv-form #nv-mx-0');
     await page.selectOption('#nv-pl-0', '2');
     await page.selectOption('#nv-mx-0', '4');
