@@ -1051,7 +1051,7 @@ const coActRows = (rows, sort) => {
   return l
     .map(
       r =>
-        `<${r.go ? 'button ' + r.go + ' class="coact2"' : 'div class="coact2"'}><span class="cokv2"><span class="grow">${r.t}</span><b>${plural(r.n, 'séance')}${r.h != null ? ' · ' + fr(r.h) + ' h' : ''}</b></span><span class="cobarre" aria-hidden="true"><i style="width:${Math.round((r.n * 100) / max)}%"></i></span>${r.sub ? `<span class="muted small">${r.sub}</span>` : ''}</${r.go ? 'button' : 'div'}>`
+        `<${r.go ? 'button ' + r.go + ' class="coact2"' : 'div class="coact2"'}><span class="cokv2">${r.av || ''}<span class="grow">${r.t}</span>${r.pct != null ? `<span class="tag copct">${r.pct} %</span>` : ''}<b>${plural(r.n, 'séance')}${r.h != null ? ' · ' + fr(r.h) + ' h' : ''}</b></span><span class="cobarre" aria-hidden="true"><i style="width:${Math.round((r.n * 100) / max)}%"></i></span>${r.sub ? `<span class="muted small">${r.sub}</span>` : ''}</${r.go ? 'button' : 'div'}>`
     )
     .join('');
 };
@@ -1084,9 +1084,14 @@ function coDash() {
     fill = fillG.length
       ? Math.round((fillG.reduce((a, g) => a + coStu(g).length / g.max, 0) * 100) / fillG.length)
       : null,
-    venus = {};
+    venus = {},
+    appels = {};
+  // présences et appels de chaque élève sur la période (pour son pourcentage de présence)
   done.forEach(x =>
-    Object.keys((x.s && x.s.pres) || {}).forEach(k => x.s.pres[k] === 'P' && (venus[k] = (venus[k] || 0) + 1))
+    Object.keys((x.s && x.s.pres) || {}).forEach(k => {
+      appels[k] = (appels[k] || 0) + 1;
+      if (x.s.pres[k] === 'P') venus[k] = (venus[k] || 0) + 1;
+    })
   );
   const chip = (v, t) =>
       `<button class="chip" data-a="coDashP" data-v="${v}" aria-pressed="${per === v}">${t}</button>`,
@@ -1130,7 +1135,13 @@ function coDash() {
     rowsE = Object.keys(venus)
       .sort((a, b) => venus[b] - venus[a])
       .slice(0, 8)
-      .map(k => ({ t: esc(svName(k)), n: venus[k], go: `data-a="open" data-v="eleve" data-id="${k}"` }));
+      .map(k => ({
+        t: esc(svName(k)),
+        n: venus[k],
+        av: coAv(k, 'sm'),
+        pct: Math.round((100 * venus[k]) / Math.max(1, appels[k])),
+        go: `data-a="open" data-v="eleve" data-id="${k}"`
+      }));
   // évolution mois par mois de la période (la vue du mois a sa courbe)
   const months = [];
   if (per !== 'mois') {

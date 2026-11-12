@@ -1971,6 +1971,11 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .colv { flex: none; }
 .tag.ok { background: var(--c-green); color: var(--c-dark); }
 @media (max-width: 1023px) { .coelh { display: none; } }
+/* Statistiques, plus présents : avatar, pourcentage en pastille ; toutes les barres ont leur cadre */
+.cokv2:has(> .av) { align-items: center; }
+#phone #main .cokv2 > .av { width: 32px; height: 32px; font-size: 12px; margin: 0; flex: none; }
+.copct { flex: none; }
+#main .coact2 .cobarre { height: 10px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); }
 /* Mes groupes : « 4/6 élèves » dans la marge de la carte, état du cycle en pastille */
 .cogfill { padding: 0 2px; }
 .cogfill b { white-space: nowrap; }
