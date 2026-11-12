@@ -222,7 +222,7 @@ document.addEventListener('submit', e => {
 function coAchatsCard(id) {
   const l = coPacks(id).reverse();
   return (
-    hd('Formules achetées') +
+    hd(ic('euro') + 'Formules achetées') +
     `<div class="card">${
       l
         .map(a => {

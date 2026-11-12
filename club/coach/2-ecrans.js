@@ -320,7 +320,7 @@ function coSuivi() {
   S.coPayIds = dues.map(p => p.id);
   const tile = (i, n, t) => `<div class="cotile">${ic(i)}<b>${n}</b><span>${t}</span></div>`;
   return `<div class="pad cowide"><div class="cotiles cosuivit">${tile('doc', ids.length, ids.length > 1 ? 'Bilans à écrire' : 'Bilan à écrire')}${tile('euro', dues.length, dues.length > 1 ? 'Paiements à régulariser' : 'Paiement à régulariser')}${tile('euro', eur(total), 'À encaisser')}</div>
-${hd('Bilans à écrire', `${ids.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviBO" aria-expanded="${!!S.suiviBO}" aria-label="Filtrer par période">${ic('funnel')}${perB !== 'j30' ? '<i class="codot"></i>' : ''}</button>`)}${
+${hd(ic('doc') + 'Bilans à écrire', `${ids.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviBO" aria-expanded="${!!S.suiviBO}" aria-label="Filtrer par période">${ic('funnel')}${perB !== 'j30' ? '<i class="codot"></i>' : ''}</button>`)}${
     S.suiviBO
       ? `<div class="chips">${coFiltre('coSuiviB', perB, [
           ['j30', '30 derniers jours'],
@@ -330,7 +330,7 @@ ${hd('Bilans à écrire', `${ids.length ? `<button class="chip" data-a="coSelMod
         ])}</div>`
       : ''
   }${sel ? coSelBar() : ''}${l.length ? list(l.join('')) : none('check', 'Tous les bilans sont écrits', 'Sur la période choisie.')}
-${hd('Paiements à régulariser', `${dues.length ? `<button class="chip" data-a="coSelModeP" aria-pressed="${selP}">${selP ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviPO" aria-expanded="${!!S.suiviPO}" aria-label="Filtrer par période">${ic('funnel')}${perP !== 'saison' ? '<i class="codot"></i>' : ''}</button>`)}${
+${hd(ic('euro') + 'Paiements à régulariser', `${dues.length ? `<button class="chip" data-a="coSelModeP" aria-pressed="${selP}">${selP ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviPO" aria-expanded="${!!S.suiviPO}" aria-label="Filtrer par période">${ic('funnel')}${perP !== 'saison' ? '<i class="codot"></i>' : ''}</button>`)}${
     S.suiviPO
       ? `<div class="chips">${coFiltre('coSuiviP', perP, [
           ['mois', 'Ce mois-ci'],
@@ -413,7 +413,7 @@ function coToday() {
   return `<div class="pad cowide">${coNoClub()}${hd('Raccourcis')}<div class="card cotools coshort"><button class="btn ghost" data-a="newPost" data-k="stage">${ic('racket')}Créer un stage</button><button class="btn ghost" data-a="nvNew" data-m="cours">${ic('school')}Créer une séance collective</button><button class="btn ghost" data-a="newPost" data-k="anim">${ic('users')}Créer une animation</button><button class="btn ghost" data-a="coNewMsg">${ic('chat')}Écrire à un élève</button><button class="btn ghost" data-a="coNewGrpMsg">${ic('chat')}Écrire à un groupe</button><button class="btn ghost" data-a="open" data-v="forms">${ic('poll')}Formulaires</button><button class="btn ghost" data-a="coContentPick">${ic('spark')}Donner du contenu</button><button class="btn ghost" data-a="coTimer">${ic('timer')}Minuteur</button><button class="btn ghost" data-a="open" data-v="aide">${ic('info')}Aide</button></div>${coSetup()}<div class="cotiles">${tile('cal', today.filter(x => !isCx(x.g, x.d)).length, "Séances aujourd'hui")}${tile('clock', fr(hrs), 'Heures cette semaine')}${tile('users', actifs.size, 'Élèves actifs')}${tile('video', vids.length, 'Vidéos à traiter')}</div>
 <div class="cobento"><div class="cobmain">${evDay(TODAY, today.length ? today.map(x => coSesCard(x, 1)).join('') : none('cal', 'Pas de cours aujourd’hui', ''))}
 ${tom.length ? evDay(isoIn(1), tom.map(x => coSesCard(x, 1)).join('')) : ''}</div>
-<div class="cobside">${hd('À traiter', S.coBil.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : '')}${sel ? coSelBar() : ''}${todo.length ? list((sel ? todo.slice(0, S.coBil.length) : todo).join('')) : none('check', 'Tout est à jour', 'Bilans écrits, vidéos analysées, messages lus.')}
+<div class="cobside">${hd(ic('check') + 'À traiter', S.coBil.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : '')}${sel ? coSelBar() : ''}${todo.length ? list((sel ? todo.slice(0, S.coBil.length) : todo).join('')) : none('check', 'Tout est à jour', 'Bilans écrits, vidéos analysées, messages lus.')}
 </div></div>`;
 }
 /* ---------- Planning : semaine par semaine, mes cours ou toute l'école ---------- */

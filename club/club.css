@@ -1715,6 +1715,9 @@ select option { background: var(--c-surface); color: var(--c-text); }
 }
 .stt em, .stt i { font-style: normal; color: inherit; }
 
+/* la fenêtre du bas reçoit le focus à l ouverture, sans anneau (trait encre seulement) ; ses champs gardent le leur */
+#phone .sheet:focus, #phone .sheet:focus-visible { outline: 0; }
+
 /* ---------- 4. Animations et gestes ---------- */
 .stories::-webkit-scrollbar, .seg::-webkit-scrollbar, .chips::-webkit-scrollbar, .swipe::-webkit-scrollbar { display: none; }
 .flash { animation: fl .9s; }

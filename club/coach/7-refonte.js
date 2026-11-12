@@ -465,3 +465,34 @@ coTopActions = function () {
   if (bell) bell.insertAdjacentHTML('beforebegin', h);
   else top.insertAdjacentHTML('beforeend', h);
 };
+
+/* Fiche élève sur grand écran (contrôle 2 du designer) : « Modifier la fiche » et « Relier » en actions d'en-tête */
+const coTopFiche = coTopActions;
+coTopActions = function () {
+  coTopFiche();
+  const top = $('top'),
+    main = $('main');
+  if (!top || !main || !coWide() || view().v !== 'eleve') return;
+  const tools = main.querySelector('.card.cotools');
+  if (!tools || !tools.querySelector('[data-a="coEditEl"]')) return;
+  top.querySelectorAll('.topact').forEach(e => e.remove());
+  const box = document.createElement('div');
+  box.className = 'topact';
+  tools.querySelectorAll('button, a').forEach(b => box.append(b));
+  tools.remove();
+  top.insertBefore(box, top.querySelector('.favb') || top.querySelector('[data-a="notifs"]') || null);
+};
+
+/* Tableau de bord (contrôle 2 du designer) : le jour n'est plus une étiquette au-dessus de sa carte, il devient le titre de la carte */
+const coRailJour = ramRail;
+ramRail = function (t, sub) {
+  coRailJour(t, sub);
+  if (S.tab !== 'today' || S.stack.length) return;
+  document.querySelectorAll('#main section.plc > h2.evday').forEach(h => {
+    const c = h.nextElementSibling;
+    if (!c || !c.classList.contains('card')) return;
+    c.classList.add('coday');
+    c.insertAdjacentHTML('afterbegin', `<div class="calh">${ic('cal')}<b>${esc(h.textContent)}</b></div>`);
+    h.remove();
+  });
+};

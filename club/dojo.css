@@ -1964,7 +1964,7 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .coprev [data-a='coOpenEl'] svg { transform: scaleX(-1); }
 @media (min-width: 1024px) {
   /* Statistiques : intercalaires collés à leur carte */
-  #main > .seg.haut + .pad { padding-top: 0; }
+  #main > .seg.haut + .pad { padding-top: 0; margin-top: 0; }
   #main > .seg.haut + .pad > :first-child { margin-top: 0; }
   #top .topact .chip.on { background: var(--c-lime); color: var(--c-dark); }
 }
@@ -2000,6 +2000,26 @@ select option { background: var(--c-surface); color: var(--c-text); }
 /* contrôle 2 : picto en bout de ligne de liste (crayon des abonnements) à taille fixe */
 #main .item > svg { width: 18px; height: 18px; flex: none; }
 @media (max-width: 1023px) { #main .coacts { grid-template-columns: minmax(0, 1fr); } }
+/* contrôle 2, planning : simples en-têtes de colonne (seul le jour actif en citron), colonne du jour sur fond plein */
+#main .cowj { border: 0; box-shadow: none; background: transparent; }
+#main .cowj.today { background: var(--c-lime); color: var(--c-dark); border: var(--bw) solid var(--c-ink); }
+#main .cowl.today { background: var(--c-surface-2); }
+/* contrôle 2 : Jour / Semaine / Mois au téléphone en sélecteur segmenté, comme sur grand écran */
+@media (max-width: 1023px) {
+  #main .covue { gap: 0; flex-wrap: nowrap; width: max-content; max-width: 100%; box-shadow: var(--sh-sm); }
+  #main .covue .chip { box-shadow: none; border-left-width: 0; }
+  #main .covue .chip:first-child { border-left-width: var(--bw); }
+}
+/* contrôle 2, légende du graphique : deux repères de même taille, trait 2 px, couleur pleine */
+#main .cocycl i.cocur, #main .cocycl i.coprev { display: inline-block; flex: none; width: 14px; height: 14px; min-height: 0; padding: 0; margin: 0; border: var(--bw) solid var(--c-ink); box-shadow: none; }
+#main .cocycl i.cocur { background: var(--accent); }
+#main .cocycl i.coprev { background: var(--c-muted); }
+/* contrôle 2 : un bouton seul n est plus dans une carte (Ajouter une formule, un abonnement…) */
+#phone #main .card:has(> .btn:only-child) { background: transparent; border: 0; box-shadow: none; padding: 0; }
+/* contrôle 2, fiche élève : plus de vide sous la carte du profil */
+#main > .pad:has(> .card.coid) { margin-bottom: 0; padding-bottom: 0; }
+/* contrôle 2 : la fenêtre du bas reçoit le focus à l ouverture, sans anneau (trait encre seulement) ; ses champs gardent le leur */
+#phone .sheet:focus, #phone .sheet:focus-visible { outline: 0; }
 /* Mes groupes : « 4/6 élèves » dans la marge de la carte, état du cycle en pastille */
 .cogfill { padding: 0 2px; }
 .cogfill b { white-space: nowrap; }
