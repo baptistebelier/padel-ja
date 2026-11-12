@@ -180,3 +180,128 @@ A.coOpenEl = d => coOpenBase({ v: 'eleve', id: d.id });
   const t = TABBAR.find(x => x[0] === k);
   if (t) t[2] = l;
 });
+
+/* ---------- Mes groupes : un club par entrée du sous-menu, groupes en cartes, historique et autre club à droite ---------- */
+function coGrpCard(g) {
+  const n = coStu(g).length,
+    max = g.max || 0,
+    pct = max ? Math.min(100, Math.round((100 * n) / max)) : 0,
+    c = REGLES.cycleCourant(g, TODAY),
+    E = c ? REGLES.cycleEtat(g, c, cycleSes(g), TODAY) : null,
+    fin = E && E.seances.filter(x => x.etat === 'next').length <= 1,
+    tag = E
+      ? fin
+        ? '<span class="tag hot">À renouveler</span>'
+        : `<span class="tag">${esc(c.nom || 'Cycle')} · ${E.faites}/${E.prevues}</span>`
+      : '';
+  return `<div class="card cogcard"><div class="row" style="gap:12px"><span class="tile">${ic('users')}</span><span class="grow"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${esc(coSlot(g))} · ${esc(g.dur || '')}</span></span>${tag}<button class="ib" data-a="open" data-v="cgroupe" data-id="${g.id}" aria-label="Ouvrir ${esc(g.name)}">${ic('back')}</button></div><div class="cogfill"><b>${n}${max ? '/' + max : ''} élève${n > 1 ? 's' : ''}</b>${max ? `<span class="gbt"><i style="width:${pct}%"></i></span>` : ''}</div></div>`;
+}
+function coHistoCard(id) {
+  const l = coSessions(isoIn(-45), isoIn(-1), '', 1)
+    .filter(x => coClubOf(x.g) === id && !isCx(x.g, x.d))
+    .sort((a, b) => b.d.localeCompare(a.d))
+    .slice(0, 4);
+  const todo = new Set(
+    (typeof coBilansTodo === 'function' ? coBilansTodo(coDepuis('tout')) : []).map(x => x.g.id + '.' + x.d)
+  );
+  return `<div class="card ecs"><div class="calh">${ic('clock')}<b>Historique des séances</b></div>${
+    l.length
+      ? l
+          .map(x => {
+            const p = Object.values(REGLES.presDe(sesDu(x.g, x.d), x.g, x.d)).filter(v => v === 'P').length,
+              [, m, d] = x.d.split('-');
+            return `<button class="item" data-a="open" data-v="seance" data-id="${x.g.id}.${x.d}"><span class="tag">${+d}/${+m}</span><span class="grow"><span class="nm">${esc(x.g.name)}</span><br><span class="muted small">${plural(p, 'présent')} · ${todo.has(x.g.id + '.' + x.d) ? 'bilan à écrire' : 'bilan écrit'}</span></span></button>`;
+          })
+          .join('')
+      : '<p class="muted small">Aucune séance ces dernières semaines.</p>'
+  }<button class="btn ghost full" data-a="open" data-v="histo">${ic('cal')}Tout l’historique</button></div>`;
+}
+const coClubsBase = V.clubs;
+V.clubs = () => {
+  const h = coClubsBase();
+  if (!coWide()) return h;
+  const id = S.coClubTab,
+    gs = coGroups('', true).filter(g => coClubOf(g) === id && coIsGrp(g) && !coOver(g)),
+    i = h.indexOf('<div class="pad">');
+  if (i < 0) return h;
+  // le sous-menu : nombre de groupes par club, et « Autre club »
+  let seg = h.slice(0, i);
+  coClubList().forEach(c => {
+    const n = coGroups('', true).filter(g => coClubOf(g) === c.id && coIsGrp(g) && !coOver(g)).length;
+    if (n)
+      seg = seg.replace(
+        new RegExp(`(data-val="${c.id}">[\\s\\S]*?)</button>`),
+        `$1<span class="cnt">${n}</span></button>`
+      );
+  });
+  seg = seg.replace(
+    /<\/div>$/,
+    `<button data-a="coOtherClub" aria-label="Autre club">${ic('plus')}<span class="lb">Autre club</span></button></div>`
+  );
+  const main = gs.length
+    ? gs.map(coGrpCard).join('')
+    : none('users', 'Aucun groupe', 'Un groupe rassemble des élèves qui jouent ensemble chaque semaine.');
+  const side =
+    coHistoCard(id) +
+    `<div class="card ecs"><div class="calh">${ic('club')}<b>Autre club</b></div><p class="muted small">J’enseigne dans un autre club : ajoute-le pour y retrouver groupes, planning et élèves.</p><button class="btn ghost" data-a="coOtherClub">${ic('plus')}Ajouter un club</button></div>`;
+  return seg + `<div class="cobento"><div class="cobm cogrid2">${main}</div><aside class="cobs">${side}</aside></div>`;
+};
+
+/* ---------- Suivi : sous-menu Bilans à écrire / Paiements ---------- */
+const coSuiviSeg = V.asuivi;
+V.asuivi = () => {
+  const h = coSuiviSeg(),
+    b = (S.coBil || []).length,
+    p = (S.coPayIds || []).length,
+    k = S.suiviSec === 'pay' ? 'pay' : 'bil',
+    it = (v, i, l, n) =>
+      `<button role="tab" aria-selected="${k === v}" aria-label="${l}" data-a="coSuiviSec" data-v="${v}">${ic(i)}<span class="lb">${l}</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
+  return (
+    `<div class="seg" role="tablist">${it('bil', 'doc', 'Bilans à écrire', b)}${it('pay', 'euro', 'Paiements', p)}</div>` +
+    h
+  );
+};
+A.coSuiviSec = d => {
+  S.suiviSec = d.v;
+  render(true);
+  const t = [...document.querySelectorAll('#main .cohd span')].find(x =>
+    (d.v === 'pay' ? /Paiements à régulariser/ : /Bilans à écrire/).test(x.textContent)
+  );
+  if (t) t.closest('.cohd').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+/* ---------- Tableau de bord : la carte du jour (séance, thème, élèves et leur présence, appel) ---------- */
+function coDayCard() {
+  const l = coSessions(TODAY, TODAY, 'me', 1).filter(x => !isCx(x.g, x.d));
+  if (!l.length) return '';
+  const body = l
+    .map(x => {
+      const g = x.g,
+        s = sesDu(g, x.d) || {},
+        pres = REGLES.presDe(s, g, x.d),
+        st = coStu(g),
+        nP = st.filter(k => pres[k] === 'P').length,
+        lab = { P: ['Présent', 'ok'], A: ['Absent', 'no'], E: ['Excusé', ''] },
+        rows = st
+          .map(k => {
+            const v = pres[k],
+              t = lab[v];
+            return `<div class="item"><span>${coAv(k)}</span><span class="grow"><span class="nm">${esc(svName(k))}</span><br><span class="muted small">${t ? t[0] : 'À noter'}</span></span>${t ? `<span class="tag ${t[1] === 'ok' ? 'padel' : t[1] === 'no' ? 'hot' : ''}">${t[0]}</span>` : ''}</div>`;
+          })
+          .join(''),
+        chan = typeof chans !== 'undefined' && chans.some(c => c.id === g.id);
+      return `<div class="codayses"><div class="row" style="gap:14px;align-items:flex-start"><span class="codh"><b>${esc(g.h || '')}</b><small>${esc(g.dur || '')}</small></span><span class="grow"><span class="h3">${esc(g.name)}</span>${s.theme ? `<br><span class="muted">Thème : ${esc(s.theme)}</span>` : ''}${g.goal && !g.nv ? `<br><span class="evl cogoal">${ic('target')}Objectif : ${esc(g.goal)}</span>` : ''}<br>${g.sport ? `<span class="tag ${g.sport === 'Padel' ? 'padel' : 'tennis'}">${esc(g.sport)}</span> ` : ''}<span class="tag ac">${nP}/${st.length} présents</span></span></div><div class="codayl">${rows || '<p class="muted small">Aucun élève.</p>'}</div><div class="ecacts"><button class="btn grow" data-a="open" data-v="seance" data-id="${g.id}.${x.d}">${ic('check')}Faire l’appel</button>${chan ? `<button class="btn ghost grow" data-a="open" data-v="chan" data-id="${g.id}">${ic('chat')}Écrire au groupe</button>` : ''}</div></div>`;
+    })
+    .join('');
+  return `<div class="card coday"><div class="calh">${ic('cal')}<b>Aujourd’hui · ${fmtD(TODAY)}</b></div>${body}</div>`;
+}
+const coTodayDay = V.today;
+V.today = () => {
+  const h = coTodayDay(),
+    card = coDayCard();
+  if (!card) return h;
+  const i = h.indexOf('<section class="plc today">');
+  if (i < 0) return h;
+  const e = coEnd(h, 'section', i);
+  return e < 0 ? h : h.slice(0, i) + card + h.slice(e);
+};
