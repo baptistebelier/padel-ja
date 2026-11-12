@@ -1,0 +1,12 @@
+/* mise en page de la page catalogue seulement (les composants sont dans ds.css) */
+body.cat { margin: 0; min-height: 100vh; }
+.cat-main { padding: 18px 28px 60px; display: flex; flex-direction: column; gap: 34px; max-width: 1320px; }
+.cat-sec { display: flex; flex-direction: column; gap: 14px; }
+.cat-sec > h2 { font: 400 26px/1 var(--f-display); text-transform: uppercase; margin: 0; padding-bottom: 8px; border-bottom: var(--bw) solid var(--c-ink); }
+.cat-demo { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.cat-lab { display: block; margin-bottom: 6px; font: 600 12px var(--f-body); color: var(--c-muted); }
+.cat-col { width: 340px; max-width: 100%; }
+.cat-nav { display: grid; grid-template-columns: 92px 224px 1fr; min-height: 420px; border: var(--bw) solid var(--c-ink); overflow: hidden; }
+.cat-nav .r-head { padding: 18px; }
+.cat-phone { width: 360px; border: var(--bw) solid var(--c-ink); display: flex; flex-direction: column; }
+@media (max-width: 700px) { .cat-main { padding: 0 16px 40px; } .cat-nav { grid-template-columns: 1fr; } }

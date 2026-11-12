@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Catalogue des composants /RAM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Work+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="ds.css">
+<link rel="stylesheet" href="catalogue.css">
+</head>
+<body class="r-app cat">
+<header class="r-head">
+  <div class="r-head__t"><span class="r-surtitre">Design system /RAM</span><h1>Catalogue</h1></div>
+  <div class="r-head__act">
+    <div class="r-tabs" role="group" aria-label="Mode">
+      <button type="button" data-mode="jour" aria-pressed="true">Jour</button>
+      <button type="button" data-mode="nuit" aria-pressed="false">Nuit</button>
+    </div>
+    <div class="r-tabs" role="group" aria-label="Coins">
+      <button type="button" data-coins="" aria-pressed="true">Droits</button>
+      <button type="button" data-coins="arrondis" aria-pressed="false">Arrondis</button>
+    </div>
+  </div>
+</header>
+<main class="cat-main" id="cat"></main>
+<script src="catalogue.js"></script>
+</body>
+</html>
