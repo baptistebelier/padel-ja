@@ -1370,8 +1370,9 @@ test('Club : le cadre de la carte des trophées reste dans chaque apparence, sur
     await page.waitForFunction(() => typeof A !== 'undefined' && typeof trophyCard === 'function', { polling: 300 });
     await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; render(); });
     for (const st of ['epure', '', 'street']) {
-      const r = await page.evaluate(st => { A.ustyle({ k: st }); const c = document.querySelector('.tcard'); return [1, 2, 3, 4, 5].map(n => { c.className = 'card tcard cf' + n; return getComputedStyle(c).boxShadow; }); }, st);
-      ['200, 131, 75', '142, 153, 166', '242, 194, 48', '127, 227, 216', '111, 183, 255'].forEach((rgb, i) => assert.ok(r[i].includes(rgb), `largeur ${w}, style « ${st} », cadre ${i + 1} : ${r[i]}`));
+      const r = await page.evaluate(st => { A.ustyle({ k: st }); const c = document.querySelector('.tcard'), mc = !!c.closest('.bpr .meclub') && innerWidth >= 1024; return [1, 2, 3, 4, 5].map(n => { c.className = 'card tcard cf' + n; return mc ? 'meclub:' + getComputedStyle(c).boxShadow : getComputedStyle(c).boxShadow; }); }, st);
+      // profil sur grand écran (contrôle du designer) : la carte Investissement n'a plus de filet de couleur, son titre est intégré
+      ['200, 131, 75', '142, 153, 166', '242, 194, 48', '127, 227, 216', '111, 183, 255'].forEach((rgb, i) => assert.ok(r[i].startsWith('meclub:') ? r[i] === 'meclub:none' : r[i].includes(rgb), `largeur ${w}, style « ${st} », cadre ${i + 1} : ${r[i]}`));
     }
     await page.close();
   }

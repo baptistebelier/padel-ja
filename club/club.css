@@ -297,7 +297,14 @@ html, body { background: var(--c-bg); }
 #phone #main .bpr .meclub .tcard, #phone #main .bpr .meclub .card { border: 0; padding: 0; background: transparent; }
 #phone .top h1 { line-height: 1.12; }
 /* Investissement : plus de filet de couleur en haut (ancien style), la carte garde son titre intégré */
-#phone #main .bpr .meclub .tcard { box-shadow: none; }
+@media (min-width: 1024px) { #phone #main .bpr .meclub .tcard.tcard.tcard { box-shadow: none; } }
+@media (max-width: 1023px) {
+  #phone #main .bpr .meclub .tcard.cf1 { box-shadow: inset 0 3px 0 var(--b-bronze); }
+  #phone #main .bpr .meclub .tcard.cf2 { box-shadow: inset 0 3px 0 var(--b-acier); }
+  #phone #main .bpr .meclub .tcard.cf3 { box-shadow: inset 0 3px 0 var(--b-or); }
+  #phone #main .bpr .meclub .tcard.cf4 { box-shadow: inset 0 3px 0 var(--b-platine); }
+  #phone #main .bpr .meclub .tcard.cf5 { box-shadow: inset 0 3px 0 var(--b-legende); }
+}
 /* style « full street » : surtitres des onglets en pastille (couleur sur téléphone seulement) */
 @media (max-width: 1023px) {
   :root[data-style="street"] :is(#main, #subnav) > .seg .segt span { color: var(--on-hot); }
