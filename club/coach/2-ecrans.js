@@ -299,8 +299,8 @@ function coSuivi() {
       ids.push(id);
       l.push(
         sel
-          ? `<button class="item cosel" data-a="coPick" data-id="${id}" aria-pressed="${pick.includes(id)}"><span class="cochk" aria-hidden="true">${ic('check')}</span><span class="grow"><span class="nm">${t}</span><br><span class="muted small">${sub}</span></span></button>`
-          : `<button class="item" data-a="open" data-v="seance" data-id="${id}"><span class="tile">${ic(icn)}</span><span class="grow"><span class="nm">${t}</span><br><span class="muted small">${sub}</span></span></button>`
+          ? `<button class="item cosel" data-a="coPick" data-id="${id}" aria-pressed="${pick.includes(id)}"><span class="cochk" aria-hidden="true">${ic('check')}</span><span class="grow"><span class="nm">${t}</span><br><span class="muted small">${sub}</span></span>${pick.includes(id) ? '<span class="tag ac">Sélectionné</span>' : '<span class="tag">À écrire</span>'}</button>`
+          : `<button class="item" data-a="open" data-v="seance" data-id="${id}"><span class="tile">${ic(icn)}</span><span class="grow"><span class="nm">${t}</span><br><span class="muted small">${sub}</span></span><span class="tag">${icn === 'edit' ? 'Brouillon' : 'À écrire'}</span><span class="cochev" aria-hidden="true">${ic('back')}</span></button>`
       );
     };
   BROUILLONS.forEach(b => {

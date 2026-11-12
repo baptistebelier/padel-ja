@@ -1978,6 +1978,10 @@ select option { background: var(--c-surface); color: var(--c-text); }
 #main .coact2 .cobarre { height: 10px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); }
 /* rail : le bloc Mode nuit / Sortir garde le fond du rail (iPad et ordinateur, en jour comme en nuit) */
 @media (min-width: 1024px) { #phone .rbot { background: transparent; } }
+/* Suivi, bilans à écrire : pastille d état et chevron à droite */
+.cochev { flex: none; display: grid; }
+.cochev svg { width: 18px; height: 18px; transform: scaleX(-1); }
+#main .item > .tag { flex: none; }
 /* Mes groupes : « 4/6 élèves » dans la marge de la carte, état du cycle en pastille */
 .cogfill { padding: 0 2px; }
 .cogfill b { white-space: nowrap; }
