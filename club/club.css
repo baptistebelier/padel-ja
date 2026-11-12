@@ -229,7 +229,7 @@ html, body { background: var(--c-bg); }
   #phone .tabs button svg { color: var(--c-on-menu); width: 22px; height: 22px; }
   #phone .tabs button[aria-current="page"] { background: var(--c-menu-act); color: var(--c-on-menu-act); border: var(--bw) solid var(--c-ink); box-shadow: var(--sh-sm); }
   #phone .tabs button[aria-current="page"] svg { color: var(--c-on-menu-act); }
-  #main > .seg:not(.haut) { position: sticky; top: var(--segt, 0px); z-index: 4; margin: 0 0 14px; padding: 10px 12px; background: var(--c-menu); border: 0; border-top: var(--bw) solid var(--c-ink); border-bottom: var(--bw) solid var(--c-ink); box-shadow: none; gap: 6px; overflow-x: auto; -webkit-mask-image: none; mask-image: none; border-radius: 0; }
+  #main > .seg:not(.haut) { position: sticky; top: var(--segt, 0px); z-index: 4; margin: 0 0 14px; padding: 10px 12px; background: var(--c-menu-2); border: 0; border-top: var(--bw) solid var(--c-ink); border-bottom: var(--bw) solid var(--c-ink); box-shadow: none; gap: 6px; overflow-x: auto; -webkit-mask-image: none; mask-image: none; border-radius: 0; }
   #main > .seg:not(.haut) button { flex: 0 0 auto; flex-direction: column; gap: 4px; min-width: 64px; min-height: 52px; padding: 6px 10px; border: var(--bw) solid transparent; border-left: var(--bw) solid transparent; background: transparent; color: var(--c-on-menu); box-shadow: none; font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; position: relative; }
   #main > .seg:not(.haut) button .lb { display: block; }
   #main > .seg:not(.haut) button svg { width: 20px; height: 20px; color: currentColor; }
@@ -296,11 +296,8 @@ html, body { background: var(--c-bg); }
 #main .msb > h3.kicker svg { width: 20px; height: 20px; color: var(--kick, currentColor); }
 #phone #main .bpr .meclub .tcard, #phone #main .bpr .meclub .card { border: 0; padding: 0; background: transparent; }
 #phone .top h1 { line-height: 1.12; }
-#phone #main .bpr .meclub .tcard.cf1 { box-shadow: inset 0 3px 0 var(--b-bronze); }
-#phone #main .bpr .meclub .tcard.cf2 { box-shadow: inset 0 3px 0 var(--b-acier); }
-#phone #main .bpr .meclub .tcard.cf3 { box-shadow: inset 0 3px 0 var(--b-or); }
-#phone #main .bpr .meclub .tcard.cf4 { box-shadow: inset 0 3px 0 var(--b-platine); }
-#phone #main .bpr .meclub .tcard.cf5 { box-shadow: inset 0 3px 0 var(--b-legende); }
+/* Investissement : plus de filet de couleur en haut (ancien style), la carte garde son titre intégré */
+#phone #main .bpr .meclub .tcard { box-shadow: none; }
 /* style « full street » : surtitres des onglets en pastille (couleur sur téléphone seulement) */
 @media (max-width: 1023px) {
   :root[data-style="street"] :is(#main, #subnav) > .seg .segt span { color: var(--on-hot); }
@@ -1717,6 +1714,21 @@ select option { background: var(--c-surface); color: var(--c-text); }
 
 /* la fenêtre du bas reçoit le focus à l ouverture, sans anneau (trait encre seulement) ; ses champs gardent le leur */
 #phone .sheet:focus, #phone .sheet:focus-visible { outline: 0; }
+
+/* listes de choix : la flèche du socle (comme .r-selectw), en couleur du texte */
+.fld:has(> select) { position: relative; }
+.fld:has(> select)::after { content: ''; position: absolute; right: 12px; bottom: 13px; width: 22px; height: 22px; pointer-events: none; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* Mon profil : le cadre de niveau autour de l avatar (catalogue : anneau de la couleur du niveau, filet encre, ombre) */
+#phone #main .avedit > .av[class*=' fr'] { box-shadow: 0 0 0 5px var(--lvl), 0 0 0 7px var(--c-ink), 9px 9px 0 2px var(--c-ink); margin: 7px; }
+.avedit > .av.fr1 { --lvl: var(--b-bronze); }
+.avedit > .av.fr2 { --lvl: var(--b-argent); }
+.avedit > .av.fr3 { --lvl: var(--b-or); }
+.avedit > .av.fr4 { --lvl: var(--b-platine); }
+.avedit > .av.fr5 { --lvl: var(--b-legende); }
+
+/* Accueil : l étiquette du sport (dans le coin de la publication) ne chevauche plus le nom ni la pastille Club */
+#phone #main .post:has(> .sp) > .hd > .grow { padding-right: 66px; }
 
 /* ---------- 4. Animations et gestes ---------- */
 .stories::-webkit-scrollbar, .seg::-webkit-scrollbar, .chips::-webkit-scrollbar, .swipe::-webkit-scrollbar { display: none; }

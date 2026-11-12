@@ -2025,6 +2025,10 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .cogfill b { white-space: nowrap; }
 .cogcard .row > .tag { flex: none; }
 
+/* listes de choix : la flèche du socle (comme .r-selectw), en couleur du texte */
+.fld:has(> select) { position: relative; }
+.fld:has(> select)::after { content: ''; position: absolute; right: 12px; bottom: 13px; width: 22px; height: 22px; pointer-events: none; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; }
+
 /* ---------- 4. Animations et gestes ---------- */
 .stories::-webkit-scrollbar, .seg::-webkit-scrollbar, .chips::-webkit-scrollbar, .swipe::-webkit-scrollbar { display: none; }
 .flash { animation: fl .9s; }
