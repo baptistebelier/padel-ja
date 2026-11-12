@@ -422,12 +422,14 @@ test('Coach : Tableau de bord et Statistiques, planning en colonnes, un jour sur
     await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
     assert.deepEqual(await page.evaluate(() => TABBAR.slice(0, 2).map(t => t[2])), ['Accueil', 'Stats'], 'libellés courts du menu (refonte)');
     assert.equal(await page.locator('.cotile').count(), 4, 'quatre petits chiffres');
-    await page.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
+    await page.evaluate(() => { S.tab = 'planning'; S.stack = []; S.pl.v = 'semaine'; render(); });
     await page.waitForSelector('.cowg');
     assert.equal(await page.locator('.cowj').count(), 7, 'les 7 jours, sur téléphone comme sur ordinateur');
     assert.ok(await page.locator(w > 1000 ? '.topact [data-a="coNewSes"]' : '.cotopact [data-a="coNewSes"]').isVisible(), 'action en haut (dans l’en-tête sur grand écran)');
     const hauts = await page.$$eval('.cotopact .btn', l => [...new Set(l.map(x => Math.round(x.getBoundingClientRect().top)))]);
-    assert.equal(hauts.length, 1, 'les boutons sur une seule ligne');
+    // grand écran (contrôle du designer) : Groupe, Collectif et Historique passent dans « … » de l’en-tête
+    if (w > 1000) assert.ok(await page.locator('.topact [data-a="coPlMore"]').isVisible(), 'autres actions dans « … »');
+    else assert.equal(hauts.length, 1, 'les boutons sur une seule ligne');
     assert.ok(await page.$$eval('.cowb', l => l.every(x => x.getBoundingClientRect().width > 8)), 'des cours lisibles');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
     if (w < 500) {
@@ -938,7 +940,7 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
     page.on('pageerror', x => errs.push(x.message));
     await page.goto(JA + '/club/coach.html');
     await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
-    await page.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
+    await page.evaluate(() => { S.tab = 'planning'; S.stack = []; S.pl.v = 'semaine'; render(); });
     await page.waitForSelector('.cowg');
     const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
     await page.click('[data-a="coVue"][data-k="mois"]');
@@ -946,9 +948,9 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
     assert.ok((await page.locator('.comc').count()) % 7 === 0, 'des semaines entières');
     assert.equal(await page.$eval('.cogm', x => getComputedStyle(x).display), 'grid', 'la grille du mois a son style');
     assert.ok(await large(), 'mois sans débordement');
-    const t0 = await page.textContent('.coweek b');
+    const t0 = await page.textContent('.coweek b, .coplnav span');
     await page.click('[data-a="coMois"][data-n="1"]');
-    assert.notEqual(await page.textContent('.coweek b'), t0, 'mois suivant');
+    assert.notEqual(await page.textContent('.coweek b, .coplnav span'), t0, 'mois suivant');
     await page.locator('.comc').nth(10).click();
     await page.waitForSelector('.cogrid');
     assert.ok(await large(), 'jour sans débordement');
@@ -957,7 +959,8 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
     await page.waitForSelector('.cogrid');
     await page.click('[data-a="coVue"][data-k="semaine"]');
     await page.waitForSelector('.cowg');
-    await page.click('.cotopact [data-a="nvNew"]');
+    if (await page.locator('.cotopact [data-a="nvNew"]').count()) await page.click('.cotopact [data-a="nvNew"]');
+    else { await page.click('.topact [data-a="coPlMore"]'); await page.click('#layer [data-a="nvNew"]'); }
     await page.waitForSelector('#nv-form #nv-mx-0');
     await page.selectOption('#nv-pl-0', '2');
     await page.selectOption('#nv-mx-0', '4');
