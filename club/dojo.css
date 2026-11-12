@@ -1923,6 +1923,55 @@ select option { background: var(--c-surface); color: var(--c-text); }
   .cotiles.cosuivit { display: none; }
 }
 
+/* ---------- 3d. Contrôle du designer (/Dojo, lots 1 et 2) ---------- */
+/* 1. titre de section et sa carte = une seule carte, le titre dedans (picto + Barlow 19, actions à droite), sans repère citron */
+#main .card.cohdin { padding-top: 0; }
+#main h2.cohd.cohdi { background: transparent; border: 0; border-bottom: var(--bw) solid color-mix(in srgb, var(--c-ink) 25%, transparent); box-shadow: none; margin: 0 -2px 6px; padding: 14px 4px 10px; font-family: var(--f-sub); font-weight: 700; font-size: 19px; letter-spacing: 0; text-transform: none; color: var(--c-text); position: static; }
+#main h2.cohd.cohdi::before { display: none; }
+#main h2.cohd.cohdi svg { width: 20px; height: 20px; color: var(--accent); }
+/* 2. pastilles numériques : carré lisible, chiffre centré (comme /Buvette) */
+#phone .cnt:not(.tabs .cnt) { display: inline-grid; place-items: center; min-width: 0; width: auto; height: auto; padding: 1px 6px; font-size: 12px; line-height: 1.3; font-weight: 700; border: var(--bw) solid var(--c-ink); border-radius: 0; background: var(--c-pink); color: var(--c-dark); }
+/* 3. ombres d'avatars : toujours encre, même taille partout (les avatars s'alignent) */
+#phone .av:not(.phero .av):not(.costack .av):not(.copp .av) { box-shadow: 2px 2px 0 var(--c-ink); }
+#main .item > .av { margin: 0 6px 0 0; }
+/* 4. plus de cadre dans un cadre : la recherche posée sur la page, l'état vide sans cadre dans sa carte */
+#main .card:has(> .cosearch) { background: transparent; border: 0; box-shadow: none; padding: 0; }
+#main :is(.card, .lis) .empty { border: 0; box-shadow: none; background: transparent; }
+/* Accueil : carte « Demain », l'heure en petit carré */
+.codh.sm { min-width: 44px; padding: 6px; }
+.codh.sm b { font-size: 18px; }
+.cotom .item svg:last-child { transform: scaleX(-1); width: 18px; height: 18px; flex: none; }
+@media (max-width: 1023px) {
+  /* téléphone : la carte du jour d'abord, puis les chiffres en bande compacte */
+  #main .pad.cowide { display: flex; flex-direction: column; }
+  #main .pad.cowide > .coday { order: -1; }
+  #main .pad.cowide > .coshort3 { order: -2; }
+  #main .cotiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  #main .cotiles .cotile { min-height: 0; padding: 8px 6px; }
+  #main .cotiles .cotile svg { display: none; }
+  #main .cotiles .cotile b { font-size: 24px; }
+  #main .cotiles .cotile span { font-size: 12px; padding-right: 0; letter-spacing: 0; }
+}
+/* Planning : la semaine et ‹ › dans l'en-tête */
+.coplnav { display: flex; align-items: center; gap: 8px; margin-right: 6px; }
+.coplnav span { font-family: var(--f-sub); font-weight: 700; font-size: 16px; white-space: nowrap; }
+.coplnav .ib svg { width: 18px; height: 18px; }
+.coplnav [data-n='1'] svg { transform: scaleX(-1); }
+/* Élèves : chevron à droite, deux lignes au plus */
+#main .colist .item[data-v='eleve'] .muted.small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#main .colist .item[data-v='eleve']::after { content: ''; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); flex: none; margin: 0 6px 0 4px; }
+.coprev [data-a='coOpenEl'] svg { transform: scaleX(-1); }
+@media (min-width: 1024px) {
+  /* Statistiques : intercalaires collés à leur carte */
+  #main > .seg.haut + .pad { padding-top: 0; }
+  #main > .seg.haut + .pad > :first-child { margin-top: 0; }
+  #top .topact .chip.on { background: var(--c-lime); color: var(--c-dark); }
+}
+/* Mes groupes : « 4/6 élèves » dans la marge de la carte, état du cycle en pastille */
+.cogfill { padding: 0 2px; }
+.cogfill b { white-space: nowrap; }
+.cogcard .row > .tag { flex: none; }
+
 /* ---------- 4. Animations et gestes ---------- */
 .stories::-webkit-scrollbar, .seg::-webkit-scrollbar, .chips::-webkit-scrollbar, .swipe::-webkit-scrollbar { display: none; }
 .flash { animation: fl .9s; }

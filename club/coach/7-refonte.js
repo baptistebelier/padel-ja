@@ -38,7 +38,8 @@ Object.keys(coTitles).forEach(k => {
 });
 
 /* ---------- actions de la page dans l'en-tête (grand écran) ---------- */
-function coTopActions() {
+var coTopActions = coTopActions0;
+function coTopActions0() {
   const top = $('top');
   if (!top) return;
   top.querySelectorAll('.topact').forEach(e => e.remove());
@@ -271,7 +272,8 @@ A.coSuiviSec = d => {
 };
 
 /* ---------- Tableau de bord : la carte du jour (séance, thème, élèves et leur présence, appel) ---------- */
-function coDayCard() {
+var coDayCard = coDayCard0;
+function coDayCard0() {
   const l = coSessions(TODAY, TODAY, 'me', 1).filter(x => !isCx(x.g, x.d));
   if (!l.length) return '';
   const body = l
@@ -304,4 +306,122 @@ V.today = () => {
   if (i < 0) return h;
   const e = coEnd(h, 'section', i);
   return e < 0 ? h : h.slice(0, i) + card + h.slice(e);
+};
+
+/* =========================================================================
+   Contrôle du designer (/Dojo, lots 1 et 2)
+   ========================================================================= */
+/* titre de section + sa carte = une seule carte, le titre dedans (picto + Barlow 19, actions à droite) */
+function coMergeHd() {
+  const main = $('main');
+  if (!main) return;
+  main.querySelectorAll('h2.cohd').forEach(h => {
+    const n = h.nextElementSibling;
+    if (!n || !n.classList.contains('card') || n.classList.contains('cohdin')) return;
+    h.classList.add('cohdi');
+    n.classList.add('cohdin');
+    n.prepend(h);
+  });
+}
+/* Accueil : pastille d'état à droite de chaque élève, et carte « Demain » */
+const coDayBase = coDayCard;
+coDayCard = function () {
+  let h = coDayBase();
+  h = h.replace(/<span class="grow"><span class="nm">([^<]*)<\/span><br><span class="muted small">À noter<\/span><\/span>/g, '<span class="grow"><span class="nm">$1</span><br><span class="muted small">Pas encore noté</span></span><span class="tag">À noter</span>');
+  return h;
+};
+function coTomorrowCard() {
+  const d = isoIn(1),
+    l = coSessions(d, d, 'me', 1).filter(x => !isCx(x.g, x.d));
+  if (!l.length) return '';
+  return `<div class="card coday cotom"><div class="calh">${ic('cal')}<b>Demain · ${fmtD(d)}</b></div>${l
+    .map(
+      x =>
+        `<button class="item" data-a="open" data-v="seance" data-id="${x.g.id}.${x.d}"><span class="codh sm"><b>${esc(String(x.g.h || '').replace(' h', ''))}</b></span><span class="grow"><span class="nm">${esc(x.g.name)}</span><br><span class="muted small">${[(sesDu(x.g, x.d) || {}).theme, x.g.sport ? x.g.sport.toLowerCase() : '', plural(coStu(x.g).length, 'élève')].filter(Boolean).map(esc).join(' · ')}</span></span>${x.g.sport ? `<span class="tag ${x.g.sport === 'Padel' ? 'padel' : 'tennis'}">${esc(x.g.sport)}</span>` : ''}${ic('back')}</button>`
+    )
+    .join('')}</div>`;
+}
+const coTodayTom = V.today;
+V.today = () => {
+  const h = coTodayTom(),
+    card = coTomorrowCard();
+  if (!card) return h;
+  // la section « Demain » d'origine est remplacée par la carte
+  const i = h.search(/<section class="plc">\s*<h2 class="evday"><span>Demain/);
+  if (i >= 0) {
+    const e = coEnd(h, 'section', i);
+    if (e > 0) return h.slice(0, i) + card + h.slice(e);
+  }
+  const j = h.indexOf('<div class="card coday">');
+  if (j < 0) return h;
+  const e = coEnd(h, 'div', j);
+  return e < 0 ? h : h.slice(0, e) + card + h.slice(e);
+};
+/* Planning : la semaine et ‹ › dans l'en-tête ; Groupe, Collectif et Historique dans « … » */
+const coTopPlan = coTopActions;
+coTopActions = function () {
+  coTopPlan();
+  if (!coWide() || S.stack.length || S.tab !== 'planning') return;
+  const top = $('top'),
+    box = top && top.querySelector('.topact'),
+    main = $('main');
+  if (!box) return;
+  const wk = main.querySelector('.card.coweek');
+  if (wk) {
+    const prev = wk.querySelector('[data-n="-1"]'),
+      next = wk.querySelector('[data-n="1"]'),
+      lab = wk.querySelector('b');
+    const nav = document.createElement('div');
+    nav.className = 'coplnav';
+    if (prev) nav.append(prev);
+    if (lab) {
+      const s = document.createElement('span');
+      s.textContent = lab.textContent;
+      nav.append(s);
+    }
+    if (next) nav.append(next);
+    box.prepend(nav);
+    wk.remove();
+  }
+  const tools = main.querySelector('.cotopact');
+  if (tools) {
+    tools.remove();
+    box.insertAdjacentHTML('beforeend', `<button class="ib" data-a="coPlMore" aria-label="Autres actions">${ic('more')}</button>`);
+  }
+};
+A.coPlMore = () =>
+  sheet(
+    'Planning',
+    `<div class="body"><div class="menu"><button data-a="coNewGrp">${ic('users')}Créer un groupe</button><button data-a="nvNew" data-m="cours">${ic('school')}Ouvrir un collectif</button><button data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div></div>`
+  );
+/* au téléphone, le planning s'ouvre sur le jour */
+if (!coWide() && !S.pl.v) S.pl.v = 'jour';
+/* Statistiques : 4 périodes, les trimestres dans « Autre période » */
+const coTopStats = coTopActions;
+coTopActions = function () {
+  coTopStats();
+  if (!coWide() || S.stack.length || S.tab !== 'dash') return;
+  const box = $('top') && $('top').querySelector('.topact .chips');
+  if (!box) return;
+  const tri = [...box.querySelectorAll('[data-a="coDashP"]')].filter(b => /^T\d/.test(b.textContent.trim()));
+  if (!tri.length) return;
+  const on = tri.find(b => b.getAttribute('aria-pressed') === 'true');
+  tri.forEach(b => b.remove());
+  box.insertAdjacentHTML('beforeend', `<button class="chip${on ? ' on' : ''}" data-a="coDashTri" aria-pressed="${!!on}">${on ? esc(on.textContent) : 'Autre période'} ▾</button>`);
+};
+A.coDashTri = () =>
+  sheet(
+    'Autre période',
+    `<div class="body"><div class="menu">${coQuarters().map(([v, l]) => `<button data-a="coDashP" data-v="${v}" data-close="1">${l}</button>`).join('')}</div></div>`
+  );
+const coDashPBase = A.coDashP;
+A.coDashP = d => {
+  if (d && d.close) closeSheet();
+  return coDashPBase(d);
+};
+/* chaque affichage : fusion des titres de section avec leur carte */
+const coRailMerge = ramRail;
+ramRail = function (t, sub) {
+  coRailMerge(t, sub);
+  coMergeHd();
 };
