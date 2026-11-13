@@ -2024,6 +2024,8 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .cosbar-in { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; margin-bottom: 4px; border-bottom: var(--bw) solid var(--c-ink); }
 #main .cochk { width: 26px; height: 26px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); color: transparent; }
 #main .cosel[aria-pressed='true'] .cochk { background: var(--c-lime); border-color: var(--c-ink); color: var(--c-dark); box-shadow: var(--sh-sm); }
+/* contrôle 4 : avatars des listes de /Dojo à boîte fixe, quel que soit le niveau du cadre (même marge, mêmes lignes) */
+#phone #main .av.sm[class*='fr'], #phone #main .coday .av.sm { margin: 0 6px 0 0; }
 /* Mes groupes : « 4/6 élèves » dans la marge de la carte, état du cycle en pastille */
 .cogfill { padding: 0 2px; }
 .cogfill b { white-space: nowrap; }
