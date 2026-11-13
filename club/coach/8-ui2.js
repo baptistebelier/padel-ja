@@ -263,6 +263,80 @@ if (UI2) {
         .join('')}</div></div>`
     );
 
+  /* ---------- Étape 5 — Groupes et cycles : le prix vient de la formule, « Nouveau cycle » unique ----------
+     Décision de Baptiste (13/11) : le tarif du groupe (g.tarif) disparaît de l'écran ; un groupe sans formule la demande,
+     groupe par groupe (rien n'est créé tout seul). Les données du tarif restent intactes. */
+  const u2SansFormule = g => coIsGrp(g) && !g.libre && !coOver(g) && !coOfferOf(g);
+  const u2Groupe = V.cgroupe;
+  V.cgroupe = id => {
+    let h = u2Groupe(id);
+    const g = grp(id);
+    if (!g) return h;
+    const t = tarifOf(g);
+    h = h.replace(
+      coTile('euro', t.prix ? t.prix + ' €' : '–', t.prix ? TARIF_MODES[t.mode] : 'Tarif à renseigner'),
+      ''
+    );
+    h = h
+      .replace(`${ic('cal')}Programmer des séances`, `${ic('plus')}Nouveau cycle`)
+      .replace('Créer le cycle avec les séances déjà faites', 'Nouveau cycle, avec les séances déjà faites');
+    if (u2SansFormule(g)) {
+      const i = h.indexOf('<div class="cotiles">');
+      if (i > 0)
+        h =
+          h.slice(0, i) +
+          `<div class="card u2c u2fo"><div class="calh">${ic('ball')}<b>Formule à choisir</b></div><p class="muted small">Ce groupe n’a pas encore de formule. Choisis-la : c’est elle qui donne le prix des séances et, pour un pack, leur nombre.</p><button class="btn" data-a="coGrpOf" data-id="${g.id}">${ic('ball')}Choisir la formule</button></div>` +
+          h.slice(i);
+    }
+    return h;
+  };
+  /* À faire (Aujourd'hui) : les groupes qui attendent leur formule */
+  const u2FoTodo = () =>
+    coGroups('', true)
+      .filter(u2SansFormule)
+      .map(
+        g =>
+          `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">Formule à choisir</span><br><span class="muted small">${esc(g.name)}</span></span></button>`
+      )
+      .join('');
+  const u2TodayF = V.today;
+  V.today = () => {
+    const h = u2TodayF(),
+      f = u2FoTodo();
+    if (!f) return h;
+    // en tête de « À faire »
+    const i = h.indexOf('<div class="cobside">');
+    if (i < 0) return h;
+    const j = h.indexOf('<div class="card colist">', i);
+    if (j > 0) {
+      const k = j + '<div class="card colist">'.length;
+      return h.slice(0, k) + f + h.slice(k);
+    }
+    // rien d'autre à faire : une liste rien que pour les formules, sous le titre
+    const t = h.indexOf('</h2>', i);
+    return t > 0 ? h.slice(0, t + 5) + `<div class="card colist">${f}</div>` + h.slice(t + 5) : h;
+  };
+  /* Modifier un groupe, créer un groupe : plus de champ « Tarif » (gardé, caché, pour ne rien perdre) */
+  const u2CacheTarif = (ids, note) => {
+    ids.forEach(id => {
+      const x = $(id),
+        f = x && x.closest('.fld');
+      if (f) f.hidden = true;
+    });
+    const btn = document.querySelector('#layer form .btn.full:last-of-type');
+    if (note && btn) btn.insertAdjacentHTML('beforebegin', `<p class="muted small">${note}</p>`);
+  };
+  const u2GrpEdit = A.coGrpEdit,
+    u2NewGrp = A.coNewGrp;
+  A.coGrpEdit = d => {
+    u2GrpEdit(d);
+    u2CacheTarif(['co-mode', 'co-prix'], 'Le prix des séances vient de la formule du groupe.');
+  };
+  A.coNewGrp = d => {
+    u2NewGrp(d);
+    u2CacheTarif(['co-gt', 'co-gp'], 'La formule (et donc le prix) se choisit ensuite, sur la page du groupe.');
+  };
+
   /* ---------- « Nouveau » : un seul bouton, trois choix expliqués ---------- */
   A.u2New = () =>
     sheet(

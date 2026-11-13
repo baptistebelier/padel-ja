@@ -2650,3 +2650,22 @@ test('Dojo ?ui=2 : À encaisser dans Élèves, pastilles de formule, « Noter un
     await ctx.close();
   }
 });
+
+test('Dojo ?ui=2 : groupe sans tarif affiché, formule demandée groupe par groupe, « Nouveau cycle »', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 820 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html?ui=2');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  const id = await page.evaluate(() => { const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)); if (!g) return null; delete g.offre; (g.cycles || []).forEach(c => delete c.offre); S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: g.id }]; render(); return g.id; });
+  if (id) {
+    assert.equal(await page.locator('#main .u2fo [data-a="coGrpOf"]').count(), 1, 'formule à choisir');
+    assert.ok(!(await page.textContent('#main')).includes('Tarif à renseigner'), 'plus de tarif du groupe');
+    assert.ok((await page.textContent('#main')).includes('Nouveau cycle'), 'Nouveau cycle');
+    await page.evaluate(g => A.coGrpEdit({ id: g }), id);
+    assert.equal(await page.locator('#layer #co-prix').isVisible(), false, 'tarif caché dans Modifier');
+    await page.evaluate(() => { closeSheet(); S.tab = 'today'; S.stack = []; render(); });
+    assert.ok((await page.textContent('#main .cobside')).includes('Formule à choisir'), 'rappel dans À faire');
+  }
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
