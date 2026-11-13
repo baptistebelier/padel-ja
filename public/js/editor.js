@@ -139,7 +139,7 @@
     }).join('') || '<p class="muted">Aucune paire n\'a encore joué.</p>';
     // à suivre : les prochains matchs programmés, par heure
     const nx = S.matches.filter(m => m.court && R[m.id] && (R[m.id].state === 'ready' || R[m.id].state === 'waiting') && tl[m.id]).sort((a, b) => tl[a.id].start - tl[b.id].start).slice(0, 5);
-    next.innerHTML = nx.map(m => `<button type="button" class="r-row" data-o="${m.id}"><span class="ps-nh">${A.hhmm(tl[m.id].start)}</span><span class="r-row__txt"><b>${esc(A.sideName(m, 'A'))} / ${esc(A.sideName(m, 'B'))}</b><small>M${m.num} · ${esc(A.courtName(m.court))}</small></span></button>`).join('') || '<p class="muted">Aucun match programmé.</p>';
+    next.innerHTML = nx.map(m => `<button type="button" class="r-row" data-o="${m.id}"><span class="ps-nh">${A.hhmm(tl[m.id].start)}</span><span class="r-row__txt"><b>${esc(A.sideName(m, 'A'))}</b><span class="ps-contre">contre ${esc(A.sideName(m, 'B'))}</span><small>M${m.num} · ${esc(A.courtName(m.court))}</small></span></button>`).join('') || '<p class="muted">Aucun match programmé.</p>';
     $$('[data-o]', next).forEach(b => b.onclick = () => openMatchModal(b.dataset.o));
   }
   function psSecSync(t) {

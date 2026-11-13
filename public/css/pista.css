@@ -1058,6 +1058,8 @@ button.urow { background: var(--c-surface-2); }
 .ps-enjeu { justify-self: end; padding: 1px 8px; background: var(--c-lime); color: var(--c-dark); font-size: 12px; box-shadow: none; }
 .ps-next .r-row { min-height: 52px; padding: 6px 0; box-shadow: none; }
 .ps-next .r-row__txt b { white-space: normal; }
+/* « À suivre » : une paire par ligne */
+.ps-next .r-row__txt .ps-contre { display: block; font-weight: 600; }
 .sc-t { flex-wrap: wrap; }
 .sc-bot { flex-wrap: wrap; gap: 6px; }
 .sc-acts { flex-wrap: wrap; }
