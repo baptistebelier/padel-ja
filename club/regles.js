@@ -44,6 +44,8 @@
     // une semaine sur deux (every : 2), compté depuis la première séance
     return !(g.every > 1 && g.from) || Math.round((Date.parse(iso) - Date.parse(g.from)) / 6048e5) % g.every === 0;
   }
+  /* heure d'une séance : celle réglée pour ce jour-là (g.hr[date], séance déplacée à une autre heure), sinon celle du créneau */
+  const hAt = (g, iso) => (g && g.hr && iso && g.hr[iso]) || (g && g.h) || '';
   /* « 1 h 30 », « 1 h », « 45 min » → minutes (1 h par défaut) */
   function durMin(d) {
     const m = String(d || '').match(/(\d+) h(?: (\d+))?|(\d+) min/);
@@ -518,6 +520,7 @@
     chanRegle,
     chanOuvert,
     trainOn,
+    hAt,
     durMin,
     fmt,
     formuleDe,

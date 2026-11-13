@@ -446,7 +446,7 @@ const hMinTxt = n => Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).
 const coOccupe = d =>
   coSessions(d, d, 'me', 1)
     .filter(x => !isCx(x.g, x.d))
-    .map(x => [hMin(x.g.h), hMin(x.g.h) + durMin(x.g.dur)]);
+    .map(x => [hMin(hAt(x.g, x.d)), hMin(hAt(x.g, x.d)) + durMin(x.g.dur)]);
 /* ce qui reste libre un jour donné (au moins une heure) ; rien pour un jour passé */
 const coLibre = d => (d < TODAY ? [] : REGLES.plagesLibres(OFFRES.dispos, d, coOccupe(d), OFFRES.conges, 60));
 const coDiCren = (du, au) =>
@@ -803,6 +803,11 @@ function coNextOcc(g, after) {
 /* une séance (thème, appel, bilan) passe d'une date à une autre */
 function coSesMove(g, from, to) {
   (g.cycles || []).forEach(c => (c.dates = [...new Set((c.dates || []).map(x => (x === from ? to : x)))].sort()));
+  // une heure réglée pour ce jour-là suit la séance
+  if (g.hr && g.hr[from] && from !== to) {
+    g.hr[to] = g.hr[from];
+    delete g.hr[from];
+  }
   const s = SEANCES.find(x => x.id === g.id + '.' + from && (x._club || '') === (g._club || ''));
   if (!s) return;
   const t = sesGet(g.id + '.' + to);
@@ -813,11 +818,23 @@ function coSesMove(g, from, to) {
 function coDateOff(g, d) {
   (g.cycles || []).forEach(c => (c.dates = (c.dates || []).filter(x => x !== d)));
   if ((g.extra || []).includes(d)) g.extra = g.extra.filter(x => x !== d);
+  if (g.hr && g.hr[d]) {
+    delete g.hr[d];
+    if (!Object.keys(g.hr).length) delete g.hr;
+  }
   if (trainOn(g, d)) g.skip = (g.skip || []).concat(d);
 }
 function coDateOn(g, d) {
   g.skip = (g.skip || []).filter(x => x !== d);
   if (!trainOn(g, d)) g.extra = (g.extra || []).concat(d).sort();
+}
+
+/* heures proposées pour une séance : de 7 h à 23 h 45, tous les quarts d'heure (l'heure actuelle en plus si besoin) */
+function coHeures(cur) {
+  const l = [];
+  for (let m = 7 * 60; m <= 23 * 60 + 45; m += 15) l.push(hMinTxt(m));
+  if (cur && !l.includes(cur)) l.push(cur);
+  return l.sort((a, b) => hMin(a) - hMin(b));
 }
 
 /* ---------- Programmer des séances ---------- */
@@ -901,7 +918,7 @@ Object.assign(A, {
       next = coNextOcc(g, L[L.length - 1] || d.d);
     sheet(
       'Reporter la séance',
-      `<div class="body"><p>La séance du <b>${fmtD(d.d)}</b> est reportée à la suivante, le <b>${fmtD(L[1] || next)}</b>. Les ${plural(L.length - 1, 'séance suivante', 'séances suivantes')} glissent aussi d'une occurrence, avec leurs thèmes${g.to ? ` : le cycle se termine le <b>${fmtD(next)}</b> au lieu du ${fmtD(g.to)}` : ''}.</p><p class="muted small">Les élèves et leurs parents sont prévenus dans /RAM Club.</p><button class="btn full" data-a="coShiftOk" data-id="${g.id}" data-d="${d.d}">${ic('cal')}Reporter</button><button class="btn full ghost" data-a="coMove" data-id="${g.id}" data-d="${d.d}">Changer seulement la date de cette séance</button></div>`
+      `<div class="body"><p>La séance du <b>${fmtD(d.d)}</b> est reportée à la suivante, le <b>${fmtD(L[1] || next)}</b>. Les ${plural(L.length - 1, 'séance suivante', 'séances suivantes')} glissent aussi d'une occurrence, avec leurs thèmes${g.to ? ` : le cycle se termine le <b>${fmtD(next)}</b> au lieu du ${fmtD(g.to)}` : ''}.</p><p class="muted small">Les élèves et leurs parents sont prévenus dans /RAM Club.</p><button class="btn full" data-a="coShiftOk" data-id="${g.id}" data-d="${d.d}">${ic('cal')}Reporter</button><button class="btn full ghost" data-a="coMove" data-id="${g.id}" data-d="${d.d}">Changer seulement la date ou l’heure de cette séance</button></div>`
     );
   },
   coShiftOk(d) {
@@ -932,8 +949,14 @@ Object.assign(A, {
     const g = grp(d.id);
     if (!g) return;
     sheet(
-      'Changer la date',
-      `<form class="body" id="co-move" data-id="${g.id}" data-d="${d.d}"><p class="muted small">Seule la séance du ${fmtD(d.d)} change de jour, avec son thème, son appel et son bilan. Les autres séances${g.once ? '' : ' du groupe'} ne bougent pas.</p><div class="fld"><label for="co-mv-d">Nouvelle date</label><input id="co-mv-d" type="date" required value="${d.d}"></div>${g.once ? `<div class="fld"><label for="co-mv-h">Heure</label><select id="co-mv-h">${HOURS.map(h => `<option ${h === g.h ? 'selected' : ''}>${h}</option>`).join('')}</select></div>` : ''}<button class="btn full">Déplacer la séance</button></form>`
+      'Changer la date ou l’heure',
+      `<form class="body" id="co-move" data-id="${g.id}" data-d="${d.d}"><p class="muted small">Seule la séance du ${fmtD(d.d)} à ${esc(hAt(g, d.d))} change de jour ou d’heure, avec son thème, son appel et son bilan. Les autres séances${g.once ? '' : ' du groupe'} ne bougent pas.</p><div class="row" style="gap:8px"><div class="fld grow"><label for="co-mv-d">Nouvelle date</label><input id="co-mv-d" type="date" required value="${d.d}"></div><div class="fld grow"><label for="co-mv-h">Heure</label><select id="co-mv-h">${coHeures(
+        hAt(g, d.d)
+      )
+        .map(h => `<option ${h === hAt(g, d.d) ? 'selected' : ''}>${h}</option>`)
+        .join(
+          ''
+        )}</select></div></div>${g.once || !g.h ? '' : `<p class="muted small">Heure habituelle du groupe : ${esc(g.h)}.</p>`}<button class="btn full">Déplacer la séance</button></form>`
     );
   },
   coOffAdd(d) {
@@ -1141,23 +1164,41 @@ document.addEventListener('submit', e => {
     from = f.dataset.d,
     to = $('co-mv-d').value;
   if (!g || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return;
+  const h0 = hAt(g, from),
+    h = ($('co-mv-h') && $('co-mv-h').value) || h0;
+  if (to === from && h === h0) return closeSheet();
   if (to !== from && !g.once && coDates(g, to, to).length) return toast('Le groupe a déjà une séance ce jour-là');
   coSesMove(g, from, to);
   if (g.once) {
     g.once = to;
     g.day = coDow(to);
-    if ($('co-mv-h')) g.h = $('co-mv-h').value;
+    g.h = h;
     g.sub = `${fmtD(to)} ${g.h} · ${g.dur}`;
-  } else if (to !== from) {
-    coDateOff(g, from);
-    coDateOn(g, to);
-    if (g.to && to > g.to) g.to = to;
-    if (g.from && to < g.from) g.from = to;
+  } else {
+    if (to !== from) {
+      coDateOff(g, from);
+      coDateOn(g, to);
+      if (g.to && to > g.to) g.to = to;
+      if (g.from && to < g.from) g.from = to;
+    }
+    // l'heure de ce jour-là seulement : rien à garder si c'est l'heure habituelle du groupe
+    g.hr = g.hr || {};
+    if (h === g.h) delete g.hr[to];
+    else g.hr[to] = h;
+    if (!Object.keys(g.hr).length) delete g.hr;
   }
+  NOTIFS.unshift({
+    by: g.coach,
+    txt: `${g.name} : la séance du ${fmtD(from)} à ${h0} est déplacée au ${fmtD(to)} à ${h}`,
+    t: "À l'instant",
+    n: 1,
+    go: { v: 'agenda', ag: 'cours' },
+    to: (g.mem || []).slice()
+  });
   closeSheet();
   const top = S.stack[S.stack.length - 1];
   if (top && top.v === 'seance') top.id = g.id + '.' + to;
-  coSave('Séance déplacée au ' + fmtD(to));
+  coSave(`Séance déplacée au ${fmtD(to)} à ${h} · élèves prévenus`);
 });
 document.addEventListener('submit', e => {
   if (e.target.id !== 'co-off') return;

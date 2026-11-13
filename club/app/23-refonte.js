@@ -287,7 +287,7 @@ function appelBox(g, iso) {
     return `<div class="apl">${avOuInit(k)}<span class="grow"><span class="nm">${esc(nomEl(k))}</span><br><span class="muted small">${etat}</span></span><span class="apt"><button class="${v === 'P' ? 'on ok' : ''}" data-a="att" data-id="${g.id}" data-d="${iso}" data-u="${k}" data-s="1" aria-pressed="${v === 'P'}">Présent</button><button class="${v === 'A' ? 'on no' : ''}" data-a="att" data-id="${g.id}" data-d="${iso}" data-u="${k}" data-s="0" aria-pressed="${v === 'A'}">Absent</button></span></div>`;
   };
   return (
-    `<div class="appel" data-g="${g.id}" data-d="${iso}"><div class="calh">${ic('check')}<b>Appel</b><span class="grow"></span><span class="tag ac">${esc(g.h || '')}</span></div><p class="muted small">${esc(g.name)} · ${fmtD(iso)} · ${l.length} élève${pl(l.length, '', 's')}</p>` +
+    `<div class="appel" data-g="${g.id}" data-d="${iso}"><div class="calh">${ic('check')}<b>Appel</b><span class="grow"></span><span class="tag ac">${esc(hAt(g, iso))}</span></div><p class="muted small">${esc(g.name)} · ${fmtD(iso)} · ${l.length} élève${pl(l.length, '', 's')}</p>` +
     (l.length ? l.map(ligne).join('') : '<p class="muted small">Aucun élève dans ce groupe.</p>') +
     `<div class="ecn"><span class="ok"><b>${nP}</b>${pl(nP, 'présent', 'présents')}</span><span class="no"><b>${nA}</b>${pl(nA, 'absent', 'absents')}</span><span><b>${l.length - nP - nA}</b>à noter</span></div><div class="ecacts"><button class="btn ghost" data-a="appelTous" data-id="${g.id}" data-d="${iso}">${ic('check')}Tous présents</button><button class="btn grow" data-a="appelOk" data-id="${g.id}" data-d="${iso}">${ic('check')}Valider l’appel</button></div></div>`
   );
@@ -462,7 +462,7 @@ function ecoleSideEns0(t) {
           .filter(g => sessions(g, 1).includes(TODAY) && !(g.cancel || []).includes(TODAY))
           .map(
             g =>
-              `<button class="item" data-a="appel" data-id="${g.id}" data-d="${TODAY}"><span class="grow"><span class="nm">Faire l’appel</span><br><span class="muted small">${esc(g.name)} · ${esc(g.h || '')}</span></span></button>`
+              `<button class="item" data-a="appel" data-id="${g.id}" data-d="${TODAY}"><span class="grow"><span class="nm">Faire l’appel</span><br><span class="muted small">${esc(g.name)} · ${esc(hAt(g, TODAY))}</span></span></button>`
           ),
         ...(ext
           ? [

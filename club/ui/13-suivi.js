@@ -163,7 +163,7 @@ function persoBody() {
                 return evCard({
                   cat: 'ens',
                   fixe: true,
-                  t: g ? g.h : '',
+                  t: g ? hAt(g, s.d) : '',
                   title: g ? g.name : 'Séance',
                   lines: [s.theme && ['ladder', esc(s.theme)], s.recap && ['doc', esc(s.recap)]],
                   tags: st === 'P' ? evTag('Présent') : evCx(st === 'E' ? 'Excusé' : 'Absent')

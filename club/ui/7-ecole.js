@@ -26,7 +26,7 @@ function sessCard(g, iso, who, manage) {
     nNo = g.mem.filter(p => respOf(g, iso, p) === 'no').length;
   return evCard({
     cat: 'ens',
-    t: g.h,
+    t: hAt(g, iso),
     cx,
     title: g.name,
     lines: [coachDu(g, iso) && M[coachDu(g, iso)] && ['user', first(coachDu(g, iso))], ['clock', g.dur]],
@@ -163,7 +163,7 @@ function ecoleBody(t) {
         .filter(iso => coachDu(g, iso) === me)
         .forEach(iso => items.push({ g, iso, w: null, c: 1 }));
     });
-    items.sort((a, b) => a.iso.localeCompare(b.iso) || hMin(a.g.h) - hMin(b.g.h));
+    items.sort((a, b) => a.iso.localeCompare(b.iso) || hMin(hAt(a.g, a.iso)) - hMin(hAt(b.g, b.iso)));
     b = items.length
       ? `<p class="muted small">Tes cours des trois prochaines semaines. Indique ta présence : l'enseignant prépare la séance en conséquence, et tu es notifié si le lieu change ou si le cours est annulé.</p>` +
         evDays(

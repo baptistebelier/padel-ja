@@ -2329,3 +2329,39 @@ test('Club : l’appel de l’enseignant s’écrit dans la séance, comme dans 
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+test('Coach : une séance change de date et d’heure, seule, sans toucher aux autres du groupe', async () => {
+  const page = await browser.newPage({ viewport: { width: 1024, height: 768 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  const r = await page.evaluate(() => {
+    const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x) && !x.once && x.h && x.h !== '20 h 15'), l = coDates(g, isoIn(1), isoIn(60));
+    S.stack = [{ v: 'seance', id: g.id + '.' + l[0] }]; render();
+    return { g: g.id, d: l[0], d2: l[1], h: g.h };
+  });
+  await page.click('[data-a="coMove"]');
+  await page.waitForSelector('#co-move #co-mv-h');
+  assert.equal(await page.$eval('#co-mv-h', x => x.value), r.h, 'l’heure actuelle est choisie');
+  await page.selectOption('#co-mv-h', '20 h 15');
+  await page.click('#co-move .btn.full');
+  await page.waitForFunction(r => (grp(r.g).hr || {})[r.d] === '20 h 15', r);
+  assert.equal(await page.evaluate(r => hAt(grp(r.g), r.d2), r), r.h, 'la séance suivante garde l’heure du groupe');
+  assert.equal(await page.evaluate(r => grp(r.g).h, r), r.h, 'le créneau du groupe ne change pas');
+  assert.match(await page.textContent('#main'), /20 h 15/, 'la séance affiche sa nouvelle heure');
+  // date et heure ensemble : l'heure suit la séance à sa nouvelle date
+  const d3 = await page.evaluate(r => { for (let i = 1; i < 7; i++) { const x = isoIn(i, r.d); if (!coDates(grp(r.g), x, x).length) return x; } }, r);
+  await page.click('[data-a="coMove"]');
+  await page.waitForSelector('#co-move #co-mv-d');
+  assert.equal(await page.$eval('#co-mv-h', x => x.value), '20 h 15');
+  await page.fill('#co-mv-d', d3);
+  await page.selectOption('#co-mv-h', '9 h 45');
+  await page.click('#co-move .btn.full');
+  await page.waitForFunction(([r, d3]) => (grp(r.g).hr || {})[d3] === '9 h 45', [r, d3]);
+  assert.equal(await page.evaluate(r => (grp(r.g).hr || {})[r.d], r), undefined, 'plus rien à l’ancienne date');
+  // le planning de la semaine montre la séance à sa nouvelle heure
+  const pl = await page.evaluate(([r, d3]) => coSessions(d3, d3, 'me', 1).filter(x => x.g.id === r.g).map(x => hAt(x.g, x.d)), [r, d3]);
+  assert.deepEqual(pl, ['9 h 45']);
+  assert.deepEqual(errs, []);
+  await page.close();
+});

@@ -177,6 +177,14 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(sm.find(x => x.id === gm.groupe_id + '.2030-04-03').data.theme, 'Volée');
   assert.ok(!sm.some(x => x.id === gm.groupe_id + '.2030-04-01'), 'plus rien à l’ancienne date');
   await assert.rejects(w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', nouvelle_date: '2030-04-08' }), /déjà une séance/);
+  // l'heure d'une seule séance d'un groupe chaque semaine : les autres gardent celle du créneau
+  assert.equal((await w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', nouvelle_date: '2030-04-03', heure: '19 h 30' })).heure, '19 h 30');
+  assert.deepEqual((await gr2()).hr, { '2030-04-03': '19 h 30' });
+  const plh = (await w('coach_planning', { du: '2030-04-01', au: '2030-04-09' })).seances.filter(x => x.groupe === 'Mobile');
+  assert.deepEqual(plh.map(x => [x.date, x.heure]), [['2030-04-03', '19 h 30'], ['2030-04-08', '18 h']], 'seule cette séance change d’heure');
+  await assert.rejects(w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', nouvelle_date: '2030-04-03', heure: '19 h 30' }), /rien à changer/);
+  assert.equal((await w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', nouvelle_date: '2030-04-03', heure: '18 h' })).heure, '18 h');
+  assert.deepEqual((await gr2()).hr || {}, {}, 'revenue à l’heure habituelle : plus rien de réglé');
   await assert.rejects(w('coach_supprimer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03' }), /appel/);
   await w('coach_supprimer_seance', { groupe_id: gm.groupe_id, date: '2030-04-08' });
   assert.deepEqual((await gr2()).cycles[0].dates, ['2030-04-03']);

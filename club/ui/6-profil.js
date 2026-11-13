@@ -248,7 +248,7 @@ function parentCard(k) {
       .map(s => {
         const cx = (s.g.cancel || []).includes(s.iso),
           ab = ((s.g.abs || {})[s.iso] || []).includes(k);
-        return `<div class="ct">${ic('cal')}<span class="grow"><span class="nm">${s.g.name}</span><br><span class="muted small">${fmtD(s.iso)} · ${s.g.h}${cx ? ' · cours annulé' : ab ? ' · absence signalée' : ''}</span></span></div>`;
+        return `<div class="ct">${ic('cal')}<span class="grow"><span class="nm">${s.g.name}</span><br><span class="muted small">${fmtD(s.iso)} · ${hAt(s.g, s.iso)}${cx ? ' · cours annulé' : ab ? ' · absence signalée' : ''}</span></span></div>`;
       })
       .join('') || '<p class="muted small">Aucun cours dans les 15 prochains jours.</p>'
   }${rr.map(r => `<div class="ct">${ic('users')}<span class="grow"><span class="nm">${teamName(grp(r.tid))} – ${r.opp}</span><br><span class="muted small">${r.when}</span></span></div>`).join('')}

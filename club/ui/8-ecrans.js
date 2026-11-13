@@ -313,7 +313,7 @@ const V = {
             x === 'P' ? true : x === 'A' ? false : undefined
           ])
         );
-      h += `<div class="card"><span class="kicker">Prochain cours</span><span class="h3">${fmtD(iso)} · ${g.h}</span>${cx ? '<span class="st no">Cours annulé · élèves et parents prévenus</span>' : ''}
+      h += `<div class="card"><span class="kicker">Prochain cours</span><span class="h3">${fmtD(iso)} · ${hAt(g, iso)}</span>${cx ? '<span class="st no">Cours annulé · élèves et parents prévenus</span>' : ''}
    <div class="ctl"><button class="btn sm grow ${cx ? '' : 'hot'}" data-a="cancelCourse" data-id="${g.id}" data-d="${iso}">${cx ? 'Rétablir le cours' : 'Annuler le cours'}</button>${chans.some(c => c.id === g.id) ? `<button class="btn sm ghost grow" data-a="open" data-v="chan" data-id="${g.id}">Écrire au groupe</button>` : ''}</div>
    ${
      cx

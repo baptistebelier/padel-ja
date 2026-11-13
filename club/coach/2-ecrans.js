@@ -87,7 +87,7 @@ function coSessions(from, to, scope, all) {
           .filter(x => coIsMe(REGLES.coachDe(x.g, x.d, x.s)))
       )
     )
-    .sort((a, b) => a.d.localeCompare(b.d) || hMin(a.g.h) - hMin(b.g.h));
+    .sort((a, b) => a.d.localeCompare(b.d) || hMin(hAt(a.g, a.d)) - hMin(hAt(b.g, b.d)));
 }
 /* présence fusionnée d'une séance (appel de /RAM Coach et de /RAM Club : regles.js presDe) */
 const coPresOf = x => REGLES.presDe(x.s, x.g, x.d);
@@ -180,7 +180,7 @@ function coSesCard(x, big) {
     cyTh = (REGLES.cycleDe(g, d) || {}).theme;
   return evCard({
     cat: 'ens',
-    t: g.h,
+    t: hAt(g, d),
     cx,
     go: `data-a="open" data-v="seance" data-id="${sesKey(g, d)}"`,
     title: esc(g.name),
@@ -467,14 +467,16 @@ function coPlanJour() {
   const d = S.pl.j || TODAY,
     l = coSessions(d, d, '', 1),
     libres = typeof coLibre === 'function' ? coLibre(d) : [],
-    bornes = l.flatMap(x => [hMin(x.g.h), hMin(x.g.h) + durMin(x.g.dur)]).concat(libres.flatMap(p => [p.du, p.au])),
+    bornes = l
+      .flatMap(x => [hMin(hAt(x.g, x.d)), hMin(hAt(x.g, x.d)) + durMin(x.g.dur)])
+      .concat(libres.flatMap(p => [p.du, p.au])),
     lo = Math.floor(Math.min(8 * 60, ...bornes) / 60),
     hi = Math.ceil(Math.max(20 * 60, ...bornes) / 60),
     y = m => ((m - lo * 60) / 60) * CO_H,
     lanes = [];
   // deux cours en même temps : côte à côte
   const blocs = l.map(x => {
-    const du = hMin(x.g.h),
+    const du = hMin(hAt(x.g, x.d)),
       au = du + durMin(x.g.dur);
     let n = lanes.findIndex(fin => fin <= du);
     if (n < 0) n = lanes.length;
@@ -485,7 +487,7 @@ function coPlanJour() {
   let lignes = '';
   for (let h = lo; h < hi; h++)
     lignes += `<div class="cogh" style="top:${(h - lo) * CO_H}px"><span>${h} h</span></div>`;
-  return `<div class="pad covuej">${coPlanTools()}<div class="card coweek" style="display:flex"><button class="ib" data-a="coJour" data-n="-1" aria-label="Jour précédent">${ic('back')}</button><span class="grow" style="text-align:center"><b>${DAYS[coDow(d)]} ${+d.slice(8)} ${MO[+d.slice(5, 7) - 1]}</b><br><span class="muted small">${d === TODAY ? "Aujourd'hui · " : ''}${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}</span></span><button class="ib flip" data-a="coJour" data-n="1" aria-label="Jour suivant">${ic('back')}</button></div>${coCollHtml(d)}<div class="card cogrid" style="height:${(hi - lo) * CO_H}px">${lignes}${libres.map(p => `<div class="cogfree" style="top:${y(p.du)}px;height:${y(p.au) - y(p.du)}px"><span>Libre${p.lieu ? ' · ' + esc(p.lieu) : ''}</span></div>`).join('')}${blocs.map(({ x, du, au, n }) => `<button class="cogb${isCx(x.g, x.d) ? ' cx' : ''}" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}" style="top:${y(du)}px;height:${y(au) - y(du)}px;left:calc(44px + (100% - 48px) * ${n} / ${nb});width:calc((100% - 48px) / ${nb} - 2px)"><b>${esc(x.g.h)}${isCx(x.g, x.d) ? ' · annulé' : ''}</b> ${esc(x.g.name)}</button>`).join('')}</div></div>`;
+  return `<div class="pad covuej">${coPlanTools()}<div class="card coweek" style="display:flex"><button class="ib" data-a="coJour" data-n="-1" aria-label="Jour précédent">${ic('back')}</button><span class="grow" style="text-align:center"><b>${DAYS[coDow(d)]} ${+d.slice(8)} ${MO[+d.slice(5, 7) - 1]}</b><br><span class="muted small">${d === TODAY ? "Aujourd'hui · " : ''}${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}</span></span><button class="ib flip" data-a="coJour" data-n="1" aria-label="Jour suivant">${ic('back')}</button></div>${coCollHtml(d)}<div class="card cogrid" style="height:${(hi - lo) * CO_H}px">${lignes}${libres.map(p => `<div class="cogfree" style="top:${y(p.du)}px;height:${y(p.au) - y(p.du)}px"><span>Libre${p.lieu ? ' · ' + esc(p.lieu) : ''}</span></div>`).join('')}${blocs.map(({ x, du, au, n }) => `<button class="cogb${isCx(x.g, x.d) ? ' cx' : ''}" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}" style="top:${y(du)}px;height:${y(au) - y(du)}px;left:calc(44px + (100% - 48px) * ${n} / ${nb});width:calc((100% - 48px) / ${nb} - 2px)"><b>${esc(hAt(x.g, x.d))}${isCx(x.g, x.d) ? ' · annulé' : ''}</b> ${esc(x.g.name)}</button>`).join('')}</div></div>`;
 }
 /* ---------- vue mois : chaque jour, ses cours ; toucher un jour l'ouvre ---------- */
 function coPlanMois() {
@@ -504,7 +506,7 @@ function coPlanMois() {
     cases.push(
       `<button class="comc${d.slice(0, 7) === mois ? '' : ' hors'}${d === TODAY ? ' today' : ''}" data-a="coJourOpen" data-d="${d}" aria-label="${DAYS[coDow(d)]} ${+d.slice(8)} ${MO[+d.slice(5, 7) - 1]}, ${plural(x.length, 'séance')}"><b>${+d.slice(8)}</b>${x
         .slice(0, 3)
-        .map(s => `<span class="comev">${esc(s.g.h)} ${esc(s.g.name)}</span>`)
+        .map(s => `<span class="comev">${esc(hAt(s.g, s.d))} ${esc(s.g.name)}</span>`)
         .join(
           ''
         )}${x.length > 3 ? `<span class="comore">+${x.length - 3}</span>` : ''}${x.length ? `<span class="comn">${x.length}</span>` : ''}${att ? `<span class="comatt" title="Collectif en attente"></span>` : ''}</button>`
@@ -534,7 +536,7 @@ function coPlanning() {
     jours = Array.from({ length: 7 }, (_, i) => isoIn(i, from)),
     libres = jours.map(d => (typeof coLibre === 'function' ? coLibre(d) : [])),
     bornes = l
-      .flatMap(x => [hMin(x.g.h), hMin(x.g.h) + durMin(x.g.dur)])
+      .flatMap(x => [hMin(hAt(x.g, x.d)), hMin(hAt(x.g, x.d)) + durMin(x.g.dur)])
       .concat(libres.flat().flatMap(p => [p.du, p.au])),
     lo = Math.floor(Math.min(8 * 60, ...bornes) / 60),
     hi = Math.ceil(Math.max(20 * 60, ...bornes) / 60),
@@ -563,9 +565,9 @@ function coPlanning() {
         const lanes = [],
           blocs = l
             .filter(x => x.d === d)
-            .sort((p, q) => hMin(p.g.h) - hMin(q.g.h))
+            .sort((p, q) => hMin(hAt(p.g, p.d)) - hMin(hAt(q.g, q.d)))
             .map(x => {
-              const du = hMin(x.g.h),
+              const du = hMin(hAt(x.g, x.d)),
                 au = du + durMin(x.g.dur);
               let v = lanes.findIndex(fin => fin <= du);
               if (v < 0) v = lanes.length;
@@ -583,7 +585,7 @@ function coPlanning() {
           blocs
             .map(
               ({ x, du, au, v }) =>
-                `<button class="cogb cowb${isCx(x.g, x.d) ? ' cx' : ''}" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}" aria-label="${esc(x.g.name)}, ${DAYS[coDow(d)]} ${+d.slice(8)} à ${esc(x.g.h)}${isCx(x.g, x.d) ? ', annulé' : ''}" style="top:${y(du)}px;height:${y(au) - y(du) - 1}px;${pos(i, v, nb)}"><b>${esc(x.g.h)}</b> ${esc(x.g.name)}</button>`
+                `<button class="cogb cowb${isCx(x.g, x.d) ? ' cx' : ''}" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}" aria-label="${esc(x.g.name)}, ${DAYS[coDow(d)]} ${+d.slice(8)} à ${esc(hAt(x.g, x.d))}${isCx(x.g, x.d) ? ', annulé' : ''}" style="top:${y(du)}px;height:${y(au) - y(du) - 1}px;${pos(i, v, nb)}"><b>${esc(hAt(x.g, x.d))}</b> ${esc(x.g.name)}</button>`
             )
             .join('')
         );
@@ -604,7 +606,7 @@ function coActs(g, d, loc, cx) {
       : loc === 'En salle'
         ? t('loc', 'sun', 'Passer en extérieur', 'Ce jour-là · élèves prévenus', `data-g="${g.id}" data-d="${d}"`)
         : t('loc', 'home', 'Passer en salle', 'S’il pleut · élèves prévenus', `data-g="${g.id}" data-d="${d}"`)
-  }${cx ? t('cancelCourse', 'undo', 'Rétablir le cours', 'Élèves prévenus', at, 'on') : t('cancelCourse', 'ban', 'Annuler le cours', 'Reste affiché · élèves prévenus', at)}${coIsGrp(g) && d >= TODAY ? t('coShift', 'forward', 'Reporter', 'Les suivantes glissent', at) : ''}${t('coMove', 'calmove', 'Changer la date', 'Cette séance seulement', at)}${t('delCourse', 'trash', 'Supprimer', 'Personne n’est prévenu', at, 'danger')}</div>`;
+  }${cx ? t('cancelCourse', 'undo', 'Rétablir le cours', 'Élèves prévenus', at, 'on') : t('cancelCourse', 'ban', 'Annuler le cours', 'Reste affiché · élèves prévenus', at)}${coIsGrp(g) && d >= TODAY ? t('coShift', 'forward', 'Reporter', 'Les suivantes glissent', at) : ''}${t('coMove', 'calmove', 'Date ou heure', 'Cette séance seulement', at)}${t('delCourse', 'trash', 'Supprimer', 'Personne n’est prévenu', at, 'danger')}</div>`;
 }
 /* ---------- Séance : thème, appel, bilan du groupe et commentaires personnels ---------- */
 /* les enseignants qu'on peut choisir (cycle, remplaçant, groupe) */
@@ -665,7 +667,7 @@ function coSeance(id) {
   const nP = Object.values(REGLES.presDe(s, g, d)).filter(v => v === 'P').length,
     qui = REGLES.coachDe(g, d, s),
     cyc = REGLES.cycleDe(g, d);
-  return `<div class="pad">${g.goal && !g.nv ? `<div class="card cogoalc"><span class="kicker">${ic('target')}Objectif de l’élève</span><p>${esc(g.goal)}</p></div>` : ''}<div class="card"><span class="kicker">${DAYS[coDow(d)]} ${fmtD(d, 1)} · ${g.h} · ${g.dur}</span><span class="h3">${esc(g.name)}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag">${loc}</span>`}${sportTag(g.sport)}${qui && M[qui] ? `<span class="tag">${first(qui)}${s.coach ? ' · remplaçant' : ''}</span>` : ''}</span>${cyc && cyc.theme ? `<p class="muted small">Thème du cycle : ${esc(cyc.theme)}</p>` : ''}
+  return `<div class="pad">${g.goal && !g.nv ? `<div class="card cogoalc"><span class="kicker">${ic('target')}Objectif de l’élève</span><p>${esc(g.goal)}</p></div>` : ''}<div class="card"><span class="kicker">${DAYS[coDow(d)]} ${fmtD(d, 1)} · ${hAt(g, d)} · ${g.dur}</span><span class="h3">${esc(g.name)}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag">${loc}</span>`}${sportTag(g.sport)}${qui && M[qui] ? `<span class="tag">${first(qui)}${s.coach ? ' · remplaçant' : ''}</span>` : ''}</span>${cyc && cyc.theme ? `<p class="muted small">Thème du cycle : ${esc(cyc.theme)}</p>` : ''}
 ${coIsGrp(g) ? `<button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button>` : ''}${st.length ? `<div class="coppl">${st.map(k => `<button class="copp" data-a="open" data-v="eleve" data-id="${k}" aria-label="Fiche de ${esc(svName(k))}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span></button>`).join('')}</div>` : ''}
 <form id="co-theme" data-id="${id}" class="row" style="gap:8px;margin-top:10px"><input id="co-th" class="grow" placeholder="Thème de la séance" value="${esc(s.theme || '')}" aria-label="Thème de la séance" list="co-thl"><datalist id="co-thl">${THEMES[g.sport].map(t => `<option value="${esc(t)}">`).join('')}</datalist><button class="btn sm">OK</button></form>
 ${coIsGrp(g) ? coRempl(g, d, s) : ''}${coActs(g, d, loc, cx)}</div>
@@ -1304,7 +1306,7 @@ function coSesRow(g, d) {
     d,
     evCard({
       cat: 'ens',
-      t: g.h,
+      t: hAt(g, d),
       cx,
       go: `data-a="open" data-v="seance" data-id="${id}"`,
       title: esc(g.name),

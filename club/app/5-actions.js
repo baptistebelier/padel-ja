@@ -536,7 +536,7 @@ const A = {
     }
     sheet(
       'Signaler une absence',
-      `<form class="body" id="abs-form" data-k="${k}"><div class="fld"><label for="abs-s">Cours</label><select id="abs-s">${ss.map(s => `<option value="${s.g.id}|${s.iso}">${s.g.name} · ${fmtD(s.iso)} · ${s.g.h}</option>`).join('')}</select></div>${O('abs-why', 'Motif (facultatif)', 'Malade, voyage scolaire…')}<button class="btn full">Prévenir l'enseignant</button></form>`
+      `<form class="body" id="abs-form" data-k="${k}"><div class="fld"><label for="abs-s">Cours</label><select id="abs-s">${ss.map(s => `<option value="${s.g.id}|${s.iso}">${s.g.name} · ${fmtD(s.iso)} · ${hAt(s.g, s.iso)}</option>`).join('')}</select></div>${O('abs-why', 'Motif (facultatif)', 'Malade, voyage scolaire…')}<button class="btn full">Prévenir l'enseignant</button></form>`
     );
   },
   parent2(d) {

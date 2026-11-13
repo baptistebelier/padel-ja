@@ -106,6 +106,7 @@ const rIdx = r => RANKS.indexOf(r);
 // (extra : en plus, skip : pas ce jour-là) ; séance ponctuelle : sa seule date (once)
 // règle écrite une seule fois, partagée avec le serveur : regles.js
 const trainOn = REGLES.trainOn;
+const hAt = REGLES.hAt;
 
 /* Ce que chaque club personnalise : nom, sigle, logo, couleurs */
 const CLUBS = [
