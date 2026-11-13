@@ -28,7 +28,7 @@
   /* téléphone : barre du haut avec le bouton du menu, pour les pages qui n'ont pas la leur */
   function railTop(nav) {
     const mine = document.querySelector('.mtop-rail');
-    const own = [...document.querySelectorAll('[data-drawer-open]')].some(b => !mine || !mine.contains(b));
+    const own = [...document.querySelectorAll('[data-drawer-open]')].some(b => (!mine || !mine.contains(b)) && !b.closest('.ps-bottom'));
     if (own) { if (mine) mine.remove(); return; }
     if (mine) return;
     const top = document.createElement('header'); top.className = 'mtop mtop-rail';
@@ -39,16 +39,17 @@
   function build() {
     const page = document.body.dataset.page || '';
     const nav = document.createElement('aside');
-    nav.className = 'rail'; nav.setAttribute('role', 'navigation'); nav.setAttribute('aria-label', 'Navigation principale');
+    nav.className = 'rail r-rail'; nav.setAttribute('role', 'navigation'); nav.setAttribute('aria-label', 'Navigation principale');
     nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="/RAM JA — tableau de bord"><img src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"></a>
       <div class="rail-group">${ITEMS.map(([k, href, label, title]) =>
-        `<a href="${href}" data-r="${k}" class="${page === k ? 'on' : ''}" title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
+        `<a href="${href}" data-r="${k}" class="r-rail__it${page === k ? ' on' : ''}"${page === k ? ' aria-current="page"' : ''} title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
       <div class="rail-group rail-bottom"><i class="sep"></i>
-        <button type="button" data-theme-toggle title="Mode jour / nuit">${ICONS.moon}${ICONS.sun}<span class="r-sh">Thème</span><span class="r-lg">Mode jour / nuit</span></button>
-        <a href="/profil" data-r="profil" class="${page === 'profil' ? 'on' : ''}" title="Mon profil"><i class="avatar" id="railAvatar">JA</i><span class="r-sh">Profil</span><span class="r-lg" id="railWho">Mon profil</span></a>
-        <a href="/deconnexion" data-r="logout" title="Se déconnecter">${ICONS.logout}<span class="r-sh">Sortir</span><span class="r-lg">Se déconnecter</span></a></div>`;
+        <button type="button" class="r-rail__it" data-theme-toggle title="Mode jour / nuit">${ICONS.moon}${ICONS.sun}<span class="r-sh">Thème</span><span class="r-lg">Mode jour / nuit</span></button>
+        <a href="/profil" data-r="profil" class="r-rail__it${page === 'profil' ? ' on' : ''}"${page === 'profil' ? ' aria-current="page"' : ''} title="Mon profil"><i class="avatar" id="railAvatar">JA</i><span class="r-sh">Profil</span><span class="r-lg" id="railWho">Mon profil</span></a>
+        <a href="/deconnexion" class="r-rail__it" data-r="logout" title="Se déconnecter">${ICONS.logout}<span class="r-sh">Sortir</span><span class="r-lg">Se déconnecter</span></a></div>`;
     document.body.prepend(nav);
     document.body.classList.add('has-rail');
+    bottomBar(page);
 
     /* ---------- téléphone : le rail devient un volet qui sort de la gauche ---------- */
     const veil = document.createElement('div'); veil.className = 'rail-veil'; document.body.appendChild(veil);
@@ -100,6 +101,25 @@
         const a = nav.querySelector('[data-r="encours"]'); const dot = document.createElement('i'); dot.className = 'live-dot'; a.appendChild(dot);
       }
     }).catch(() => {});
+  }
+  /* style ?ds=1 (socle /club/ds.css) — téléphone : barre du bas à 5 entrées (r-bottom), « Plus » ouvre le volet du menu.
+     Construite seulement avec le nouveau style : l'ancien garde sa barre du haut et son volet. */
+  const BOTTOM = ['dashboard', 'encours', 'tournois', 'calendrier'];
+  const PLUS_OF = new Set(['joueurs', 'equipes', 'stats', 'admin', 'profil']);
+  function bottomBar(page) {
+    if (document.documentElement.dataset.ds !== '1' || document.querySelector('.ps-bottom')) return;
+    const bar = document.createElement('nav');
+    bar.className = 'r-bottom ps-bottom'; bar.setAttribute('aria-label', 'Navigation principale (téléphone)');
+    bar.innerHTML = ITEMS.filter(([k]) => BOTTOM.includes(k)).map(([k, href, label]) =>
+      `<a class="r-rail__it" href="${href}" data-r="${k}"${page === k ? ' aria-current="page"' : ''}>${ICONS[k]}<span>${label === 'Dashboard' ? 'Accueil' : label}</span></a>`).join('')
+      + `<button type="button" class="r-rail__it" data-drawer-open data-r="plus"${PLUS_OF.has(page) ? ' aria-current="page"' : ''} aria-label="Plus : joueurs, équipes, statistiques, profil"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Plus</span></button>`;
+    document.body.appendChild(bar);
+  }
+  function markCurrent(page) {
+    document.querySelectorAll('.rail a[data-r], .ps-bottom [data-r]').forEach(a => {
+      const on = a.dataset.r === page || (a.dataset.r === 'plus' && PLUS_OF.has(page));
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
   }
   /* bandeau d'accès : discret pendant l'essai, bien visible quand le compte est en lecture seule */
   function accessBar(a) {
@@ -210,7 +230,7 @@
     const heads = [...doc.querySelectorAll('head script[src]')].map(s => s.getAttribute('src')).filter(s => !loaded(s));
     // contenu : tout sauf le menu, le voile du volet et la barre du haut du téléphone
     const nav = document.querySelector('.rail'), veil = document.querySelector('.rail-veil');
-    [...document.body.children].forEach(el => { if (el !== nav && el !== veil && !el.classList.contains('mtop-rail')) el.remove(); });
+    [...document.body.children].forEach(el => { if (el !== nav && el !== veil && !el.classList.contains('mtop-rail') && !el.classList.contains('ps-bottom')) el.remove(); });
     const page2 = doc.body.dataset.page || '';
     document.body.className = doc.body.className; document.body.classList.add('has-rail');
     document.body.dataset.page = page2;
@@ -222,6 +242,7 @@
     // barre du haut du téléphone : celle de la page si elle en a une, sinon celle du menu
     railTop(nav);
     nav.querySelectorAll('a[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === page2));
+    markCurrent(page2);
     window.scrollTo(0, 0);
     if (window.PadelAccess) accessBar(window.PadelAccess);
     for (const src of heads) await loadScript(src);

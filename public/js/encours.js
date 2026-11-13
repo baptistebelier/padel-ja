@@ -32,9 +32,11 @@
   function section() {
     const clos = cloture();
     if (!ici || !liste) return;
-    document.querySelectorAll('.rail a[data-r]').forEach(a => {
-      if (a.dataset.r === 'encours') a.classList.toggle('on', !clos);
-      if (a.dataset.r === 'tournois') a.classList.toggle('on', clos);
+    // menu : « En cours », ou « Tournois » pour un tournoi clôturé (.on pour l'ancien style, aria-current pour le socle ?ds=1)
+    const marque = (a, on) => { a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); };
+    document.querySelectorAll('.rail a[data-r], .ps-bottom a[data-r]').forEach(a => {
+      if (a.dataset.r === 'encours') marque(a, !clos);
+      if (a.dataset.r === 'tournois') marque(a, clos);
     });
     const ey = document.querySelector('.side-t .side-ey');
     const lib = clos ? 'Tournoi clôturé' : 'Tournoi en cours';

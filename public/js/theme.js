@@ -6,6 +6,7 @@
   const system = () => (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   function apply(t) {
     root.dataset.theme = t;
+    root.dataset.mode = t === 'light' ? 'jour' : 'nuit';   // nom lu par le socle /club/ds.css (style ?ds=1)
     const m = document.querySelector('meta[name="theme-color"]');
     if (m) m.content = t === 'light' ? '#F2EBE4' : '#3A0C1B';
     document.querySelectorAll('[data-theme-toggle]').forEach(b => {

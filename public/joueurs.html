@@ -11,11 +11,7 @@
 <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja2">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
 <title>Mes joueurs — /RAM JA</title>
-<link rel="stylesheet" href="/css/ram.css">
-<link rel="stylesheet" href="/css/theme.css">
-<link rel="stylesheet" href="/css/shell.css">
-<link rel="stylesheet" href="/css/street.css">
-<link rel="stylesheet" href="/css/neo.css">
+<script>/* refonte du style : ?ds=1 essaie la nouvelle feuille sur le socle /club/ds.css, ?ds=0 revient à l'ancienne (choix gardé sur l'appareil) */(function(){var q=location.search.match(/[?&]ds=([01])/);try{if(q)localStorage.setItem("pista-ds",q[1])}catch(e){}var on=q?q[1]==="1":(function(){try{return localStorage.getItem("pista-ds")==="1"}catch(e){return false}})();document.documentElement.dataset.ds=on?"1":"0";document.write(on?"<link rel=stylesheet href=/fonts/fonts.css><link rel=stylesheet href=/club/ds.css><link rel=stylesheet href=/css/pista.css>":"<link rel=stylesheet href=/css/ram.css><link rel=stylesheet href=/css/theme.css><link rel=stylesheet href=/css/shell.css><link rel=stylesheet href=/css/street.css><link rel=stylesheet href=/css/neo.css>")})()</script>
 <script src="/js/theme.js"></script>
 <script src="/js/rail.js" defer></script>
 </head>

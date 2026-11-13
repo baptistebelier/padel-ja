@@ -22,7 +22,8 @@
   function setTab(t) {
     if (!TABS.includes(t)) t = 'tournoi';
     tab = t;
-    $$('#nav button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    $$('#nav button[data-tab]').forEach(b => { b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', b.dataset.tab === t); });
+    psSecSync(t);
     // téléphone : une section rangée dans « Plus » allume le bouton « Plus »
     const plusOn = !!$('#nav button.m-plus[data-tab="' + t + '"]');
     $$('#nav [data-plus]').forEach(b => b.classList.toggle('on', plusOn));
@@ -32,6 +33,38 @@
     render();
   }
   $$('#nav button[data-tab]').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+
+  /* style ?ds=1 (socle /club/ds.css) — téléphone : sélecteur « Section ▾ » sous la barre du haut ; il ouvre la liste
+     des sections dans une fenêtre du bas (r-sheet). Rien n'est créé avec l'ancien style. */
+  const secLabel = b => esc(b.querySelector('.lg') ? b.querySelector('.lg').textContent : b.dataset.tab);
+  const secIcon = b => (b.querySelector('svg') || {}).outerHTML || '';
+  (function sectionPicker() {
+    const appbar = $('#appbar');
+    if (document.documentElement.dataset.ds !== '1' || !appbar) return;
+    const bar = document.createElement('div'); bar.className = 'ps-secbar';
+    bar.innerHTML = '<span class="r-selectw"><button type="button" class="r-select" id="psSec" aria-haspopup="dialog"></button></span>';
+    appbar.after(bar);
+    const wrap = document.createElement('div'); wrap.className = 'ps-secwrap'; wrap.id = 'psSecs'; wrap.hidden = true;
+    wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-label', 'Sections du tournoi');
+    wrap.innerHTML = '<div class="r-sheet"><b>Sections</b><div class="r-list">' + $$('#nav button[data-tab]').map(b =>
+      `<button type="button" class="r-row" data-sec-tab="${b.dataset.tab}"><span class="r-row__ic">${secIcon(b)}</span><span class="r-row__txt"><b>${secLabel(b)}</b></span></button>`).join('') + '</div></div>';
+    document.body.appendChild(wrap);
+    const close = () => { wrap.hidden = true; };
+    $('#psSec').onclick = () => { wrap.hidden = false; };
+    wrap.addEventListener('click', e => {
+      if (e.target === wrap) return close();
+      const r = e.target.closest('[data-sec-tab]'); if (!r) return;
+      close(); setTab(r.dataset.secTab); scrollTo({ top: 0 });
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !wrap.hidden) close(); });
+  })();
+  function psSecSync(t) {
+    const btn = document.getElementById('psSec'), b = $('#nav button[data-tab="' + t + '"]');
+    if (!btn || !b) return;
+    btn.innerHTML = secIcon(b) + '<span>' + secLabel(b) + '</span><small>Section</small>';
+    btn.setAttribute('aria-label', 'Section : ' + (b.querySelector('.lg') || b).textContent.trim() + ', changer de section');
+    $$('#psSecs [data-sec-tab]').forEach(r => { if (r.dataset.secTab === t) r.setAttribute('aria-current', 'true'); else r.removeAttribute('aria-current'); });
+  }
 
   // état de la connexion : barre latérale + pastille visible partout (téléphone compris) quand on est hors ligne
   const offPill = document.createElement('div'); offPill.className = 'offline-pill'; offPill.hidden = true; document.body.appendChild(offPill);

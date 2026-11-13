@@ -1967,6 +1967,66 @@ test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA
   assert.deepEqual(trop, [], 'des textes font moins de 12 px');
 });
 
+/* ---------- /Pista sur le socle (?ds=1) : chaque écran s'ouvre, rien ne déborde à 360 px, aucun texte sous 12 px ---------- */
+test('JA : nouveau style ?ds=1 (socle ds.css + pista.css) sans erreur, sans débordement à 360 px ni texte sous 12 px ; ?ds=0 revient à l’ancien', async () => {
+  const desk = await browser.newContext({ viewport: { width: 1366, height: 860 } });
+  const d = await openPage(desk, JA + '/demo');
+  const id = new URL(d.page.url()).pathname.split('/')[2];
+  // tirage fait, un match joué et un en cours : tableaux, programmation et direct ont du contenu
+  await d.page.evaluate(async id => {
+    const act = (type, payload) => fetch('/api/t/' + id + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, payload }) });
+    await act('draw/create', {});
+    const ms = (await fetch('/api/t/' + id + '/export').then(r => r.json())).matches || [];
+    if (ms[0]) await act('match/manual', { id: ms[0].id, sets: [[6, 3], [6, 4]] });
+    if (ms[1]) await act('match/start', { id: ms[1].id });
+  }, id);
+  const tel = await browser.newContext({ viewport: { width: 360, height: 760 }, isMobile: true, hasTouch: true, storageState: await desk.storageState() });
+  const pb = [];
+  for (const [ctx, nom] of [[desk, 'ordinateur'], [tel, 'téléphone']]) {
+    const first = await openPage(ctx, JA + '/dashboard?ds=1');
+    assert.equal(await first.page.evaluate(() => document.documentElement.dataset.ds), '1', 'la bascule ?ds=1 est lue');
+    assert.ok(await first.page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--c-ink').trim() !== ''), 'ds.css est chargé');
+    assert.ok(await first.page.evaluate(() => [...document.styleSheets].some(s => /\/css\/pista\.css/.test(s.href || ''))), 'pista.css est chargé');
+    await first.page.close();
+    for (const p of ['/dashboard', '/app', '/calendrier', '/joueurs', '/statistiques', '/profil', '/t/' + id]) {
+      const o = await openPage(ctx, JA + p);
+      await assertZoomAllowed(o.page);
+      const vues = p.startsWith('/t/') ? ['tournoi', 'inscriptions', 'tirage', 'tableaux', 'programmation', 'direct', 'diffusion'] : [''];
+      for (const v of vues) {
+        if (v) { await o.page.evaluate(v => document.querySelector(`#nav [data-tab="${v}"]`).click(), v); await o.page.waitForTimeout(250); }
+        const quoi = `${nom} ${p}${v ? ' › ' + v : ''}`;
+        if (await overflow(o.page) > 1) pb.push(quoi + ' déborde horizontalement');
+        const petits = await petitsTextes(o.page);
+        if (petits.length) pb.push(quoi + ' : textes sous 12 px : ' + petits.join(' ; '));
+      }
+      if (nom === 'téléphone') {
+        // barre du bas à 5 entrées, toutes avec un libellé visible
+        const bas = await o.page.evaluate(() => [...document.querySelectorAll('.ps-bottom .r-rail__it')].filter(b => b.offsetParent).map(b => b.innerText.trim()));
+        assert.equal(bas.length, 5, p + ' : barre du bas à 5 entrées');
+        assert.ok(bas.every(Boolean), 'barre du bas : chaque entrée a un libellé');
+        if (p.startsWith('/t/')) {
+          // sélecteur « Section ▾ » : il ouvre la fenêtre du bas, une ligne choisie change de section
+          await o.page.click('#psSec');
+          assert.equal(await o.page.locator('#psSecs [data-sec-tab]').count(), 7, 'les 7 sections du tournoi');
+          await o.page.click('#psSecs [data-sec-tab="tableaux"]');
+          assert.ok(await o.page.evaluate(() => document.getElementById('psSecs').hidden && document.getElementById('tab-tableaux').classList.contains('on')), 'la section choisie s’ouvre');
+          assert.match(await o.page.textContent('#psSec'), /Tableaux/);
+        }
+      }
+      if (o.errors.length) pb.push(`${nom} ${p} : ${o.errors.join(' ; ')}`);
+      await o.page.close();
+    }
+  }
+  assert.deepEqual(pb, []);
+  // retour à l'ancien style : ni socle ni barre du bas
+  const back = await openPage(tel, JA + '/dashboard?ds=0');
+  assert.equal(await back.page.evaluate(() => document.documentElement.dataset.ds), '0');
+  assert.equal(await back.page.locator('.ps-bottom').count(), 0, 'pas de barre du bas avec l’ancien style');
+  assert.ok(await back.page.evaluate(() => [...document.styleSheets].some(s => /\/css\/neo\.css/.test(s.href || ''))), 'les anciennes feuilles reviennent');
+  assert.deepEqual(back.errors, []);
+  await desk.close(); await tel.close();
+});
+
 /* ---------- Agenda du club : promouvoir des événements sur le mur ; page d'un trophée : la jauge des paliers ---------- */
 test('Club : le bureau promeut plusieurs événements de l’agenda sur le mur ; un adhérent n’a pas le bouton ; jauge des paliers d’un trophée', async () => {
   const ctx = await phone();
@@ -2123,7 +2183,8 @@ test('JA : panneau « Tournoi en cours » quand plusieurs tournois se jouent, on
   await page.goto(JA + '/t/' + c);
   await page.waitForSelector('details.enc summary', { timeout: 8000 });
   assert.match(await page.textContent('details.enc summary'), /2 tournois clôturés/);
-  assert.equal(await page.getAttribute('.rail a[data-r="tournois"]', 'class'), 'on');
+  // (le lien porte aussi la classe du socle r-rail__it) : « Tournois » marqué, « En cours » non
+  assert.ok(await page.evaluate(() => document.querySelector('.rail a[data-r="tournois"]').classList.contains('on') && !document.querySelector('.rail a[data-r="encours"]').classList.contains('on')), 'le menu marque « Tournois »');
   // « En cours » ne mène jamais à un tournoi clôturé
   await page.goto(JA + '/en-cours');
   const vers = new URL(page.url()).pathname.split('/')[2];
