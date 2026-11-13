@@ -2559,3 +2559,36 @@ test('Coach : durée d’une séance ou de tout son cycle ; thèmes sans proposi
   assert.match(await p2.textContent('[role="alert"]'), /n’a pas pu démarrer/);
   await p2.close();
 });
+
+/* ---------- /Dojo : nouvelle organisation, à l'essai derrière ?ui=2 ---------- */
+test('Dojo ?ui=2 : 5 rubriques partout, Statistiques en sous-onglet, Réglages hors du menu, choix mémorisé', async () => {
+  for (const w of [1440, 1194, 360]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 820 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html?ui=2');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    assert.deepEqual(await page.$$eval('#tabs button[data-t]', l => l.map(b => b.dataset.t)), ['today', 'planning', 'eleves', 'clubs', 'msgs'], 'les 5 rubriques');
+    assert.equal(await page.locator('#tabs button[data-t="clubs"]').isVisible(), true, 'Groupes visible');
+    assert.equal(await page.locator('#tabs .coplus').count(), 0, 'plus de « Plus »');
+    await page.click('.u2sous button[data-t="dash"]');
+    await page.waitForTimeout(300);
+    assert.equal(await page.evaluate(() => S.tab), 'dash', 'Statistiques depuis le sous-onglet');
+    assert.equal(await page.getAttribute('#tabs button[data-t="today"]', 'aria-current'), 'page', 'Aujourd’hui reste allumé');
+    assert.equal(await page.locator('#main [data-k="dashTab"]').count(), 0, 'plus d’intercalaire Paiements (activité seule)');
+    await page.click(w > 1000 ? '.rbot button[data-t="me"]' : '#top .u2gear');
+    await page.waitForTimeout(300);
+    assert.equal(await page.evaluate(() => S.tab), 'me', 'Réglages');
+    await page.evaluate(() => { S.tab = 'eleves'; S.stack = []; render(); });
+    assert.equal(await page.locator('[aria-label="Formules et tarifs"], [aria-label="Échelles techniques"]').count(), 0, 'sous-menu Élèves sans doublons');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
+    // le choix reste sur l'appareil ; ?ui=1 revient à l'organisation actuelle
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.ui), '2', 'choix mémorisé');
+    await page.goto(JA + '/club/coach.html?ui=1');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    assert.equal(await page.evaluate(() => TABBAR.length), 8, 'organisation actuelle');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});

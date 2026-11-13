@@ -1,0 +1,14 @@
+/* /Dojo — nouvelle organisation, à l'essai (?ui=2) : seulement ce que la navigation change, le style reste celui de ds.css et dojo.css */
+
+/* Aujourd'hui | Statistiques : sous-onglet dans la page */
+:root[data-ui="2"] #main > .seg.u2sous { margin: 0 16px 16px; width: max-content; max-width: calc(100% - 32px); }
+
+@media (max-width: 1023px) {
+  /* les 5 rubriques dans la barre du bas, Groupes compris */
+  :root[data-ui="2"] #phone .tabs > button[data-t="clubs"] { display: flex; }
+  :root[data-ui="2"] #phone .tabs > button { min-width: 0; letter-spacing: 0; }
+}
+@media (min-width: 1024px) {
+  /* Réglages en bas du menu, à la place de Profil */
+  :root[data-ui="2"] .rbot button[data-t="me"] { display: flex; }
+}

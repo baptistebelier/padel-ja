@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-13-duree1';
+const VERSION = '2026-11-14-ui2-e1';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -91,6 +91,8 @@ if (APP === 'coach')
     'coach/5-formules.js',
     'coach/6-groupes.js',
     'coach/7-refonte.js',
+    'coach/8-ui2.js',
+    'dojo-ui2.css',
     'img/coach-v2-favicon.png'
   );
 
