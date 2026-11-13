@@ -983,9 +983,10 @@ test('Coach : chaque formulaire de tarif et d’achat s’ouvre, avec la référ
   page.on('pageerror', x => errs.push(x.message));
   await page.goto(JA + '/club/coach.html');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
-  for (const [f, form, sku] of [[() => A.coFoEdit({ id: OFFRES.formules[0].id }), '#co-fo', '#co-fv-sku'], [() => A.coPkEdit({ id: OFFRES.packs[0].id }), '#co-pk', '#co-kv-sku'], [() => A.coAbEdit({ id: OFFRES.abos[0].id }), '#co-ab', '#co-av-sku']]) {
+  for (const [f, form, sku] of [[() => A.coFoEdit({ id: OFFRES.formules[0].id }), '#co-fo', '#co-fv-sku'], [() => A.coPkEdit({ id: OFFRES.packs[0].id }), '#co-pk', '#co-kv-sku'], [() => A.coAbEdit({ id: OFFRES.abos[0].id }), '#co-ab', '.coabv .coabvs summary']]) {
     await page.evaluate(f);
     await page.waitForSelector(form + ' ' + sku);
+    if (form === '#co-ab') assert.equal(await page.locator('#co-ab .coabv .co-avs').count(), 1, 'la référence Shopify de chaque variante');
     await page.evaluate(() => closeSheet());
   }
   const eleve = await page.evaluate(() => ELEVES[0].id);
@@ -2362,6 +2363,37 @@ test('Coach : une séance change de date et d’heure, seule, sans toucher aux a
   // le planning de la semaine montre la séance à sa nouvelle heure
   const pl = await page.evaluate(([r, d3]) => coSessions(d3, d3, 'me', 1).filter(x => x.g.id === r.g).map(x => hAt(x.g, x.d)), [r, d3]);
   assert.deepEqual(pl, ['9 h 45']);
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
+test('Coach : un abonnement et ses variantes, dans une seule fenêtre', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  await page.evaluate(() => { OFFRES.abos = [{ id: 'a1', nom: 'Academy', periode: 'mois', duree: 6, prix: 120, parSemaine: 1 }]; A.open({ v: 'formules' }); A.coAbEdit({ id: 'a1' }); });
+  await page.waitForSelector('#co-ab #co-avl .coabv');
+  assert.equal(await page.locator('#co-avl .coabv').count(), 1, 'un abonnement simple : une variante');
+  await page.click('[data-a="coAbVAdd"]');
+  const v2 = page.locator('#co-avl .coabv').nth(1);
+  await v2.locator('.co-avn').fill('2 fois par semaine');
+  await v2.locator('.co-avw').fill('2');
+  await v2.locator('.co-avp').fill('200');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'la fenêtre tient à 360 px');
+  await page.click('#co-ab .cotools .btn:not(.ghost)');
+  await page.waitForSelector('.coens');
+  const l = await page.evaluate(() => OFFRES.abos.map(a => [a.id === 'a1', a.nom, a.ens, a.prix, a.parSemaine]));
+  assert.deepEqual(l, [[true, '1 séance par semaine', 'Academy', 120, 1], [false, '2 fois par semaine', 'Academy', 200, 2]], 'la première garde son identifiant (achats des élèves), libellé tout fait');
+  // l'ensemble s'ouvre en entier, une variante se retire : il redevient un abonnement simple
+  await page.evaluate(() => A.coAbEdit({ id: OFFRES.abos[1].id }));
+  await page.waitForSelector('#co-avl .coabv');
+  assert.equal(await page.locator('#co-avl .coabv').count(), 2);
+  assert.equal(await page.inputValue('#co-an'), 'Academy');
+  await page.locator('#co-avl .coabv').nth(1).locator('[data-a="coAbVDel"]').click();
+  await page.click('#co-ab .cotools .btn:not(.ghost)');
+  await page.waitForFunction(() => OFFRES.abos.length === 1);
+  assert.deepEqual(await page.evaluate(() => [OFFRES.abos[0].id, OFFRES.abos[0].nom, OFFRES.abos[0].ens]), ['a1', 'Academy', '']);
   assert.deepEqual(errs, []);
   await page.close();
 });

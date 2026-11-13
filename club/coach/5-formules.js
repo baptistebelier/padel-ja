@@ -101,7 +101,7 @@ function coFormules() {
       .map(n => {
         const l = OFFRES.abos.filter(a => a.ens === n),
           px = l.map(a => +a.prix || 0);
-        return `<details class="card coens"><summary><span class="tile">${ic('cal')}</span><span class="grow"><span class="nm">${esc(n)}</span><br><span class="muted small">${plural(l.length, 'variante')} · ${Math.min(...px) === Math.max(...px) ? eur(px[0]) : 'de ' + eur(Math.min(...px)) + ' à ' + eur(Math.max(...px))}</span></span><span class="chev" aria-hidden="true">${ic('back')}</span></summary><div class="list">${l.map(abRow).join('')}</div><button class="btn sm ghost full" data-a="coAbEdit" data-id="new" data-ens="${esc(n)}">${ic('plus')}Ajouter une variante</button></details>`;
+        return `<details class="card coens"><summary><span class="tile">${ic('cal')}</span><span class="grow"><span class="nm">${esc(n)}</span><br><span class="muted small">${plural(l.length, 'variante')} · ${Math.min(...px) === Math.max(...px) ? eur(px[0]) : 'de ' + eur(Math.min(...px)) + ' à ' + eur(Math.max(...px))}</span></span><span class="chev" aria-hidden="true">${ic('back')}</span></summary><div class="list">${l.map(abRow).join('')}</div><button class="btn sm ghost full" data-a="coAbEdit" data-id="${l[0].id}" data-plus="1">${ic('plus')}Ajouter une variante</button></details>`;
       })
       .join(''),
     ab = OFFRES.abos.filter(a => !a.ens).map(abRow);
@@ -495,6 +495,14 @@ document.addEventListener('submit', e => {
 });
 
 /* ---------- fenêtres de saisie ---------- */
+/* une variante d'abonnement (libellé, fréquence, prix, période, engagement, vente en ligne) */
+let coAbN = 0;
+function coAbVRow(a, nom) {
+  const k = 'co-av' + ++coAbN,
+    f = (c, l, v, step, req) =>
+      `<div class="fld"><label for="${k}-${c}">${l}</label><input id="${k}-${c}" class="co-av${c}" type="number" inputmode="decimal" min="0" step="${step || 'any'}" value="${v == null ? '' : v}"${req ? ' required' : ''}></div>`;
+  return `<div class="card coabv" data-id="${a.id || ''}"><div class="row" style="gap:8px;align-items:flex-end"><div class="fld grow"><label for="${k}-n">Libellé de la variante</label><input id="${k}-n" class="co-avn" maxlength="60" placeholder="1 fois par semaine, formule annuelle…" value="${esc(nom || '')}"></div><button type="button" class="ib" data-a="coAbVDel" aria-label="Retirer cette variante">${ic('x')}</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0 8px">${f('w', 'Séances par semaine', a.parSemaine, 1)}${f('p', 'Prix en euros', a.prix, 0, 1)}<div class="fld"><label for="${k}-e">Par</label><select id="${k}-e" class="co-ave">${PERIODES.map(x => `<option ${x === a.periode ? 'selected' : ''}>${x}</option>`).join('')}</select></div>${f('d', 'Engagement', a.duree, 1)}</div><details class="coabvs"${a.sku || a.url ? ' open' : ''}><summary class="muted small">Vente sur Shopify (facultatif)</summary><div class="fld"><label for="${k}-s">Référence Shopify (SKU)</label><input id="${k}-s" class="co-avs" value="${esc(a.sku || '')}" placeholder="ABO-1"></div><div class="fld"><label for="${k}-u">Lien d’achat Shopify</label><input id="${k}-u" class="co-avu" value="${esc(a.url || '')}" placeholder="https://…"></div></details></div>`;
+}
 const ofSel = (id, l, opts, sel) =>
   `<div class="fld"><label for="${id}">${l}</label><select id="${id}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
 const ofNum = (id, l, v, step) =>
@@ -560,28 +568,34 @@ Object.assign(A, {
     closeSheet();
     ofSave('Pack supprimé');
   },
+  /* un abonnement et ses variantes, dans une seule fenêtre : le nom, la formule et le moyen de paiement sont
+     communs ; chaque variante a son libellé, sa fréquence, son prix, sa période et son engagement.
+     Enregistrement : une variante = un abonnement de OFFRES.abos (les achats des élèves y renvoient), réunies par
+     leur ensemble (ens = nom de l'abonnement) dès qu'il y en a deux ; une seule variante = un abonnement simple. */
   coAbEdit(d) {
-    const a = OFFRES.abos.find(x => x.id === d.id) || {
-      nom: '',
-      formule: '',
-      periode: 'mois',
-      duree: 1,
-      prix: '',
-      parSemaine: 1,
-      ens: d.ens || ''
-    };
+    const a0 = d.id !== 'new' && OFFRES.abos.find(x => x.id === d.id),
+      ens = (a0 ? a0.ens : d.ens) || '',
+      l = ens ? OFFRES.abos.filter(x => x.ens === ens) : a0 ? [a0] : [],
+      base = l[0] || { formule: '', moyen: '' },
+      vide = { periode: 'mois', duree: 1, parSemaine: 1, prix: '' },
+      rows = (l.length ? l : [vide]).concat(d.plus ? [vide] : []);
     sheet(
-      d.id === 'new' ? 'Nouvel abonnement' : 'Abonnement',
-      `<form class="body" id="co-ab" data-id="${d.id}">${F('co-an', 'Nom', 'Academy, abonnement performance…', a.nom)}${O('co-ag', 'Ensemble (facultatif)', 'Pour regrouper des variantes : Academy', a.ens)}${O('co-amy', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify', a.moyen)}${ofSel('co-af', 'Formule comprise', [['', 'Aucune en particulier']].concat(OFFRES.formules.map(f => [f.id, ofLabel('f', f.id) + ' · ' + foKind(f)])), a.formule)}${ofNum('co-aw', 'Séances par semaine', a.parSemaine, 1)}${ofNum('co-ap', 'Prix en euros', a.prix)}${ofSel(
-        'co-ae',
-        'Par',
-        PERIODES.map(x => [x, x]),
-        a.periode
-      )}${ofNum('co-ad', 'Engagement (nombre de périodes)', a.duree, 1)}${ofVente('co-av', a)}<div class="cotools"><button class="btn">Enregistrer</button>${d.id === 'new' ? '' : ofDel('coAbDel', d.id)}</div></form>`
+      l.length ? 'Abonnement' : 'Nouvel abonnement',
+      `<form class="body" id="co-ab" data-ids="${l.map(x => x.id).join(',')}">${F('co-an', 'Nom de l’abonnement', 'Academy, abonnement performance…', ens || base.nom || '')}${ofSel('co-af', 'Formule comprise', [['', 'Aucune en particulier']].concat(OFFRES.formules.map(f => [f.id, ofLabel('f', f.id) + ' · ' + foKind(f)])), base.formule)}${O('co-amy', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify', base.moyen)}<span class="kicker">Variantes</span><p class="muted small">Une ou plusieurs : 1 ou 2 fois par semaine, au mois ou à l’année… Chacune a son prix ; l’engagement se compte en périodes (6 par mois : 6 mois).</p><div id="co-avl">${rows.map((x, i) => coAbVRow(x, rows.length > 1 || l.length > 1 ? x.nom : '')).join('')}</div><button type="button" class="btn sm ghost full" data-a="coAbVAdd">${ic('plus')}Ajouter une variante</button><div class="cotools"><button class="btn">Enregistrer</button>${l.length ? `<button type="button" class="btn ghost" data-a="coAbDel" data-ids="${l.map(x => x.id).join(',')}">${ic('trash')}Supprimer</button>` : ''}</div></form>`
     );
   },
+  coAbVAdd() {
+    $('co-avl').insertAdjacentHTML('beforeend', coAbVRow({ periode: 'mois', duree: 1, parSemaine: 1, prix: '' }, ''));
+    const l = document.querySelectorAll('#co-avl .coabv');
+    l[l.length - 1].querySelector('.co-avn').focus();
+  },
+  coAbVDel(d, el) {
+    if (document.querySelectorAll('#co-avl .coabv').length < 2) return toast('Il faut au moins une variante');
+    el.closest('.coabv').remove();
+  },
   coAbDel(d) {
-    OFFRES.abos = OFFRES.abos.filter(a => a.id !== d.id);
+    const ids = String(d.ids || d.id || '').split(',');
+    OFFRES.abos = OFFRES.abos.filter(a => !ids.includes(a.id));
     closeSheet();
     ofSave('Abonnement supprimé');
   },
@@ -665,25 +679,43 @@ document.addEventListener('submit', e => {
   }
   if (f.id === 'co-ab') {
     e.preventDefault();
-    const x = {
-      nom: v('co-an') || 'Abonnement',
-      formule: v('co-af'),
-      parSemaine: Math.round(n('co-aw')),
-      prix: n('co-ap'),
-      periode: v('co-ae'),
-      duree: Math.max(1, Math.round(n('co-ad'))),
-      ens: v('co-ag'),
-      moyen: v('co-amy'),
-      ...ofVenteLue('co-av')
-    };
-    if (f.dataset.id === 'new') OFFRES.abos.push(Object.assign({ id: nid('a') }, x));
-    else
-      Object.assign(
-        OFFRES.abos.find(a => a.id === f.dataset.id),
-        x
-      );
+    const nom = (v('co-an') || 'Abonnement').slice(0, 60),
+      vs = [...f.querySelectorAll('#co-avl .coabv')],
+      num = (r, c) => +(r.querySelector('.co-av' + c).value || 0),
+      plusieurs = vs.length > 1,
+      old = String(f.dataset.ids || '')
+        .split(',')
+        .filter(Boolean),
+      neuf = vs.map(r => {
+        const w = Math.round(num(r, 'w')),
+          x = {
+            formule: v('co-af'),
+            moyen: v('co-amy'),
+            parSemaine: w,
+            prix: num(r, 'p'),
+            periode: r.querySelector('.co-ave').value,
+            duree: Math.max(1, Math.round(num(r, 'd'))),
+            sku: r.querySelector('.co-avs').value.trim(),
+            url: r.querySelector('.co-avu').value.trim()
+          },
+          lib = r.querySelector('.co-avn').value.trim().slice(0, 60);
+        // plusieurs variantes : chacune porte son libellé, l'abonnement est leur ensemble
+        x.nom = plusieurs ? lib || (w ? plural(w, 'séance') + ' par semaine' : eur(x.prix) + ' ' + abPer(x)) : nom;
+        x.ens = plusieurs ? nom : '';
+        const a = (r.dataset.id && OFFRES.abos.find(y => y.id === r.dataset.id)) || { id: nid('a') };
+        return Object.assign(a, x);
+      });
+    // l'abonnement garde sa place dans la liste ; une variante retirée disparaît
+    const i = OFFRES.abos.findIndex(a => old.includes(a.id)),
+      reste = OFFRES.abos.filter(a => !old.includes(a.id) && !neuf.includes(a));
+    reste.splice(
+      i < 0 ? reste.length : OFFRES.abos.slice(0, i).filter(a => !old.includes(a.id) && !neuf.includes(a)).length,
+      0,
+      ...neuf
+    );
+    OFFRES.abos = reste;
     closeSheet();
-    ofSave('Abonnement enregistré');
+    ofSave(plusieurs ? `Abonnement enregistré · ${plural(neuf.length, 'variante')}` : 'Abonnement enregistré');
   }
   if (f.id === 'co-ac') {
     e.preventDefault();
