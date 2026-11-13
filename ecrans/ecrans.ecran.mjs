@@ -2611,3 +2611,22 @@ test('Dojo ?ui=2 : Aujourd’hui (prochaine séance et appel, semaine, À faire,
     await ctx.close();
   }
 });
+
+test('Dojo ?ui=2 : la séance garde l’appel en vue et range ses actions dans « Modifier la séance »', async () => {
+  for (const w of [1440, 360]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 820 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html?ui=2');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    const ok = await page.evaluate(() => { const x = coSessions(isoIn(-30), isoIn(30), 'me', 1).filter(x => !isCx(x.g, x.d)).pop(); if (!x) return false; S.tab = 'planning'; S.stack = [{ v: 'seance', id: sesKey(x.g, x.d) }]; render(); return true; });
+    if (ok) {
+      assert.equal(await page.locator('#main .coacts, #main #co-rp').count(), 0, 'plus de grille d’actions ni de remplaçant dans la fiche');
+      await page.click('[data-a="u2Mod"]');
+      await page.waitForSelector('#layer .coacts');
+      assert.ok(await page.locator('#layer [data-a="cancelCourse"]').count() === 1, 'annuler dans le menu');
+      assert.ok(await page.locator('#layer [data-a="coMove"]').count() === 1, 'date, heure, durée dans le menu');
+    }
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});

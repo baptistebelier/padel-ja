@@ -114,6 +114,26 @@ if (UI2) {
     return u2Sous('today') + h;
   };
 
+  /* ---------- Étape 3 — Séance : l'appel au premier plan, un seul menu « Modifier la séance » ----------
+     Les actions de planning (extérieur, annuler, reporter, date-heure-durée, supprimer) et le remplaçant quittent la fiche :
+     elles s'ouvrent ensemble, chacune avec la phrase qui dit ce qu'elle fait. */
+  const u2Acts = coActs,
+    u2Rempl = coRempl;
+  coActs = (g, d) =>
+    `<button class="btn ghost full u2mod" data-a="u2Mod" data-id="${g.id}" data-d="${d}">${ic('edit')}Modifier la séance</button>`;
+  coRempl = (g, d, s, form) => (form ? u2Rempl(g, d, s, form) : '');
+  A.u2Mod = x => {
+    const g = grp(x.id),
+      d = x.d;
+    if (!g) return;
+    const s = sesFind(g, d) || {},
+      loc = (g.loc || {})[d] || g.defLoc || 'En salle';
+    sheet(
+      'Modifier la séance',
+      `<div class="body"><p class="muted small">${esc(g.name)} · ${DAYS[coDow(d)]} ${fmtD(d, 1)} · ${esc(hAt(g, d))}</p>${u2Acts(g, d, loc, isCx(g, d))}${coIsGrp(g) ? u2Rempl(g, d, s) : ''}</div>`
+    );
+  };
+
   /* ---------- « Nouveau » : un seul bouton, trois choix expliqués ---------- */
   A.u2New = () =>
     sheet(
@@ -218,6 +238,18 @@ if (UI2) {
             'beforebegin',
             `<button class="ib acc coplt" data-a="u2New" aria-label="Nouveau">${ic('plus')}</button>`
           );
+      }
+    }
+    // Séance, grand écran : « Modifier la séance » dans l'en-tête
+    if (top && coWide() && view().v === 'seance') {
+      const b = document.querySelector('#main .u2mod');
+      if (b) {
+        top.querySelectorAll('.u2topact').forEach(e => e.remove());
+        const box = document.createElement('div');
+        box.className = 'topact u2topact';
+        b.classList.remove('ghost', 'full');
+        box.append(b);
+        top.insertBefore(box, top.querySelector('[data-a="notifs"]') || null);
       }
     }
     // Aujourd'hui : le suivi (bilans et paiements) se rejoint depuis « À traiter »
