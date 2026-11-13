@@ -185,6 +185,11 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   await assert.rejects(w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', nouvelle_date: '2030-04-03', heure: '19 h 30' }), /rien à changer/);
   assert.equal((await w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', nouvelle_date: '2030-04-03', heure: '18 h' })).heure, '18 h');
   assert.deepEqual((await gr2()).hr || {}, {}, 'revenue à l’heure habituelle : plus rien de réglé');
+  // la durée d'une seule séance
+  assert.equal((await w('coach_deplacer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03', nouvelle_date: '2030-04-03', duree: '1 h 30' })).duree, '1 h 30');
+  assert.deepEqual((await gr2()).du, { '2030-04-03': '1 h 30' });
+  const pld = (await w('coach_planning', { du: '2030-04-01', au: '2030-04-09' })).seances.filter(x => x.groupe === 'Mobile');
+  assert.deepEqual(pld.map(x => [x.date, x.duree]), [['2030-04-03', '1 h 30'], ['2030-04-08', '1 h']], 'seule cette séance dure plus longtemps');
   await assert.rejects(w('coach_supprimer_seance', { groupe_id: gm.groupe_id, date: '2030-04-03' }), /appel/);
   await w('coach_supprimer_seance', { groupe_id: gm.groupe_id, date: '2030-04-08' });
   assert.deepEqual((await gr2()).cycles[0].dates, ['2030-04-03']);

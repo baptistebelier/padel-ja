@@ -2510,3 +2510,52 @@ test('Coach : statistiques — séances réalisées, heures, élèves, nouveaux 
   assert.deepEqual(errs, []);
   await page.close();
 });
+
+test('Coach : durée d’une séance ou de tout son cycle ; thèmes sans propositions ; sous-menu jamais replié ; filet contre l’écran blanc', async () => {
+  const page = await browser.newPage({ viewport: { width: 1024, height: 768 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  const r = await page.evaluate(() => {
+    const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x) && !x.once && x.dur && x.dur !== '1 h 45'), l = coDates(g, isoIn(1), isoIn(60));
+    g.cycles = [{ id: 'cd', nom: 'Printemps', dates: l.slice(0, 3) }];
+    delete g.du;
+    S.stack = [{ v: 'seance', id: g.id + '.' + l[0] }]; render();
+    return { g: g.id, d: l[0], d2: l[1], d4: l[3], dur: g.dur };
+  });
+  // thèmes : aucune liste de propositions
+  assert.equal(await page.locator('#co-th[list], datalist').count(), 0, 'pas de propositions de thème');
+  assert.equal(await page.getAttribute('#co-th', 'autocomplete'), 'off');
+  // cette séance seulement
+  await page.click('[data-a="coMove"]');
+  await page.waitForSelector('#co-move #co-mv-du');
+  assert.equal(await page.$eval('#co-mv-du', x => x.value), r.dur, 'la durée actuelle est choisie');
+  await page.selectOption('#co-mv-du', '1 h 45');
+  await page.click('#co-move .btn.full');
+  await page.waitForFunction(r => durAt(grp(r.g), r.d) === '1 h 45', r);
+  assert.equal(await page.evaluate(r => durAt(grp(r.g), r.d2), r), r.dur, 'les autres séances gardent leur durée');
+  assert.match(await page.textContent('#main'), /1 h 45/);
+  // tout le cycle
+  await page.click('[data-a="coMove"]');
+  await page.waitForSelector('#co-move #co-mv-cy');
+  await page.selectOption('#co-mv-du', '45 min');
+  await page.check('#co-mv-cy');
+  await page.click('#co-move .btn.full');
+  await page.waitForFunction(r => grp(r.g).cycles[0].dur === '45 min', r);
+  assert.deepEqual(await page.evaluate(r => [durAt(grp(r.g), r.d), durAt(grp(r.g), r.d2), durAt(grp(r.g), r.d4)], r), ['45 min', '45 min', r.dur], 'tout le cycle, et rien d’autre');
+  // le planning de la semaine dessine la séance avec sa durée
+  assert.equal(await page.evaluate(r => coSessions(r.d, r.d, 'me', 1).filter(x => x.g.id === r.g).map(x => durMin(durAt(x.g, x.d)))[0], r), 45);
+  // sous-menu : plus de bouton pour le replier
+  await page.evaluate(() => { S.stack = []; A.tab({ t: 'eleves' }); });
+  await page.waitForTimeout(300);
+  assert.equal(await page.locator('[data-a="subFold"]').count(), 0, 'le sous-menu ne se replie pas');
+  assert.deepEqual(errs, []);
+  await page.close();
+  // filet : une appli qui ne démarre pas propose de se recharger au lieu de rester blanche
+  const p2 = await browser.newPage({ viewport: { width: 360, height: 760 } });
+  await p2.route(/\/(b-[0-9a-f]{16}|app\/8-demarrage)\.js$/, rt => rt.abort());
+  await p2.goto(JA + '/club/demo');
+  await p2.waitForSelector('[role="alert"] button', { timeout: 15000 });
+  assert.match(await p2.textContent('[role="alert"]'), /n’a pas pu démarrer/);
+  await p2.close();
+});

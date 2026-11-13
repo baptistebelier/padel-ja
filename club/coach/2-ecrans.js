@@ -139,7 +139,7 @@ function coDone() {
   SEANCES.forEach(s => {
     if (!s.pres || s.d > TODAY) return;
     const g = GROUPS.find(x => x.id === s.g && (x._club || '') === (s._club || '')),
-      h = g ? durMin(g.dur) / 60 : 1;
+      h = g ? durMin(durAt(g, s.d)) / 60 : 1;
     Object.keys(s.pres).forEach(k => {
       if (s.pres[k] !== 'P') return;
       const x = (o[k] = o[k] || { n: 0, h: 0 });
@@ -195,7 +195,7 @@ function coSesCard(x, big) {
         : ['user', 'Aucun élève', 'muted'],
       [
         'clock',
-        g.dur + (qui && !coIsMe(qui) && M[qui] ? ' · ' + first(qui) : '') + (s && s.coach ? ' · remplaçant' : ''),
+        durAt(g, d) + (qui && !coIsMe(qui) && M[qui] ? ' · ' + first(qui) : '') + (s && s.coach ? ' · remplaçant' : ''),
         'muted'
       ],
       s && s.theme
@@ -428,7 +428,7 @@ function coToday() {
     todo.push(
       `<button class="item" data-a="coPayGo"><span class="tile">${ic('euro')}</span><span class="grow"><span class="nm">Tous les paiements à régulariser</span><br><span class="muted small">${dues.length} au total, dans Suivi</span></span></button>`
     );
-  const hrs = wk.reduce((a, x) => a + durMin(x.g.dur), 0) / 60;
+  const hrs = wk.reduce((a, x) => a + durMin(durAt(x.g, x.d)), 0) / 60;
   // élèves actifs : inscrits à un groupe en cours, ou venus dans les 90 derniers jours
   const actifs = new Set(
     coGroups('', true)
@@ -497,7 +497,7 @@ function coPlanJour() {
     l = coSessions(d, d, '', 1),
     libres = typeof coLibre === 'function' ? coLibre(d) : [],
     bornes = l
-      .flatMap(x => [hMin(hAt(x.g, x.d)), hMin(hAt(x.g, x.d)) + durMin(x.g.dur)])
+      .flatMap(x => [hMin(hAt(x.g, x.d)), hMin(hAt(x.g, x.d)) + durMin(durAt(x.g, x.d))])
       .concat(libres.flatMap(p => [p.du, p.au])),
     lo = Math.floor(Math.min(8 * 60, ...bornes) / 60),
     hi = Math.ceil(Math.max(20 * 60, ...bornes) / 60),
@@ -506,7 +506,7 @@ function coPlanJour() {
   // deux cours en même temps : côte à côte
   const blocs = l.map(x => {
     const du = hMin(hAt(x.g, x.d)),
-      au = du + durMin(x.g.dur);
+      au = du + durMin(durAt(x.g, x.d));
     let n = lanes.findIndex(fin => fin <= du);
     if (n < 0) n = lanes.length;
     lanes[n] = au;
@@ -565,7 +565,7 @@ function coPlanning() {
     jours = Array.from({ length: 7 }, (_, i) => isoIn(i, from)),
     libres = jours.map(d => (typeof coLibre === 'function' ? coLibre(d) : [])),
     bornes = l
-      .flatMap(x => [hMin(hAt(x.g, x.d)), hMin(hAt(x.g, x.d)) + durMin(x.g.dur)])
+      .flatMap(x => [hMin(hAt(x.g, x.d)), hMin(hAt(x.g, x.d)) + durMin(durAt(x.g, x.d))])
       .concat(libres.flat().flatMap(p => [p.du, p.au])),
     lo = Math.floor(Math.min(8 * 60, ...bornes) / 60),
     hi = Math.ceil(Math.max(20 * 60, ...bornes) / 60),
@@ -597,7 +597,7 @@ function coPlanning() {
             .sort((p, q) => hMin(hAt(p.g, p.d)) - hMin(hAt(q.g, q.d)))
             .map(x => {
               const du = hMin(hAt(x.g, x.d)),
-                au = du + durMin(x.g.dur);
+                au = du + durMin(durAt(x.g, x.d));
               let v = lanes.findIndex(fin => fin <= du);
               if (v < 0) v = lanes.length;
               lanes[v] = au;
@@ -635,7 +635,7 @@ function coActs(g, d, loc, cx) {
       : loc === 'En salle'
         ? t('loc', 'sun', 'Passer en extérieur', 'Ce jour-là · élèves prévenus', `data-g="${g.id}" data-d="${d}"`)
         : t('loc', 'home', 'Passer en salle', 'S’il pleut · élèves prévenus', `data-g="${g.id}" data-d="${d}"`)
-  }${cx ? t('cancelCourse', 'undo', 'Rétablir le cours', 'Élèves prévenus', at, 'on') : t('cancelCourse', 'ban', 'Annuler le cours', 'Reste affiché · élèves prévenus', at)}${coIsGrp(g) && d >= TODAY ? t('coShift', 'forward', 'Reporter', 'Les suivantes glissent', at) : ''}${t('coMove', 'calmove', 'Date ou heure', 'Cette séance seulement', at)}${t('delCourse', 'trash', 'Supprimer', 'Personne n’est prévenu', at, 'danger')}</div>`;
+  }${cx ? t('cancelCourse', 'undo', 'Rétablir le cours', 'Élèves prévenus', at, 'on') : t('cancelCourse', 'ban', 'Annuler le cours', 'Reste affiché · élèves prévenus', at)}${coIsGrp(g) && d >= TODAY ? t('coShift', 'forward', 'Reporter', 'Les suivantes glissent', at) : ''}${t('coMove', 'calmove', 'Date, heure, durée', 'Cette séance ou son cycle', at)}${t('delCourse', 'trash', 'Supprimer', 'Personne n’est prévenu', at, 'danger')}</div>`;
 }
 /* ---------- Séance : thème, appel, bilan du groupe et commentaires personnels ---------- */
 /* les enseignants qu'on peut choisir (cycle, remplaçant, groupe) */
@@ -659,7 +659,7 @@ function coSeancePlan(P) {
   if (!x)
     return `<div class="pad">${none('cal', 'Séance déjà planifiée', 'Elle a reçu une date : retrouve-la au planning.')}</div>`;
   const num = REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).posees + P.rang;
-  return `<div class="pad"><div class="card"><span class="kicker">${esc(c.nom || 'Cycle')} · séance ${num} sur ${REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).prevues}</span><span class="h3">${esc(g.name)}</span><p class="muted small">Cette séance n’a pas encore de date. Dès qu’elle en a une, elle apparaît au planning, dans l’Agenda et l’École de /RAM Club.</p><button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button></div><form class="card" id="co-aplan" data-g="${g.id}" data-c="${c.id}" data-r="${P.rang}"><div class="fld"><label for="co-ap-d">Date</label><input id="co-ap-d" type="date" value=""></div><div class="fld"><label for="co-ap-t">Thème</label><input id="co-ap-t" list="co-thl" value="${esc(x.theme || '')}" placeholder="Thème de la séance"><datalist id="co-thl">${(THEMES[g.sport] || []).map(t => `<option value="${esc(t)}">`).join('')}</datalist></div><div class="fld"><label for="co-ap-c">Enseignant</label><select id="co-ap-c"><option value="">Enseignant du cycle</option>${coCoachList()
+  return `<div class="pad"><div class="card"><span class="kicker">${esc(c.nom || 'Cycle')} · séance ${num} sur ${REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).prevues}</span><span class="h3">${esc(g.name)}</span><p class="muted small">Cette séance n’a pas encore de date. Dès qu’elle en a une, elle apparaît au planning, dans l’Agenda et l’École de /RAM Club.</p><button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button></div><form class="card" id="co-aplan" data-g="${g.id}" data-c="${c.id}" data-r="${P.rang}"><div class="fld"><label for="co-ap-d">Date</label><input id="co-ap-d" type="date" value=""></div><div class="fld"><label for="co-ap-t">Thème</label><input id="co-ap-t" autocomplete="off" value="${esc(x.theme || '')}" placeholder="Thème de la séance"></div><div class="fld"><label for="co-ap-c">Enseignant</label><select id="co-ap-c"><option value="">Enseignant du cycle</option>${coCoachList()
     .map(k => `<option value="${k}" ${x.coach === k ? 'selected' : ''}>${esc(name(k))} · remplaçant</option>`)
     .join(
       ''
@@ -696,9 +696,9 @@ function coSeance(id) {
   const nP = Object.values(REGLES.presDe(s, g, d)).filter(v => v === 'P').length,
     qui = REGLES.coachDe(g, d, s),
     cyc = REGLES.cycleDe(g, d);
-  return `<div class="pad">${g.goal && !g.nv ? `<div class="card cogoalc"><span class="kicker">${ic('target')}Objectif de l’élève</span><p>${esc(g.goal)}</p></div>` : ''}<div class="card"><span class="kicker">${DAYS[coDow(d)]} ${fmtD(d, 1)} · ${hAt(g, d)} · ${g.dur}</span><span class="h3">${esc(g.name)}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag">${loc}</span>`}${sportTag(g.sport)}${qui && M[qui] ? `<span class="tag">${first(qui)}${s.coach ? ' · remplaçant' : ''}</span>` : ''}</span>${cyc && cyc.theme ? `<p class="muted small">Thème du cycle : ${esc(cyc.theme)}</p>` : ''}
+  return `<div class="pad">${g.goal && !g.nv ? `<div class="card cogoalc"><span class="kicker">${ic('target')}Objectif de l’élève</span><p>${esc(g.goal)}</p></div>` : ''}<div class="card"><span class="kicker">${DAYS[coDow(d)]} ${fmtD(d, 1)} · ${hAt(g, d)} · ${durAt(g, d)}</span><span class="h3">${esc(g.name)}</span><span class="tags" style="display:flex;margin-top:6px">${cx ? '<span class="tag" style="background:var(--hot);color:#fff">Cours annulé</span>' : `<span class="tag">${loc}</span>`}${sportTag(g.sport)}${qui && M[qui] ? `<span class="tag">${first(qui)}${s.coach ? ' · remplaçant' : ''}</span>` : ''}</span>${cyc && cyc.theme ? `<p class="muted small">Thème du cycle : ${esc(cyc.theme)}</p>` : ''}
 ${coIsGrp(g) ? `<button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button>` : ''}${st.length ? `<div class="coppl">${st.map(k => `<button class="copp" data-a="open" data-v="eleve" data-id="${k}" aria-label="Fiche de ${esc(svName(k))}">${coAv(k, 'xs')}<span>${esc(svName(k))}</span></button>`).join('')}</div>` : ''}
-<form id="co-theme" data-id="${id}" class="row" style="gap:8px;margin-top:10px"><input id="co-th" class="grow" placeholder="Thème de la séance" value="${esc(s.theme || '')}" aria-label="Thème de la séance" list="co-thl"><datalist id="co-thl">${THEMES[g.sport].map(t => `<option value="${esc(t)}">`).join('')}</datalist><button class="btn sm">OK</button></form>
+<form id="co-theme" data-id="${id}" class="row" style="gap:8px;margin-top:10px"><input id="co-th" class="grow" placeholder="Thème de la séance" value="${esc(s.theme || '')}" aria-label="Thème de la séance" autocomplete="off"><button class="btn sm">OK</button></form>
 ${coIsGrp(g) ? coRempl(g, d, s) : ''}${coActs(g, d, loc, cx)}</div>
 ${
   cx
@@ -957,7 +957,7 @@ function coFigures(l) {
     p = called.reduce((a, x) => a + coPres(x), 0);
   return {
     n: l.length,
-    h: l.reduce((a, x) => a + durMin(x.g.dur), 0) / 60,
+    h: l.reduce((a, x) => a + durMin(durAt(x.g, x.d)), 0) / 60,
     eur: l.reduce((a, x) => a + coMoney(x), 0),
     att: att ? Math.round((p * 100) / att) : null
   };
@@ -1157,12 +1157,12 @@ function coDash() {
   );
   const chip = (v, t) =>
       `<button class="chip" data-a="coDashP" data-v="${v}" aria-pressed="${per === v}">${t}</button>`,
-    sum = (l, t, extra) => ({ t, n: l.length, h: l.reduce((a, x) => a + durMin(x.g.dur), 0) / 60, ...extra });
+    sum = (l, t, extra) => ({ t, n: l.length, h: l.reduce((a, x) => a + durMin(durAt(x.g, x.d)), 0) / 60, ...extra });
   // par formule : celle qui correspond à la durée et au nombre d'élèves, sinon le format lui-même
   const byF = {};
   done.forEach(x => {
     const n = Math.max(1, coStu(x.g).length),
-      min = durMin(x.g.dur),
+      min = durMin(durAt(x.g, x.d)),
       f = REGLES.formuleDe(OFFRES, n, min, x.g.sport),
       k = f ? ofLabel('f', f.id) : foKind({ joueurs: n }) + ' · ' + minTxt(min) + ' · ' + x.g.sport;
     (byF[k] = byF[k] || []).push(x);
@@ -1212,7 +1212,7 @@ function coDash() {
       const a = new Date(Date.UTC(y0, m0 - 1 + i, 1)).toISOString().slice(0, 10);
       if (a > to) break;
       const l = done.filter(x => x.d.startsWith(a.slice(0, 7)));
-      months.push([MOIS[+a.slice(5, 7) - 1], l.length, l.reduce((s, x) => s + durMin(x.g.dur), 0) / 60]);
+      months.push([MOIS[+a.slice(5, 7) - 1], l.length, l.reduce((s, x) => s + durMin(durAt(x.g, x.d)), 0) / 60]);
     }
   }
   const mx = Math.max(1, ...months.map(m => m[2]));
@@ -1312,7 +1312,7 @@ function coHisto() {
     months[months.length - 1][1].push(x);
   });
   const chip = (v, t) => `<button class="chip" data-a="coHiF" data-v="${v}" aria-pressed="${f === v}">${t}</button>`;
-  return `<div class="pad">${coClubChips()}<div class="card"><div class="chips">${chip('all', 'Toutes')}${chip('once', 'Cours ponctuels')}${chip('grp', 'Groupes')}</div><span class="muted small">${plural(l.length, 'séance')} · ${fr(l.reduce((a, x) => a + durMin(x.g.dur), 0) / 60)} h</span></div>${
+  return `<div class="pad">${coClubChips()}<div class="card"><div class="chips">${chip('all', 'Toutes')}${chip('once', 'Cours ponctuels')}${chip('grp', 'Groupes')}</div><span class="muted small">${plural(l.length, 'séance')} · ${fr(l.reduce((a, x) => a + durMin(durAt(x.g, x.d)), 0) / 60)} h</span></div>${
     months
       .map(
         ([k, xs]) =>
@@ -1360,7 +1360,7 @@ function coSesRow(g, d) {
     ? [nP != null ? nP + '/' + coStu(g).length + ' présents' : 'Appel à faire', s && s.theme ? esc(s.theme) : '']
         .filter(Boolean)
         .join(' · ')
-    : [g.dur, s && s.theme ? esc(s.theme) : ''].filter(Boolean).join(' · ');
+    : [durAt(g, d), s && s.theme ? esc(s.theme) : ''].filter(Boolean).join(' · ');
   return evDay(
     d,
     evCard({
@@ -1417,7 +1417,7 @@ ${hd(ic('cal') + 'Séances à venir · ' + up.length, `<button class="chip" data
       : none('cal', 'Aucune séance à venir', 'Programme des séances : un pack, un cycle ou des dates une par une.')
   }
 ${coOffHtml(g)}
-${next.length ? `<details class="card cothm"><summary><b>Thèmes des prochaines séances</b><span class="muted small"> · les élèves les voient dans leurs cours</span></summary><form id="co-themes" data-id="${g.id}">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist><button class="btn full">Enregistrer les thèmes</button></form></details>` : ''}
+${next.length ? `<details class="card cothm"><summary><b>Thèmes des prochaines séances</b><span class="muted small"> · les élèves les voient dans leurs cours</span></summary><form id="co-themes" data-id="${g.id}">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" autocomplete="off" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<button class="btn full">Enregistrer les thèmes</button></form></details>` : ''}
 ${hd(ic('check') + 'Séances effectuées · ' + past.length, todo && coOf().rappelBilans ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '')}${
     past.length
       ? `<div class="coevs">${past

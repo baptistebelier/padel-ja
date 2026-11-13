@@ -107,6 +107,7 @@ const rIdx = r => RANKS.indexOf(r);
 // règle écrite une seule fois, partagée avec le serveur : regles.js
 const trainOn = REGLES.trainOn;
 const hAt = REGLES.hAt;
+const durAt = REGLES.durAt;
 
 /* Ce que chaque club personnalise : nom, sigle, logo, couleurs */
 const CLUBS = [

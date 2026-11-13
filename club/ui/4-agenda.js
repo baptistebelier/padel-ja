@@ -16,8 +16,8 @@ function planItems(iso) {
       cat: 'ens',
       sport: g.sport,
       t: hAt(g, iso),
-      dur: typeof durMin === 'function' ? durMin(g.dur) : g.dur === '1 h' ? 60 : 90,
-      lines: [coachDu(g, iso) && M[coachDu(g, iso)] && ['user', first(coachDu(g, iso))], ['clock', g.dur]],
+      dur: REGLES.durMin(durAt(g, iso)),
+      lines: [coachDu(g, iso) && M[coachDu(g, iso)] && ['user', first(coachDu(g, iso))], ['clock', durAt(g, iso)]],
       // les élèves sans compte /RAM Club (ajoutés dans /RAM Coach) comptent aussi
       tg0: cx ? evCx('Cours annulé') : evLoc(locOf(g, iso)),
       tg1:

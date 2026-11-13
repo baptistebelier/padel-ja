@@ -2045,6 +2045,7 @@ select option { background: var(--c-surface); color: var(--c-text); }
 #main .cosbar .cotools { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 0 0; }
 #main .cosbar .cotools .btn { flex: 1 1 170px; }
 #main .cogrpbtn { flex: 1 1 auto; min-width: max-content; }
+@media (max-width: 600px) { #co-move .co-mvd { flex-basis: 100%; } }
 
 /* ---------- 4. Animations et gestes ---------- */
 .stories::-webkit-scrollbar, .seg::-webkit-scrollbar, .chips::-webkit-scrollbar, .swipe::-webkit-scrollbar { display: none; }

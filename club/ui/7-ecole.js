@@ -29,7 +29,7 @@ function sessCard(g, iso, who, manage) {
     t: hAt(g, iso),
     cx,
     title: g.name,
-    lines: [coachDu(g, iso) && M[coachDu(g, iso)] && ['user', first(coachDu(g, iso))], ['clock', g.dur]],
+    lines: [coachDu(g, iso) && M[coachDu(g, iso)] && ['user', first(coachDu(g, iso))], ['clock', durAt(g, iso)]],
     tags:
       (cx ? evCx('Cours annulé') : evLoc(loc)) +
       sportTag(g.sport) +

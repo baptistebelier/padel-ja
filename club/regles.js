@@ -46,6 +46,13 @@
   }
   /* heure d'une séance : celle réglée pour ce jour-là (g.hr[date], séance déplacée à une autre heure), sinon celle du créneau */
   const hAt = (g, iso) => (g && g.hr && iso && g.hr[iso]) || (g && g.h) || '';
+  /* durée d'une séance : celle réglée pour ce jour-là (g.du[date]), sinon celle de son cycle (c.dur), sinon celle du groupe */
+  const durAt = (g, iso) => {
+    if (!g) return '';
+    if (g.du && iso && g.du[iso]) return g.du[iso];
+    const c = iso && (g.cycles || []).find(x => (x.dates || []).includes(iso));
+    return (c && c.dur) || g.dur || '';
+  };
   /* « 1 h 30 », « 1 h », « 45 min » → minutes (1 h par défaut) */
   function durMin(d) {
     const m = String(d || '').match(/(\d+) h(?: (\d+))?|(\d+) min/);
@@ -317,7 +324,7 @@
       if (x.d > to) return;
       // format de la séance : ses inscrits (n), sinon ses présents (un duo reste un duo si l'un manque)
       const n = x.n || (x.presents || []).length,
-        min = durMin(x.g && x.g.dur),
+        min = durMin(x.g && durAt(x.g, x.d)),
         sport = x.sport || (x.g && x.g.sport);
       const gid = x.gid != null ? x.gid : x.g && x.g.id,
         cy = x.cy != null ? x.cy : x.g && gid != null ? (cycleDe(x.g, x.d) || {}).id : undefined;
@@ -533,6 +540,7 @@
     chanOuvert,
     trainOn,
     hAt,
+    durAt,
     durMin,
     fmt,
     formuleDe,

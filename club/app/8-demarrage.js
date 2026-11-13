@@ -851,21 +851,14 @@ function ramRail(title, sub) {
   if (seg && !seg.querySelector('.segt'))
     seg.insertAdjacentHTML(
       'afterbegin',
-      `<div class="segt"><span>${sub || esc(club().name)}</span><b>${title || ''}</b><button class="segx" data-a="subFold" aria-label="${S.subFold ? 'Déplier le sous-menu' : 'Replier le sous-menu'}" aria-expanded="${!S.subFold}">${ic('back')}</button></div>`
+      `<div class="segt"><span>${sub || esc(club().name)}</span><b>${title || ''}</b></div>`
     );
-  $('phone').classList.toggle('subfold', !!S.subFold);
+  $('phone').classList.remove('subfold');
 }
-/* grand écran : le sous-menu se replie (bouton ‹) et se déplie ; le choix est gardé sur l'appareil */
+/* grand écran : le sous-menu reste toujours déplié (plus de bouton pour le replier) ; l'ancien choix est oublié */
 try {
-  S.subFold = localStorage.getItem('club-subfold') === '1';
+  localStorage.removeItem('club-subfold');
 } catch (e) {}
-A.subFold = () => {
-  S.subFold = !S.subFold;
-  try {
-    localStorage.setItem('club-subfold', S.subFold ? '1' : '0');
-  } catch (e) {}
-  render(true);
-};
 A.ramMode = () => {
   S.mode = effDark() ? 'jour' : 'nuit';
   try {
