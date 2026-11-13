@@ -12,3 +12,22 @@
   /* Réglages en bas du menu, à la place de Profil */
   :root[data-ui="2"] .rbot button[data-t="me"] { display: flex; }
 }
+
+/* Aujourd'hui : la prochaine séance */
+:root[data-ui="2"] .u2next .h3 { display: block; margin: 6px 0 4px; }
+:root[data-ui="2"] .u2avs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 14px; }
+:root[data-ui="2"] .u2mois .btn, :root[data-ui="2"] .u2suivi { margin-top: 12px; }
+/* « Nouveau » : trois choix, chacun avec sa phrase */
+:root[data-ui="2"] .u2new button { align-items: flex-start; text-align: left; white-space: normal; }
+:root[data-ui="2"] .u2new button .muted { font-weight: 400; }
+/* titres des cartes ajoutées (même rendu que les cartes du jour) */
+:root[data-ui="2"] .u2c .calh { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+:root[data-ui="2"] .u2c .calh b { font-family: var(--f-sub); font-weight: 700; font-size: 19px; }
+:root[data-ui="2"] .u2c .calh > svg { width: 20px; height: 20px; color: var(--c-lime); flex: none; }
+/* Aujourd'hui : la semaine en lignes */
+:root[data-ui="2"] .u2sem .item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+:root[data-ui="2"] .u2sem .item > svg { width: 18px; height: 18px; transform: scaleX(-1); flex: none; }
+:root[data-ui="2"] .u2d { display: flex; flex-direction: column; align-items: center; min-width: 58px; padding: 4px 6px; border: var(--bw, 2px) solid #000000; background: var(--surface-2, #F8F1EC); font-family: var(--f-sub); font-weight: 700; font-size: 13px; text-transform: uppercase; flex: none; }
+:root[data-ui="2"] .u2d span { font-size: 15px; text-transform: none; }
+:root[data-ui="2"] .u2cx { text-decoration: line-through; }
+:root[data-ui="2"] .u2sem .btn { margin-top: 12px; }

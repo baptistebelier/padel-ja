@@ -47,7 +47,95 @@ if (UI2) {
       .join('')}</div>`;
   const u2Today = V.today,
     u2Dash = V.dash;
-  V.today = () => u2Sous('today') + u2Today();
+  /* ---------- Étape 2 — Aujourd'hui : la prochaine séance et l'appel, la semaine, « À faire », le mois en chiffres ---------- */
+  function u2Prochaine() {
+    const nm = new Date().getHours() * 60 + new Date().getMinutes(),
+      l = coSessions(TODAY, isoIn(7), 'me', 1),
+      next = l.find(x => !isCx(x.g, x.d) && (x.d > TODAY || hMin(hAt(x.g, x.d)) + durMin(durAt(x.g, x.d)) > nm));
+    let h = '';
+    if (next) {
+      const { g, d } = next,
+        st = coStu(g),
+        quand = d === TODAY ? 'Aujourd’hui' : d === isoIn(1) ? 'Demain' : fmtD(d),
+        theme = (sesDu(g, d) || {}).theme || (REGLES.cycleDe(g, d) || {}).theme;
+      h += `<div class="card u2c u2next"><div class="calh">${ic('clock')}<b>${quand} · ${esc(hAt(g, d))} · ${esc(durAt(g, d))}</b></div><span class="h3">${esc(g.name)}</span>${theme ? `<p class="muted small">Thème : ${esc(theme)}</p>` : ''}${st.length ? `<div class="u2avs">${st.map(k => coAv(k, 'sm')).join('')}<span class="muted small">${plural(st.length, 'élève')}</span></div>` : ''}<div class="ecacts"><button class="btn" data-a="open" data-v="seance" data-id="${sesKey(g, d)}">${ic('check')}Faire l’appel</button><button class="btn ghost" data-a="coNewGrpMsg">${ic('chat')}Écrire au groupe</button></div></div>`;
+    } else h += `<div class="card">${none('cal', 'Aucun cours dans les 7 jours', '')}</div>`;
+    // la semaine : une ligne par cours, un clic ouvre la séance
+    const rest = l.filter(x => x !== next);
+    if (rest.length)
+      h += `<div class="card u2c u2sem"><div class="calh">${ic('cal')}<b>Cette semaine</b></div>${rest
+        .map(x => {
+          const { g, d } = x,
+            s = sesDu(g, d) || {},
+            n = coStu(g).length,
+            sub = isCx(g, d)
+              ? 'Annulé'
+              : [
+                  plural(n, 'élève'),
+                  durAt(g, d),
+                  s.coach && !coIsMe(s.coach) && M[s.coach] ? first(s.coach) + ' remplace' : ''
+                ]
+                  .filter(Boolean)
+                  .join(' · ');
+          return `<button class="item" data-a="open" data-v="seance" data-id="${sesKey(g, d)}"><span class="u2d"><b>${esc(DA[new Date(d + 'T12:00').getDay()])} ${+d.slice(8)}</b><span>${esc(hAt(g, d))}</span></span><span class="grow"><span class="nm${isCx(g, d) ? ' u2cx' : ''}">${esc(g.name)}</span><br><span class="muted small">${esc(sub)}</span></span>${ic('back')}</button>`;
+        })
+        .join('')}<button class="btn ghost full" data-a="tab" data-t="planning">${ic('cal')}Planning</button></div>`;
+    return `<div class="cobmain">${h}</div>`;
+  }
+  function u2Mois() {
+    const l = coSessions(TODAY.slice(0, 8) + '01', TODAY, 'me', 1).filter(x => !isCx(x.g, x.d)),
+      hrs = l.reduce((a, x) => a + durMin(durAt(x.g, x.d)), 0) / 60,
+      el = new Set();
+    let P = 0,
+      T = 0;
+    l.forEach(x =>
+      Object.entries(coPresOf(x)).forEach(([k, v]) => {
+        T++;
+        if (v === 'P') {
+          P++;
+          el.add(k);
+        }
+      })
+    );
+    const kv = (a, b) => `<div class="cokv"><span>${a}</span><b>${b}</b></div>`;
+    return `<div class="card u2c u2mois"><div class="calh">${ic('chart')}<b>Ce mois-ci</b></div>${kv('Séances', l.length)}${kv('Heures de cours', fr(hrs))}${kv('Élèves venus', el.size)}${kv('Présence', T ? Math.round((100 * P) / T) + ' %' : '–')}<button class="btn ghost full" data-a="tab" data-t="dash">${ic('chart')}Toutes les statistiques</button></div>`;
+  }
+  V.today = () => {
+    let h = u2Today();
+    // plus de rangée de raccourcis ni de petits chiffres : « Nouveau » et « Ce mois-ci » les remplacent
+    ['<div class="coshort3">', '<div class="cotiles">'].forEach(s => {
+      const [bloc] = coCut(h, s, 'div');
+      if (bloc) h = h.replace(bloc, '');
+    });
+    const [main] = coCut(h, '<div class="cobmain">', 'div');
+    if (main) h = h.replace(main, u2Prochaine());
+    const [side] = coCut(h, '<div class="cobside">', 'div');
+    if (side) h = h.replace(side, side.slice(0, -6).replace('À traiter', 'À faire') + u2Mois() + '</div>');
+    return u2Sous('today') + h;
+  };
+
+  /* ---------- « Nouveau » : un seul bouton, trois choix expliqués ---------- */
+  A.u2New = () =>
+    sheet(
+      'Nouveau',
+      `<div class="body"><div class="menu u2new">${[
+        ['coNewSes', 'user', 'Cours individuel', 'Une date, de 1 à 4 élèves. Un pack acheté se décompte tout seul.'],
+        ['coNewGrp', 'users', 'Groupe', 'Les mêmes élèves chaque semaine, organisés en cycles.'],
+        [
+          'nvNew" data-m="cours',
+          'school',
+          'Cours ouvert aux inscriptions',
+          'Collectif, stage ou animation : les adhérents s’inscrivent depuis /Buvette, selon leur niveau.'
+        ]
+      ]
+        .map(
+          ([a, i, t, s]) =>
+            `<button data-a="${a}">${ic(i)}<span class="grow"><b>${t}</b><br><span class="muted small">${s}</span></span></button>`
+        )
+        .join(
+          ''
+        )}</div><p class="kicker">Aussi</p><div class="menu"><button data-a="coNewMsg">${ic('chat')}Écrire un message</button><button data-a="coContentPick">${ic('spark')}Donner du contenu</button><button data-a="coShortMore">${ic('more')}Autres outils</button></div></div>`
+    );
   // les statistiques mesurent l'activité, sans argent (carnet C02) : plus d'intercalaire Paiements
   V.dash = () => {
     S.dashTab = 'act';
@@ -82,7 +170,7 @@ if (UI2) {
   V.me = id =>
     (id
       ? ''
-      : `<div class="pad"><div class="card ecs u2regl"><div class="calh">${ic('gear')}<b>Réglages</b></div><div class="menu"><button data-a="open" data-v="formules">${ic('euro')}Formules et tarifs</button><button data-a="open" data-v="niveaux">${ic('ladder')}Échelles techniques</button></div></div></div>`) +
+      : `<div class="pad"><div class="card u2c u2regl"><div class="calh">${ic('gear')}<b>Réglages</b></div><div class="menu"><button data-a="open" data-v="formules">${ic('euro')}Formules et tarifs</button><button data-a="open" data-v="niveaux">${ic('ladder')}Échelles techniques</button></div></div></div>`) +
     u2Me(id);
 
   /* ---------- après chaque affichage : menu, Réglages, lien vers le suivi ---------- */
@@ -115,6 +203,22 @@ if (UI2) {
         h = `<button class="ib u2gear" data-a="tab" data-t="me" aria-label="Réglages" ${S.tab === 'me' ? 'aria-current="page"' : ''}>${ic('gear')}</button>`;
       if (bell) bell.insertAdjacentHTML('beforebegin', h);
       else top.insertAdjacentHTML('beforeend', h);
+    }
+    // « Nouveau » à la place de « Nouvelle séance » (Aujourd'hui et Planning) ; « + » au téléphone
+    if (top && !S.stack.length && (S.tab === 'today' || S.tab === 'planning')) {
+      top.querySelectorAll('[data-a="coNewSes"]').forEach(b => {
+        b.dataset.a = 'u2New';
+        if (b.classList.contains('btn')) b.innerHTML = `${ic('plus')}Nouveau`;
+        else b.setAttribute('aria-label', 'Nouveau');
+      });
+      if (!coWide() && S.tab === 'today' && !top.querySelector('[data-a="u2New"]')) {
+        const g = top.querySelector('.u2gear');
+        if (g)
+          g.insertAdjacentHTML(
+            'beforebegin',
+            `<button class="ib acc coplt" data-a="u2New" aria-label="Nouveau">${ic('plus')}</button>`
+          );
+      }
     }
     // Aujourd'hui : le suivi (bilans et paiements) se rejoint depuis « À traiter »
     if (S.tab === 'today' && !S.stack.length) {

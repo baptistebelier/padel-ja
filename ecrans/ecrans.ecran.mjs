@@ -2592,3 +2592,22 @@ test('Dojo ?ui=2 : 5 rubriques partout, Statistiques en sous-onglet, Réglages h
     await ctx.close();
   }
 });
+
+test('Dojo ?ui=2 : Aujourd’hui (prochaine séance et appel, semaine, À faire, mois) et « Nouveau » à trois choix', async () => {
+  for (const w of [1440, 360]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 820 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html?ui=2');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    await page.evaluate(() => { S.tab = 'today'; S.stack = []; render(); });
+    assert.equal(await page.locator('#main .cotiles, #main .coshort3').count(), 0, 'plus de petits chiffres ni de raccourcis');
+    assert.ok(await page.locator('#main .u2mois').isVisible(), 'le mois en chiffres');
+    if (await page.locator('#main .u2next').count()) assert.ok(await page.locator('.u2next [data-v="seance"]').isVisible(), 'Faire l’appel en un clic');
+    await page.click('#top [data-a="u2New"]');
+    await page.waitForSelector('.u2new');
+    assert.deepEqual(await page.$$eval('.u2new > button', l => l.map(b => b.dataset.a)), ['coNewSes', 'coNewGrp', 'nvNew'], 'trois choix');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
