@@ -2630,3 +2630,23 @@ test('Dojo ?ui=2 : la séance garde l’appel en vue et range ses actions dans �
     await ctx.close();
   }
 });
+
+test('Dojo ?ui=2 : À encaisser dans Élèves, pastilles de formule, « Noter un achat » en quelques champs', async () => {
+  for (const w of [1440, 360]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 820 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html?ui=2');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    const k = await page.evaluate(() => { const e = ELEVES.find(x => coInClub(x)); if (!e) return null; e.achats = (e.achats || []).concat([{ id: 'essai-du', t: 'pack', ref: (OFFRES.packs[0] || {}).id, nom: 'Pack essai', n: 5, d: isoIn(-20), prix: 100, pay: { ech: [{ s: 0, m: 40, ok: '' }] } }]); S.tab = 'eleves'; S.elF = 'pay'; S.stack = []; render(); return e.id; });
+    if (k) {
+      assert.ok(await page.locator('[data-a="coElF"][data-v="pay"]').count() === 1, 'entrée À encaisser');
+      assert.ok((await page.textContent('#main .u2enc')).includes('40'), 'le montant dû apparaît');
+      await page.evaluate(id => { S.elF = 'all'; render(); A.coAchat({ id }); }, k);
+      await page.waitForSelector('#co-ac .u2opt');
+      assert.equal(await page.locator('#co-ac .u2opt #co-ax').count(), 1, 'le prix différent est replié');
+    }
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});

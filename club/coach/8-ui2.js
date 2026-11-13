@@ -134,6 +134,135 @@ if (UI2) {
     );
   };
 
+  /* ---------- Étape 4 — Argent : un seul endroit (Élèves > À encaisser), un achat noté en quelques champs ----------
+     Les montants viennent de coPayTodo (échéances atteintes, séances faites sans achat qui les couvre) : la même source
+     que le Suivi ; les statistiques, elles, ne montrent plus d'argent (C02). */
+  let u2DueCache = { t: 0, m: null };
+  function u2Dues() {
+    if (u2DueCache.m && Date.now() - u2DueCache.t < 800) return u2DueCache.m;
+    const m = {};
+    coPayTodo(isoIn(-400)).forEach(p => {
+      const k = p.id.split('|')[1];
+      (m[k] = m[k] || { m: 0, l: [] }).m += p.m || 0;
+      m[k].l.push(p);
+    });
+    u2DueCache = { t: Date.now(), m };
+    return m;
+  }
+  /* où en est l'élève : son pack en cours (séances faites / prévues) et ce qu'il doit */
+  function u2Etat(k) {
+    let h = '';
+    const pk = coPacks(k).find(a => a.t === 'pack' && a.n && REGLES.etatAchat(a, TODAY) === 'encours');
+    if (pk) h += ` <span class="tag ac u2pk">Pack ${pk.used}/${pk.n}</span>`;
+    const du = u2Dues()[k];
+    if (du && du.m) h += ` <span class="tag copay due u2du">À payer ${eur(du.m)}</span>`;
+    return h;
+  }
+  // la pastille suit le nom de l'élève dans l'appel d'une séance et dans la liste des élèves
+  function u2Pastilles() {
+    const v = view().v;
+    if (v !== 'seance' && !(v === 'eleves' && S.elF !== 'pay') && v !== 'cgroupe') return;
+    document
+      .querySelectorAll('#main .corow .nm[data-v="eleve"], #main .item[data-v="eleve"] .nm, #main [data-u2el]')
+      .forEach(n => {
+        const k = n.dataset.id || (n.closest('[data-id]') || {}).dataset?.id;
+        if (!k || n.parentElement.querySelector(':scope > .u2pk, :scope > .u2du')) return;
+        n.insertAdjacentHTML('afterend', u2Etat(k));
+      });
+  }
+
+  /* Élèves > À encaisser : qui doit quoi, depuis quand ; les packs presque finis, pour proposer la suite */
+  function u2Encaisser() {
+    const m = u2Dues(),
+      ks = Object.keys(m).sort((a, b) => m[b].m - m[a].m),
+      tot = ks.reduce((s, k) => s + m[k].m, 0),
+      fins = coStudents()
+        .filter(k => coInClub(M[k] || coEl(k) || {}))
+        .map(k => [k, coPacks(k).find(a => a.t === 'pack' && a.n && REGLES.etatAchat(a, TODAY) === 'encours')])
+        .filter(([, a]) => a && a.n - a.used <= 1);
+    const tile = (i, n, l) => `<div class="cotile">${ic(i)}<b>${n}</b><span>${l}</span></div>`;
+    return `<div class="pad cowide u2enc"><div class="cotiles n3">${tile('euro', eur(tot), 'À encaisser')}${tile('users', ks.length, ks.length > 1 ? 'Élèves concernés' : 'Élève concerné')}${tile('ladder', fins.length, 'Packs bientôt finis')}</div><div class="card u2c"><div class="calh">${ic('euro')}<b>Qui doit quoi</b></div>${
+      ks.length
+        ? ks
+            .map(k => {
+              const l = m[k].l.sort((a, b) => a.d.localeCompare(b.d));
+              return `<div class="item u2encl">${coAv(k)}<span class="grow"><button class="nm" data-a="open" data-v="eleve" data-id="${k}">${esc(svName(k))}</button><br><span class="muted small">${l.map(p => p.sub).join(' · ')}</span></span><span class="u2encm"><b>${eur(m[k].m)}</b><span class="muted small">depuis le ${fmtD(l[0].d, 1)}</span></span><button class="btn sm ghost" ${l[0].go}>${ic('euro')}Régler</button></div>`;
+            })
+            .join('')
+        : none('check', 'Tout est réglé', 'Aucun paiement attendu pour le moment.')
+    }</div>${
+      fins.length
+        ? `<div class="card u2c"><div class="calh">${ic('ladder')}<b>Packs bientôt finis</b></div>${fins
+            .map(
+              ([k, a]) =>
+                `<div class="item u2encl">${coAv(k)}<span class="grow"><span class="nm">${esc(svName(k))}</span><br><span class="muted small">${esc(a.nom || ofLabel(a.t, a.ref))} · séance ${a.used} sur ${a.n}</span></span><button class="btn sm ghost" data-a="coAchat" data-id="${k}">${ic('plus')}Nouvel achat</button></div>`
+            )
+            .join('')}</div>`
+        : ''
+    }</div>`;
+  }
+  const u2ElevesE = V.eleves;
+  V.eleves = () => {
+    const n = Object.keys(u2Dues()).length,
+      it = `<button role="tab" aria-selected="${S.elF === 'pay'}" aria-label="À encaisser" data-a="coElF" data-v="pay">${ic('euro')}<span class="lb">À encaisser</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
+    let h = u2ElevesE();
+    // l'entrée « À encaisser » après « Sans compte »
+    h = h.replace(
+      /(<div class="seg[^"]*" role="tablist">[\s\S]*?aria-label="Sans compte"[\s\S]*?<\/button>)/,
+      '$1' + it
+    );
+    if (S.elF !== 'pay') return h;
+    const i = h.indexOf('</div>', h.indexOf('role="tablist"'));
+    return h.slice(0, i + 6) + u2Encaisser();
+  };
+  TITLES.eleves = () =>
+    S.elF === 'pay'
+      ? ['À encaisser', 'Élèves']
+      : [
+          'Élèves',
+          plural(coStudents().filter(k => coInClub(M[k] || coEl(k) || {})).length, 'élève actif', 'élèves actifs')
+        ];
+
+  /* Noter un achat : produit, date, règlement, moyen ; le reste replié dans « Plus d'options » */
+  const u2Achat = A.coAchat;
+  A.coAchat = d => {
+    u2Achat(d);
+    const f = $('co-ac');
+    if (!f) return;
+    const fld = id => {
+      const x = $(id);
+      return x && x.closest('.fld');
+    };
+    const det = document.createElement('details');
+    det.className = 'u2opt';
+    det.innerHTML = '<summary>Plus d’options (prix différent, échéances, note)</summary>';
+    ['co-ax', 'co-aps', 'co-an2', 'co-aplf'].forEach(id => {
+      const x = fld(id);
+      if (x) det.append(x);
+    });
+    const go = f.querySelector('button.btn:last-of-type, button:not([type])');
+    f.insertBefore(det, go);
+    // le nombre de paiements n'apparaît que pour « En plusieurs fois »
+    const st = $('co-ast'),
+      nb = fld('co-apn'),
+      maj = () => nb && (nb.hidden = !st || st.value !== 'plus');
+    if (st && nb) {
+      st.closest('.fld').after(nb);
+      st.addEventListener('change', maj);
+      maj();
+    }
+  };
+  /* « Noter un achat » depuis « Nouveau » : d'abord l'élève */
+  A.u2AchatPick = () =>
+    sheet(
+      'Noter un achat',
+      `<div class="body"><p class="muted small">Pour quel élève ?</p><div class="menu">${coStudents()
+        .filter(k => coInClub(M[k] || coEl(k) || {}))
+        .sort((a, b) => svName(a).localeCompare(svName(b)))
+        .map(k => `<button data-a="coAchat" data-id="${k}">${coAv(k, 'xs')}${esc(svName(k))}</button>`)
+        .join('')}</div></div>`
+    );
+
   /* ---------- « Nouveau » : un seul bouton, trois choix expliqués ---------- */
   A.u2New = () =>
     sheet(
@@ -154,7 +283,7 @@ if (UI2) {
         )
         .join(
           ''
-        )}</div><p class="kicker">Aussi</p><div class="menu"><button data-a="coNewMsg">${ic('chat')}Écrire un message</button><button data-a="coContentPick">${ic('spark')}Donner du contenu</button><button data-a="coShortMore">${ic('more')}Autres outils</button></div></div>`
+        )}</div><p class="kicker">Aussi</p><div class="menu"><button data-a="u2AchatPick">${ic('euro')}Noter un achat</button><button data-a="coNewMsg">${ic('chat')}Écrire un message</button><button data-a="coContentPick">${ic('spark')}Donner du contenu</button><button data-a="coShortMore">${ic('more')}Autres outils</button></div></div>`
     );
   // les statistiques mesurent l'activité, sans argent (carnet C02) : plus d'intercalaire Paiements
   V.dash = () => {
@@ -266,5 +395,6 @@ if (UI2) {
   ramRail = function (t, sub) {
     u2Rail(t, sub);
     u2Nav();
+    u2Pastilles();
   };
 }
