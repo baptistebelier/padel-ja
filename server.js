@@ -900,6 +900,15 @@ const server = http.createServer(async (req, res) => {
       const u = { id: 'g' + Auth.randomId(10), email: null, name: 'Démo', guest: true, plan: 'demo', created_at: Date.now() };
       await store.saveUser(u);
       const row = await newTournament(u.id, { demo: true });
+      // trois tournois à venir, pour que « Mes tournois » et le tableau de bord de la démo ne soient pas vides
+      const jour = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+      for (const [n, name, category, gender, nb] of [[6, 'Open de printemps', 'P100', 'Mixte', 8], [13, 'Tournoi des familles', 'P25', 'Mixte', 6], [20, "Trophée d'hiver", 'P250', 'Dames', 10]]) {
+        const t = await newTournament(u.id, { name });
+        Engine.reduce(t.state, { type: 'demo/load', payload: { n: nb } });
+        Engine.reduce(t.state, { type: 'tournament/update', payload: { name, category, gender, dateStart: jour(n), dateEnd: jour(n) } });
+        t.updated_at = Date.now();
+        await store.saveTournament(t);
+      }
       return redirect(res, '/t/' + row.id, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 1), 1) });
     }
     if (p === '/deconnexion') return redirect(res, '/', { 'Set-Cookie': Auth.sessionCookie(req, null) });

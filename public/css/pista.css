@@ -967,6 +967,7 @@ button.urow { background: var(--c-surface-2); }
 /* éditeur : Annuler, PDF, action de l'écran, Écran TV, « … » (overlay, export, aide) */
 .top-t #hSub, #btnOverlay, #btnHelp, .side-btns #btnDemo { display: none; }
 #psAct { display: inline-flex; align-items: center; gap: var(--s2); }
+#psAct:not([hidden]) + #btnTv { background: var(--c-surface); color: var(--c-text); box-shadow: var(--sh); }
 #psMore { display: inline-grid; place-items: center; min-width: 44px; padding: 0; }
 #psAct .ic, #psMore .ic { width: 20px; height: 20px; }
 
@@ -1023,12 +1024,14 @@ button.urow { background: var(--c-surface-2); }
 .ps-inslist #waitTitle, .ps-inslist #wdTitle { margin-top: 0; }
 .card .tbl td button.danger[data-a='del'] { background: var(--c-bg); color: var(--c-text); }
 @media (min-width: 1024px) {
-  #tab-inscriptions.on { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); grid-template-areas: "tabs side" "list side"; column-gap: var(--s5); align-items: start; }
+  #tab-inscriptions.on { display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "tabs side" "list side"; column-gap: var(--s5); align-items: start; }
   #psInsTabs { grid-area: tabs; }
   .ps-inslist { grid-area: list; }
   .ps-insform { grid-area: side; position: sticky; top: 150px; }
   .ps-insform .pairform { grid-template-columns: 1fr; }
-  .ps-insform fieldset { grid-template-columns: 1fr 1fr; }
+  .ps-insform fieldset:not(.narrow) { grid-template-columns: 1fr 1fr; }
+  .ps-insform fieldset.narrow { grid-template-columns: minmax(0, 1fr); }
+  .ps-insform fieldset.narrow input:not([type=checkbox]) { width: 100%; }
 }
 
 /* Programmation : intercalaires, terrains sur une largeur qui tient, « À programmer » à droite */
@@ -1052,6 +1055,7 @@ button.urow { background: var(--c-surface-2); }
 .ps-rrow small { font-size: 13px; color: var(--c-muted); }
 .ps-rrow .r-gauge { grid-column: 1 / -1; }
 .ps-r-rest .r-gauge > i { background: var(--c-pink); }
+.ps-enjeu { justify-self: end; padding: 1px 8px; background: var(--c-lime); color: var(--c-dark); font-size: 12px; box-shadow: none; }
 .ps-next .r-row { min-height: 52px; padding: 6px 0; box-shadow: none; }
 .ps-next .r-row__txt b { white-space: normal; }
 .sc-t { flex-wrap: wrap; }
@@ -1089,20 +1093,26 @@ button.urow { background: var(--c-surface-2); }
   .ps-itabs > button span { font-size: 12px; }
 }
 
-/* iPad et téléphone : la liste des paires tient dans sa colonne, une paire par bloc */
+/* Inscriptions : la liste des paires tient dans sa colonne, une paire par bloc.
+   Ordinateur : joueur 1 et joueur 2 sur une ligne chacun (nom et prénom ensemble), poids encadré avec la date dessous, actions à droite.
+   iPad et téléphone : rang, joueurs, poids, puis date et actions en dessous. */
+.ps-inslist .tbl { display: block; overflow: visible; white-space: normal; }
+.ps-inslist .tbl thead { display: none; }
+.ps-inslist .tbl tbody { display: block; }
+.ps-inslist .tbl tr[data-id] { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto auto; grid-template-areas: 'n a w x' 'n b d x'; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: var(--bw) solid color-mix(in srgb, var(--c-ink) 12%, transparent); }
+.ps-inslist .tbl tr[data-id] td { display: block; width: auto; padding: 0; border: 0; }
+.ps-inslist .tbl tr[data-id] td:nth-child(1) { grid-area: n; }
+.ps-inslist .tbl tr[data-id] td:nth-child(2) { grid-area: a; }
+.ps-inslist .tbl tr[data-id] td:nth-child(3) { grid-area: b; }
+.ps-inslist .tbl tr[data-id] :is(td:nth-child(2), td:nth-child(3)) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-inslist .tbl tr[data-id] td:nth-child(4) { grid-area: w; justify-self: end; }
+.ps-inslist .tbl tr[data-id] td:nth-child(4) b { padding: 2px 6px; border: var(--bw) solid var(--c-ink); }
+.ps-inslist .tbl tr[data-id] td:nth-child(5) { grid-area: d; justify-self: end; font-size: 13px; color: var(--c-muted); white-space: nowrap; }
+.ps-inslist .tbl tr[data-id] td:nth-child(6) { grid-area: x; text-align: right; }
 @media (max-width: 1279px) {
-  .ps-inslist .tbl { display: block; overflow: visible; white-space: normal; }
-  .ps-inslist .tbl thead { display: none; }
-  .ps-inslist .tbl tbody { display: block; }
-  .ps-inslist .tbl tr[data-id] { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; grid-template-areas: 'n a w' 'n b w' 'n d d' 'n x x'; gap: 4px 8px; padding: 10px 0; border-bottom: var(--bw) solid color-mix(in srgb, var(--c-ink) 12%, transparent); }
-  .ps-inslist .tbl tr[data-id] td { display: block; width: auto; padding: 0; border: 0; }
-  .ps-inslist .tbl tr[data-id] td:nth-child(1) { grid-area: n; align-self: center; }
-  .ps-inslist .tbl tr[data-id] td:nth-child(2) { grid-area: a; }
-  .ps-inslist .tbl tr[data-id] td:nth-child(3) { grid-area: b; }
-  .ps-inslist .tbl tr[data-id] td:nth-child(4) { grid-area: w; align-self: center; }
-  .ps-inslist .tbl tr[data-id] td:nth-child(4) b { padding: 2px 6px; border: var(--bw) solid var(--c-ink); }
-  .ps-inslist .tbl tr[data-id] td:nth-child(5) { grid-area: d; font-size: 13px; color: var(--c-muted); }
-  .ps-inslist .tbl tr[data-id] td:nth-child(6) { grid-area: x; text-align: left; }
+  .ps-inslist .tbl tr[data-id] { grid-template-columns: 46px minmax(0, 1fr) auto; grid-template-areas: 'n a w' 'n b w' 'n d d' 'n x x'; gap: 4px 8px; }
+  .ps-inslist .tbl tr[data-id] td:nth-child(5) { justify-self: start; }
+  .ps-inslist .tbl tr[data-id] td:nth-child(6) { text-align: left; }
 }
 
 /* ---------- 8. ANIMATIONS ---------- */

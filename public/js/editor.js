@@ -62,7 +62,8 @@
   })();
   /* ---------- style ?ds=1 : en-tête, intercalaires et colonnes de droite (maquette « Refonte /Pista ») ---------- */
   const secName = t => { const b = $('#nav button[data-tab="' + t + '"] .lg'); return b ? b.textContent : t; };
-  const PS_ACT = { inscriptions: 'Ajouter une paire', programmation: 'Programmation automatique', direct: 'Saisir un score' };
+  // une seule action citron par en-tête : sur Inscriptions, « Ajouter » est déjà dans la Saisie rapide et Écran TV garde le citron
+  const PS_ACT = { programmation: 'Programmation automatique', direct: 'Saisir un score' };
   function psTitles(t) {
     $('#hTag').textContent = [t.name || 'Tournoi', [t.category, t.gender].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     $('#hName').textContent = secName(tab);
@@ -130,9 +131,11 @@
     const l = Object.values(PS).filter(x => x.state in order).sort((a, b) => order[a.state] - order[b.state] || (a.restLeft || 0) - (b.restLeft || 0)).slice(0, 8);
     rest.innerHTML = l.map(x => {
       const tot = x.restUntil && x.lastEnd ? x.restUntil - x.lastEnd : 0;
-      const pct = x.state === 'rest' && tot ? Math.round(100 * (1 - x.restLeft / tot)) : 100;
-      const txt = x.state === 'playing' ? 'en jeu' : x.state === 'rest' ? 'prête dans ' + A.dur(x.restLeft) : 'peut rejouer';
-      return `<div class="ps-rrow ps-r-${x.state}"><b>${esc(A.pairName(x.pair, 'initial'))}</b><small>${txt}</small><span class="r-gauge ${x.state === 'ready' ? 'r-gauge--green' : ''}"><i style="width:${pct}%"></i></span></div>`;
+      // repos : jauge rose qui se vide avec le temps restant ; prête : jauge verte pleine ; en jeu : étiquette, sans jauge
+      const pct = x.state === 'rest' ? (tot ? Math.max(4, Math.round(100 * x.restLeft / tot)) : 100) : 100;
+      const txt = x.state === 'rest' ? 'prête dans ' + A.dur(x.restLeft) : 'peut rejouer';
+      const fin = x.state === 'playing' ? '<span class="tag ps-enjeu">En jeu</span>' : `<small>${txt}</small><span class="r-gauge ${x.state === 'ready' ? 'r-gauge--green' : ''}"><i style="width:${pct}%"></i></span>`;
+      return `<div class="ps-rrow ps-r-${x.state}"><b>${esc(A.pairName(x.pair, 'initial'))}</b>${fin}</div>`;
     }).join('') || '<p class="muted">Aucune paire n\'a encore joué.</p>';
     // à suivre : les prochains matchs programmés, par heure
     const nx = S.matches.filter(m => m.court && R[m.id] && (R[m.id].state === 'ready' || R[m.id].state === 'waiting') && tl[m.id]).sort((a, b) => tl[a.id].start - tl[b.id].start).slice(0, 5);
