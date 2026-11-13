@@ -1682,6 +1682,10 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       if (req.method === 'GET') return json(res, 200, await googleAgenda.etat(u.id));
       if (req.method === 'DELETE') return json(res, 200, await googleAgenda.delier(u.id));
+      if (req.method === 'PATCH') {
+        try { return json(res, 200, await googleAgenda.calendly(u.id, !!(await readBody(req)).calendly)); }
+        catch (e) { return json(res, 400, { error: e.message }); }
+      }
       if (req.method === 'POST') {
         try { return json(res, 200, await googleAgenda.relier(u.id, (await readBody(req)).cal)); }
         catch (e) { return json(res, 400, { error: e.message }); }

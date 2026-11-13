@@ -442,6 +442,17 @@
       aVenir: n('next') + n('now')
     };
   }
+  /* ce qu'il reste à faire sur un cycle : 'obj' (objectifs à fixer : il commence dans les 14 jours ou a commencé,
+     sans objectifs) ou 'bilan' (bilan de fin de cycle à écrire : toutes ses dates sont passées depuis moins de 60
+     jours, sans bilan) ; null sinon. c.obj et c.bilan s'écrivent dans les réglages du cycle (/RAM Coach). */
+  function cycleTodo(g, c, today) {
+    const l = (c.dates || []).filter(d => !(g.cancel || []).includes(d)).sort();
+    if (!l.length) return null;
+    const fin = l[l.length - 1],
+      plein = !(+c.n > 0) || l.length >= +c.n;
+    if (fin <= today && plein) return !c.bilan && fin >= addDays(today, -60) ? 'bilan' : null;
+    return !c.obj && l[0] <= addDays(today, 14) ? 'obj' : null;
+  }
   /* le cycle en cours : le premier qui a encore une séance à venir, sinon le dernier */
   function cycleCourant(g, today) {
     const prem = c => [...(c.dates || [])].sort()[0] || '9999',
@@ -510,6 +521,7 @@
     aPlanifier,
     planDe,
     cycleDe,
+    cycleTodo,
     cycleEtat,
     cycleCourant,
     cycleOuvert,

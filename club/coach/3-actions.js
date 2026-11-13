@@ -254,7 +254,7 @@ Object.assign(A, {
       );
     sheet(
       g.name,
-      `<form class="body" id="co-grp" data-id="${g.id}">${coAll() && cs.length ? Who('co-coach', 'Enseignant', cs) : ''}${O('co-max', 'Nombre de places', '8', g.max || '')}${Sel('co-mode', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES[t.mode])}${O('co-prix', 'Montant en euros', '60', t.prix || '')}<button class="btn full">Enregistrer</button></form>`
+      `<form class="body" id="co-grp" data-id="${g.id}"><div class="fld"><label for="co-gname">Nom du groupe</label><input id="co-gname" required maxlength="60" value="${esc(g.name || '')}"></div>${coAll() && cs.length ? Who('co-coach', 'Enseignant', cs) : ''}${O('co-max', 'Nombre de places', '8', g.max || '')}${Sel('co-mode', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES[t.mode])}${O('co-prix', 'Montant en euros', '60', t.prix || '')}<button class="btn full">Enregistrer</button></form>`
     );
     if ($('co-coach')) $('co-coach').value = g.coach || '';
     $('co-max').inputMode = 'numeric';
@@ -493,6 +493,9 @@ document.addEventListener('submit', e => {
       REGLES.changeCoach(g, val('co-coach'), coCoupure(g));
       g.sub = g.sub ? g.sub.replace(/ · [^·]+$/, ' · ' + first(g.coach)) : g.sub;
     }
+    // nouveau nom : le groupe, sa discussion dans /RAM Club et la discussion d'équipe s'il y en a une
+    const nom = val('co-gname').trim().slice(0, 60);
+    if (nom && nom !== g.name) coGrpRename(g, nom);
     g.tarif = { mode, prix };
     if (max) g.max = max;
     else delete g.max;

@@ -421,6 +421,18 @@ test('la veille à 18 h : rappel du cours de groupe, résumé à l’enseignant 
   const c = miens.find(x => x[0] === coach);
   assert.equal(c[1].app, 'coach');
   assert.match(c[1].body, /Demain : 1 séance, la première à 17 h/);
+  assert.doesNotMatch(c[1].body, /bilan/, 'pas de rappel de bilan de séance');
+  sent.length = 0;
+  // cycles : objectifs à fixer la veille de la première séance, bilan à écrire le soir de la dernière
+  await ops(coach, club, [
+    { coll: 'group', id: 'g1', op: 'patch', patch: [{ p: ['cycles'], t: 'set', v: [{ id: 'c1', nom: 'Printemps', dates: [d, REGLES.addDays(d, 7)] }] }] },
+    { coll: 'group', id: 'g2', op: 'put', data: { type: 'train', name: 'Ados', day: REGLES.dowOf(t), h: '18 h', dur: '1 h', coach: key, mem: [ek], cycles: [{ id: 'c2', nom: 'Hiver', dates: [REGLES.addDays(t, -7), t] }] } }
+  ]);
+  sent.length = 0;
+  await notifier.veille(t);
+  const c2 = sent.find(x => x[0] === coach && x[1].tag.startsWith(club.id));
+  assert.match(c2[1].body, /Un cycle commence demain : objectifs à fixer/);
+  assert.match(c2[1].body, /Cycle terminé : bilan de cycle à écrire/);
   sent.length = 0;
 });
 

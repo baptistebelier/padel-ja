@@ -399,13 +399,89 @@ function coPayPage(C) {
       if ((a.t === 'pack' || a.t === 'abo') && REGLES.etatAchat(a, TODAY) !== 'termine') enCours.push([e, a]);
     })
   );
-  const cycles = coGroups().filter(g => coIsGrp(g) && !coOver(g) && g.offre);
+  const cycles = coGroups().filter(g => coIsGrp(g) && !coOver(g) && g.offre),
+    selF = !!S.coSelF,
+    pickF = S.coPickF || [];
+  S.coFIds = enCours.map(([e, a]) => e.id + '|' + a.id);
   return `<div class="cotiles n3">${coTile('euro', eurs(C.encaisse), 'Encaissé cette saison')}${coTile('timer', eurs(C.aEncaisser), 'À encaisser')}${coTile('ball', eurs(C.prepaye), 'Packs pas encore utilisés')}</div>
 ${hd(ic('euro') + 'À régulariser · ' + todo.length)}${todo.length ? list(todo.map(p => `<button class="item" ${p.go}><span class="tile">${ic('euro')}</span><span class="grow"><span class="nm">${p.t}</span><br><span class="muted small">${p.sub}</span></span>${p.m ? `<span class="tag cost todo">${eur(p.m)}</span>` : ''}</button>`).join('')) : none('check', 'Rien à régulariser', 'Les paiements attendus et les séances non réglées apparaissent ici.')}
-${hd(ic('ball') + 'Formules en cours · ' + enCours.length)}${enCours.length ? list(enCours.map(([e, a]) => `<button class="item" data-a="coPay" data-id="${e.id}" data-x="${a.id}"><span class="tile">${ic(a.t === 'pack' ? 'ball' : 'cal')}</span><span class="grow"><span class="nm">${esc(svName(e.id))}</span><br><span class="muted small">${esc(a.nom || ofLabel(a.t, a.ref))}${a.t === 'pack' ? ' · ' + a.used + ' sur ' + a.n + ' séances' : ''} · ${coPayLine(a)}</span></span>${coEtatTag(REGLES.etatAchat(a, TODAY))}${coPayTag(coPayState(a))}</button>`).join('')) : '<div class="card"><p class="muted small">Aucun pack ni abonnement en cours.</p></div>'}
+${hd(ic('ball') + 'Formules en cours · ' + enCours.length, enCours.length ? `<button class="chip" data-a="coSelModeF" aria-pressed="${selF}">${selF ? 'Terminé' : 'Sélectionner'}</button>` : '')}${
+    enCours.length
+      ? list(
+          (selF ? coSelBarF() : '') +
+            enCours
+              .map(([e, a]) => {
+                const fid = e.id + '|' + a.id,
+                  on = pickF.includes(fid);
+                return `<button class="item${selF ? ' cosel' : ''}" ${selF ? `data-a="coPickF" data-id="${esc(fid)}" aria-pressed="${on}"` : `data-a="coPay" data-id="${e.id}" data-x="${a.id}"`}><span class="${selF ? 'cochk' : 'tile'}"${selF ? ' aria-hidden="true"' : ''}>${ic(selF ? 'check' : a.t === 'pack' ? 'ball' : 'cal')}</span><span class="grow"><span class="nm">${esc(svName(e.id))}</span><br><span class="muted small">${esc(a.nom || ofLabel(a.t, a.ref))}${a.t === 'pack' ? ' · ' + a.used + ' sur ' + a.n + ' séances' : ''} · ${coPayLine(a)}</span><span class="cotags">${coEtatTag(REGLES.etatAchat(a, TODAY))}${coPayTag(coPayState(a))}</span></span></button>`;
+              })
+              .join('')
+        )
+      : '<div class="card"><p class="muted small">Aucun pack ni abonnement en cours.</p></div>'
+  }
 ${cycles.length ? hd(ic('cal') + 'Cycles en cours') + `<div class="card">${cycles.map(g => `<button class="coact2" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="cokv2"><span class="grow">${esc(g.name)}</span></span>${coCycleBar(g)}</button>`).join('')}</div>` : ''}
 <div class="card"><p class="muted small">Encaissé : les règlements notés dans les fiches des élèves. À encaisser : les paiements attendus, et ${plural(C.nonCouvertes, 'présence')} sans achat qui la couvre, au prix de ta formule correspondante. Aucun rappel n'est envoyé aux élèves.</p></div>`;
 }
+/* Statistiques : sélection des formules en cours, pour valider leur paiement ou les supprimer d'un coup */
+function coSelBarF() {
+  const all = S.coFIds || [],
+    pick = (S.coPickF || []).filter(id => all.includes(id)),
+    every = all.length && pick.length === all.length;
+  return `<div class="card cosbar"><button class="item cosel" data-a="coPickAllF" aria-pressed="${!!every}"><span class="cochk" aria-hidden="true">${ic('check')}</span><span class="grow"><span class="nm">Tout sélectionner</span><br><span class="muted small">${pick.length ? plural(pick.length, 'formule sélectionnée', 'formules sélectionnées') : 'Touche les formules à valider ou à supprimer'}</span></span></button><div class="cotools"><button class="btn sm grow" data-a="coPickOkF" ${pick.length ? '' : 'disabled'}>${ic('check')}Valider le paiement</button><button class="btn sm hot grow" data-a="coPickDelF" ${pick.length ? '' : 'disabled'}>${ic('trash')}Supprimer</button></div></div>`;
+}
+const coPickedF = () =>
+  (S.coPickF || [])
+    .filter(id => (S.coFIds || []).includes(id))
+    .map(id => {
+      const [k, x] = id.split('|'),
+        e = coEl(k);
+      return { e, a: e && (e.achats || []).find(h => h.id === x) };
+    })
+    .filter(o => o.a);
+Object.assign(A, {
+  coSelModeF() {
+    S.coSelF = !S.coSelF;
+    S.coPickF = [];
+    render(true);
+  },
+  coPickF(d) {
+    const l = (S.coPickF = S.coPickF || []),
+      i = l.indexOf(d.id);
+    if (i >= 0) l.splice(i, 1);
+    else l.push(d.id);
+    render(true);
+  },
+  coPickAllF() {
+    const all = S.coFIds || [];
+    S.coPickF = (S.coPickF || []).length === all.length ? [] : all.slice();
+    render(true);
+  },
+  // valider : chaque paiement attendu est noté réglé aujourd'hui (un achat sans calendrier est déjà réglé)
+  coPickOkF() {
+    const l = coPickedF();
+    if (!l.length) return;
+    l.forEach(({ a }) => (coPayEch(a) || []).forEach(x => x.ok || (x.ok = TODAY)));
+    S.coSelF = false;
+    S.coPickF = [];
+    coSave(plural(l.length, 'formule validée', 'formules validées') + ' : paiement réglé');
+  },
+  coPickDelF() {
+    const l = coPickedF();
+    if (!l.length) return;
+    sheet(
+      'Supprimer des formules',
+      `<div class="body"><p>${plural(l.length, 'formule')} ${l.length > 1 ? 'seront retirées' : 'sera retirée'} de la fiche de ${l.length > 1 ? 'leurs élèves' : 'son élève'} : ${l.map(o => `<b>${esc(svName(o.e.id))}</b> (${esc(o.a.nom || ofLabel(o.a.t, o.a.ref))})`).join(', ')}. Les séances faites restent, sans achat qui les couvre.</p><button class="btn full hot" data-a="coPickDelFOk">${ic('trash')}Supprimer</button><button class="btn full ghost" data-a="closeSheet">Annuler</button></div>`
+    );
+  },
+  coPickDelFOk() {
+    const l = coPickedF();
+    l.forEach(({ e, a }) => (e.achats = e.achats.filter(h => h !== a)));
+    closeSheet();
+    S.coSelF = false;
+    S.coPickF = [];
+    coSave(plural(l.length, 'formule supprimée', 'formules supprimées'));
+  }
+});
 /* séance individuelle : payée ou non. « Payée » note un achat à la séance : le reste des calculs suit tout seul */
 function coSesPay(g, d, id, st, s) {
   const row = st
@@ -768,4 +844,27 @@ document.addEventListener('submit', e => {
     closeSheet();
     coSave('Achat noté' + plan);
   }
+});
+/* rappels des bilans de séance : facultatifs, coupés par défaut (les bilans et objectifs de cycle restent rappelés) */
+A.coRappelBil = () => {
+  if (OFFRES.rappelBilans) delete OFFRES.rappelBilans;
+  else OFFRES.rappelBilans = true;
+  ofSave(OFFRES.rappelBilans ? 'Rappels des bilans de séance activés' : 'Plus de rappel pour les bilans de séance');
+};
+/* « Premiers pas » : une étape se coche (ou se décoche) à la main en touchant sa case */
+A.coSetupTick = d => {
+  const i = +d.i,
+    l = (OFFRES.setup = (OFFRES.setup || []).slice()),
+    j = l.indexOf(i);
+  if (j >= 0) l.splice(j, 1);
+  else l.push(i);
+  if (!l.length) delete OFFRES.setup;
+  ofSave(j >= 0 ? 'Étape à faire' : 'Étape cochée');
+};
+// la case des « Premiers pas » au clavier : Espace ou Entrée la coche
+document.addEventListener('keydown', e => {
+  const c = e.target.closest && e.target.closest('.card.setup .chk[data-a]');
+  if (!c || (e.key !== ' ' && e.key !== 'Enter')) return;
+  e.preventDefault();
+  A.coSetupTick(c.dataset);
 });

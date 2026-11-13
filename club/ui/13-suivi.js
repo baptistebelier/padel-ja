@@ -101,17 +101,17 @@ function dmView(id) {
     )
   }${canVid ? `<button class="btn full ghost" data-a="svVideo" data-id="${id}">${ic('video')}Envoyer une vidéo à analyser</button>` : ''}</div>`;
 }
-/* bilans de fin de cycle (c.bilan, écrits dans /RAM Coach) des groupes de l'élève, comme les bilans de séance */
+/* objectifs et bilans de fin de cycle (c.obj, c.bilan, écrits dans /RAM Coach) des groupes de l'élève, comme les bilans de séance */
 function cycBilans(k) {
   const l = GROUPS.filter(g => g.type === 'train' && [...(g.mem || []), ...(g.ext || [])].includes(k)).flatMap(g =>
-    (g.cycles || []).filter(c => c.bilan).map(c => ({ g, c }))
+    (g.cycles || []).filter(c => c.bilan || c.obj).map(c => ({ g, c }))
   );
   return l.length
-    ? `<span class="kicker">Bilans de fin de cycle</span>` +
+    ? `<span class="kicker">Cycles : objectifs et bilans</span>` +
         l
           .map(
             ({ g, c }) =>
-              `<div class="card svc"><div class="row" style="gap:10px;align-items:flex-start"><span class="tile">${ic('doc')}</span><div class="grow"><span class="kicker">${esc(g.name)} · ${esc(c.nom || 'Cycle')}</span>${c.theme ? `<span class="muted small">${esc(c.theme)}</span>` : ''}<p>${esc(c.bilan)}</p></div></div></div>`
+              `<div class="card svc"><div class="row" style="gap:10px;align-items:flex-start"><span class="tile">${ic('doc')}</span><div class="grow"><span class="kicker">${esc(g.name)} · ${esc(c.nom || 'Cycle')}</span>${c.theme ? `<span class="muted small">${esc(c.theme)}</span>` : ''}${c.obj ? `<p><b>Objectifs</b><br>${esc(c.obj)}</p>` : ''}${c.bilan ? `<p><b>Bilan</b><br>${esc(c.bilan)}</p>` : ''}</div></div></div>`
           )
           .join('')
     : '';

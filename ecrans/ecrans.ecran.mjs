@@ -769,7 +769,7 @@ test('Coach : le calendrier de paiement d’un pack, et les filtres du Suivi', a
   assert.match(form, /value="4"/);
   assert.match(form, /value="10"/);
   // Suivi : les filtres des bilans et le filtre des paiements
-  await page.evaluate(() => { S.stack = []; A.tab({ t: 'asuivi' }); });
+  await page.evaluate(() => { S.stack = []; OFFRES.rappelBilans = true; A.tab({ t: 'asuivi' }); });
   assert.equal(await page.locator('[data-a="coSuiviB"]').count(), 0, 'filtre des bilans replié, comme celui des paiements');
   await page.click('[data-a="coSuiviBO"]');
   await page.waitForSelector('[data-a="coSuiviB"][data-v="tout"]');
@@ -1273,7 +1273,7 @@ test('Coach : en paysage, les sections se rangent sur deux colonnes ; sur télé
   await page.waitForSelector('.covues');
   assert.equal(await page.locator('.cobent').count(), 0, 'le calendrier garde sa largeur');
   await page.setViewportSize({ width: 390, height: 800 });
-  await page.evaluate(() => A.tab({ t: 'asuivi' }));
+  await page.evaluate(() => (OFFRES.rappelBilans = true, A.tab({ t: 'asuivi' })));
   await page.waitForSelector('[data-a="coSuiviBO"]');
   assert.equal(await page.locator('.cobent').count(), 0, 'une colonne sur téléphone');
   await page.close();
@@ -2394,6 +2394,74 @@ test('Coach : un abonnement et ses variantes, dans une seule fenêtre', async ()
   await page.click('#co-ab .cotools .btn:not(.ghost)');
   await page.waitForFunction(() => OFFRES.abos.length === 1);
   assert.deepEqual(await page.evaluate(() => [OFFRES.abos[0].id, OFFRES.abos[0].nom, OFFRES.abos[0].ens]), ['a1', 'Academy', '']);
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
+test('Coach : renommer un groupe, objectifs et bilans de cycle sans rappel de bilan de séance, formules en cours à sélectionner, premiers pas cochés à la main', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
+  // renommer un groupe : sa discussion suit
+  const gid = await page.evaluate(() => { const g = coGroups('', true).find(x => coIsGrp(x) && !x.once && chans.some(c => c.id === x.id)) || coGroups('', true).find(x => coIsGrp(x) && !x.once); A.open({ v: 'cgroupe', id: g.id }); return g.id; });
+  await page.click('[data-a="coGrpEdit"]');
+  await page.waitForSelector('#co-grp #co-gname');
+  await page.fill('#co-gname', 'Les Volées du jeudi');
+  await page.click('#co-grp .btn.full');
+  await page.waitForFunction(id => grp(id).name === 'Les Volées du jeudi', gid);
+  assert.ok(await page.evaluate(id => { const c = chans.find(x => x.id === id); return !c || c.name === 'Les Volées du jeudi'; }, gid), 'la discussion porte le nouveau nom');
+  // pas de rappel de bilan de séance par défaut ; un cycle qui commence demande ses objectifs, un cycle fini son bilan
+  const r = await page.evaluate(id => {
+    delete OFFRES.rappelBilans;
+    const g = grp(id), l = coDates(g, isoIn(-60), isoIn(60)), pas = l.filter(d => d < TODAY), fut = l.filter(d => d > TODAY);
+    g.cycles = [{ id: 'cy1', nom: 'Automne', dates: pas.slice(-3) }, { id: 'cy2', nom: 'Hiver', dates: fut.slice(0, 3) }];
+    S.stack = []; A.tab({ t: 'asuivi' });
+    return { pas: pas.length, fut: fut.length };
+  }, gid);
+  assert.ok(r.pas >= 3 && r.fut >= 3);
+  await page.waitForSelector('[data-a="coCycleCfg"][data-c="cy1"]');
+  assert.equal(await page.locator('[data-a="coCycleCfg"][data-c="cy2"]').count(), 1, 'objectifs à fixer');
+  assert.equal(await page.evaluate(() => coBilansTodo(30).length), 0, 'aucun bilan de séance réclamé');
+  assert.equal(await page.locator('[data-a="coRappelBil"][aria-pressed="false"]').count(), 1, 'l’option des rappels est là, coupée');
+  await page.click('[data-a="coCycleCfg"][data-c="cy2"]');
+  await page.waitForSelector('#co-cyc #co-cy-ob');
+  await page.fill('#co-cy-ob', 'Monter au filet après le service');
+  await page.click('#co-cyc .btn.full');
+  await page.waitForFunction(id => (grp(id).cycles.find(c => c.id === 'cy2') || {}).obj === 'Monter au filet après le service', gid);
+  await page.waitForFunction(() => !document.querySelector('[data-a="coCycleCfg"][data-c="cy2"]'));
+  await page.click('[data-a="coRappelBil"]');
+  await page.waitForSelector('[data-a="coRappelBil"][aria-pressed="true"]');
+  assert.equal(await page.evaluate(() => OFFRES.rappelBilans), true);
+  // formules en cours : étiquettes sous les infos, sélection pour valider le paiement ou supprimer
+  const k = await page.evaluate(() => {
+    const e = coElGet(coStudents()[0]);
+    e.achats = [{ id: 'f1', t: 'pack', ref: 'p1', d: TODAY, nom: 'Pack A', n: 5, prix: 100, pay: { ech: [{ s: 0, m: 100, ok: '' }] } }, { id: 'f2', t: 'pack', ref: 'p1', d: TODAY, nom: 'Pack B', n: 5, prix: 100 }];
+    S.stack = []; S.dashTab = 'pay'; A.tab({ t: 'dash' });
+    return e.id;
+  });
+  await page.waitForSelector('[data-a="coSelModeF"]');
+  assert.equal(await page.locator('.item .grow .cotags .copay').count() > 0, true, 'les étiquettes sont sous les infos');
+  await page.click('[data-a="coSelModeF"]');
+  await page.click(`[data-a="coPickF"][data-id="${k}|f1"]`);
+  await page.click('[data-a="coPickOkF"]');
+  await page.waitForFunction(k => coEl(k).achats.find(a => a.id === 'f1').pay.ech[0].ok === TODAY, k);
+  await page.click('[data-a="coSelModeF"]');
+  await page.click(`[data-a="coPickF"][data-id="${k}|f2"]`);
+  await page.click('[data-a="coPickDelF"]');
+  await page.click('[data-a="coPickDelFOk"]');
+  await page.waitForFunction(k => !coEl(k).achats.some(a => a.id === 'f2'), k);
+  assert.ok(await large(), 'pas de débordement');
+  // premiers pas : la case se coche à la main
+  await page.evaluate(() => { delete OFFRES.setup; S.stack = []; A.tab({ t: 'today' }); });
+  const tick = page.locator('.card.setup .chk[data-a="coSetupTick"]').first();
+  if (await tick.count()) {
+    const i = await tick.getAttribute('data-i');
+    await tick.click();
+    await page.waitForFunction(i => (OFFRES.setup || []).includes(+i), i);
+    assert.equal(await page.locator('.cosheet, #sheet.on').count(), 0, 'la case ne déclenche pas l’ouverture de l’étape');
+  }
   assert.deepEqual(errs, []);
   await page.close();
 });

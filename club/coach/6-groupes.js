@@ -85,7 +85,7 @@ function coCyclesHtml(g) {
         trop = c.n && E.posees > c.n;
       const qui = c.coach || g.coach,
         ap = REGLES.aPlanifier(g, c);
-      return `<div class="cokv"><span class="grow"><b>${esc(c.nom)}</b><br><span class="muted small">${E.faites} faites sur ${E.prevues}${E.sansDate ? ' · ' + plural(E.sansDate, 'date', 'dates') + ' à poser' : ''}${E.aVerifier ? ' · ' + E.aVerifier + ' à vérifier' : ''}${(c.pay || []).length ? ' · paiement aux séances ' + c.pay.join(', ') : ''}${qui && M[qui] ? ' · ' + esc(first(qui)) : ''}${c.theme ? ' · ' + esc(c.theme) : ''}${c.bilan ? ' · bilan envoyé' : ''}</span>${trop ? `<br><span class="small" style="color:var(--hot)">${E.posees} séances rattachées pour un pack de ${c.n}</span>` : ''}</span><button class="btn sm ghost" data-a="coCycleSeances" data-id="${g.id}" data-c="${c.id}">Séances</button><button class="ib" data-a="coCycleCfg" data-id="${g.id}" data-c="${c.id}" aria-label="Réglages de ${esc(c.nom)} : enseignant, thème, bilan">${ic('gear')}</button><button class="ib" data-a="coPlan" data-id="${g.id}" data-c="${c.id}" aria-label="Modifier ${esc(c.nom)}">${ic('edit')}</button></div>${
+      return `<div class="cokv"><span class="grow"><b>${esc(c.nom)}</b><br><span class="muted small">${E.faites} faites sur ${E.prevues}${E.sansDate ? ' · ' + plural(E.sansDate, 'date', 'dates') + ' à poser' : ''}${E.aVerifier ? ' · ' + E.aVerifier + ' à vérifier' : ''}${(c.pay || []).length ? ' · paiement aux séances ' + c.pay.join(', ') : ''}${qui && M[qui] ? ' · ' + esc(first(qui)) : ''}${c.theme ? ' · ' + esc(c.theme) : ''}${c.obj ? ' · objectifs fixés' : ''}${c.bilan ? ' · bilan envoyé' : ''}</span>${trop ? `<br><span class="small" style="color:var(--hot)">${E.posees} séances rattachées pour un pack de ${c.n}</span>` : ''}</span><button class="btn sm ghost" data-a="coCycleSeances" data-id="${g.id}" data-c="${c.id}">Séances</button><button class="ib" data-a="coCycleCfg" data-id="${g.id}" data-c="${c.id}" aria-label="Réglages de ${esc(c.nom)} : enseignant, thème, objectifs, bilan">${ic('gear')}</button><button class="ib" data-a="coPlan" data-id="${g.id}" data-c="${c.id}" aria-label="Modifier ${esc(c.nom)}">${ic('edit')}</button></div>${
         ap.length
           ? `<div class="coplan">${ap
               .map(
@@ -494,7 +494,7 @@ function coGoogleSheet(x) {
   if (x.cal)
     return sheet(
       titre,
-      `<div class="body"><p><b>Agenda relié</b></p><p class="muted small">${esc(x.cal)}</p><p class="muted small">${x.seances} séance${x.seances > 1 ? 's' : ''} à venir dans l’agenda. Chaque changement y arrive en quelques secondes.</p>${x.erreur ? `<p class="small" style="color:var(--danger,#c0392b)">Dernier envoi en échec, il sera retenté : ${esc(x.erreur)}</p>` : ''}<p class="muted small">Si tu as aussi ajouté le lien de tes cours dans Google Agenda, retire-le, sinon chaque séance apparaît deux fois.</p><button type="button" class="btn full ghost" data-a="coGoogleDel">${ic('x')}Retirer cet agenda</button></div>`
+      `<div class="body"><p><b>Agenda relié</b></p><p class="muted small">${esc(x.cal)}</p><p class="muted small">${x.seances} séance${x.seances > 1 ? 's' : ''} à venir dans l’agenda. Chaque changement y arrive en quelques secondes.</p>${x.erreur ? `<p class="small" style="color:var(--danger,#c0392b)">Dernier envoi en échec, il sera retenté : ${esc(x.erreur)}</p>` : ''}<div class="fld"><label class="chk" for="co-gcal"><input type="checkbox" id="co-gcal" data-a="coGoogleCal"${x.calendly ? ' checked' : ''}>Ajouter aussi les cours pris sur Calendly</label></div><p class="muted small">Calendly pose déjà ses rendez-vous dans l’agenda que tu lui as relié. Coche cette case s’ils n’arrivent pas dans celui-ci, sinon ils apparaîtraient deux fois.</p><p class="muted small">Si tu as aussi ajouté le lien de tes cours dans Google Agenda, retire-le, sinon chaque séance apparaît deux fois.</p><button type="button" class="btn full ghost" data-a="coGoogleDel">${ic('x')}Retirer cet agenda</button></div>`
     );
   sheet(
     titre,
@@ -640,6 +640,29 @@ Object.assign(A, {
   coGoogleCopie(d) {
     coCopie(d.v, 'Adresse copiée');
   },
+  coGoogleCal(d, el) {
+    const oui = !!el.checked;
+    fetch('/api/coach/google-agenda', {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calendly: oui })
+    })
+      .then(r => r.json())
+      .then(x => {
+        if (x.error) {
+          el.checked = !oui;
+          return toast(x.error);
+        }
+        toast(
+          oui ? 'Les cours Calendly arrivent aussi dans cet agenda' : 'Les cours Calendly sont retirés de cet agenda'
+        );
+      })
+      .catch(() => {
+        el.checked = !oui;
+        toast('Connexion impossible');
+      });
+  },
   coGoogleDel() {
     fetch('/api/coach/google-agenda', { method: 'DELETE', credentials: 'include' })
       .then(r => r.json())
@@ -784,6 +807,24 @@ function coLocInit() {
     if (g.defLoc !== 'En salle') g.defLoc = 'En salle';
     g.locPref = 1;
   });
+}
+
+/* renommer un groupe : sa discussion dans /RAM Club suit (dans ce club, ou dans le club du groupe s'il est ailleurs) */
+function coGrpRename(g, nom) {
+  const avant = g.name;
+  g.name = nom;
+  const c = chans.find(x => x.id === g.id && !g._club);
+  if (c && (!c.name || c.name === avant)) c.name = nom;
+  const X = g._club && CO_EXT[g._club];
+  if (X && X.base && X.chans && X.chans.has(g.id))
+    fetch('/api/ram/c/' + g._club + '/ops', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ops: [{ coll: 'chan', id: g.id, op: 'patch', patch: [{ p: ['name'], t: 'set', v: nom }] }]
+      })
+    }).catch(() => {});
 }
 
 /* ---------- reporter une séance, ou changer la date d'une seule ----------
@@ -1304,7 +1345,7 @@ Object.assign(A, {
         .map(k => `<option value="${k}" ${c.coach === k ? 'selected' : ''}>${esc(name(k))}</option>`)
         .join(
           ''
-        )}</select></div><p class="muted small">Le changement vaut pour les séances à venir du cycle, pas pour celles déjà passées ni pour celles qui ont un remplaçant.</p><div class="fld"><label for="co-cy-th">Thème du cycle</label><input id="co-cy-th" maxlength="80" value="${esc(c.theme || '')}" placeholder="Jeu au filet, préparation tournoi…"></div><div class="fld"><label for="co-cy-bi">Bilan de fin de cycle</label><textarea id="co-cy-bi" rows="4" placeholder="Ce qui a été travaillé, les progrès, la suite">${esc(c.bilan || '')}</textarea></div><p class="muted small">Le bilan est lu par les élèves du groupe dans /RAM Club, comme les bilans de séance. Les élèves sont prévenus d’un nouvel enseignant ou d’un nouveau thème.</p><button class="btn full">Enregistrer</button></form>`
+        )}</select></div><p class="muted small">Le changement vaut pour les séances à venir du cycle, pas pour celles déjà passées ni pour celles qui ont un remplaçant.</p><div class="fld"><label for="co-cy-th">Thème du cycle</label><input id="co-cy-th" maxlength="80" value="${esc(c.theme || '')}" placeholder="Jeu au filet, préparation tournoi…"></div><div class="fld"><label for="co-cy-ob">Objectifs du cycle</label><textarea id="co-cy-ob" rows="3" placeholder="Ce que les élèves sauront faire à la fin du cycle">${esc(c.obj || '')}</textarea></div><div class="fld"><label for="co-cy-bi">Bilan de fin de cycle</label><textarea id="co-cy-bi" rows="4" placeholder="Ce qui a été travaillé, les progrès, la suite">${esc(c.bilan || '')}</textarea></div><p class="muted small">Les objectifs et le bilan sont lus par les élèves du groupe dans /RAM Club, comme les bilans de séance. Les élèves sont prévenus d’un nouvel enseignant ou d’un nouveau thème.</p><button class="btn full">Enregistrer</button></form>`
     );
   }
 });
@@ -1317,12 +1358,15 @@ document.addEventListener('submit', e => {
     if (!c) return;
     const k = $('co-cy-co').value,
       th = $('co-cy-th').value.trim().slice(0, 80),
-      bi = $('co-cy-bi').value.trim().slice(0, 4000);
+      bi = $('co-cy-bi').value.trim().slice(0, 4000),
+      ob = $('co-cy-ob').value.trim().slice(0, 2000);
     const chg = REGLES.changeCoach(c, k, coCoupure(g));
     if (th) c.theme = th;
     else delete c.theme;
     if (bi) c.bilan = bi;
     else delete c.bilan;
+    if (ob) c.obj = ob;
+    else delete c.obj;
     closeSheet();
     coSave(chg ? 'Cycle enregistré · nouvel enseignant pour les séances à venir' : 'Cycle enregistré');
   }

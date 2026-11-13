@@ -217,6 +217,8 @@ function coSesCard(x, big) {
 function coSetup() {
   const mine = coGroups('me'),
     ses = SEANCES.filter(s => mine.some(g => g.id === s.g)),
+    // chaque étape se coche toute seule quand elle est faite, ou à la main en touchant sa case (coOf().setup)
+    faits = coOf().setup || [],
     steps = [
       ['Ma fiche enseignant', 'Diplôme, coordonnées, tarifs, réservation', !!proOf(ME()).on, 'data-a="coPro"'],
       ['Mes groupes', 'Créés ici, visibles dans /RAM Club', mine.length > 0, 'data-a="coNewGrp"'],
@@ -239,9 +241,10 @@ function coSetup() {
         'data-a="tab" data-t="msgs"'
       ]
     ],
-    n = steps.filter(s => s[2]).length;
+    ok = (s, i) => s[2] || faits.includes(i),
+    n = steps.filter(ok).length;
   if (n === steps.length) return '';
-  return `<div class="card setup"><span class="kicker">Premiers pas · ${n} sur ${steps.length}</span><span class="bar"><i style="width:${(n * 100) / steps.length}%"></i></span>${steps.map(s => `<button class="item" ${s[3]}><span class="chk ${s[2] ? 'on' : ''}" aria-hidden="true">${s[2] ? ic('check') : ''}</span><span class="grow"><span class="nm">${s[0]}</span><br><span class="muted small">${s[1]}</span></span><span class="sr">${s[2] ? 'fait' : 'à faire'}</span></button>`).join('')}</div>`;
+  return `<div class="card setup"><span class="kicker">Premiers pas · ${n} sur ${steps.length}</span><span class="bar"><i style="width:${(n * 100) / steps.length}%"></i></span>${steps.map((s, i) => `<div class="item cosetupl"><span class="chk ${ok(s, i) ? 'on' : ''}" role="checkbox" tabindex="0" aria-checked="${ok(s, i)}" aria-label="${s[0]} : ${ok(s, i) ? 'fait' : 'à faire'}" ${s[2] ? 'aria-disabled="true"' : `data-a="coSetupTick" data-i="${i}"`}>${ok(s, i) ? ic('check') : ''}</span><button class="grow cosetupb" ${s[3]}><span class="nm">${s[0]}</span><br><span class="muted small">${s[1]}</span></button></div>`).join('')}</div>`;
 }
 /* vrai compte sans club où enseigner, ou adhérent sans rôle d'enseignant : ce qu'il faut faire */
 function coNoClub() {
@@ -252,15 +255,33 @@ function coNoClub() {
     return `<div class="card"><span class="kicker">Rôle à demander</span><p>Dans ${esc(club().name)}, ton compte est celui d'un adhérent. Demande au bureau de te donner le rôle <b>Enseignant</b> (Profil de l'adhérent, Accès à l'appli) pour retrouver tes groupes ici.</p></div>`;
   return '';
 }
-/* les bilans à écrire : séances faites depuis tant de jours (ou depuis cette date), sans bilan ni brouillon */
+/* les réglages de l'enseignant (OFFRES, coach/5-formules.js) : pas encore là au premier affichage */
+const coOf = () => (typeof OFFRES !== 'undefined' ? OFFRES : {});
+/* les bilans à écrire : séances faites depuis tant de jours (ou depuis cette date), sans bilan ni brouillon.
+   Le bilan d'une séance reste facultatif : ces rappels ne viennent que si l'enseignant les demande (coOf().rappelBilans) ;
+   sinon, seuls les bilans et objectifs de cycle sont rappelés (coCycTodo). */
 const coBilansTodo = jours =>
-  coSessions(typeof jours === 'string' ? jours : isoIn(-jours), TODAY, 'me').filter(
-    x =>
-      !isCx(x.g, x.d) &&
-      !(x.s && (x.s.recap || x.s.noRecap)) &&
-      x.d <= TODAY &&
-      !BROUILLONS.some(b => b.id === sesKey(x.g, x.d))
-  );
+  !coOf().rappelBilans
+    ? []
+    : coSessions(typeof jours === 'string' ? jours : isoIn(-jours), TODAY, 'me').filter(
+        x =>
+          !isCx(x.g, x.d) &&
+          !(x.s && (x.s.recap || x.s.noRecap)) &&
+          x.d <= TODAY &&
+          !BROUILLONS.some(b => b.id === sesKey(x.g, x.d))
+      );
+/* les cycles de mes groupes qui attendent leurs objectifs ou leur bilan de fin de cycle (regles.js cycleTodo) */
+const coCycTodo = () =>
+  coGroups('', true)
+    .filter(g => coIsGrp(g) && !g.once)
+    .flatMap(g =>
+      (g.cycles || [])
+        .filter(c => !c.coach || c.coach === g.coach)
+        .map(c => ({ g, c, k: REGLES.cycleTodo(g, c, TODAY) }))
+        .filter(x => x.k)
+    );
+const coCycItem = x =>
+  `<button class="item" data-a="coCycleCfg" data-id="${x.g.id}" data-c="${x.c.id}"><span class="tile">${ic(x.k === 'obj' ? 'target' : 'doc')}</span><span class="grow"><span class="nm">${x.k === 'obj' ? 'Objectifs du cycle' : 'Bilan de fin de cycle'}</span><br><span class="muted small">${esc(x.g.name)} · ${esc(x.c.nom || 'Cycle')}</span></span><span class="tag">${x.k === 'obj' ? 'À fixer' : 'À écrire'}</span><span class="cochev" aria-hidden="true">${ic('back')}</span></button>`;
 /* ---------- Suivi : ce qu'il reste à écrire et à encaisser ---------- */
 const CO_SUIVI_J = 30;
 /* le début d'une période de filtre ; « tout confondu » : la plus ancienne séance connue, deux ans au moins */
@@ -282,7 +303,10 @@ const coFiltre = (a, cur, l) =>
     .map(([v, t]) => `<button class="chip" data-a="${a}" data-v="${v}" aria-pressed="${cur === v}">${t}</button>`)
     .join('');
 const coSuiviN = () =>
-  coBilansTodo(CO_SUIVI_J).length + BROUILLONS.length + (typeof coPayTodo === 'function' ? coPayTodo().length : 0);
+  coBilansTodo(CO_SUIVI_J).length +
+  BROUILLONS.length +
+  coCycTodo().length +
+  (typeof coPayTodo === 'function' ? coPayTodo().length : 0);
 function coSuivi() {
   const sel = !!S.coSel,
     pick = S.coPick || [],
@@ -293,6 +317,8 @@ function coSuivi() {
     selP = !!S.coSelP,
     pickP = S.coPickP || [],
     total = dues.reduce((a, p) => a + (+p.m || 0), 0),
+    cyc = coCycTodo(),
+    rap = !!coOf().rappelBilans,
     l = [],
     ids = [],
     bil = (id, icn, t, sub) => {
@@ -319,9 +345,10 @@ function coSuivi() {
   S.coBil = ids;
   S.coPayIds = dues.map(p => p.id);
   const tile = (i, n, t) => `<div class="cotile">${ic(i)}<b>${n}</b><span>${t}</span></div>`;
-  return `<div class="pad cowide"><div class="cotiles cosuivit">${tile('doc', ids.length, ids.length > 1 ? 'Bilans à écrire' : 'Bilan à écrire')}${tile('euro', dues.length, dues.length > 1 ? 'Paiements à régulariser' : 'Paiement à régulariser')}${tile('euro', eur(total), 'À encaisser')}</div>
-${hd(ic('doc') + 'Bilans à écrire', `${ids.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviBO" aria-expanded="${!!S.suiviBO}" aria-label="Filtrer par période">${ic('funnel')}${perB !== 'j30' ? '<i class="codot"></i>' : ''}</button>`)}${
-    S.suiviBO
+  return `<div class="pad cowide"><div class="cotiles cosuivit">${tile('doc', ids.length + cyc.length, ids.length + cyc.length > 1 ? 'Bilans à écrire' : 'Bilan à écrire')}${tile('euro', dues.length, dues.length > 1 ? 'Paiements à régulariser' : 'Paiement à régulariser')}${tile('euro', eur(total), 'À encaisser')}</div>
+${hd(ic('target') + 'Bilans à écrire · cycles')}${cyc.length ? list(cyc.map(coCycItem).join('')) : none('check', 'Rien à faire sur tes cycles', 'Objectifs fixés au début, bilan écrit à la fin.')}
+${hd(ic('doc') + 'Bilans de séance', `<button class="chip" data-a="coRappelBil" aria-pressed="${rap}">${rap ? 'Rappels activés' : 'Sans rappel'}</button>${ids.length ? `<button class="chip" data-a="coSelMode" aria-pressed="${sel}">${sel ? 'Terminé' : 'Sélectionner'}</button>` : ''}${rap ? `<button class="btn ghost cofbtn" data-a="coSuiviBO" aria-expanded="${!!S.suiviBO}" aria-label="Filtrer par période">${ic('funnel')}${perB !== 'j30' ? '<i class="codot"></i>' : ''}</button>` : ''}`)}${
+    rap && S.suiviBO
       ? `<div class="chips">${coFiltre('coSuiviB', perB, [
           ['j30', '30 derniers jours'],
           ['tri', 'Ce trimestre'],
@@ -329,7 +356,7 @@ ${hd(ic('doc') + 'Bilans à écrire', `${ids.length ? `<button class="chip" data
           ['tout', 'Tout confondu']
         ])}</div>`
       : ''
-  }${l.length ? list((sel ? coSelBar(true) : '') + l.join('')) : none('check', 'Tous les bilans sont écrits', 'Sur la période choisie.')}
+  }${l.length ? list((sel ? coSelBar(true) : '') + l.join('')) : rap ? none('check', 'Tous les bilans sont écrits', 'Sur la période choisie.') : `<div class="card"><p class="muted small">Le bilan d’une séance est facultatif : il s’écrit depuis la séance, quand tu veux. Active les rappels pour retrouver ici les séances sans bilan.</p></div>`}
 ${hd(ic('euro') + 'Paiements à régulariser', `${dues.length ? `<button class="chip" data-a="coSelModeP" aria-pressed="${selP}">${selP ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviPO" aria-expanded="${!!S.suiviPO}" aria-label="Filtrer par période">${ic('funnel')}${perP !== 'saison' ? '<i class="codot"></i>' : ''}</button>`)}${
     S.suiviPO
       ? `<div class="chips">${coFiltre('coSuiviP', perP, [
@@ -378,6 +405,8 @@ function coToday() {
     );
   });
   S.coBil = bilIds; // pour « Tout sélectionner »
+  // cycles : objectifs à fixer au début, bilan à écrire à la fin
+  if (!sel) coCycTodo().forEach(x => todo.push(coCycItem(x)));
   vids.forEach(v =>
     todo.push(
       `<button class="item" data-a="open" data-v="dm" data-id="${v.to}"><span class="tile">${ic('video')}</span><span class="grow"><span class="nm">Vidéo à analyser</span><br><span class="muted small">${esc(svName(v.to))} · ${esc((v.txt || '').slice(0, 60))}</span></span></button>`
@@ -1296,7 +1325,9 @@ function coSesRow(g, d) {
             ? ['Brouillon', '']
             : s && s.noRecap
               ? ['Sans bilan', '']
-              : ['Bilan à écrire', 'todo'];
+              : coOf().rappelBilans
+                ? ['Bilan à écrire', 'todo']
+                : null;
   const sub = past
     ? [nP != null ? nP + '/' + coStu(g).length + ' présents' : 'Appel à faire', s && s.theme ? esc(s.theme) : '']
         .filter(Boolean)
@@ -1334,7 +1365,7 @@ function coGroupe(id) {
       return !isCx(g, d) && !(s && (s.recap || s.noRecap)) && !BROUILLONS.some(b => b.id === sesKey(g, d));
     }).length,
     recaps = past.map(d => ({ d, s: sesFind(g, d) })).filter(x => x.s && x.s.recap);
-  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Réglages</button></div></div>
+  return `<div class="pad"><div class="card"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow cogrpbtn" data-a="coPlan" data-id="${g.id}">${ic('cal')}Programmer des séances</button><button class="btn sm grow ghost cogrpbtn" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Modifier</button></div></div>
 <div class="cotiles">${coTile('user', g.coach && M[g.coach] ? first(g.coach) : 'À choisir', 'Enseignant', 1)}<div class="cotile">${ic('users')}<b>${st.length}${g.max ? '<small>/' + g.max + '</small>' : ''}</b><span>${g.max ? 'Places occupées' : plural(st.length, 'élève')}</span>${g.max ? `<span class="cobarre" aria-hidden="true"><i style="width:${Math.min(100, Math.round((st.length * 100) / g.max))}%"></i></span>` : ''}</div>${coTile('euro', t.prix ? t.prix + ' €' : '–', t.prix ? TARIF_MODES[t.mode] : 'Tarif à renseigner')}${coGrpOffer(g)}</div>
 <div class="card">${coCycleBar(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div>${coLocTg(g)}${typeof coCyclesHtml === 'function' ? coCyclesHtml(g) : ''}</div>
 ${hd(ic('chat') + 'Discussion du groupe')}${
@@ -1359,7 +1390,7 @@ ${hd(ic('cal') + 'Séances à venir · ' + up.length, `<button class="chip" data
   }
 ${coOffHtml(g)}
 ${next.length ? `<details class="card cothm"><summary><b>Thèmes des prochaines séances</b><span class="muted small"> · les élèves les voient dans leurs cours</span></summary><form id="co-themes" data-id="${g.id}">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" list="co-thl2" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<datalist id="co-thl2">${THEMES[g.sport].map(x => `<option value="${esc(x)}">`).join('')}</datalist><button class="btn full">Enregistrer les thèmes</button></form></details>` : ''}
-${hd(ic('check') + 'Séances effectuées · ' + past.length, todo ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '')}${
+${hd(ic('check') + 'Séances effectuées · ' + past.length, todo && coOf().rappelBilans ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '')}${
     past.length
       ? `<div class="coevs">${past
           .slice(0, 6)

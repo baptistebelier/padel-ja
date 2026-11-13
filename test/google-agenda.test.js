@@ -134,6 +134,9 @@ test('pourAgenda : les réservations Calendly n’y sont pas, celles de /RAM et 
   };
   const ram = { myClubs: async () => [{ id: 'c', key: 'k1', name: 'Club', role: 'coach' }], itemsOf: async (c, coll) => items[coll] || [] };
   const r = await createCoachTables({ ram }).pourAgenda('u1', '2026-11-03', '2026-11-03');
+  // l'enseignant qui le demande reçoit aussi ses cours pris sur Calendly
+  const r2 = await createCoachTables({ ram }).pourAgenda('u1', '2026-11-03', '2026-11-03', { calendly: true });
   Object.assign(process.env, saved.url ? { SUPABASE_URL: saved.url } : {}, saved.key ? { SUPABASE_SERVICE_KEY: saved.key } : {});
   assert.deepEqual(r.seances.map(s => s.nom).sort(), ['Groupe', 'Réservé', 'À la main'].sort());
+  assert.deepEqual(r2.seances.map(s => s.nom).sort(), ['Calendly', 'Groupe', 'Réservé', 'À la main'].sort());
 });
