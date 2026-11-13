@@ -1009,11 +1009,17 @@ function coDashRow(r) {
   };
   return { g, d: r.date, s: { theme: r.theme, pres: r.appel } };
 }
-/* la période choisie : ce mois, 3 derniers mois, un trimestre, la saison, 12 derniers mois */
+/* la période choisie : ce mois, le mois dernier, le trimestre en cours, la saison ; ou 3 derniers mois, 12 derniers
+   mois, un trimestre passé (« Autre période ») */
 function coPeriod(per) {
   const [y, m] = TODAY.split('-').map(Number),
     iso = (a, b) => a + '-' + String(b).padStart(2, '0') + '-01';
   if (per === 'mois') return [TODAY.slice(0, 8) + '01', TODAY];
+  if (per === 'mprec') {
+    const debut = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 10);
+    return [debut, isoIn(-1, TODAY.slice(0, 8) + '01')];
+  }
+  if (per === 'tcur') per = coQuarters()[0][0];
   if (per === 't3') return [new Date(Date.UTC(y, m - 3, 1)).toISOString().slice(0, 10), TODAY];
   if (per === 'an') return [isoIn(-364), TODAY];
   if (per.startsWith('q:')) {
@@ -1022,6 +1028,16 @@ function coPeriod(per) {
     return [iso(qy, q * 3 - 2), end < TODAY ? end : TODAY];
   }
   return [coSeasonStart(), TODAY];
+}
+/* « Autre période » : 3 derniers mois, 12 derniers mois, les trimestres passés */
+const CO_AUTRES = () =>
+  [
+    ['t3', '3 derniers mois'],
+    ['an', '12 derniers mois']
+  ].concat(coQuarters().slice(1));
+function coAutrePer(per) {
+  const on = CO_AUTRES().find(x => x[0] === per);
+  return `<button class="chip${on ? ' on' : ''}" data-a="coDashAutre" aria-pressed="${!!on}">${on ? esc(on[1]) : 'Autre période'} ▾</button>`;
 }
 /* les quatre derniers trimestres */
 function coQuarters() {
@@ -1118,7 +1134,20 @@ function coDash() {
       ? Math.round((fillG.reduce((a, g) => a + coStu(g).length / g.max, 0) * 100) / fillG.length)
       : null,
     venus = {},
-    appels = {};
+    appels = {},
+    // qui a pris des cours : les présents quand l'appel est fait, sinon les inscrits de la séance
+    eleves = x => {
+      const p = (x.s && x.s.pres) || {};
+      return Object.keys(p).length ? Object.keys(p).filter(k => p[k] === 'P') : coStu(x.g);
+    },
+    premier = {},
+    pris = new Set();
+  // le tout premier cours de chaque élève, sur tout l'historique connu
+  histo.forEach(x => eleves(x).forEach(k => (!premier[k] || x.d < premier[k]) && (premier[k] = x.d)));
+  done.forEach(x => eleves(x).forEach(k => pris.add(k)));
+  const nouveaux = [...pris]
+    .filter(k => premier[k] >= from && premier[k] <= to)
+    .sort((a, b) => premier[a].localeCompare(premier[b]));
   // présences et appels de chaque élève sur la période (pour son pourcentage de présence)
   done.forEach(x =>
     Object.keys((x.s && x.s.pres) || {}).forEach(k => {
@@ -1189,14 +1218,13 @@ function coDash() {
   const mx = Math.max(1, ...months.map(m => m[2]));
   return (
     tabs +
-    `<div class="pad cowide">${coClubChips()}<div class="card"><div class="chips">${chip('mois', 'Ce mois')}${chip('t3', '3 derniers mois')}${chip('saison', 'Cette saison')}${chip('an', '12 derniers mois')}${coQuarters()
-      .map(q => chip(q[0], q[1]))
-      .join('')}</div></div>
-<div class="cotiles">${coTile('clock', fr(F.h), 'Heures données')}${coTile('cal', F.n, 'Séances données')}${coTile('users', Object.keys(venus).length, 'Élèves venus')}${coTile('check', F.att == null ? '–' : F.att + ' %', 'Présence')}</div>
+    `<div class="pad cowide">${coClubChips()}<div class="card"><div class="chips">${chip('mois', 'Mois en cours')}${chip('mprec', 'Mois dernier')}${chip('tcur', 'Trimestre en cours')}${chip('saison', 'Saison en cours')}${coAutrePer(per)}</div></div>
+<div class="cotiles">${coTile('cal', F.n, F.n > 1 ? 'Séances réalisées' : 'Séance réalisée')}${coTile('clock', fr(F.h), 'Heures d’enseignement')}${coTile('users', pris.size, pris.size > 1 ? 'Élèves ont pris des cours' : 'Élève a pris des cours')}${coTile('star', nouveaux.length, nouveaux.length > 1 ? 'Nouveaux élèves' : 'Nouvel élève')}</div>
 <div class="cobento"><div class="cobmain">${per === 'mois' ? hd(ic('chart') + 'Séances cumulées du mois') + `<div class="card">${coMonthCurve(histo)}</div>` : hd(ic('chart') + 'Heures mois par mois') + `<div class="card cobars comonths">${months.map(([l, n, h]) => `<div><b>${h ? fr(h) : ''}</b><i style="height:${Math.round((h / mx) * 100)}%"></i><span>${l}</span><small>${plural(n, 'séance')}</small></div>`).join('')}</div>`}
 ${hd(ic('ball') + 'Par formule')}<div class="card">${coActRows(rowsF) || empty('ball', 'Aucune séance', '')}</div>
 ${hd(ic('users') + 'Par groupe')}<div class="card">${coActRows(rowsG) || empty('users', 'Aucun groupe', '')}</div></div>
-<div class="cobside">${hd(ic('star') + 'Élèves les plus présents')}<div class="card">${coActRows(rowsE, false) || '<p class="muted small">L\u2019appel n\u2019a pas encore été fait sur cette période.</p>'}</div>
+<div class="cobside">${hd(ic('star') + 'Nouveaux élèves · ' + nouveaux.length)}<div class="card">${nouveaux.length ? nouveaux.map(k => `<button class="item" data-a="open" data-v="eleve" data-id="${k}">${coAv(k, 'sm')}<span class="grow"><span class="nm">${esc(svName(k))}</span><br><span class="muted small">Premier cours le ${fmtD(premier[k])}</span></span></button>`).join('') : '<p class="muted small">Aucun élève n’a pris son tout premier cours sur cette période.</p>'}</div>
+${hd(ic('check') + 'Élèves les plus présents' + (F.att == null ? '' : ' · ' + F.att + ' % de présence'))}<div class="card">${coActRows(rowsE, false) || '<p class="muted small">L\u2019appel n\u2019a pas encore été fait sur cette période.</p>'}</div>
 ${rowsC.length ? hd(ic('clubs') + 'Par club') + `<div class="card">${coActRows(rowsC)}</div>` : ''}${rowsS.length ? hd(ic('padel') + 'Par sport') + `<div class="card">${coActRows(rowsS)}</div>` : ''}
 ${fill != null ? hd(ic('users') + 'Remplissage') + `<div class="card"><p>${fill} % des places occupées dans tes groupes en cours.</p></div>` : ''}</div></div></div>`
   );

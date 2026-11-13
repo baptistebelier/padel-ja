@@ -524,7 +524,10 @@ test('Coach : statistiques sans chiffre d’affaires, paiements à régulariser,
   assert.ok(await large());
   await page.click('[data-a="coDashP"][data-v="saison"]');
   await page.waitForSelector('.comonths');
-  await page.locator('[data-a="coDashP"][data-v^="q:"]').first().click();
+  await page.click('[data-a="coDashP"][data-v="tcur"]');
+  await page.waitForSelector('.comonths');
+  await page.click('[data-a="coDashAutre"]');
+  await page.locator('#sheet [data-a="coDashP"][data-v^="q:"]').first().click();
   await page.waitForSelector('.comonths');
   assert.ok(await large());
   // paiement : un pack en deux fois, échéance modifiable, rappel au tableau de bord, puis réglé
@@ -2462,6 +2465,48 @@ test('Coach : renommer un groupe, objectifs et bilans de cycle sans rappel de bi
     await page.waitForFunction(i => (OFFRES.setup || []).includes(+i), i);
     assert.equal(await page.locator('.cosheet, #sheet.on').count(), 0, 'la case ne déclenche pas l’ouverture de l’étape');
   }
+  assert.deepEqual(errs, []);
+  await page.close();
+});
+
+test('Coach : statistiques — séances réalisées, heures, élèves, nouveaux élèves, sur le mois, le mois dernier, le trimestre ou la saison', async () => {
+  const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
+  // un élève qui prend son tout premier cours ce mois-ci
+  const k = await page.evaluate(() => {
+    const x = coSessions(TODAY.slice(0, 8) + '01', TODAY).filter(s => !isCx(s.g, s.d))[0], s = sesGet(sesKey(x.g, x.d));
+    s.pres = Object.assign({}, s.pres, { nouveau1: 'P' });
+    S.stack = []; S.dashTab = 'act'; S.dashP = 'mois'; A.tab({ t: 'dash' }); render(true);
+    return 'nouveau1';
+  });
+  await page.waitForSelector('[data-a="coDashP"][data-v="mprec"]');
+  assert.deepEqual(await page.$$eval('[data-a="coDashP"]', l => l.map(b => b.dataset.v)), ['mois', 'mprec', 'tcur', 'saison'], 'les quatre filtres');
+  const tuiles = () => page.$$eval('#main .cotiles .cotile', l => l.slice(0, 4).map(t => t.innerText.replace(/\s+/g, ' ').trim()));
+  const t1 = await tuiles();
+  assert.match(t1[0], /SÉANCES? RÉALISÉES?/i);
+  assert.match(t1[1], /HEURES D’ENSEIGNEMENT/i);
+  assert.match(t1[2], /PRIS DES COURS/i);
+  assert.match(t1[3], /^1 NOUVEL ÉLÈVE/i, 'son tout premier cours est ce mois-ci');
+  assert.equal(await page.locator(`#main [data-a="open"][data-v="eleve"][data-id="${k}"]`).count() > 0, true, 'il est dans la liste des nouveaux');
+  // le mois dernier : il n'y est pas ; les chiffres suivent la période
+  await page.click('[data-a="coDashP"][data-v="mprec"]');
+  await page.waitForSelector('[data-a="coDashP"][data-v="mprec"][aria-pressed="true"]');
+  const t2 = await tuiles();
+  assert.match(t2[3], /^0 NOUVEL ÉLÈVE/i);
+  const n = await page.evaluate(() => { const [a, b] = coPeriod('mprec'); return coSessions(a, b).filter(x => !isCx(x.g, x.d)).length; });
+  assert.equal(parseInt(t2[0], 10), n, 'les séances du mois dernier');
+  await page.click('[data-a="coDashP"][data-v="tcur"]');
+  await page.waitForSelector('[data-a="coDashP"][data-v="tcur"][aria-pressed="true"]');
+  await page.click('[data-a="coDashP"][data-v="saison"]');
+  await page.waitForSelector('[data-a="coDashP"][data-v="saison"][aria-pressed="true"]');
+  assert.match((await tuiles())[3], /^1 NOUVEL ÉLÈVE/i);
+  // les autres périodes dans un menu
+  await page.click('[data-a="coDashAutre"]');
+  await page.click('#sheet [data-a="coDashP"][data-v="an"]');
+  await page.waitForSelector('[data-a="coDashAutre"][aria-pressed="true"]');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement à 360 px');
   assert.deepEqual(errs, []);
   await page.close();
 });

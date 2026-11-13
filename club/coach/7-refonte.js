@@ -415,26 +415,12 @@ A.coPlMore = () =>
   );
 /* au téléphone, le planning s'ouvre sur le jour */
 if (!coWide() && !S.pl.v) S.pl.v = 'jour';
-/* Statistiques : 4 périodes, les trimestres dans « Autre période » */
-const coTopStats = coTopActions;
-coTopActions = function () {
-  coTopStats();
-  if (!coWide() || S.stack.length || S.tab !== 'dash') return;
-  const box = $('top') && $('top').querySelector('.topact .chips');
-  if (!box) return;
-  const tri = [...box.querySelectorAll('[data-a="coDashP"]')].filter(b => /^T\d/.test(b.textContent.trim()));
-  if (!tri.length) return;
-  const on = tri.find(b => b.getAttribute('aria-pressed') === 'true');
-  tri.forEach(b => b.remove());
-  box.insertAdjacentHTML(
-    'beforeend',
-    `<button class="chip${on ? ' on' : ''}" data-a="coDashTri" aria-pressed="${!!on}">${on ? esc(on.textContent) : 'Autre période'} ▾</button>`
-  );
-};
-A.coDashTri = () =>
+/* Statistiques : 4 périodes (mois en cours, mois dernier, trimestre en cours, saison), le reste dans « Autre période »
+   (3 ou 12 derniers mois, un trimestre passé : coAutrePer, coach/2-ecrans.js) */
+A.coDashAutre = () =>
   sheet(
     'Autre période',
-    `<div class="body"><div class="menu">${coQuarters()
+    `<div class="body"><div class="menu">${CO_AUTRES()
       .map(([v, l]) => `<button data-a="coDashP" data-v="${v}" data-close="1">${l}</button>`)
       .join('')}</div></div>`
   );
