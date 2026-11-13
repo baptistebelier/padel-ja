@@ -337,6 +337,33 @@ if (UI2) {
     u2CacheTarif(['co-gt', 'co-gp'], 'La formule (et donc le prix) se choisit ensuite, sur la page du groupe.');
   };
 
+  /* ---------- Étape 6 — Fiche élève en un clic, formules en tête, onglets Fiche · Séances · Progression · Échanges ---------- */
+  const u2OpenE = A.open;
+  A.open = d => (d && d.v === 'eleve' ? coOpenBase(d) : u2OpenE(d));
+  const u2ElevesL = V.eleves;
+  V.eleves = () => {
+    let h = u2ElevesL();
+    if (S.elF === 'pay' || !coWide()) return h;
+    // plus d'aperçu à droite : la liste prend la largeur, un clic ouvre la fiche
+    const [aside] = coCut(h, '<aside class="cobs">', 'aside');
+    if (aside) h = h.replace(aside, '').replace('<div class="cobento">', '<div class="cobento u2one">');
+    return h.replace(/ aria-current="true"/, '');
+  };
+  const u2Eleve = V.eleve;
+  V.eleve = id => {
+    let h = u2Eleve(id)
+      .replace(/(data-k="elTab" data-val="histo">[\s\S]*?<span class="lb">)Historique</, '$1Séances<')
+      .replace(/(data-k="elTab" data-val="suivi">[\s\S]*?<span class="lb">)Suivi</, '$1Échanges<')
+      .replace('aria-label="Historique"', 'aria-label="Séances"')
+      .replace('aria-label="Suivi"', 'aria-label="Échanges"');
+    if (S.elTab !== 'fiche' || typeof coAchatsCard !== 'function') return h;
+    // les formules et ce qu'il reste à payer en tête de la fiche
+    const a = coAchatsCard(id);
+    if (h.includes(a) && h.includes('<div class="cobmain">'))
+      h = h.replace(a, '').replace('<div class="cobmain">', '<div class="cobmain">' + a);
+    return h;
+  };
+
   /* ---------- « Nouveau » : un seul bouton, trois choix expliqués ---------- */
   A.u2New = () =>
     sheet(

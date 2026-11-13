@@ -41,3 +41,6 @@
 /* Noter un achat : options repliées */
 :root[data-ui="2"] .u2opt { margin: 6px 0 14px; }
 :root[data-ui="2"] .u2opt > summary { cursor: pointer; font-family: var(--f-sub); font-weight: 700; padding: 8px 0; }
+/* Élèves : la liste sur toute la largeur (plus d'aperçu), un clic ouvre la fiche */
+:root[data-ui="2"] .cobento.u2one { display: block; }
+:root[data-ui="2"] .u2one .colist > :not(.item) { grid-column: 1 / -1; }

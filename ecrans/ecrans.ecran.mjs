@@ -2669,3 +2669,19 @@ test('Dojo ?ui=2 : groupe sans tarif affiché, formule demandée groupe par grou
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+test('Dojo ?ui=2 : la fiche élève s’ouvre en un clic, formules en tête, onglets Séances et Échanges', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 820 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html?ui=2');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  await page.evaluate(() => { S.tab = 'eleves'; S.elF = 'all'; S.stack = []; render(); });
+  assert.equal(await page.locator('#main .coprev').count(), 0, 'plus d’aperçu');
+  await page.click('#main .item[data-v="eleve"] >> nth=0');
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => view().v), 'eleve', 'un clic : la fiche');
+  assert.ok(await page.locator('[data-k="elTab"][data-val="histo"]').first().textContent().then(t => t.includes('Séances')), 'onglet Séances');
+  assert.ok(await page.locator('[data-k="elTab"][data-val="suivi"]').first().textContent().then(t => t.includes('Échanges')), 'onglet Échanges');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
