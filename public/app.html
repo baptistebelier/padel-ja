@@ -44,6 +44,53 @@
   const sportChoisi = () => { try { return localStorage.getItem('ja-sport') || ''; } catch (e) { return ''; } };
   const garderSport = v => { try { localStorage.setItem('ja-sport', v); } catch (e) {} };
   const TYPES = { tournoi: 'Tournoi', animation: 'Animation', interne: 'Tournoi interne' };
+  /* style ?ds=1 (socle /club/ds.css) : agencement de la maquette « Refonte /Pista » — segmenté Tous / Padel / Tennis,
+     intercalaires À venir / En cours / Clôturés sur une liste, une ligne par tournoi, colonne de droite (modèles, ce mois-ci).
+     L'ancien style garde ses trois colonnes. */
+  const DS = document.documentElement.dataset.ds === '1';
+  const pic = d => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const IC = { tv: '<rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/>', dup: '<rect x="8" y="8" width="12" height="12"/><path d="M4 16V4h12"/>',
+    del: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', find: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>', chev: '<path d="M9 6l6 6-6 6"/>', cal: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>', plus: '<path d="M12 5v14M5 12h14"/>' };
+  const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  let psCol = 'up', psQ = '';
+  if (DS) {
+    const act = document.querySelector('.phead-act');
+    act.querySelector('.ufilter').hidden = true;
+    act.querySelector('a[href="/calendrier"]').hidden = true;
+    const nb = act.querySelector('a.btn.primary'); nb.classList.add('ps-new'); nb.setAttribute('aria-label', 'Nouveau tournoi');
+    act.insertAdjacentHTML('afterbegin', `<div class="seg ps-sport" role="tablist" aria-label="Sport">${['', 'Padel', 'Tennis'].map(v => `<button type="button" role="tab" data-sp="${v}" aria-selected="${sportChoisi() === v}">${v || 'Tous'}</button>`).join('')}</div><button type="button" class="sq ps-find" aria-label="Chercher un tournoi">${pic(IC.find)}</button><input type="search" class="ps-q" placeholder="Nom, club…" aria-label="Chercher un tournoi" hidden>`);
+    act.querySelector('.ps-sport').addEventListener('click', e => { const b = e.target.closest('[data-sp]'); if (!b) return; garderSport(b.dataset.sp); const sel = document.getElementById('fsport'); if (sel) sel.value = b.dataset.sp; act.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-selected', x === b)); load(); });
+    const qi = act.querySelector('.ps-q');
+    act.querySelector('.ps-find').onclick = () => { qi.hidden = !qi.hidden; if (!qi.hidden) qi.focus(); };
+    qi.oninput = () => { psQ = qi.value.trim().toLowerCase(); load(); };
+    const tb = document.querySelector('.tboard');
+    tb.insertAdjacentHTML('beforebegin', `<div class="r-bento ps-tbento"><div class="ps-tmain"><div class="ps-itabs" role="tablist" id="psCols"></div><section class="card ps-tlist"><div class="rows" id="psRows"><p class="muted">Chargement…</p></div></section></div>
+      <aside class="r-bento__side"><section class="card"><h2>${pic(IC.plus).replace('class="ic"', 'class="pic"')}Créer depuis un modèle</h2><div class="ps-tpls" id="psTpls"></div></section>
+      <section class="card"><h2>${pic(IC.cal).replace('class="ic"', 'class="pic"')}Ce mois-ci</h2><div class="ps-month" id="psMonth"></div></section></aside></div>`);
+    tb.hidden = true;
+    document.getElementById('psCols').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) { psCol = b.dataset.c; load(); } });
+    document.getElementById('psTpls').addEventListener('click', e => { const b = e.target.closest('[data-create]'); if (b && window.PadelCreate) PadelCreate.open(b.dataset.create); });
+  }
+  function psRender(up, live, closed, d, fmt) {
+    const cols = [['up', 'À venir', up], ['live', 'En cours', live], ['closed', 'Clôturés', closed]];
+    if (!cols.some(c => c[0] === psCol)) psCol = 'up';
+    document.getElementById('psCols').innerHTML = cols.map(([k, l, a]) => `<button type="button" role="tab" data-c="${k}" aria-selected="${k === psCol}">${l} <span>${a.length}</span></button>`).join('');
+    const l = cols.find(c => c[0] === psCol)[2];
+    const etat = t => t.closed ? (t.kind === 'animation' ? 'Terminée' : 'Clôturé') : t.drawn ? (t.kind === 'animation' ? 'Manche ' + t.rounds : t.done + '/' + t.matches + ' matchs') : 'Inscriptions';
+    document.getElementById('psRows').innerHTML = l.map(t => {
+      const dt = t.dateStart ? new Date(t.dateStart) : null;
+      const tags = [t.type === 'interne' ? 'Interne' : t.kind === 'animation' ? 'Animation' : [t.category, t.gender].filter(Boolean).join(' '), etat(t)].filter(Boolean);
+      return `<div class="row ps-trow"><div class="d"><b>${dt ? dt.getDate() : '–'}</b><span>${dt ? MOIS[dt.getMonth()] : 'date ?'}</span></div>
+        <div class="ps-tname"><a href="/t/${t.id}"><strong>${esc(t.name || 'Sans nom')}</strong></a><small>${tags.map((x, i) => `<span class="tag ${i ? (t.drawn && !t.closed ? 'ps-live' : '') : ''}">${esc(x)}</span>`).join('')}<span class="ps-np">${t.kind === 'animation' ? t.players + ' joueurs' : t.pairs + (t.maxPairs ? '/' + t.maxPairs : '') + ' paires'}</span>${t.adjoint ? '<span class="ps-np">adjoint</span>' : ''}</small></div>
+        <div class="ps-tact"><a class="btn sq" href="/t/${t.id}/tv" target="_blank" aria-label="Écran TV de ${esc(t.name || 'ce tournoi')}">${pic(IC.tv)}</a>${t.adjoint ? '' : `<button class="sq" data-dup="${t.id}" aria-label="Dupliquer">${pic(IC.dup)}</button><button class="sq" data-del="${t.id}" aria-label="Supprimer">${pic(IC.del)}</button>`}<a class="btn primary sm" href="/t/${t.id}">Ouvrir</a></div>
+        <span class="ps-chev" aria-hidden="true">${pic(IC.chev)}</span></div>`;
+    }).join('') || `<p class="empty">${psCol === 'up' ? 'Aucun tournoi prévu.' : psCol === 'live' ? 'Aucun tournoi en cours.' : 'Aucun tournoi clôturé.'}</p>`;
+    const presets = (d.presets || []).slice(0, 6).map(p => ['officiels', p.name, (p.fields && p.fields.category) || 'Modèle']);
+    document.getElementById('psTpls').innerHTML = presets.concat([['animation', 'Americano', 'Animation'], ['animation', 'Mexicano', 'Animation'], ['animation', 'Montée-descente', 'Animation'], ['interne', 'Tournoi interne', 'Club']])
+      .map(([k, n, tag]) => `<button type="button" class="r-row" data-create="${k}"><span class="r-row__txt"><b>${esc(n)}</b><small>${esc(tag)}</small></span>${pic(IC.chev)}</button>`).join('');
+    const m0 = new Date().toISOString().slice(0, 7), mois = d.tournaments.filter(t => (t.dateStart || '').slice(0, 7) === m0);
+    document.getElementById('psMonth').innerHTML = `<div class="ps-mstat"><b>${mois.length}</b><span>tournoi${mois.length > 1 ? 's' : ''}</span></div><div class="ps-mstat"><b>${mois.reduce((n, t) => n + (t.pairs || 0), 0)}</b><span>paires inscrites</span></div>`;
+  }
   async function load() {
     const d = await fetch('/api/tournaments').then(r => r.json());
     // filtre par sport (chaque événement porte son sport et son type)
@@ -63,6 +110,10 @@
     const up = d.tournaments.filter(t => !t.closed && !started(t)).sort((x, y) => String(x.dateStart || '9').localeCompare(String(y.dateStart || '9')));
     const live = d.tournaments.filter(t => !t.closed && started(t)).sort((x, y) => (y.updated_at || 0) - (x.updated_at || 0));
     const closed = d.tournaments.filter(t => t.closed).sort((x, y) => (y.closedAt || 0) - (x.closedAt || 0));
+    if (DS) {
+      const f = l => psQ ? l.filter(t => [t.name, t.club, t.category].join(' ').toLowerCase().includes(psQ)) : l;
+      psRender(f(up), f(live), f(closed), d, fmt);
+    }
     const fill = (id, n, l, none) => { $(id).innerHTML = l.length ? l.map(card).join('') : `<p class="muted small">${none}</p>`; $(n).textContent = l.length; };
     fill('#tup', '#nUp', up, 'Aucun tournoi prévu.');
     fill('#tlist', '#nLive', live, 'Aucun tournoi en cours.');

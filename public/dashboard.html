@@ -60,11 +60,43 @@
   const today = new Date().toISOString().slice(0, 10);
   const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
   const ico = d => `<i class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg></i>`;
+  /* style ?ds=1 (socle /club/ds.css) : agencement de la maquette « Refonte /Pista » ; l'ancien style garde le sien */
+  const DS = document.documentElement.dataset.ds === '1';
+  const pic = d => `<svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const P = {
+    plus: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>', ani: '<circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/><path d="M11 8h6v5M13 16H7v-5"/>',
+    int: '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8"/><path d="M3 4h4M17 4h4"/>', imp: '<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',
+    cal: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>', zap: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', star: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+    open: '<path d="M5 12h14M13 6l6 6-6 6"/>', tv: '<rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/>', score: '<path d="M4 6h16M4 12h16M4 18h10"/>'
+  };
+  if (DS) {
+    $('#hello').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const cal = document.querySelector('.phead-act a[href="/calendrier"]'); if (cal) cal.insertAdjacentHTML('afterbegin', pic(P.cal));
+    // titres intégrés : picto + titre (le surtitre des cartes disparaît)
+    [['#current', null], ['#next', P.cal], ['#fans', P.star]].forEach(([id, d]) => { const h = d && document.querySelector(id).closest('.card').querySelector('h2'); if (h) h.insertAdjacentHTML('afterbegin', pic(d)); });
+    // Raccourcis : Nouveau tournoi, Animation, Tournoi interne, Importer (en tuiles)
+    const q = document.querySelector('.quick'), card = q.closest('.card');
+    card.querySelector('h2').innerHTML = pic(P.zap) + 'Raccourcis';
+    q.className = 'quick ps-quick';
+    q.innerHTML = [['officiels', 'Nouveau tournoi', P.plus], ['animation', 'Animation', P.ani], ['interne', 'Tournoi interne', P.int]]
+      .map(([k, l, d]) => `<button type="button" data-create="${k}">${pic(d)}<span>${l}</span></button>`).join('')
+      + `<label class="ps-imp">${pic(P.imp)}<span>Importer</span><input type="file" accept=".json,application/json" hidden></label>`;
+    q.addEventListener('click', e => { const b = e.target.closest('[data-create]'); if (b && window.PadelCreate) PadelCreate.open(b.dataset.create); });
+    // importer un tournoi exporté : un nouveau tournoi reçoit le fichier, puis s'ouvre
+    q.querySelector('input[type=file]').onchange = async e => {
+      const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+      let st; try { st = JSON.parse(await file.text()); if (!st.tournament) throw 0; } catch (_) { alert('Ce fichier n’est pas un tournoi exporté depuis /RAM JA.'); return; }
+      const r = await fetch('/api/tournaments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: st.tournament.name || 'Tournoi importé' }) }).then(x => x.json()).catch(() => ({}));
+      if (!r.id) { alert(r.error || 'Création impossible pour l’instant.'); return; }
+      await fetch('/api/t/' + r.id + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'state/replace', payload: { state: st } }) });
+      location.href = '/t/' + r.id;
+    };
+  }
 
   fetch('/api/me').then(r => r.json()).then(d => {
     if (!d.user) return location.href = '/connexion';
     const first = (d.user.name || '').trim().split(/\s+/)[0];
-    $('#hello').textContent = d.user.guest ? 'Bienvenue dans la démo' : 'Bonjour' + (first ? ' ' + first : '');
+    if (!DS) $('#hello').textContent = d.user.guest ? 'Bienvenue dans la démo' : 'Bonjour' + (first ? ' ' + first : '');
     $('#guestBar').hidden = !d.user.guest;
   });
 
@@ -93,7 +125,7 @@
         <p>${esc([cur.category, cur.gender, cur.club, cur.dateStart && new Date(cur.dateStart).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean).join(' · '))}</p>
         <div class="hero-stats"><div><b>${cur.pairs || 0}</b><span>paires inscrites${cur.maxPairs ? ' · ' + cur.maxPairs + ' places' : ''}</span></div><div><b>${cur.done}/${cur.matches}</b><span>matchs joués</span></div><div><b>${pct}%</b><span>avancement</span></div></div>
         ${cur.drawn ? `<div class="prog"><i style="width:${pct}%"></i></div>` : ''}
-        <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/t/${cur.id}">Ouvrir le tournoi</a><a class="btn" href="/t/${cur.id}/tv" target="_blank">Écran TV</a><a class="btn" href="/t/${cur.id}/remote" target="_blank">Saisie des scores</a></div></div>`;
+        <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/t/${cur.id}">${DS ? pic(P.open) : ''}Ouvrir le tournoi</a>${DS ? `<a class="btn" href="/t/${cur.id}/remote" target="_blank">${pic(P.score)}Saisir un score</a><a class="btn" href="/t/${cur.id}/tv" target="_blank">${pic(P.tv)}Écran TV</a>` : `<a class="btn" href="/t/${cur.id}/tv" target="_blank">Écran TV</a><a class="btn" href="/t/${cur.id}/remote" target="_blank">Saisie des scores</a>`}</div></div>`;
     } else {
       $('#current').innerHTML = `<div style="position:relative;z-index:1"><span class="eyebrow">Tournoi en cours</span><h2>Aucun tournoi ouvert</h2><p>Créez votre prochain tournoi en partant d'un modèle.</p>
         <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div></div>`;
@@ -108,7 +140,10 @@
   });
 
   fetch('/api/club-players').then(r => r.json()).then(d => {
-    if (d.guest) { $('#fansCard').hidden = true; return; }
+    if (d.guest) {
+      if (DS) { $('#fans').innerHTML = '<p class="empty">Vos joueurs les plus fidèles apparaissent ici dès votre premier tournoi clôturé, avec un compte : <a href="/inscription">créer mon compte</a>.</p>'; return; }
+      $('#fansCard').hidden = true; return;
+    }
     const top = (d.players || []).slice(0, 5);
     $('#fans').innerHTML = top.map((p, i) => `<a class="row" href="/joueurs#${p.id}"><div class="d"><b>${i + 1}</b><span>rang</span></div>
       <div><strong>${esc(p.last)} ${esc(p.first)}</strong><small>${p.count} tournoi(s) · ${p.wins} victoire(s)</small></div><span class="chip">${p.points} pts</span></a>`).join('')

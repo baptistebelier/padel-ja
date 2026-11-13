@@ -5,6 +5,8 @@
   const $ = (s, el) => (el || document).querySelector(s);
   const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
   const TABS = ['tournoi', 'inscriptions', 'tirage', 'tableaux', 'programmation', 'direct', 'diffusion'];
+  // style ?ds=1 (socle /club/ds.css) : agencement de la maquette « Refonte /Pista » ; rien de ce qui suit DS ne s'applique à l'ancien style
+  const DS = document.documentElement.dataset.ds === '1';
   let S = null, R = {}, tab = 'tournoi', modal = null, templates = null, dragging = false;
   const send = (t, p) => A.send(t, p).catch(() => {});
 
@@ -58,10 +60,91 @@
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !wrap.hidden) close(); });
   })();
+  /* ---------- style ?ds=1 : en-tête, intercalaires et colonnes de droite (maquette « Refonte /Pista ») ---------- */
+  const secName = t => { const b = $('#nav button[data-tab="' + t + '"] .lg'); return b ? b.textContent : t; };
+  const PS_ACT = { inscriptions: 'Ajouter une paire', programmation: 'Programmation automatique', direct: 'Saisir un score' };
+  function psTitles(t) {
+    $('#hTag').textContent = [t.name || 'Tournoi', [t.category, t.gender].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+    $('#hName').textContent = secName(tab);
+    $('#abTitle').textContent = secName(tab);
+    $('#abSub').textContent = t.name || 'Tournoi';
+    const act = $('#psAct');
+    if (act) { act.hidden = !PS_ACT[tab]; act.lastChild.textContent = PS_ACT[tab] || ''; }
+  }
+  (function psInit() {
+    if (!DS) return;
+    // en-tête : Annuler, PDF, action de l'écran, Écran TV ; Overlay et l'aide passent dans « … »
+    $('#btnPrint').textContent = 'PDF';
+    const act = document.createElement('button');
+    act.type = 'button'; act.id = 'psAct'; act.className = 'accent'; act.hidden = true;
+    act.innerHTML = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><span></span>';
+    act.onclick = () => {
+      if (tab === 'programmation') return $('#schedAuto').click();
+      if (tab === 'inscriptions') { const i = $('#addPair input[name="l1"]'); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } return; }
+      if (tab === 'direct') {
+        const m = S && S.matches.find(x => R[x.id] && R[x.id].state === 'live') || S && S.matches.find(x => R[x.id] && R[x.id].state === 'ready');
+        if (m) openMatchModal(m.id); else A.toast('Aucun match en cours');
+      }
+    };
+    $('#btnTv').before(act);
+    const more = document.createElement('button');
+    more.type = 'button'; more.id = 'psMore'; more.className = 'sq'; more.setAttribute('aria-label', 'Plus d\'actions : overlay, export, aide');
+    more.innerHTML = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
+    $('#btnHelp').after(more);
+    more.onclick = () => $('#abMore').click();
+    // Inscriptions : intercalaires Retenues / Attente / Forfaits sur la liste
+    const list = $('#tblMain').closest('.card');
+    list.classList.add('ps-inslist'); list.dataset.psList = 'main';
+    $('#addPair').closest('.card').classList.add('ps-insform');
+    const it = document.createElement('div'); it.className = 'ps-itabs'; it.id = 'psInsTabs'; it.setAttribute('role', 'tablist');
+    list.before(it);
+    it.addEventListener('click', e => { const b = e.target.closest('[data-l]'); if (!b) return; list.dataset.psList = b.dataset.l; $$('button', it).forEach(x => x.setAttribute('aria-selected', x === b)); });
+    // Programmation : intercalaires Terrains et horaires / Ordre des matchs
+    const sec = $('#tab-programmation'); sec.dataset.psView = 'sched';
+    $('#sched').closest('.card').classList.add('ps-schedcard');
+    const pt = document.createElement('div'); pt.className = 'ps-itabs'; pt.setAttribute('role', 'tablist');
+    pt.innerHTML = '<button type="button" role="tab" data-v="sched" aria-selected="true">Terrains et horaires</button><button type="button" role="tab" data-v="order" aria-selected="false">Ordre des matchs</button>';
+    $('#orderCard').before(pt);
+    pt.addEventListener('click', e => {
+      const b = e.target.closest('[data-v]'); if (!b) return;
+      sec.dataset.psView = b.dataset.v; $$('button', pt).forEach(x => x.setAttribute('aria-selected', x === b));
+      if (b.dataset.v === 'order') { $('#orderBody').hidden = false; $('#orderCard').classList.add('open'); }
+    });
+    // Direct : colonne de droite Repos des joueurs (jauges) et À suivre
+    const side = document.createElement('aside'); side.className = 'ps-dside';
+    side.innerHTML = '<section class="card"><h3><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>Repos des joueurs</h3><div id="psRest" class="ps-rest"></div></section>'
+      + '<section class="card"><h3><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>À suivre</h3><div id="psNext" class="ps-next"></div></section>';
+    $('#liveList').closest('.card').after(side);
+  })();
+  function psInsTabs(sel) {
+    const it = $('#psInsTabs'); if (!it) return;
+    const cur = $('#tblMain').closest('.card').dataset.psList || 'main';
+    it.innerHTML = [['main', 'Retenues', sel.main.length + ' / ' + S.tournament.maxPairs], ['wait', 'Attente', sel.waiting.length], ['wd', 'Forfaits', sel.withdrawn.length]]
+      .map(([k, l, n]) => `<button type="button" role="tab" data-l="${k}" aria-selected="${k === cur}">${l} <span>${n}</span></button>`).join('');
+  }
+  function psDirect(tl, PS) {
+    const rest = $('#psRest'), next = $('#psNext'); if (!rest || !next) return;
+    if (!PS) { rest.innerHTML = '<p class="muted">Aucune paire en jeu pour l\'instant.</p>'; next.innerHTML = '<p class="muted">Aucun match programmé.</p>'; return; }
+    // une ligne par paire qui a joué ou joue : jauge verte (peut rejouer) ou rose (repos en cours)
+    const order = { playing: 0, rest: 1, ready: 2 };
+    const l = Object.values(PS).filter(x => x.state in order).sort((a, b) => order[a.state] - order[b.state] || (a.restLeft || 0) - (b.restLeft || 0)).slice(0, 8);
+    rest.innerHTML = l.map(x => {
+      const tot = x.restUntil && x.lastEnd ? x.restUntil - x.lastEnd : 0;
+      const pct = x.state === 'rest' && tot ? Math.round(100 * (1 - x.restLeft / tot)) : 100;
+      const txt = x.state === 'playing' ? 'en jeu' : x.state === 'rest' ? 'prête dans ' + A.dur(x.restLeft) : 'peut rejouer';
+      return `<div class="ps-rrow ps-r-${x.state}"><b>${esc(A.pairName(x.pair, 'initial'))}</b><small>${txt}</small><span class="r-gauge ${x.state === 'ready' ? 'r-gauge--green' : ''}"><i style="width:${pct}%"></i></span></div>`;
+    }).join('') || '<p class="muted">Aucune paire n\'a encore joué.</p>';
+    // à suivre : les prochains matchs programmés, par heure
+    const nx = S.matches.filter(m => m.court && R[m.id] && (R[m.id].state === 'ready' || R[m.id].state === 'waiting') && tl[m.id]).sort((a, b) => tl[a.id].start - tl[b.id].start).slice(0, 5);
+    next.innerHTML = nx.map(m => `<button type="button" class="r-row" data-o="${m.id}"><span class="ps-nh">${A.hhmm(tl[m.id].start)}</span><span class="r-row__txt"><b>${esc(A.sideName(m, 'A'))} / ${esc(A.sideName(m, 'B'))}</b><small>M${m.num} · ${esc(A.courtName(m.court))}</small></span></button>`).join('') || '<p class="muted">Aucun match programmé.</p>';
+    $$('[data-o]', next).forEach(b => b.onclick = () => openMatchModal(b.dataset.o));
+  }
   function psSecSync(t) {
+    if (DS && S) psTitles(S.tournament);
     const btn = document.getElementById('psSec'), b = $('#nav button[data-tab="' + t + '"]');
     if (!btn || !b) return;
-    btn.innerHTML = secIcon(b) + '<span>' + secLabel(b) + '</span><small>Section</small>';
+    const all = $$('#nav button[data-tab]'), i = all.indexOf(b) + 1;
+    btn.innerHTML = '<span class="ps-sec-t"><small>Section</small><b>' + secIcon(b) + secLabel(b) + '</b></span><em>' + i + '/' + all.length + '</em>';
     btn.setAttribute('aria-label', 'Section : ' + (b.querySelector('.lg') || b).textContent.trim() + ', changer de section');
     $$('#psSecs [data-sec-tab]').forEach(r => { if (r.dataset.secTab === t) r.setAttribute('aria-current', 'true'); else r.removeAttribute('aria-current'); });
   }
@@ -93,6 +176,7 @@
     $('#sState').textContent = t.closed ? 'Clôturé' : S.draw && nM ? (nD < nM ? `${nD}/${nM} matchs joués` : 'Matchs terminés') : `${S.pairs.filter(p => !p.withdrawn).length} paires inscrites`;
     $('#sState').className = 'side-st' + (t.closed ? ' fin' : S.draw && nM && nD < nM ? ' live' : '');
     $('#hSub').textContent = [E.FORMULAS[t.formula || 'tf'], t.club, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ');
+    if (DS) psTitles(t);
     $('#btnUndo').disabled = !A.canUndo || !!t.closed;
     $('#closedBar').hidden = !t.closed;
     if (t.closed) $('#closedAt').textContent = 'le ' + new Date(t.closedAt).toLocaleDateString('fr-FR');
@@ -526,6 +610,7 @@
         if (a === 'wd') { if (S.draw && S.draw.entrants.includes(id)) openReplaceModal(id); else send('pair/withdraw', { id, value: true }); }
       });
     });
+    if (DS) psInsTabs(sel);
   }
 
   function openPairModal(id) {
@@ -1021,7 +1106,7 @@
     const list = S.matches.filter(m => !R[m.id].staticBye);
     const unsched = list.filter(m => !m.court && R[m.id].state !== 'done').sort((a, b) => a.num - b.num);
     const col = (cid, title, items, sub) => `<div class="scol" data-court="${cid}"><div class="scol-h"><b>${esc(title)}</b><small>${sub || ''}</small></div><div class="scol-b">${items.map(m => schedCard(m, tl, PS)).join('') || '<div class="drop-hint">Déposez un match ici</div>'}</div></div>`;
-    $('#sched').innerHTML = col('', 'Non programmés', unsched, unsched.length + ' match(s)') +
+    $('#sched').innerHTML = col('', DS ? 'À programmer' : 'Non programmés', unsched, unsched.length + ' match(s)') +
       S.courts.map(c => {
         const items = list.filter(m => m.court === c.id).sort((a, b) => a.order - b.order);
         const last = items.length ? tl[items[items.length - 1].id] : null;
@@ -1058,7 +1143,7 @@
      06 · DIRECT & REPOS
      ===================================================================== */
   function renderDirect() {
-    if (!S.draw || !S.draw.built) { $('#liveList').innerHTML = '<p class="muted">Aucun match pour l\'instant.</p>'; $('#allMatches').innerHTML = ''; $('#restTbl').innerHTML = ''; $('#dayChecks').innerHTML = ''; return; }
+    if (!S.draw || !S.draw.built) { $('#liveList').innerHTML = '<p class="muted">Aucun match pour l\'instant.</p>'; $('#allMatches').innerHTML = ''; $('#restTbl').innerHTML = ''; $('#dayChecks').innerHTML = ''; if (DS) psDirect(null, null); return; }
     const tl = E.timeline(S, R), PS = E.pairsStatus(S, R, tl);
     $('#liveList').innerHTML = S.courts.map(c => {
       const q = S.matches.filter(m => m.court === c.id && !R[m.id].staticBye).sort((a, b) => a.order - b.order);
@@ -1097,6 +1182,7 @@
         <td>${esc(E.scoreText(r))}</td><td>${esc(A.courtName(m.court))} ${tl[m.id] && r.state !== 'done' ? '~' + A.hhmm(tl[m.id].start) : ''}</td>
         <td><span class="pill st-${r.state}">${({ waiting: 'Attente', ready: 'Prêt', live: 'En cours', done: 'Terminé' })[r.state] || ''}</span></td></tr>`; }).join('') + '</tbody>';
     $$('#allMatches [data-m]').forEach(tr => tr.onclick = () => openMatchModal(tr.dataset.m));
+    if (DS) psDirect(tl, PS);
   }
 
   /* =====================================================================
