@@ -2020,6 +2020,10 @@ select option { background: var(--c-surface); color: var(--c-text); }
 #main > .pad:has(> .card.coid) { margin-bottom: 0; padding-bottom: 0; }
 /* contrôle 2 : la fenêtre du bas reçoit le focus à l ouverture, sans anneau (trait encre seulement) ; ses champs gardent le leur */
 #phone .sheet:focus, #phone .sheet:focus-visible { outline: 0; }
+/* contrôle 3, Suivi en sélection : la barre « Tout sélectionner » dans la carte de la liste ; cases du catalogue (26 px, trait encre) */
+.cosbar-in { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; margin-bottom: 4px; border-bottom: var(--bw) solid var(--c-ink); }
+#main .cochk { width: 26px; height: 26px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); color: transparent; }
+#main .cosel[aria-pressed='true'] .cochk { background: var(--c-lime); border-color: var(--c-ink); color: var(--c-dark); box-shadow: var(--sh-sm); }
 /* Mes groupes : « 4/6 élèves » dans la marge de la carte, état du cycle en pastille */
 .cogfill { padding: 0 2px; }
 .cogfill b { white-space: nowrap; }

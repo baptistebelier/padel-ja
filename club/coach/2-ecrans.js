@@ -329,7 +329,7 @@ ${hd(ic('doc') + 'Bilans à écrire', `${ids.length ? `<button class="chip" data
           ['tout', 'Tout confondu']
         ])}</div>`
       : ''
-  }${sel ? coSelBar() : ''}${l.length ? list(l.join('')) : none('check', 'Tous les bilans sont écrits', 'Sur la période choisie.')}
+  }${l.length ? list((sel ? coSelBar(true) : '') + l.join('')) : none('check', 'Tous les bilans sont écrits', 'Sur la période choisie.')}
 ${hd(ic('euro') + 'Paiements à régulariser', `${dues.length ? `<button class="chip" data-a="coSelModeP" aria-pressed="${selP}">${selP ? 'Terminé' : 'Sélectionner'}</button>` : ''}<button class="btn ghost cofbtn" data-a="coSuiviPO" aria-expanded="${!!S.suiviPO}" aria-label="Filtrer par période">${ic('funnel')}${perP !== 'saison' ? '<i class="codot"></i>' : ''}</button>`)}${
     S.suiviPO
       ? `<div class="chips">${coFiltre('coSuiviP', perP, [

@@ -26,11 +26,12 @@ const coFavRow = (k, open, inner, label) =>
   `<div class="item cofr${coIsFav(k) ? ' fav' : ''}"><button class="cofav" ${open}>${inner}</button><button class="ib costar" data-a="coFav" data-k="${k}" aria-pressed="${coIsFav(k)}" aria-label="${coIsFav(k) ? 'Retirer ' + esc(label) + ' des favoris' : 'Mettre ' + esc(label) + ' en favori'}">${ic('star')}</button></div>`;
 
 /* ---------- accueil : sélection des bilans à écrire ---------- */
-function coSelBar() {
+/* dans = true : la barre se place dans la carte de la liste (Suivi), sans carte à elle */
+function coSelBar(dans) {
   const all = S.coBil || [],
     pick = (S.coPick || []).filter(id => all.includes(id)),
     every = all.length && pick.length === all.length;
-  return `<div class="card cosbar"><button class="item cosel" data-a="coPickAll" aria-pressed="${!!every}"><span class="cochk" aria-hidden="true">${ic('check')}</span><span class="grow"><span class="nm">Tout sélectionner</span><br><span class="muted small">${pick.length ? plural(pick.length, 'bilan sélectionné', 'bilans sélectionnés') : 'Touche les bilans à retirer'}</span></span></button><button class="btn sm hot full" data-a="coPickDel" ${pick.length ? '' : 'disabled'}>${ic('trash')}Retirer des bilans à traiter</button><p class="muted small">Une séance retirée ne demande plus de bilan ; un brouillon retiré est effacé. Rien n'est envoyé aux élèves.</p></div>`;
+  return `<div class="${dans ? 'cosbar cosbar-in' : 'card cosbar'}"><button class="item cosel" data-a="coPickAll" aria-pressed="${!!every}"><span class="cochk" aria-hidden="true">${ic('check')}</span><span class="grow"><span class="nm">Tout sélectionner</span><br><span class="muted small">${pick.length ? plural(pick.length, 'bilan sélectionné', 'bilans sélectionnés') : 'Touche les bilans à retirer'}</span></span></button><button class="btn sm hot full" data-a="coPickDel" ${pick.length ? '' : 'disabled'}>${ic('trash')}Retirer des bilans à traiter</button><p class="muted small">Une séance retirée ne demande plus de bilan ; un brouillon retiré est effacé. Rien n'est envoyé aux élèves.</p></div>`;
 }
 
 /* ---------- formule d'un groupe : ce qu'il suit et où il en est ---------- */
