@@ -1468,6 +1468,32 @@ test('Club : revenir sur le mur par le glissement retrouve toute la page, à la 
   await ctx.close();
 });
 
+test('Club : Mon espace montre mes séances et ce qui reste à payer (360 px)', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await page.goto(DEMO + '/index.html');
+  await page.waitForFunction(() => typeof A !== 'undefined' && typeof mesAchatsCarte === 'function', { polling: 300 });
+  await page.evaluate(() => {
+    document.querySelector('.ram-splash')?.remove();
+    const k = ME(), g = GROUPS.find(x => x.type === 'train') || GROUPS[0];
+    SEANCES.push({ g: g.id, d: isoIn(-7), pres: { [k]: 'P' } });
+    ELEVES.push({ id: k, n: name(k), note: 'note privée', achats: [{ id: 'hx', t: 'pack', ref: 'p1', d: isoIn(-10), nom: 'Pack Perfectionnement', n: 5, prix: 150, pay: { moyen: 'Chèque', ech: [{ s: 0, m: 75, ok: '' }, { s: 3, m: 75, ok: '' }] } }] });
+    S.tab = 'ecole'; S.ecTab = 'perso'; S.stack = []; render();
+  });
+  await page.waitForSelector('.mesach');
+  const txt = await page.locator('.mesach').innerText();
+  assert.match(txt, /Mes séances et paiements/);
+  assert.match(txt, /Pack Perfectionnement/);
+  assert.match(txt, /[1-4] sur 5 séances faites · encore [1-4]/);
+  assert.match(txt, /À payer maintenant : 75/);
+  assert.match(txt, /Reste à régler plus tard|À payer : 75/i);
+  assert.ok(!/note privée|Chèque|150/.test(txt), 'ni la note, ni le moyen, ni le prix');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'rien ne déborde');
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('.mesach *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 12).length), 0, 'aucun texte sous 12 px');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
 test('Club : collectif hors du mur et dans sa section, promu ; modifier un collectif et un résultat', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', e => errs.push(e.message));

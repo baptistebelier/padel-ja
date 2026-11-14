@@ -200,6 +200,97 @@
     );
   }
 
+  /* les séances faites par un élève (présent à l'appel de /RAM Coach ou de /RAM Club), pour la couverture ;
+     seances : [{ g, d, pres }], groupes : groupes et cours du club (avec leur id). Même calcul que /RAM Coach (coVenues). */
+  function venuesDe(k, seances, groupes, today) {
+    const out = [],
+      vu = new Set(),
+      ses = seances || [],
+      byId = new Map((groupes || []).map(g => [g.id, g]));
+    const add = (g, d, s) => {
+      const q = g.id + '|' + d;
+      if (vu.has(q) || d > today || (g.cancel || []).includes(d)) return;
+      vu.add(q);
+      if (presDe(s, g, d)[k] !== 'P') return;
+      out.push({
+        d,
+        min: durMin(g.dur),
+        n: (g.mem || []).length + (g.ext || []).length,
+        sport: g.sport,
+        gid: g.id,
+        cy: (cycleDe(g, d) || {}).id
+      });
+    };
+    ses.forEach(s => {
+      const g = s && s.pres && s.pres[k] && byId.get(s.g);
+      if (g) add(g, s.d, s);
+    });
+    (groupes || []).forEach(g =>
+      Object.keys(g.att || {}).forEach(
+        d =>
+          (g.att[d] || {})[k] === true &&
+          add(
+            g,
+            d,
+            ses.find(s => s.g === g.id && s.d === d)
+          )
+      )
+    );
+    return out;
+  }
+  /* ce que l'élève (ou son parent) voit de ses achats dans /RAM Club : séances faites sur ses packs et son abonnement,
+     ce qui est à payer maintenant (paiements atteints, comme « À encaisser » de /RAM Coach) et ce qui reste à régler.
+     Jamais la note de l'enseignant, ni le moyen de paiement. Les achats terminés ne sont que comptés. */
+  function resumeAchats(k, achats, seances, groupes, offres, today) {
+    const vs = venuesDe(k, seances, groupes, today),
+      cov = couverture(achats || [], vs, offres).achats,
+      byId = new Map((groupes || []).map(g => [g.id, g])),
+      somme = l => Math.round(l.reduce((s, x) => s + (+x.m || 0), 0) * 100) / 100;
+    // séances faites d'un cycle rattaché : celles de ses dates où l'élève était présent (comme coCycleUsed)
+    const faites = a => {
+      const [gid, cid] = String(a.cycle || '').split(':'),
+        g = cid && byId.get(gid),
+        cy = g && (g.cycles || []).find(x => x.id === cid);
+      if (!cy) return +a.used || 0;
+      return (cy.dates || []).filter(
+        d =>
+          d <= today &&
+          !(g.cancel || []).includes(d) &&
+          (!a.du || d >= a.du) &&
+          (!a.sortie || d <= a.sortie) &&
+          presDe(
+            (seances || []).find(s => s.g === gid && s.d === d),
+            g,
+            d
+          )[k] === 'P'
+      ).length;
+    };
+    const out = [];
+    let termines = 0;
+    cov.forEach(a => {
+      const etat = etatAchat(a, today);
+      if (etat === 'termine') return termines++;
+      const ech = a.pay && Array.isArray(a.pay.ech) && !a.pay.off ? a.pay.ech : [],
+        f = faites(a),
+        max = a.t === 'pack' ? +a.n || 0 : a.t === 'abo' ? seancesAbo(a) : 1;
+      out.push({
+        id: a.id,
+        t: a.t,
+        nom: String(a.nom || ''),
+        d: a.d,
+        fin: a.fin || '',
+        used: a.cycle ? f : +a.used || 0,
+        n: isFinite(max) ? max : 0,
+        freq: +a.freq || 0,
+        etat,
+        aPayer: somme(ech.filter(x => !x.ok && f >= (+x.s || 0))),
+        reste: somme(ech.filter(x => !x.ok))
+      });
+    });
+    out.sort((x, y) => String(y.d).localeCompare(String(x.d)));
+    return { achats: out, termines };
+  }
+
   /* Une seule source de présence : l'appel de /RAM Coach (s.pres : P présent, E excusé, A absent) et celui de
      /RAM Club (g.att[date][clé] : true présent, false absent) comptent pareil. Les deux applis écrivent désormais
      les deux ; pour un ancien appel fait seulement dans /RAM Club, g.att suffit. s.pres prime quand les deux existent. */
@@ -519,6 +610,8 @@
     etatAchat,
     ETATS,
     aboEnCours,
+    venuesDe,
+    resumeAchats,
     presDe,
     presents,
     coachAu,

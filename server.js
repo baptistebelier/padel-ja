@@ -53,6 +53,7 @@ const reconciliation = require('./lib/reconciliation.js').createReconciliation({
 const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m), planifier: (uid, at) => taches.enqueue('push-reveil', { uid }, { at, key: 'reveil:' + uid + ':' + at }) });
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
 // une notification passe par la file : un redémarrage du serveur ne la perd pas
+const mesAchats = require('./lib/mes-achats.js').createMesAchats({ ram, formules: u => Formules.get(store, u) });   // /RAM Club : un élève voit ses propres achats
 const notifier = require('./lib/pushnotif.js').createNotifier({ ram, formules: u => require('./lib/formules.js').get(store, u), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
 taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
 taches.on('push-reveil', p => push.reveil(p.uid));
@@ -1276,7 +1277,7 @@ const server = http.createServer(async (req, res) => {
         ka = setInterval(() => res.write(': ping\n\n'), 20000);
         return;
       }
-      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo|media|older|posts|histo)$/);
+      const m = p.match(/^\/api\/ram\/c\/([\w-]{1,32})\/(sync|ops|role|remove|events|typing|msginfo|media|older|posts|histo|achats)$/);
       // connexion en direct : l'appareil est prévenu dès qu'un élément du club change, puis il synchronise
       if (m && m[2] === 'events') {
         let ka = null, off = null, offT = null;
@@ -1303,6 +1304,11 @@ const server = http.createServer(async (req, res) => {
       // /RAM Coach : l'historique des cours et des séances, à la demande (ouverture de l'appli allégée)
       if (m && m[2] === 'histo' && req.method === 'GET') {
         const r = await ram.history(u.id, m[1], url.searchParams.get('avant'));
+        return r ? json(res, 200, r) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
+      }
+      // /RAM Club : mes achats (et ceux de mes enfants) notés par mes enseignants, en résumé (lib/mes-achats.js)
+      if (m && m[2] === 'achats' && req.method === 'GET') {
+        const r = await mesAchats(u.id, m[1]);
         return r ? json(res, 200, r) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
       }
       // publications plus anciennes du mur (l'appli ne reçoit que les récentes et celles à venir à l'ouverture)
