@@ -1885,3 +1885,24 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .bvpres + .bvpres { margin-top: 6px; }
 .bvpres .btn { min-height: 44px; }
 .bvpres-qui { flex: 1 0 100%; font-family: var(--f-sub); font-weight: 700; font-size: 14px; color: var(--c-muted); }
+
+/* étape 4 : Jouer — parties ouvertes */
+.bvjouer { display: flex; flex-direction: column; gap: 12px; }
+.bvprop { min-height: 52px; }
+.bvfch { flex-wrap: wrap; overflow: visible; padding: 0 0 4px; }
+.bvfch .chip { min-height: 44px; }
+.card.bvpar { border: var(--bw) solid var(--c-ink); box-shadow: var(--sh); gap: 10px; }
+.bvpar-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.bvpar-t { display: flex; flex-direction: column; gap: 6px; text-align: left; background: none; color: inherit; padding: 0; font: inherit; min-height: 44px; }
+.bvpar-t .h3 { font-family: var(--f-display); font-weight: 400; font-size: 24px; line-height: 1.05; text-transform: none; }
+.bvpar-q { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--c-text); }
+.bvpar-q svg { width: 18px; height: 18px; flex: none; }
+.bvpar-f { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bvpar-f .dots { display: flex; gap: 4px; flex: none; }
+.bvpar-f .dots i { width: 16px; height: 16px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); }
+.bvpar-f .dots i.on { background: var(--c-ink); }
+.bvpar-f .grow { min-width: 0; flex: 1 1 120px; }
+.bvpar-f .btn { min-height: 44px; flex: none; }
+@media (min-width: 1024px) { .bvjouer { max-width: 760px; } }
+/* étape 1 (suite) : « Moi » en bas du menu sur grand écran, avec l'avatar */
+#phone .rbot button[data-t="me"] { display: flex; }

@@ -240,7 +240,7 @@ function forms(k, cid) {
       'Ajouter au calendrier'
     ],
     play: [
-      'Chercher une partie',
+      'Proposer une partie',
       Sel('p-sport', 'Sport', ['Tennis', 'Padel']) +
         Dt('a-d1', 'Date', 1) +
         `<div class="two">${Sel('a-h1', 'Heure', HOURS, '18 h')}${Sel('a-dur', 'Durée du créneau', ['1 h', '1 h 30', '2 h'], '1 h 30')}</div><div class="two">${Sel('a-fmt', 'Format', ['Simple', 'Double'])}${Sel('a-pl', 'Places (en double)', ['1', '2', '3'], '3')}</div><div class="two" id="p-rk">${Sel('v-lo', 'Classement de', RANKS, '30/1')}${Sel('v-hi', 'à', RANKS, '15/1')}</div><div class="two" id="p-lv" hidden>${Sel('l-lo', 'Niveau de', LV, 'Niveau 4')}${Sel('l-hi', 'à', LV, 'Niveau 6')}</div><p class="muted small">Seuls les adhérents de cette fourchette voient ta recherche et sont notifiés. En simple, une seule place. Le padel se joue toujours en double.</p><p class="muted small">${LVHELP}</p>`,

@@ -106,7 +106,7 @@ const V = {
       const F = typeof favStrip === 'function' ? favStrip(st) : null;
       if (F && F.any) return F.tiles + F.tail;
       return (
-        (S.role === 'kid' ? '' : st('newPost', 'data-k="play"', ic('search'), 'Chercher une partie', 'calm')) +
+        (S.role === 'kid' ? '' : st('newPost', 'data-k="play"', ic('search'), 'Proposer une partie', 'calm')) +
         chans
           .filter(c => chanOk(c) && c.g !== 'club' && (S.role === 'kid' || !c.kid || (v.kids && v.kids.length)))
           .slice(0, 4)

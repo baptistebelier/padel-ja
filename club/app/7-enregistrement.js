@@ -960,7 +960,7 @@ document.addEventListener('submit', e => {
         com: [],
         play: Object.assign(play, { in: [], wait: [] })
       });
-      home(`Recherche publiée · visible par ${n} adhérent${n > 1 ? 's' : ''} ${txt}`);
+      home(`Partie proposée · visible par ${n} adhérent${n > 1 ? 's' : ''} ${txt}`);
       return;
     }
   }

@@ -141,7 +141,7 @@ function postBody(p) {
       full = y.in.length >= y.places,
       wt = y.wait.includes(ME());
     return (
-      `<span class="kicker">Recherche de partie · ${y.sport}</span><h2 class="tilt sm">${y.fmt} <em>${y.sport === 'Padel' ? 'niveau ' + y.lo + ' à ' + y.hi : y.lo + ' à ' + y.hi}</em></h2><div class="ev"><div class="meta"><span>${ic('cal')}${y.date} · ${y.time}</span><span>${ic('clock')}${y.dur}</span></div>
+      `<span class="kicker">Partie proposée · ${y.sport}</span><h2 class="tilt sm">${y.fmt} <em>${y.sport === 'Padel' ? 'niveau ' + y.lo + ' à ' + y.hi : y.lo + ' à ' + y.hi}</em></h2><div class="ev"><div class="meta"><span>${ic('cal')}${y.date} · ${y.time}</span><span>${ic('clock')}${y.dur}</span></div>
   <div class="row"><span class="dots" aria-hidden="true">${Array.from({ length: y.places }, (_, i) => `<i class="${i < y.in.length ? 'on' : ''}"></i>`).join('')}</span><span>${y.in.length} place${y.in.length > 1 ? 's' : ''} prise${y.in.length > 1 ? 's' : ''} sur ${y.places}${y.wait.length ? ` · ${y.wait.length} en attente` : ''}</span></div>
   ${y.in.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${y.in.map(i => `<span class="row" style="gap:6px">${av(i, 'sm')}${name(i)}</span>`).join('')}</div>` : ''}` +
       (p.by === ME()

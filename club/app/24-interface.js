@@ -481,3 +481,84 @@ V.ecole = () => {
   if (S.ecTab === 'mine') S.ecTab = 'profs';
   return bvEcole().replace(/<button role="tab"[^>]*data-val="mine"[^>]*>[\s\S]*?<\/button>/, '');
 };
+
+/* =========================================================================
+   Étape 4 — Jouer : les parties ouvertes (proposées par les adhérents, à venir, filtrables par sport et
+   par niveau) avec « Proposer une partie » ; les parties dirigées et collectifs créés dans /Dojo ;
+   les Équipes (venues de Club) ; les Résultats (palmarès, « Ajouter un résultat », tournois du club).
+   ========================================================================= */
+if (!S.jouF) S.jouF = 'all';
+/* est-ce que cette partie est à mon niveau ? (tennis : classement dans la fourchette ; padel : niveau) */
+function bvMonNiveau(y) {
+  const m = M[ME()] || {};
+  if (y.sport === 'Padel') return !!m.pl && m.pl >= +y.lo && m.pl <= +y.hi;
+  const i = rIdx(m.r),
+    a = rIdx(y.lo),
+    b = rIdx(y.hi);
+  return i >= Math.min(a, b) && i <= Math.max(a, b);
+}
+const bvPartieOk = p => {
+  const y = p.play;
+  if (!y) return false;
+  if (S.jouF === 'Tennis' || S.jouF === 'Padel') return y.sport === S.jouF;
+  if (S.jouF === 'niv') return bvMonNiveau(y);
+  return true;
+};
+/* une partie ouverte, en carte courte : sport, format, niveau, quand, places, qui la propose, « Je viens » */
+function bvPartieCard(p) {
+  const y = p.play,
+    me = ME(),
+    inn = y.in.includes(me),
+    full = y.in.length >= y.places,
+    wt = y.wait.includes(me),
+    reste = Math.max(0, y.places - y.in.length),
+    niv = y.sport === 'Padel' ? 'Niveau ' + y.lo + ' à ' + y.hi : y.lo + ' à ' + y.hi,
+    quand = (y.d ? fmtD(y.d) : y.date) + ' · ' + y.time + (y.dur ? ' · ' + y.dur : ''),
+    act =
+      p.by === me
+        ? `<button class="btn ghost" data-a="open" data-v="post" data-id="${p.id}">Ma partie</button>`
+        : inn
+          ? `<button class="btn on" data-a="play" data-id="${p.id}" data-r="in">Je ne peux plus</button>`
+          : full
+            ? `<button class="btn ${wt ? 'on' : 'ghost'}" data-a="play" data-id="${p.id}" data-r="wait" aria-pressed="${wt}">${wt ? 'Quitter l’attente' : 'Liste d’attente'}</button>`
+            : `<button class="btn" data-a="play" data-id="${p.id}" data-r="in">Je viens</button>`;
+  return `<article class="card bvpar"><div class="bvpar-tags">${sportTag(y.sport)}<span class="tag">${esc(y.fmt || '')}</span>${bvMonNiveau(y) ? '<span class="tag lime">Mon niveau</span>' : ''}</div><button class="bvpar-t" data-a="open" data-v="post" data-id="${p.id}"><span class="h3">${esc(niv)}</span><span class="bvpar-q">${ic('cal')}${esc(quand)}</span></button><div class="bvpar-f"><span class="dots" aria-hidden="true">${Array.from({ length: y.places }, (_, i) => `<i class="${i < y.in.length ? 'on' : ''}"></i>`).join('')}</span><span class="grow muted small">${esc(first(p.by))} · ${full ? 'complet' + (y.wait.length ? ', ' + y.wait.length + ' en attente' : '') : reste + ' place' + (reste > 1 ? 's' : '')}</span>${act}</div></article>`;
+}
+/* parties dirigées et séances collectives à venir (créées dans /Dojo), celles de mon niveau */
+const bvCollectifs = () => {
+  const prem = p => (p.nv.dates || []).find(d => d >= TODAY);
+  return posts
+    .filter(p => p.kind === 'niveaux' && p.nv && canSee(p) && prem(p))
+    .sort((x, y) => prem(x).localeCompare(prem(y)));
+};
+V.jouer = () => {
+  const tabs = [
+    ['parties', 'Parties', 'ball'],
+    ['equipes', 'Équipes', 'users'],
+    ['resultats', 'Résultats', 'trophy']
+  ];
+  if (!tabs.some(t => t[0] === S.jouTab)) S.jouTab = 'parties';
+  const seg = segs('jouTab', tabs).replace('class="seg ico"', 'class="seg"');
+  if (S.jouTab === 'equipes') return seg + teamsBody();
+  if (S.jouTab === 'resultats') return seg + bvResultats();
+  const l = bvPartiesOuvertes().filter(bvPartieOk),
+    coll = bvCollectifs(),
+    chip = (k, lb) =>
+      `<button class="chip" data-a="bvJouF" data-k="${k}" aria-pressed="${S.jouF === k}">${lb}</button>`;
+  return (
+    seg +
+    `<div class="pad bvjouer">${S.role === 'kid' ? '' : `<button class="btn full bvprop" data-a="newPost" data-k="play">${ic('plus')}Proposer une partie</button>`}<div class="chips bvfch" role="group" aria-label="Filtrer les parties">${chip('all', 'Tout')}${chip('Tennis', 'Tennis')}${chip('Padel', 'Padel')}${chip('niv', 'Mon niveau')}</div><span class="kicker">Parties ouvertes · ${l.length}</span>${
+      l.length
+        ? l.map(bvPartieCard).join('')
+        : empty(
+            'ball',
+            S.jouF === 'all' ? 'Aucune partie ouverte' : 'Aucune partie avec ce filtre',
+            'Propose la première : les adhérents de ton niveau sont prévenus.'
+          )
+    }${coll.length ? `<span class="kicker">Parties dirigées et collectifs · ${coll.length}</span>` : ''}</div>${coll.length ? `<div class="feed">${coll.map(postHTML).join('')}</div>` : ''}`
+  );
+};
+A.bvJouF = d => {
+  S.jouF = d.k;
+  render(true);
+};
