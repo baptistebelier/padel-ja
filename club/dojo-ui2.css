@@ -44,3 +44,19 @@
 /* Élèves : la liste sur toute la largeur (plus d'aperçu), un clic ouvre la fiche */
 :root[data-ui="2"] .cobento.u2one { display: block; }
 :root[data-ui="2"] .u2one .colist > :not(.item) { grid-column: 1 / -1; }
+
+/* Messages, grand écran : conversations et conversation ouverte côte à côte (comme les groupes de /Buvette) */
+@media (min-width: 1024px) {
+  :root[data-ui="2"] .u2split { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(380px, 1.4fr); gap: 22px; align-items: start; padding: 0 16px 24px; }
+  :root[data-ui="2"] .u2split .splitl .pad { padding: 0; }
+  :root[data-ui="2"] .u2split .cofr:has([aria-current]) { outline: var(--bw, 2px) solid #000000; outline-offset: -2px; background: var(--surface-2, #F8F1EC); }
+  :root[data-ui="2"] .u2split .splitchat { display: flex; flex-direction: column; background: var(--card, #FFFFFF); border: var(--bw, 2px) solid #000000; box-shadow: 4px 4px 0 #000000; max-height: calc(100vh - 150px); position: sticky; top: 8px; }
+  :root[data-ui="2"] .u2split .sch { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: var(--bw, 2px) solid #000000; }
+  :root[data-ui="2"] .u2split .sch b { display: block; font-family: var(--f-sub); font-weight: 700; font-size: 18px; }
+  :root[data-ui="2"] .u2split .sch small { display: block; color: var(--muted, #6E5A61); font-size: 13px; }
+  :root[data-ui="2"] .u2split .schb { flex: 1 1 auto; overflow-y: auto; min-height: 280px; padding: 4px 6px; }
+  :root[data-ui="2"] .u2split .schf { border-top: var(--bw, 2px) solid #000000; padding: 10px 12px; }
+  :root[data-ui="2"] .u2split .schf .composer { display: flex; gap: 8px; align-items: flex-end; }
+  :root[data-ui="2"] .u2split .schf .ta { flex: 1 1 auto; }
+  :root[data-ui="2"] .u2dmact { margin-top: 8px; }
+}

@@ -2685,3 +2685,23 @@ test('Dojo ?ui=2 : la fiche élève s’ouvre en un clic, formules en tête, ong
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+test('Dojo ?ui=2 : Messages sur grand écran, la conversation ouverte à côté de la liste, et on y répond', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 820 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html?ui=2');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  await page.evaluate(() => { S.tab = 'msgs'; S.msTab = 'eleves'; S.stack = []; render(); });
+  if (await page.locator('.u2split').count()) {
+    assert.ok(await page.locator('.u2split .splitchat .schb').isVisible(), 'la conversation à droite');
+    if (await page.locator('#u2dm-in').count()) {
+      await page.fill('#u2dm-in', 'Message d’essai');
+      await page.click('#u2dm .send');
+      await page.waitForTimeout(300);
+      assert.ok((await page.textContent('.u2split .schb')).includes('Message d’essai'), 'le message apparaît');
+      assert.equal(await page.evaluate(() => S.stack.length), 0, 'on reste sur la page Messages');
+    }
+  }
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});

@@ -364,6 +364,69 @@ if (UI2) {
     return h;
   };
 
+  /* ---------- Messages, grand écran : les conversations à gauche, la conversation ouverte à droite ----------
+     Même principe que les groupes de /Buvette (app/23-refonte.js) : la barre de saisie est dans la page, avec son
+     propre formulaire (u2dm) puisqu'on reste sur la page Messages (pas de vue « dm » ouverte). */
+  const u2Msgs = V.msgs;
+  V.msgs = () => {
+    const h = u2Msgs();
+    if (!coWide() || S.msTab !== 'eleves') return h;
+    const ids = [...h.matchAll(/data-a="open" data-v="dm" data-id="([^"]+)"/g)].map(m => m[1]),
+      k = ids.includes(S.u2Dm) ? S.u2Dm : ids[0],
+      i = h.indexOf('<div class="pad');
+    if (!k || i < 0) return h;
+    S.u2Dm = k;
+    const left = h
+      .slice(i)
+      .replace(
+        `data-a="open" data-v="dm" data-id="${k}"`,
+        `data-a="open" data-v="dm" data-id="${k}" aria-current="true"`
+      );
+    const ok = typeof dmCanWrite !== 'function' || dmCanWrite(k);
+    requestAnimationFrame(() => {
+      const b = document.querySelector('.u2split .schb');
+      if (b) b.scrollTop = b.scrollHeight;
+    });
+    return (
+      h.slice(0, i) +
+      `<div class="split2 u2split"><div class="splitl">${left}</div><section class="splitchat" aria-label="Conversation avec ${esc(svName(k))}"><header class="sch">${coAv(k)}<span class="grow"><b>${esc(svName(k))}</b><small>${esc(
+        coGroupsOf(k)
+          .map(g => g.name)
+          .join(' · ')
+      )}</small></span><button class="btn ghost" data-a="open" data-v="eleve" data-id="${k}">${ic('user')}Voir la fiche</button></header><div class="schb">${dmView(k)}</div><div class="schf">${
+        ok
+          ? `<form class="composer" id="u2dm" data-id="${k}"><textarea id="u2dm-in" class="ta" rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="true" enterkeyhint="enter" placeholder="${esc(dmPlaceholder(k))}" aria-label="Message"></textarea><button class="send" aria-label="Envoyer">${ic('send')}</button></form><div class="u2dmact"><button class="btn sm ghost" data-a="coContent" data-id="${k}">${ic('spark')}Envoyer un contenu</button></div>`
+          : '<div class="muted small schro">Cet élève n’a pas encore de compte : la conversation s’ouvrira quand il sera relié.</div>'
+      }</div></section></div>`
+    );
+  };
+  /* toucher une conversation de la liste l'ouvre à droite, sans quitter la page */
+  const u2OpenM = A.open;
+  A.open = d => {
+    if (d && d.v === 'dm' && coWide() && S.tab === 'msgs' && !S.stack.length && S.msTab === 'eleves') {
+      closeSheet();
+      S.u2Dm = d.id;
+      render(true);
+      const t = $('u2dm-in');
+      if (t) t.focus();
+      return;
+    }
+    return u2OpenM(d);
+  };
+  document.addEventListener('submit', e => {
+    if (e.target.id !== 'u2dm') return;
+    e.preventDefault();
+    const k = e.target.dataset.id,
+      inp = $('u2dm-in'),
+      x = inp && inp.value.trim();
+    if (!x || (typeof dmCanWrite === 'function' && !dmCanWrite(k))) return;
+    svNew(k, 'msg', { txt: x });
+    inp.value = '';
+    render(true);
+    const t = $('u2dm-in');
+    if (t) t.focus();
+  });
+
   /* ---------- « Nouveau » : un seul bouton, trois choix expliqués ---------- */
   A.u2New = () =>
     sheet(
