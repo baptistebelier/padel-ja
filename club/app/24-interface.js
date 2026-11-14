@@ -858,3 +858,43 @@ V.ecole = () => {
   if (S.ecTab === 'perso') S.ecTab = 'profs';
   return bvEcole6().replace(/<button role="tab"[^>]*data-val="perso"[^>]*>[\s\S]*?<\/button>/, '');
 };
+
+/* =========================================================================
+   Étape 7 — finitions : la démo recalée (les dates affichées suivent les vraies dates des données),
+   tutoiement partout, l'aide avec les nouveaux noms.
+   ========================================================================= */
+(() => {
+  // la démo seulement (sans compte) : les dates écrites en toutes lettres suivaient l'ancienne semaine de démo
+  if (window.RAM_KEY) return;
+  const jour = iso => fmtD(iso),
+    plage = (a, b) => {
+      const [, ma, da] = a.split('-').map(Number),
+        [, mb, db] = b.split('-').map(Number);
+      return ma === mb ? `Du ${da} au ${db} ${MO[mb - 1]}` : `Du ${da} ${MO[ma - 1]} au ${db} ${MO[mb - 1]}`;
+    };
+  posts.forEach(p => {
+    if (p.arch) return;
+    if (p.kind === 'event' && p.d && p.date)
+      p.date =
+        (p.d2 && p.d2 !== p.d ? plage(p.d, p.d2) : jour(p.d)) +
+        (p.h1 ? ' · ' + p.h1 + (p.h2 && !p.d2 ? ' – ' + p.h2 : '') : '');
+    if (p.id === 'p1' && p.trn && p.trn.dl) {
+      const [, m, d] = p.trn.dl.split('-').map(Number),
+        [, m2, d2] = (p.d2 || p.trn.dl).split('-').map(Number);
+      p.body = `Inscriptions ouvertes jusqu'au ${d} ${MO[m - 1]}. Simples et doubles, tous classements. Finales le ${d2} ${MO[m2 - 1]}, suivies du repas du club.`;
+    }
+  });
+  // les parties proposées : une vraie date, dans les jours qui viennent
+  const ecart = { p7: 4, p9: 6, p10: 7, p8: 5 };
+  posts.forEach(p => {
+    if (p.kind !== 'play' || !p.play || p.play.d || ecart[p.id] == null) return;
+    p.play.d = isoIn(ecart[p.id]);
+    p.play.date = jour(p.play.d);
+  });
+  // les rencontres : la phrase « quand » suit la date de la rencontre
+  recs.forEach(r => {
+    if (r.arch || !r.d || !r.when) return;
+    const lieu = (r.when.split(' · ')[2] || '').trim();
+    r.when = jour(r.d) + (r.h ? ' · ' + r.h : '') + (lieu ? ' · ' + lieu : '');
+  });
+})();

@@ -90,7 +90,7 @@ function lockCard() {
 }
 function lockView(v) {
   const home = !v.id && v.v === 'home';
-  return `<div class="pad"><div class="lockv"><span class="tile big">${ic('shield')}</span><h2 class="h3">${home ? 'Bienvenue au club' : 'Page pas encore accessible'}</h2><p>${home ? `Vous devez attendre que le club valide votre accès au club pour la saison sportive ${S.season}.` : `Ton compte doit être activé pour la saison sportive ${S.season} pour accéder à cette page. En attendant, tu as accès à ton profil.`}</p></div>${lockCard()}<button class="btn full ghost" data-a="tab" data-t="me">Voir mon profil</button></div>`;
+  return `<div class="pad"><div class="lockv"><span class="tile big">${ic('shield')}</span><h2 class="h3">${home ? 'Bienvenue au club' : 'Page pas encore accessible'}</h2><p>${home ? `Le club doit encore valider ton accès pour la saison sportive ${S.season}. En attendant, tu as accès à ton profil.` : `Ton compte doit être activé pour la saison sportive ${S.season} pour accéder à cette page. En attendant, tu as accès à ton profil.`}</p></div>${lockCard()}<button class="btn full ghost" data-a="tab" data-t="me">Voir mon profil</button></div>`;
 }
 /* le cycle d'un groupe : un segment par séance, comme une suite de stories. Faites : couleur d'accent ; aujourd'hui :
    orange ; à venir : discrètes ; annulées : barrées. Une séance reportée suit sa nouvelle date. Un groupe sans fin de

@@ -18,11 +18,11 @@ const AIDE = [
       ],
       [
         'Se déplacer dans l’appli',
-        'La barre du bas mène aux six espaces : Accueil (le mur), Groupes (les discussions), Agenda, École, Club et Profil. Le bouton <b>+</b> sert à publier. Sur un écran ouvert, la flèche en haut à gauche ramène en arrière.'
+        'La barre du bas mène aux cinq rubriques : Accueil (le mur et « Pour moi »), Agenda, Jouer (parties, équipes, résultats), Messages (les discussions) et Club (le bar, l’école, les adhérents, les infos du club). Ton avatar, en haut à droite, ouvre « Moi » : ton profil, ton adhésion, tes points et tes réglages. Le bouton « Publier », en haut de l’Accueil, sert à publier. Sur un écran ouvert, la flèche en haut à gauche ramène en arrière.'
       ],
       [
         'Jour, nuit et style',
-        'La lune (ou le soleil) en haut passe en mode nuit ou jour. Dans Profil, choisis Jour, Nuit ou Système, le style de l’interface (Épuré, Street dosé, Full street) et le motif du fond. Les couleurs sont celles du club.'
+        'La lune (ou le soleil) en haut passe en mode nuit ou jour. Dans Moi, Réglages, choisis Jour, Nuit ou Système, le style de l’interface (Épuré, Street dosé, Full street) et le motif du fond. Les couleurs sont celles du club.'
       ]
     ]
   },
@@ -56,7 +56,7 @@ const AIDE = [
     q: [
       [
         'Chercher des partenaires',
-        '<b>+</b> puis « Chercher une partie » : sport, date, heure, niveau. Les adhérents la rejoignent ; quand elle est complète, les suivants passent en liste d’attente. Tu es prévenu à chaque arrivée ou désistement.'
+        'Dans Jouer, « Proposer une partie » (ou « Publier » sur l’Accueil) : sport, date, heure, niveau. Les parties ouvertes des autres sont dans Jouer, Parties, avec un filtre « Mon niveau ». Les adhérents la rejoignent ; quand elle est complète, les suivants passent en liste d’attente. Tu es prévenu à chaque arrivée ou désistement.'
       ],
       [
         'Parties dirigées et séances à thème',
@@ -64,11 +64,11 @@ const AIDE = [
       ],
       [
         'Ajouter un résultat',
-        '<b>+</b> puis « Ajouter un résultat », ou depuis ton profil. Il entre dans ton palmarès de la saison, et tes abonnés en sont prévenus.'
+        '« Publier » puis « Ajouter un résultat », ou dans Jouer, Résultats. Il entre dans ton palmarès de la saison, et tes abonnés en sont prévenus.'
       ],
       [
         'Mon palmarès',
-        'Dans Profil : tes résultats de la saison (tennis et padel), et les tournois et animations /RAM JA que tu as joués, avec ta place.'
+        'Dans Jouer, Résultats (et dans Moi, Mon jeu) : tes résultats de la saison (tennis et padel), et les tournois et animations /RAM JA que tu as joués, avec ta place.'
       ]
     ]
   },
@@ -94,17 +94,17 @@ const AIDE = [
     q: [
       [
         'Annoncer ma présence à un cours',
-        "Dans École, Mes cours : « Je serai présent » ou « Absent » pour chaque séance des trois prochaines semaines. L'enseignant prépare la séance en conséquence, et tu es prévenu si le lieu change (salle ou extérieur) ou si le cours est annulé."
+        "Dans l’Agenda (Mon agenda) et dans « Pour moi » sur l’Accueil : « Présent » ou « Absent » pour chaque cours, pour toi et pour ton enfant. L'enseignant prépare la séance en conséquence, et tu es prévenu si le lieu change (salle ou extérieur) ou si le cours est annulé."
       ],
       [
-        'Mon espace',
-        "Dans École, Mon espace : les messages de ton enseignant, tes bilans de séance, ses analyses vidéo, les contenus qu'il t'envoie et l'historique de tes séances. Une fois qu'il t'a écrit, tu lui réponds et tu peux lui envoyer une vidéo à analyser."
+        'Mon suivi',
+        "Dans Moi, Mon suivi : les messages de ton enseignant, tes bilans de séance, ses analyses vidéo, les contenus qu'il t'envoie et l'historique de tes séances. Une fois qu'il t'a écrit, tu lui réponds et tu peux lui envoyer une vidéo à analyser."
       ],
       [
         'Les enseignants du club',
-        'Dans École, Enseignants : chaque enseignant avec son diplôme, ses années d’expérience, ses coordonnées, ses tarifs et son lien pour réserver une séance.'
+        'Dans Club, École, Enseignants : chaque enseignant avec son diplôme, ses années d’expérience, ses coordonnées, ses tarifs et son lien pour réserver une séance.'
       ],
-      ['Les stages', 'Dans École, Stages : les stages du club, avec inscription en un geste.']
+      ['Les stages', 'Dans Club, École, Stages : les stages du club, avec inscription en un geste.']
     ]
   },
   {
@@ -132,7 +132,7 @@ const AIDE = [
   },
   {
     id: 'groupes',
-    t: 'Groupes de discussion',
+    t: 'Messages (discussions)',
     i: 'chat',
     q: [
       [
@@ -172,7 +172,7 @@ const AIDE = [
       ],
       [
         'La ligue des animations',
-        "Dans Club, Le club : chaque animation de la saison rapporte des points (10, 8, 6, 5, 4, 3, 2, 1 du 1er au 8e, plus 1 point de participation). Le vainqueur d'une montée-descente gagne le trophée rare « Roi du terrain »."
+        "Dans Club, Classement des clubs : chaque animation de la saison rapporte des points (10, 8, 6, 5, 4, 3, 2, 1 du 1er au 8e, plus 1 point de participation). Le vainqueur d'une montée-descente gagne le trophée rare « Roi du terrain »."
       ]
     ]
   },
@@ -193,7 +193,7 @@ const AIDE = [
   },
   {
     id: 'profil',
-    t: 'Profil, trophées et classements',
+    t: 'Moi, trophées et classements',
     i: 'user',
     q: [
       [
@@ -202,11 +202,11 @@ const AIDE = [
       ],
       [
         'Ce que les autres voient de moi',
-        'Dans Profil, « Mes informations visibles » : ton téléphone, ton e-mail et ton Instagram sont masqués par défaut. Active seulement ce que tu acceptes de partager. Ta date de naissance reste visible par toi seul.'
+        'Dans Moi, « Mes informations visibles » : ton téléphone, ton e-mail et ton Instagram sont masqués par défaut. Active seulement ce que tu acceptes de partager. Ta date de naissance reste visible par toi seul.'
       ],
       [
         'Le classement des clubs',
-        'Dans Club, Le club : les clubs les plus actifs (points moyens par adhérent) et les résultats en tournoi de leurs joueurs, saison par saison.'
+        'Dans Club, Classement des clubs : les clubs les plus actifs (points moyens par adhérent) et les résultats en tournoi de leurs joueurs, saison par saison.'
       ],
       ['Suivre un adhérent', 'Sur son profil, « Suivre » : tu es prévenu de ses résultats et de ses publications.']
     ]
@@ -218,19 +218,19 @@ const AIDE = [
     q: [
       [
         'Recevoir les notifications sur mon téléphone',
-        "Dans Profil, « Mes notifications », puis « Activer » sous « Notifications sur ce téléphone ». Tu es prévenu même appli fermée. Sur iPhone, installe d'abord l'appli sur l'écran d'accueil (iOS 16.4 ou plus récent). Pour vérifier, touche « M'envoyer une notification d'essai » : elle arrive en quelques secondes."
+        "Dans Moi, Réglages, « Mes notifications », puis « Activer » sous « Notifications sur ce téléphone ». Tu es prévenu même appli fermée. Sur iPhone, installe d'abord l'appli sur l'écran d'accueil (iOS 16.4 ou plus récent). Pour vérifier, touche « M'envoyer une notification d'essai » : elle arrive en quelques secondes."
       ],
       [
         'Choisir ce que je reçois',
-        'Dans Profil, « Mes notifications » : le club, les adhérents suivis, les groupes, mon équipe, les parties, mes publications. Chaque groupe peut aussi être mis en sourdine. Plusieurs messages d’une même discussion n’en font qu’une, qui se met à jour (« 5 nouveaux messages dans Équipe 1 »).'
+        'Dans Moi, Réglages, « Mes notifications » : le club, les adhérents suivis, les groupes, mon équipe, les parties, mes publications. Chaque groupe peut aussi être mis en sourdine. Plusieurs messages d’une même discussion n’en font qu’une, qui se met à jour (« 5 nouveaux messages dans Équipe 1 »).'
       ],
       [
         'Heures calmes',
-        'De 22 h à 7 h par défaut, le téléphone ne sonne pas : tout arrive au réveil, regroupé. Les urgences passent quand même, par exemple un cours annulé ou déplacé qui commence dans les 2 h. La cloche de l’appli et les e-mails ne changent pas. Les heures se règlent dans Profil, « Mes notifications ».'
+        'De 22 h à 7 h par défaut, le téléphone ne sonne pas : tout arrive au réveil, regroupé. Les urgences passent quand même, par exemple un cours annulé ou déplacé qui commence dans les 2 h. La cloche de l’appli et les e-mails ne changent pas. Les heures se règlent dans Moi, Réglages, « Mes notifications ».'
       ],
       [
         'Sons et vibrations',
-        'Dans Profil : les sons de l’appli et une légère vibration sur un like, une inscription ou un interrupteur.'
+        'Dans Moi : les sons de l’appli et une légère vibration sur un like, une inscription ou un interrupteur.'
       ]
     ]
   },
@@ -241,7 +241,7 @@ const AIDE = [
     q: [
       [
         'Être adhérent de deux clubs',
-        "Dans Profil, « Mes clubs » : entre le code d'un autre club pour le rejoindre (un club de tennis et un club de padel, par exemple). Passe d'un club à l'autre avec « Ouvrir »."
+        "Dans Moi, « Mes clubs » : entre le code d'un autre club pour le rejoindre (un club de tennis et un club de padel, par exemple). Passe d'un club à l'autre avec « Ouvrir »."
       ],
       [
         'Le club principal',
@@ -261,7 +261,7 @@ const AIDE = [
     q: [
       [
         'Ajouter mon enfant',
-        'Dans Profil, ajoute ton enfant : il a son profil dans le club, sans compte ni e-mail. Tu gères ses présences aux cours, ses inscriptions aux tournois et tu reçois ses notifications.'
+        'Dans Moi, ajoute ton enfant : il a son profil dans le club, sans compte ni e-mail. Tu gères ses présences aux cours, ses inscriptions aux tournois et tu reçois ses notifications.'
       ],
       [
         'Ce que voit un jeune',
@@ -281,11 +281,11 @@ const AIDE = [
       ],
       [
         'Publier au nom du club',
-        "<b>+</b> : annonce, événement (avec inscriptions dans l'appli ou sur Ten'Up), tournoi, sondage, publication avec lien, actu, mise en avant des partenaires."
+        "« Publier », « Pour le club » : annonce, événement (avec inscriptions dans l'appli ou sur Ten'Up), tournoi, sondage, publication avec lien, actu, mise en avant des partenaires."
       ],
       [
         'Organiser un tournoi avec /RAM JA',
-        "<b>+</b>, « Tournoi » : le tournoi est créé dans /RAM JA sur ton compte, puis publié sur le mur avec les inscriptions dans l'appli. Le juge-arbitre gère ensuite le tirage, la programmation et les scores. Si ton accès /RAM JA ne permet plus de créer de tournoi, l'appli t'explique quoi faire."
+        "« Publier », « Tournoi » : le tournoi est créé dans /RAM JA sur ton compte, puis publié sur le mur avec les inscriptions dans l'appli. Le juge-arbitre gère ensuite le tirage, la programmation et les scores. Si ton accès /RAM JA ne permet plus de créer de tournoi, l'appli t'explique quoi faire."
       ],
       [
         'Championnats, équipes et groupes',
@@ -318,9 +318,9 @@ const AIDE = [
       ],
       [
         'Proposer des parties dirigées et des séances',
-        '<b>+</b>, « Partie dirigée » ou « Séance collective à thème » : dates, fourchettes de niveau, nombre de places, prix. Tu vois arriver les inscriptions ; la première fourchette complète est validée automatiquement.'
+        '« Publier », « Partie dirigée » ou « Séance collective à thème » : dates, fourchettes de niveau, nombre de places, prix. Tu vois arriver les inscriptions ; la première fourchette complète est validée automatiquement.'
       ],
-      ['Stages', '<b>+</b>, « Stage » : un stage avec inscription, visible dans École, Stages.']
+      ['Stages', '« Publier », « Stage » : un stage avec inscription, visible dans Club, École, Stages.']
     ]
   },
   {
@@ -352,10 +352,7 @@ const AIDE = [
         'Mes données',
         'Seuls les adhérents validés du club voient le contenu du club. Tes coordonnées restent masquées tant que tu ne choisis pas de les partager. Les réservations au bar ne sont visibles que par toi et le bureau.'
       ],
-      [
-        'Supprimer mon compte',
-        'Dans Profil, en bas : « Supprimer mon compte ». Tes données sont effacées sous 30 jours.'
-      ]
+      ['Supprimer mon compte', 'Dans Moi, en bas : « Supprimer mon compte ». Tes données sont effacées sous 30 jours.']
     ]
   }
 ];

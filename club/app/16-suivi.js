@@ -152,7 +152,7 @@ function resaLoad(k, de) {
 }
 V.resa = k => {
   if (!(window.RAM && RAM.live))
-    return `<div class="pad"><div class="card"><p>Démonstration : la réservation fonctionne dans l'appli de votre club.</p></div></div>`;
+    return `<div class="pad"><div class="card"><p>Démonstration : la réservation fonctionne dans l'appli de ton club.</p></div></div>`;
   const w = Math.max(0, Math.min(3, S.resaM || 0)),
     de = resaMoisDe(w),
     c = resaLoad(k, de),
@@ -207,8 +207,8 @@ V.resa = k => {
     mes = (c.mes || []).map(x => resaCoursHtml(x)).join('');
   const qui = M[k] ? name(k) : '';
   return `<div class="pad rsw">${mes ? `<div class="card"><span class="kicker">Mes cours avec ${esc(first(k))}</span><div class="list">${mes}</div></div>` : ''}
-<div class="card rshd">${M[k] ? av(k) : ''}<div class="grow"><span class="kicker">Votre enseignant</span><span class="h3">${esc(qui)}</span></div></div>
-<div class="card"><div class="rshead"><span class="rsnum">1</span><span class="rst-h">Choisissez votre formule</span></div><div class="rsfs">${c.formules
+<div class="card rshd">${M[k] ? av(k) : ''}<div class="grow"><span class="kicker">Ton enseignant</span><span class="h3">${esc(qui)}</span></div></div>
+<div class="card"><div class="rshead"><span class="rsnum">1</span><span class="rst-h">Choisis ta formule</span></div><div class="rsfs">${c.formules
     .map(
       x =>
         `<button class="rsf" data-a="resaFo" data-id="${esc(x.id)}" aria-pressed="${x.id === f.id}"><span class="nm">${esc(x.nom)}</span><span class="muted small">${x.duree % 60 ? Math.floor(x.duree / 60) + ' h ' + (x.duree % 60) : x.duree / 60 + ' h'}</span><b>${x.prix} €</b></button>`
@@ -216,11 +216,11 @@ V.resa = k => {
     .join(
       ''
     )}</div>${c.packs ? '<p class="muted small">Un pack déjà acheté chez cet enseignant se décompte tout seul.</p>' : ''}</div>
-<div class="rsb"><div class="card rscal"><div class="rshead"><span class="rsnum">2</span><span class="rst-h">Choisissez un jour</span></div><div class="rsm"><button class="ib rnd" data-a="resaMois" data-n="-1" aria-label="Mois précédent" ${w ? '' : 'disabled'}>${ic('back')}</button><b>${esc(titreMois)}</b><button class="ib rnd" style="rotate:180deg" data-a="resaMois" data-n="1" aria-label="Mois suivant" ${w < 3 ? '' : 'disabled'}>${ic('back')}</button></div><div class="rsg">${['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'].map(x => `<span class="rsdow">${x}</span>`).join('')}${cases}</div></div>
-<div class="card rsh"><div class="rshead"><span class="rsnum">3</span><span class="rst-h">Choisissez un horaire</span></div>${
+<div class="rsb"><div class="card rscal"><div class="rshead"><span class="rsnum">2</span><span class="rst-h">Choisis un jour</span></div><div class="rsm"><button class="ib rnd" data-a="resaMois" data-n="-1" aria-label="Mois précédent" ${w ? '' : 'disabled'}>${ic('back')}</button><b>${esc(titreMois)}</b><button class="ib rnd" style="rotate:180deg" data-a="resaMois" data-n="1" aria-label="Mois suivant" ${w < 3 ? '' : 'disabled'}>${ic('back')}</button></div><div class="rsg">${['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'].map(x => `<span class="rsdow">${x}</span>`).join('')}${cases}</div></div>
+<div class="card rsh"><div class="rshead"><span class="rsnum">3</span><span class="rst-h">Choisis un horaire</span></div>${
     jour
       ? `<p class="rsday">${esc(new Date(jour.d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))}</p><p class="muted small">Durée : ${durTxt}</p><div class="rsts">${creneaux || '<p class="muted small">Plus de place ce jour-là.</p>'}</div>${pris}`
-      : '<p class="muted small">Aucun créneau libre ce mois-ci : essayez le mois suivant.</p>'
+      : '<p class="muted small">Aucun créneau libre ce mois-ci : essaie le mois suivant.</p>'
   }</div></div>${coll ? `<div class="card"><span class="kicker">Collectifs du mois</span><div class="list">${coll}</div></div>` : ''}</div>`;
 };
 TITLES.resa = () => ['Réserver un cours', M[view().id] ? 'Avec ' + name(view().id) : ''];

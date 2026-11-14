@@ -75,13 +75,13 @@ function murSide() {
 }
 /* ---------- écrans ---------- */
 /* mur : les publications nouvelles depuis ma dernière visite d'abord (badge « Nouveau »), puis un repère
-   « Vous êtes à jour » avant celles déjà vues ; sans nouveauté, le repère se place en tête du mur */
+   « Tu es à jour » avant celles déjà vues ; sans nouveauté, le repère se place en tête du mur */
 function murJour(feed) {
   if (SEEN.prev.home == null) return feed.map(postHTML).join('');
   const neuf = p => isNew('home', p.at, p.by, p.wr),
     nb = feed.filter(neuf).length,
     i = feed.findIndex(p => !p.pin && !neuf(p)),
-    rep = `<div class="ajour" role="separator"><span>${ic('check')}Vous êtes à jour</span><small>${nb ? 'Publications déjà vues' : 'Aucune nouvelle publication depuis ta dernière visite'}</small></div>`;
+    rep = `<div class="ajour" role="separator"><span>${ic('check')}Tu es à jour</span><small>${nb ? 'Publications déjà vues' : 'Aucune nouvelle publication depuis ta dernière visite'}</small></div>`;
   return feed.map((p, j) => (j === i ? rep : '') + postHTML(p)).join('') + (i < 0 && nb ? rep : '');
 }
 const V = {

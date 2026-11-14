@@ -1955,3 +1955,5 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .tcard.cf3 { box-shadow: 0 0 0 2px var(--b-or); }
 :root[data-style="street"] #phone #main .tcard.cf3 { box-shadow: 0 0 0 2px var(--b-or), 7px 7px 0 var(--ram-hard); }
 :is(:root[data-style],:root) #phone #main .tcard.cf3 { box-shadow: 5px 5px 0 var(--b-or); }
+/* étape 7 : finitions — boutons du bar à 44 px au moins */
+#main .bar-it .ctl .btn { min-height: 44px; }
