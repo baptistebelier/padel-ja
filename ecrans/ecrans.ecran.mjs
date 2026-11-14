@@ -806,7 +806,8 @@ test('Club : onglet Adhérents, accès depuis Le club, événement hors du mur p
   await page.evaluate(() => document.querySelectorAll('.ram-splash').forEach(x => x.remove()));
   await page.evaluate(() => { S.role = 'admin'; A.goClub({ t: 'club' }); });
   const h = await page.textContent('#main');
-  for (const x of ['Courts de tennis', 'Pistes de padel', 'Partenaires', 'Archives', 'Club-house']) assert.ok(h.includes(x), x);
+  // Club en tuiles (nouvelle organisation) : les chiffres en tête, puis une tuile par page
+  for (const x of ['courts', 'pistes', 'Bar et repas', 'École', 'Adhérents', 'Tarifs et horaires', 'Partenaires', 'Archives', 'Club-house']) assert.ok(h.includes(x), x);
   assert.ok(!h.includes('Demander une inscription'));
   assert.equal(await page.locator('#main [data-a="seg"][data-val="actus"]').count(), 0);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');

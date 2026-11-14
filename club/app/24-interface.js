@@ -562,3 +562,142 @@ A.bvJouF = d => {
   S.jouF = d.k;
   render(true);
 };
+
+/* =========================================================================
+   Étape 5 — Club : une grille de tuiles (selon les modules du club) ; chaque tuile ouvre sa page
+   (Bar et repas, École, Adhérents, Actus, Formulaires, Tarifs et horaires, Partenaires, Archives…)
+   ou le lien du club (Réserver un court, Boutique). Le Bar a sa page, points et réservation en haut.
+   ========================================================================= */
+Object.assign(TITLES, {
+  bvbar: () => ['Bar et repas', 'Club'],
+  bvinfos: () => ['Tarifs et horaires', 'Club'],
+  ecole: () => ['École', S.stack.length ? 'Club' : 'Cours et stages'],
+  list: () => ['Adhérents', 'Club'],
+  forms: () => ['Formulaires', 'Club'],
+  actusl: () => ['Actus', 'Club'],
+  partners: () => ['Partenaires', 'Club'],
+  comml: () => ['Commissions', 'Club']
+});
+/* les anciens sous-onglets de Club (Adhérents, Bar) deviennent des pages */
+const bvPlace4 = bvPlace;
+bvPlace = function () {
+  bvPlace4();
+  if (S.tab === 'club' && (S.clubTab === 'adh' || S.clubTab === 'bar')) {
+    S.stack = [{ v: S.clubTab === 'adh' ? 'list' : 'bvbar' }];
+    S.clubTab = 'club';
+  }
+};
+A.bvBar = () => {
+  closeSheet();
+  S.dir = 1;
+  S.stack = [{ v: 'bvbar' }];
+  render();
+};
+/* l'École : une page de Club (Enseignants, Stages, Collectifs, Gestion) */
+A.bvEcole = () => {
+  if (S.ecTab === 'mine') S.ecTab = 'profs';
+  A.open({ v: 'ecole' });
+};
+/* la carte des points et de la prochaine réservation, en haut de la page du bar */
+function bvBarTete() {
+  const w = myWallet(),
+    o = bvRepas();
+  return `<section class="card bvpm bvbart"><button class="bvpm-r bvpm-go" data-a="bvPoints"><span class="tile">${ic('star')}</span><span class="grow"><b class="bvbig">${w.balance} point${w.balance > 1 ? 's' : ''}</b><small>à dépenser au bar${w.earned ? ' · ' + w.earned + ' gagnés cette saison' : ''}</small></span></button>${
+    o
+      ? `<div class="bvpm-r bvpm-go"><span class="tile">${ic('cup')}</span><span class="grow"><b>${barDay(o.date)} ${MOMENT[o.moment].toLowerCase()} : ${esc(o.name)}</b><small>Réservé · à payer au bar${o.price ? ' · ' + esc(o.price) : ''}</small></span></div>`
+      : ''
+  }</section>`;
+}
+A.bvPoints = () => sheet('Points du bar', `<div class="body">${barRules(myWallet())}</div>`);
+V.bvbar = () => {
+  if (!CLUBINFO.mods.bar) return `<div class="pad">${empty('cup', 'Pas de bar dans l’appli', '')}</div>`;
+  let h = barView();
+  const bons = REDEEMS.some(r => r.by === ME() && r.st === 'ok');
+  // le solde est dans la carte du haut : la carte « Mes points bar » ne reste que pour montrer les bons
+  if (!bons) {
+    const i = h.indexOf('<section class="card wallet">'),
+      e = i >= 0 ? sectionAt(h, 'section', i) : -1;
+    if (e > 0) h = h.slice(0, i) + h.slice(e);
+  }
+  const p = h.indexOf('<div class="pad">');
+  return p >= 0 ? h.slice(0, p + 17) + bvBarTete() + h.slice(p + 17) : bvBarTete() + h;
+};
+/* Tarifs et horaires : formules, horaires, adresse, équipe du club, liens (l'ancienne page « Le club ») */
+V.bvinfos = () => {
+  const keep = S.clubTab;
+  S.clubTab = 'club';
+  let h;
+  try {
+    h = bvClubView();
+  } finally {
+    S.clubTab = keep;
+  }
+  const cut = (start, tag) => {
+    const i = h.indexOf(start),
+      e = i >= 0 ? sectionAt(h, tag, i) : -1;
+    if (e > 0) h = h.slice(0, i) + h.slice(e);
+  };
+  // le sous-menu, l'affiche et les accès sont déjà des tuiles de Club
+  cut('<div class="seg', 'div');
+  cut('<div class="poster">', 'div');
+  cut('<div class="cacc">', 'div');
+  // les chiffres et l'invitation sont déjà en tête de Club
+  cut('<div class="stats">', 'div');
+  cut('<div class="note">', 'div');
+  return h;
+};
+/* la grille de Club */
+V.club = () => {
+  const I2 = CLUBINFO,
+    kid = S.role === 'kid',
+    nTeams = GROUPS.filter(g => g.type === 'team').length,
+    resa =
+      typeof ORDERS !== 'undefined'
+        ? ORDERS.filter(o => myBarKeys().includes(o.by) && o.st !== 'annule' && o.st !== 'servi' && o.date >= TODAY)
+            .length
+        : 0,
+    nArts = typeof tabNews === 'function' ? arts.filter(a => !a.arch && (a.at || 0) > (SEEN.at.club || 0)).length : 0,
+    t = (i, l, s, a) =>
+      `<button class="bvtile" ${a}><span class="tile">${ic(i)}</span><span class="nm">${l}</span>${s ? `<small>${s}</small>` : ''}</button>`,
+    lk = (i, l, s, u) =>
+      u
+        ? `<a class="bvtile" href="${esc(/^https?:/i.test(u) ? u : 'https://' + u)}" target="_blank" rel="noopener"><span class="tile">${ic(i)}</span><span class="nm">${l}</span><small>${s}</small></a>`
+        : '',
+    tiles = [
+      lk('court', 'Réserver un court', 'Lien du club', I2.book),
+      I2.mods.bar &&
+        t(
+          'cup',
+          'Bar et repas',
+          resa ? `${resa} repas réservé${resa > 1 ? 's' : ''}` : 'Carte et réservations',
+          'data-a="bvBar"'
+        ),
+      t('school', 'École', 'Enseignants, stages', 'data-a="bvEcole"'),
+      !kid && t('users', 'Adhérents', 'Annuaire', 'data-a="open" data-v="list"'),
+      I2.mods.actus &&
+        t(
+          'news',
+          'Actus',
+          nArts ? `${nArts} nouvelle${nArts > 1 ? 's' : ''}` : 'Récits du club',
+          'data-a="open" data-v="actusl"'
+        ),
+      t('poll', 'Formulaires', 'Inscriptions, sondages', 'data-a="open" data-v="forms"'),
+      t('info', 'Tarifs et horaires', 'Formules, adresse', 'data-a="open" data-v="bvinfos"'),
+      lk('euro', 'Payer ma cotisation', 'Lien du club', I2.pay),
+      lk('bag', 'Boutique', 'Lien du club', I2.shop),
+      I2.mods.comm && t('flag', 'Commissions', 'Les bénévoles', 'data-a="open" data-v="comml"'),
+      t('heart', 'Partenaires', 'Ils soutiennent le club', 'data-a="open" data-v="partners"'),
+      t('trophy', 'Classement des clubs', 'Les clubs les plus actifs', 'data-a="ranks"'),
+      t('folder', 'Archives', 'Saisons précédentes', 'data-a="open" data-v="archive"')
+    ].filter(Boolean);
+  const chiffres = [
+    I2.courts && `${I2.courts} court${I2.courts > 1 ? 's' : ''}`,
+    I2.pistes && `${I2.pistes} piste${I2.pistes > 1 ? 's' : ''}`,
+    I2.members && `${I2.members} adhérents`,
+    nTeams && `${nTeams} équipe${nTeams > 1 ? 's' : ''}`
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return `<div class="pad"><div class="bvclubh">${clubLogo() ? `<img class="bvclogo" src="${clubLogo()}" alt="">` : `<span class="tile bvclogo">${esc(club().short || '')}</span>`}<span class="grow"><b>Tennis · Padel · saison ${S.season}</b><span>${chiffres}</span>${I2.house ? `<span>Club-house : ${esc(I2.house)}</span>` : ''}</span></div>${isAdmin() && I2.joined < I2.members ? `<button class="note" data-a="open" data-v="join" style="width:100%;text-align:left">${I2.joined} adhérents sur ${I2.members} ont rejoint l'appli. <b style="color:var(--accent)">Inviter les autres</b></button>` : ''}<div class="bvtiles">${tiles.join('')}</div></div>`;
+};
+I.bag = '<path d="M5 8h14l-1 13H6zM9 8V6a3 3 0 016 0v2"/>';
