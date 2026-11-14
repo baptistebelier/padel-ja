@@ -32,7 +32,7 @@
   function section() {
     const clos = cloture();
     if (!ici || !liste) return;
-    // menu : « En cours », ou « Tournois » pour un tournoi clôturé (.on pour l'ancien style, aria-current pour le socle ?ds=1)
+    // menu : « En cours », ou « Tournois » pour un tournoi clôturé (.on et aria-current)
     const marque = (a, on) => { a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); };
     document.querySelectorAll('.rail a[data-r], .ps-bottom a[data-r]').forEach(a => {
       if (a.dataset.r === 'encours') marque(a, !clos);

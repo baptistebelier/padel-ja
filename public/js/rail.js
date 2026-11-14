@@ -40,11 +40,10 @@
     const page = document.body.dataset.page || '';
     const nav = document.createElement('aside');
     nav.className = 'rail r-rail'; nav.setAttribute('role', 'navigation'); nav.setAttribute('aria-label', 'Navigation principale');
-    // style ?ds=1 : le nom de l'appli en Anton citron (maquette « Refonte /Pista ») et « Accueil » pour le tableau de bord
-    const ds = document.documentElement.dataset.ds === '1';
-    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="/RAM JA — tableau de bord">${ds ? '<b class="ps-logo">/Pista</b>' : '<img src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA">'}</a>
+    // le nom de l'appli en Anton citron (maquette « Refonte /Pista ») et « Accueil » pour le tableau de bord
+    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="/RAM JA — tableau de bord"><b class="ps-logo">/Pista</b></a>
       <div class="rail-group">${ITEMS.map(([k, href, label, title]) =>
-        `<a href="${href}" data-r="${k}" class="r-rail__it${page === k ? ' on' : ''}"${page === k ? ' aria-current="page"' : ''} title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${ds && k === 'dashboard' ? 'Accueil' : label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
+        `<a href="${href}" data-r="${k}" class="r-rail__it${page === k ? ' on' : ''}"${page === k ? ' aria-current="page"' : ''} title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${k === 'dashboard' ? 'Accueil' : label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
       <div class="rail-group rail-bottom"><i class="sep"></i>
         <button type="button" class="r-rail__it" data-theme-toggle title="Mode jour / nuit">${ICONS.moon}${ICONS.sun}<span class="r-sh">Thème</span><span class="r-lg">Mode jour / nuit</span></button>
         <a href="/profil" data-r="profil" class="r-rail__it${page === 'profil' ? ' on' : ''}"${page === 'profil' ? ' aria-current="page"' : ''} title="Mon profil"><i class="avatar" id="railAvatar">JA</i><span class="r-sh">Profil</span><span class="r-lg" id="railWho">Mon profil</span></a>
@@ -104,12 +103,11 @@
       }
     }).catch(() => {});
   }
-  /* style ?ds=1 (socle /club/ds.css) — téléphone : barre du bas à 5 entrées (r-bottom), « Plus » ouvre le volet du menu.
-     Construite seulement avec le nouveau style : l'ancien garde sa barre du haut et son volet. */
+  /* téléphone : barre du bas à 5 entrées (r-bottom), « Plus » ouvre le volet du menu */
   const BOTTOM = ['dashboard', 'encours', 'tournois', 'calendrier'];
   const PLUS_OF = new Set(['joueurs', 'equipes', 'stats', 'admin', 'profil']);
   function bottomBar(page) {
-    if (document.documentElement.dataset.ds !== '1' || document.querySelector('.ps-bottom')) return;
+    if (document.querySelector('.ps-bottom')) return;
     const bar = document.createElement('nav');
     bar.className = 'r-bottom ps-bottom'; bar.setAttribute('aria-label', 'Navigation principale (téléphone)');
     bar.innerHTML = ITEMS.filter(([k]) => BOTTOM.includes(k)).map(([k, href, label]) =>

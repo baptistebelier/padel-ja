@@ -4,13 +4,13 @@
   const root = document.documentElement;
   const saved = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
   const system = () => (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-  /* style ?ds=1 : nuit « bordeaux B » de la maquette Figma, comme /Dojo (club/coach/3-actions.js, CO_THEME) :
+  /* nuit « bordeaux B » de la maquette Figma, comme /Dojo (club/coach/3-actions.js, CO_THEME) :
      ces valeurs remplacent les entrées du socle /club/ds.css (--bg, --card…) ; le jour garde celles du socle */
   const NUIT_B = { bg: '#3A0C1B', card: '#5A1630', card2: '#6A1D3A', field: '#4A1226', off: '#8A3350', fg: '#F7EFF0', muted: '#EBCFD8', kick: '#FF94AD' };
   function apply(t) {
     root.dataset.theme = t;
-    root.dataset.mode = t === 'light' ? 'jour' : 'nuit';   // nom lu par le socle /club/ds.css (style ?ds=1)
-    if (root.dataset.ds === '1') Object.entries(NUIT_B).forEach(([k, v]) => { if (t === 'light') root.style.removeProperty('--' + k); else root.style.setProperty('--' + k, v); });
+    root.dataset.mode = t === 'light' ? 'jour' : 'nuit';   // nom lu par le socle /club/ds.css
+    if (document.querySelector('link[href="/club/ds.css"]')) Object.entries(NUIT_B).forEach(([k, v]) => { if (t === 'light') root.style.removeProperty('--' + k); else root.style.setProperty('--' + k, v); });
     const m = document.querySelector('meta[name="theme-color"]');
     if (m) m.content = t === 'light' ? '#F2EBE4' : '#3A0C1B';
     document.querySelectorAll('[data-theme-toggle]').forEach(b => {

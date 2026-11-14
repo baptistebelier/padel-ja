@@ -13,7 +13,9 @@
 <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja2">
 <title>Mes tournois — /RAM JA</title>
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
-<script>/* refonte du style : ?ds=1 essaie la nouvelle feuille sur le socle /club/ds.css, ?ds=0 revient à l'ancienne (choix gardé sur l'appareil) */(function(){var q=location.search.match(/[?&]ds=([01])/);try{if(q)localStorage.setItem("pista-ds",q[1])}catch(e){}var on=q?q[1]==="1":(function(){try{return localStorage.getItem("pista-ds")==="1"}catch(e){return false}})();document.documentElement.dataset.ds=on?"1":"0";document.write(on?"<link rel=stylesheet href=/fonts/fonts.css><link rel=stylesheet href=/club/ds.css><link rel=stylesheet href=/css/pista.css>":"<link rel=stylesheet href=/css/ram.css><link rel=stylesheet href=/css/theme.css><link rel=stylesheet href=/css/shell.css><link rel=stylesheet href=/css/street.css><link rel=stylesheet href=/css/neo.css>")})()</script>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/club/ds.css">
+<link rel="stylesheet" href="/css/pista.css">
 <script src="/js/theme.js"></script>
 <script src="/js/rail.js" defer></script>
 <script src="/js/creation.js" defer></script>
@@ -23,13 +25,9 @@
 <main class="page">
   <header class="phead">
     <div><span class="eyebrow" id="who">Juge-arbitre</span><h1>Mes <span class="band lime">tournois</span></h1></div>
-    <div class="phead-act"><span id="plan" class="tag" hidden></span><label class="ufilter" style="margin:0">Sport<select id="fsport" aria-label="Filtrer par sport"><option value="">Tous</option><option>Padel</option><option>Tennis</option></select></label><a class="btn" href="/calendrier">Calendrier</a><a class="btn primary" href="#nouveau">+ Nouveau tournoi</a></div>
+    <div class="phead-act"><span id="plan" class="tag" hidden></span><a class="btn primary ps-new" href="#nouveau" aria-label="Nouveau tournoi">+ Nouveau tournoi</a></div>
   </header>
-  <div class="tboard">
-    <section><div class="tcol-h"><span class="eyebrow">À venir</span><span class="tag" id="nUp">0</span></div><div class="tlist" id="tup"><p class="muted">Chargement…</p></div></section>
-    <section><div class="tcol-h"><span class="eyebrow">En cours</span><span class="tag" id="nLive">0</span></div><div class="tlist" id="tlist"></div></section>
-    <section><div class="tcol-h"><span class="eyebrow" id="clotures">Clôturés</span><span class="tag" id="nDone">0</span></div><div class="tlist" id="tclosed"></div></section>
-  </div>
+  <div id="psBento"></div>
 </main>
 <script>
 (function () {
@@ -43,35 +41,28 @@
   });
   const sportChoisi = () => { try { return localStorage.getItem('ja-sport') || ''; } catch (e) { return ''; } };
   const garderSport = v => { try { localStorage.setItem('ja-sport', v); } catch (e) {} };
-  const TYPES = { tournoi: 'Tournoi', animation: 'Animation', interne: 'Tournoi interne' };
-  /* style ?ds=1 (socle /club/ds.css) : agencement de la maquette « Refonte /Pista » — segmenté Tous / Padel / Tennis,
-     intercalaires À venir / En cours / Clôturés sur une liste, une ligne par tournoi, colonne de droite (modèles, ce mois-ci).
-     L'ancien style garde ses trois colonnes. */
-  const DS = document.documentElement.dataset.ds === '1';
+  /* agencement de la maquette « Refonte /Pista » — segmenté Tous / Padel / Tennis,
+     intercalaires À venir / En cours / Clôturés sur une liste, une ligne par tournoi, colonne de droite (modèles, ce mois-ci). */
   const pic = d => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = { tv: '<rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/>', dup: '<rect x="8" y="8" width="12" height="12"/><path d="M4 16V4h12"/>',
     del: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', find: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>', chev: '<path d="M9 6l6 6-6 6"/>', cal: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>', plus: '<path d="M12 5v14M5 12h14"/>' };
   const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-  let psCol = 'up', psQ = '';
-  if (DS) {
+  let psCol = location.hash === '#clotures' ? 'closed' : 'up', psQ = '';
+  {
     const act = document.querySelector('.phead-act');
-    act.querySelector('.ufilter').hidden = true;
-    act.querySelector('a[href="/calendrier"]').hidden = true;
-    const nb = act.querySelector('a.btn.primary'); nb.classList.add('ps-new'); nb.setAttribute('aria-label', 'Nouveau tournoi');
     act.insertAdjacentHTML('afterbegin', `<div class="seg ps-sport" role="tablist" aria-label="Sport">${['', 'Padel', 'Tennis'].map(v => `<button type="button" role="tab" data-sp="${v}" aria-selected="${sportChoisi() === v}">${v || 'Tous'}</button>`).join('')}</div><button type="button" class="sq ps-find" aria-label="Chercher un tournoi">${pic(IC.find)}</button><input type="search" class="ps-q" placeholder="Nom, club…" aria-label="Chercher un tournoi" hidden>`);
-    act.querySelector('.ps-sport').addEventListener('click', e => { const b = e.target.closest('[data-sp]'); if (!b) return; garderSport(b.dataset.sp); const sel = document.getElementById('fsport'); if (sel) sel.value = b.dataset.sp; act.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-selected', x === b)); load(); });
+    act.querySelector('.ps-sport').addEventListener('click', e => { const b = e.target.closest('[data-sp]'); if (!b) return; garderSport(b.dataset.sp); act.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-selected', x === b)); load(); });
     const qi = act.querySelector('.ps-q');
     act.querySelector('.ps-find').onclick = () => { qi.hidden = !qi.hidden; if (!qi.hidden) qi.focus(); };
     qi.oninput = () => { psQ = qi.value.trim().toLowerCase(); load(); };
-    const tb = document.querySelector('.tboard');
-    tb.insertAdjacentHTML('beforebegin', `<div class="r-bento ps-tbento"><div class="ps-tmain"><div class="ps-itabs" role="tablist" id="psCols"></div><section class="card ps-tlist"><div class="rows" id="psRows"><p class="muted">Chargement…</p></div></section></div>
+    const tb = document.getElementById('psBento');
+    tb.outerHTML = (`<div class="r-bento ps-tbento"><div class="ps-tmain"><div class="ps-itabs" role="tablist" id="psCols"></div><section class="card ps-tlist"><div class="rows" id="psRows"><p class="muted">Chargement…</p></div></section></div>
       <aside class="r-bento__side"><section class="card"><h2>${pic(IC.plus).replace('class="ic"', 'class="pic"')}Créer depuis un modèle</h2><div class="ps-tpls" id="psTpls"></div></section>
       <section class="card"><h2>${pic(IC.cal).replace('class="ic"', 'class="pic"')}Ce mois-ci</h2><div class="ps-month" id="psMonth"></div></section></aside></div>`);
-    tb.hidden = true;
     document.getElementById('psCols').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) { psCol = b.dataset.c; load(); } });
     document.getElementById('psTpls').addEventListener('click', e => { const b = e.target.closest('[data-create]'); if (b && window.PadelCreate) PadelCreate.open(b.dataset.create); });
   }
-  function psRender(up, live, closed, d, fmt) {
+  function psRender(up, live, closed, d) {
     const cols = [['up', 'À venir', up], ['live', 'En cours', live], ['closed', 'Clôturés', closed]];
     if (!cols.some(c => c[0] === psCol)) psCol = 'up';
     document.getElementById('psCols').innerHTML = cols.map(([k, l, a]) => `<button type="button" role="tab" data-c="${k}" aria-selected="${k === psCol}">${l} <span>${a.length}</span></button>`).join('');
@@ -94,31 +85,15 @@
   async function load() {
     const d = await fetch('/api/tournaments').then(r => r.json());
     // filtre par sport (chaque événement porte son sport et son type)
-    const fs0 = document.getElementById('fsport'); if (fs0 && !fs0.dataset.pret) { fs0.dataset.pret = 1; fs0.value = sportChoisi(); fs0.onchange = () => { garderSport(fs0.value); load(); }; }
     if (d.tournaments && sportChoisi()) d.tournaments = d.tournaments.filter(t => (t.sport || 'Padel') === sportChoisi());
-    const fmt = s => s ? new Date(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-    const card = t => `
-      <article class="tcard">
-        <div class="tc-top"><span class="tag ${t.kind === 'animation' ? 'lime' : ''}">${esc([t.sport || 'Padel', TYPES[t.type] || (t.kind === 'animation' ? 'Animation' : 'Tournoi'), t.type === 'interne' ? '' : t.category].filter(Boolean).join(' · '))}</span><span class="st ${t.closed ? 'fin' : t.drawn ? 'on' : ''}">${t.closed ? (t.kind === 'animation' ? 'Terminée' : 'Clôturé') : t.drawn ? (t.kind === 'animation' ? `Manche ${t.rounds}` : `${t.done}/${t.matches} matchs`) : 'Inscriptions'}</span></div>
-        <h3>${esc(t.name || 'Sans nom')}</h3>${t.adjoint ? '<p class="closed-on">Vous êtes juge-arbitre adjoint</p>' : ''}${t.closed ? `<p class="closed-on">Clôturé le ${fmt(t.closedAt)}</p>` : ''}
-        <p>${esc([fmt(t.dateStart), t.club, t.kind === 'animation' ? t.players + ' joueurs' : t.pairs + ' paires'].filter(Boolean).join(' · '))}</p>
-        <div class="tc-act"><a class="btn primary sm" href="/t/${t.id}">Ouvrir</a><a class="btn ghost sm" href="/t/${t.id}/tv" target="_blank">Écran TV</a>
-          ${t.adjoint ? '' : `<button class="btn ghost sm" data-dup="${t.id}">Dupliquer</button><button class="btn ghost sm danger" data-del="${t.id}">Supprimer</button>`}</div>
-      </article>`;
     // À venir : le plus proche d'abord ; En cours : le plus récent ; Clôturés : le plus récent
     const today = new Date().toISOString().slice(0, 10), started = t => t.drawn || (t.dateStart && t.dateStart <= today);
     const up = d.tournaments.filter(t => !t.closed && !started(t)).sort((x, y) => String(x.dateStart || '9').localeCompare(String(y.dateStart || '9')));
     const live = d.tournaments.filter(t => !t.closed && started(t)).sort((x, y) => (y.updated_at || 0) - (x.updated_at || 0));
     const closed = d.tournaments.filter(t => t.closed).sort((x, y) => (y.closedAt || 0) - (x.closedAt || 0));
-    if (DS) {
-      const f = l => psQ ? l.filter(t => [t.name, t.club, t.category].join(' ').toLowerCase().includes(psQ)) : l;
-      psRender(f(up), f(live), f(closed), d, fmt);
-    }
-    const fill = (id, n, l, none) => { $(id).innerHTML = l.length ? l.map(card).join('') : `<p class="muted small">${none}</p>`; $(n).textContent = l.length; };
-    fill('#tup', '#nUp', up, 'Aucun tournoi prévu.');
-    fill('#tlist', '#nLive', live, 'Aucun tournoi en cours.');
-    fill('#tclosed', '#nDone', closed, 'Aucun tournoi clôturé.');
-    document.querySelectorAll('[data-dup]').forEach(b => b.onclick = async () => { const r = await fetch('/api/tournaments/' + b.dataset.dup + '/duplicate', { method: 'POST' }).then(r => r.json()); if (r.id) load(); else blocked(r); });
+    const f = l => psQ ? l.filter(t => [t.name, t.club, t.category].join(' ').toLowerCase().includes(psQ)) : l;
+    psRender(f(up), f(live), f(closed), d);
+    document.querySelectorAll('[data-dup]').forEach(b => b.onclick = async () => { const r = await fetch('/api/tournaments/' + b.dataset.dup + '/duplicate', { method: 'POST' }).then(r => r.json()); if (r.id) load(); else alert(r.error || 'Duplication impossible pour l’instant.'); });
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (confirm('Supprimer définitivement ce tournoi ?')) { await fetch('/api/tournaments/' + b.dataset.del, { method: 'DELETE' }); load(); } });
   }
   load();

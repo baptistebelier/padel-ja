@@ -5,8 +5,6 @@
   const $ = (s, el) => (el || document).querySelector(s);
   const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
   const TABS = ['tournoi', 'inscriptions', 'tirage', 'tableaux', 'programmation', 'direct', 'diffusion'];
-  // style ?ds=1 (socle /club/ds.css) : agencement de la maquette « Refonte /Pista » ; rien de ce qui suit DS ne s'applique à l'ancien style
-  const DS = document.documentElement.dataset.ds === '1';
   let S = null, R = {}, tab = 'tournoi', modal = null, templates = null, dragging = false;
   const send = (t, p) => A.send(t, p).catch(() => {});
 
@@ -36,13 +34,13 @@
   }
   $$('#nav button[data-tab]').forEach(b => b.onclick = () => setTab(b.dataset.tab));
 
-  /* style ?ds=1 (socle /club/ds.css) — téléphone : sélecteur « Section ▾ » sous la barre du haut ; il ouvre la liste
-     des sections dans une fenêtre du bas (r-sheet). Rien n'est créé avec l'ancien style. */
+  /* téléphone : sélecteur « Section ▾ » sous la barre du haut ; il ouvre la liste
+     des sections dans une fenêtre du bas (r-sheet). */
   const secLabel = b => esc(b.querySelector('.lg') ? b.querySelector('.lg').textContent : b.dataset.tab);
   const secIcon = b => (b.querySelector('svg') || {}).outerHTML || '';
   (function sectionPicker() {
     const appbar = $('#appbar');
-    if (document.documentElement.dataset.ds !== '1' || !appbar) return;
+    if (!appbar) return;
     const bar = document.createElement('div'); bar.className = 'ps-secbar';
     bar.innerHTML = '<span class="r-selectw"><button type="button" class="r-select" id="psSec" aria-haspopup="dialog"></button></span>';
     appbar.after(bar);
@@ -60,7 +58,7 @@
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !wrap.hidden) close(); });
   })();
-  /* ---------- style ?ds=1 : en-tête, intercalaires et colonnes de droite (maquette « Refonte /Pista ») ---------- */
+  /* ---------- en-tête, intercalaires et colonnes de droite (maquette « Refonte /Pista ») ---------- */
   const secName = t => { const b = $('#nav button[data-tab="' + t + '"] .lg'); return b ? b.textContent : t; };
   // une seule action citron par en-tête : sur Inscriptions, « Ajouter » est déjà dans la Saisie rapide et Écran TV garde le citron
   const PS_ACT = { programmation: 'Programmation automatique', direct: 'Saisir un score' };
@@ -73,7 +71,6 @@
     if (act) { act.hidden = !PS_ACT[tab]; act.lastChild.textContent = PS_ACT[tab] || ''; }
   }
   (function psInit() {
-    if (!DS) return;
     // en-tête : Annuler, PDF, action de l'écran, Écran TV ; Overlay et l'aide passent dans « … »
     $('#btnPrint').textContent = 'PDF';
     const act = document.createElement('button');
@@ -143,7 +140,7 @@
     $$('[data-o]', next).forEach(b => b.onclick = () => openMatchModal(b.dataset.o));
   }
   function psSecSync(t) {
-    if (DS && S) psTitles(S.tournament);
+    if (S) psTitles(S.tournament);
     const btn = document.getElementById('psSec'), b = $('#nav button[data-tab="' + t + '"]');
     if (!btn || !b) return;
     const all = $$('#nav button[data-tab]'), i = all.indexOf(b) + 1;
@@ -179,7 +176,7 @@
     $('#sState').textContent = t.closed ? 'Clôturé' : S.draw && nM ? (nD < nM ? `${nD}/${nM} matchs joués` : 'Matchs terminés') : `${S.pairs.filter(p => !p.withdrawn).length} paires inscrites`;
     $('#sState').className = 'side-st' + (t.closed ? ' fin' : S.draw && nM && nD < nM ? ' live' : '');
     $('#hSub').textContent = [E.FORMULAS[t.formula || 'tf'], t.club, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ');
-    if (DS) psTitles(t);
+    psTitles(t);
     $('#btnUndo').disabled = !A.canUndo || !!t.closed;
     $('#closedBar').hidden = !t.closed;
     if (t.closed) $('#closedAt').textContent = 'le ' + new Date(t.closedAt).toLocaleDateString('fr-FR');
@@ -613,7 +610,7 @@
         if (a === 'wd') { if (S.draw && S.draw.entrants.includes(id)) openReplaceModal(id); else send('pair/withdraw', { id, value: true }); }
       });
     });
-    if (DS) psInsTabs(sel);
+    psInsTabs(sel);
   }
 
   function openPairModal(id) {
@@ -1109,7 +1106,7 @@
     const list = S.matches.filter(m => !R[m.id].staticBye);
     const unsched = list.filter(m => !m.court && R[m.id].state !== 'done').sort((a, b) => a.num - b.num);
     const col = (cid, title, items, sub) => `<div class="scol" data-court="${cid}"><div class="scol-h"><b>${esc(title)}</b><small>${sub || ''}</small></div><div class="scol-b">${items.map(m => schedCard(m, tl, PS)).join('') || '<div class="drop-hint">Déposez un match ici</div>'}</div></div>`;
-    $('#sched').innerHTML = col('', DS ? 'À programmer' : 'Non programmés', unsched, unsched.length + ' match(s)') +
+    $('#sched').innerHTML = col('', 'À programmer', unsched, unsched.length + ' match(s)') +
       S.courts.map(c => {
         const items = list.filter(m => m.court === c.id).sort((a, b) => a.order - b.order);
         const last = items.length ? tl[items[items.length - 1].id] : null;
@@ -1146,7 +1143,7 @@
      06 · DIRECT & REPOS
      ===================================================================== */
   function renderDirect() {
-    if (!S.draw || !S.draw.built) { $('#liveList').innerHTML = '<p class="muted">Aucun match pour l\'instant.</p>'; $('#allMatches').innerHTML = ''; $('#restTbl').innerHTML = ''; $('#dayChecks').innerHTML = ''; if (DS) psDirect(null, null); return; }
+    if (!S.draw || !S.draw.built) { $('#liveList').innerHTML = '<p class="muted">Aucun match pour l\'instant.</p>'; $('#allMatches').innerHTML = ''; $('#restTbl').innerHTML = ''; $('#dayChecks').innerHTML = ''; psDirect(null, null); return; }
     const tl = E.timeline(S, R), PS = E.pairsStatus(S, R, tl);
     $('#liveList').innerHTML = S.courts.map(c => {
       const q = S.matches.filter(m => m.court === c.id && !R[m.id].staticBye).sort((a, b) => a.order - b.order);
@@ -1185,7 +1182,7 @@
         <td>${esc(E.scoreText(r))}</td><td>${esc(A.courtName(m.court))} ${tl[m.id] && r.state !== 'done' ? '~' + A.hhmm(tl[m.id].start) : ''}</td>
         <td><span class="pill st-${r.state}">${({ waiting: 'Attente', ready: 'Prêt', live: 'En cours', done: 'Terminé' })[r.state] || ''}</span></td></tr>`; }).join('') + '</tbody>';
     $$('#allMatches [data-m]').forEach(tr => tr.onclick = () => openMatchModal(tr.dataset.m));
-    if (DS) psDirect(tl, PS);
+    psDirect(tl, PS);
   }
 
   /* =====================================================================

@@ -278,8 +278,8 @@
   function applyTheme(t) {
     const c = (t && t.colors) || {};
     const r = document.documentElement.style;
-    // --bg est aussi une entrée du socle /club/ds.css (fond de l'interface, style ?ds=1) : la couleur de l'écran TV ne la remplace pas
-    if (c.bg && document.documentElement.dataset.ds !== '1') r.setProperty('--bg', c.bg);
+    // --bg est aussi une entrée du socle /club/ds.css (fond de l'interface de l'éditeur) : la couleur de l'écran TV ne la remplace pas là
+    if (c.bg && !document.querySelector('link[href="/club/ds.css"]')) r.setProperty('--bg', c.bg);
     if (c.primary) r.setProperty('--primary', c.primary);
     if (c.accent) r.setProperty('--accent', c.accent);
     if (c.accent2) r.setProperty('--accent2', c.accent2);

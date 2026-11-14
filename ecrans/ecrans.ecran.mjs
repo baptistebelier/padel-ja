@@ -342,9 +342,12 @@ test('JA : tournois par statut et création dans une fenêtre, la même depuis l
   await page.goto(JA + '/demo');
   await page.waitForTimeout(500);
   await page.goto(JA + '/app');
-  await page.waitForSelector('.tboard .tcard', { timeout: 8000 });
-  const cols = await page.$$eval('.tboard .tcol-h .eyebrow', l => l.map(x => x.textContent));
+  // intercalaires À venir / En cours / Clôturés au-dessus de la liste, une ligne par tournoi
+  await page.waitForSelector('#psCols [data-c]', { timeout: 8000 });
+  const cols = await page.$$eval('#psCols [data-c]', l => l.map(x => x.firstChild.textContent.trim()));
   assert.deepEqual(cols, ['À venir', 'En cours', 'Clôturés']);
+  await page.click('#psCols [data-c="live"]');
+  await page.waitForSelector('#psRows .ps-trow', { timeout: 8000 });
   for (const url of ['/app', '/calendrier', '/dashboard']) {
     await page.goto(JA + url);
     await page.waitForTimeout(300);
@@ -1584,7 +1587,8 @@ test('JA : en paysage, les pages passent sur plusieurs colonnes ; sur téléphon
   for (const t of ['direct', 'diffusion']) {
     await page.locator('[data-tab="' + t + '"]').first().click();
     await page.waitForTimeout(250);
-    assert.equal(await colonnes('#tab-' + t + ' .grid2'), 2, t);
+    // Direct : la page elle-même en bento (terrains à gauche, repos et à suivre à droite) ; TV : ses deux cartes
+    assert.equal(await colonnes(t === 'direct' ? '#tab-direct' : '#tab-' + t + ' .grid2'), 2, t);
     assert.ok(await large(), t + ' sans débordement');
     assert.ok(await page.evaluate(() => { const m = document.querySelector('main'); return m.scrollWidth <= m.clientWidth + 1; }), t + ' : rien ne dépasse');
   }
@@ -1602,7 +1606,7 @@ test('JA : en paysage, les pages passent sur plusieurs colonnes ; sur téléphon
   await page.waitForTimeout(400);
   await page.evaluate(() => document.querySelector('[data-tab="direct"]').click());
   await page.waitForTimeout(250);
-  assert.equal(await colonnes('#tab-direct .grid2'), 1, 'éditeur sur téléphone');
+  assert.equal(await colonnes('#tab-direct'), 1, 'éditeur sur téléphone');
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -1967,8 +1971,8 @@ test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA
   assert.deepEqual(trop, [], 'des textes font moins de 12 px');
 });
 
-/* ---------- /Pista sur le socle (?ds=1) : chaque écran s'ouvre, rien ne déborde à 360 px, aucun texte sous 12 px ---------- */
-test('JA : nouveau style ?ds=1 (socle ds.css + pista.css) sans erreur, sans débordement à 360 px ni texte sous 12 px ; ?ds=0 revient à l’ancien', async () => {
+/* ---------- /Pista sur le socle (seul style) : chaque écran s'ouvre, rien ne déborde à 360 px, aucun texte sous 12 px ---------- */
+test('JA : style du socle (ds.css + pista.css) sans erreur, sans débordement à 360 px ni texte sous 12 px ; plus de bascule ?ds', async () => {
   const desk = await browser.newContext({ viewport: { width: 1366, height: 860 } });
   const d = await openPage(desk, JA + '/demo');
   const id = new URL(d.page.url()).pathname.split('/')[2];
@@ -1983,8 +1987,7 @@ test('JA : nouveau style ?ds=1 (socle ds.css + pista.css) sans erreur, sans déb
   const tel = await browser.newContext({ viewport: { width: 360, height: 760 }, isMobile: true, hasTouch: true, storageState: await desk.storageState() });
   const pb = [];
   for (const [ctx, nom] of [[desk, 'ordinateur'], [tel, 'téléphone']]) {
-    const first = await openPage(ctx, JA + '/dashboard?ds=1');
-    assert.equal(await first.page.evaluate(() => document.documentElement.dataset.ds), '1', 'la bascule ?ds=1 est lue');
+    const first = await openPage(ctx, JA + '/dashboard');
     assert.ok(await first.page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--c-ink').trim() !== ''), 'ds.css est chargé');
     assert.ok(await first.page.evaluate(() => [...document.styleSheets].some(s => /\/css\/pista\.css/.test(s.href || ''))), 'pista.css est chargé');
     await first.page.close();
@@ -2018,11 +2021,11 @@ test('JA : nouveau style ?ds=1 (socle ds.css + pista.css) sans erreur, sans déb
     }
   }
   assert.deepEqual(pb, []);
-  // retour à l'ancien style : ni socle ni barre du bas
+  // ?ds=0 ne ramène plus l'ancien style : le socle reste, les anciennes feuilles ne se chargent plus
   const back = await openPage(tel, JA + '/dashboard?ds=0');
-  assert.equal(await back.page.evaluate(() => document.documentElement.dataset.ds), '0');
-  assert.equal(await back.page.locator('.ps-bottom').count(), 0, 'pas de barre du bas avec l’ancien style');
-  assert.ok(await back.page.evaluate(() => [...document.styleSheets].some(s => /\/css\/neo\.css/.test(s.href || ''))), 'les anciennes feuilles reviennent');
+  assert.ok(await back.page.evaluate(() => [...document.styleSheets].some(s => /\/club\/ds\.css/.test(s.href || ''))), 'le socle reste chargé');
+  assert.ok(!(await back.page.evaluate(() => [...document.styleSheets].some(s => /\/css\/(neo|street|shell)\.css/.test(s.href || '')))), 'les anciennes feuilles ne reviennent pas');
+  assert.equal(await back.page.locator('.ps-bottom').count(), 1, 'barre du bas au téléphone');
   assert.deepEqual(back.errors, []);
   await desk.close(); await tel.close();
 });
