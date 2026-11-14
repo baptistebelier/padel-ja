@@ -1920,3 +1920,38 @@ select option { background: var(--c-surface); color: var(--c-text); }
 @media (min-width: 700px) { .bvtiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1200px) { .bvtiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .bvbart .bvbig { font-family: var(--f-display); font-weight: 400; font-size: 26px; }
+
+/* étape 6 : Moi */
+.bvmoi { display: flex; flex-direction: column; gap: 14px; }
+.bvmoi > .card { border: var(--bw) solid var(--c-ink); box-shadow: var(--sh); }
+.card.bvmoih { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 14px; }
+.bvmoih .grow { min-width: 0; display: flex; flex-direction: column; gap: 8px; flex: 1 1 160px; }
+.bvnom { margin: 0; font-family: var(--f-sub); font-weight: 700; font-size: 24px; line-height: 1.1; text-transform: none; }
+.bvchif { flex: 1 0 100%; margin: 0; }
+.bvchif .nm { color: inherit; font: inherit; text-align: left; min-height: 44px; }
+.bvadh .bvh svg { color: var(--accent2, var(--hot)); }
+.bvadh p { margin: 0; }
+.bvcpt { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.bvc { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; min-height: 96px; background: var(--c-bg); color: var(--c-text); border: var(--bw) solid var(--c-ink); text-align: left; font: inherit; }
+.bvc b { font-family: var(--f-display); font-weight: 400; font-size: 34px; line-height: 1; text-transform: uppercase; }
+.bvc span { font-family: var(--f-sub); font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); }
+.bvpts .bar { display: block; height: 12px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); }
+.bvpts .bar i { display: block; height: 100%; background: var(--c-lime); }
+.bvpts p { margin: 0; }
+.card.bvmenu { padding: 0; gap: 0; }
+.bvmrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; min-height: 64px; background: none; color: var(--c-text); text-align: left; font: inherit; border-top: 1px solid color-mix(in srgb, var(--c-ink) 18%, transparent); }
+.bvmrow:first-child { border-top: 0; }
+.bvmrow .tile { width: 40px; height: 40px; background: var(--c-surface); }
+.bvmrow .grow { min-width: 0; }
+.bvmrow b { display: block; font-weight: 600; font-size: 16px; }
+.bvmrow small { display: block; color: var(--c-muted); font-size: 13px; margin-top: 2px; }
+.bvmrow > svg { width: 20px; height: 20px; flex: none; }
+.bvmrow .cnt { display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 5px; background: var(--c-pink); color: var(--c-dark); border: var(--bw) solid var(--c-ink); font-size: 13px; font-weight: 700; }
+@media (min-width: 1024px) { .bvmoi { max-width: 720px; } }
+.bvclubm .bvclubmh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bvclubm .bvh { min-width: 0; }
+.bvclubm .bvcn { overflow-wrap: anywhere; }
+/* étape 6 (suite) : la carte des trophées d'un adhérent garde aussi le cadre or (il n'était défini que dans l'ancien profil) */
+.tcard.cf3 { box-shadow: 0 0 0 2px var(--b-or); }
+:root[data-style="street"] #phone #main .tcard.cf3 { box-shadow: 0 0 0 2px var(--b-or), 7px 7px 0 var(--ram-hard); }
+:is(:root[data-style],:root) #phone #main .tcard.cf3 { box-shadow: 5px 5px 0 var(--b-or); }

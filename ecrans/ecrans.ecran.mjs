@@ -1358,13 +1358,19 @@ test('Club : répondre à un commentaire, modifier sa recherche, glisser entre s
   assert.equal(await glisse(300, 100), 'club');
   await page.evaluate(() => { S.tab = 'chans'; render(); });
   assert.equal(await glisse(100, 300), 'jouer');
-  // profil : sous-menu Mon jeu / Mes infos / Réglages / Investissement, en-tête compact avec les chiffres (refonte)
+  // Moi (nouvelle organisation) : en-tête compact une seule fois, adhésion, points du bar et trophées séparés, liste des pages
+  await page.evaluate(() => { S.tab = 'home'; S.stack = [{ v: 'me' }]; render(); });
+  assert.equal(await page.locator('#main .bvmoih').count(), 1, 'en-tête compact');
+  assert.ok(await page.locator('#main .bvadh').isVisible(), 'carte Adhésion');
+  assert.deepEqual(await page.locator('#main .bvcpt .bvc span').allInnerTexts().then(l => l.map(t => t.split('·')[0].trim().toUpperCase())), ['POINTS', 'TROPHÉES'], 'deux compteurs séparés');
+  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('#main .bvmenu b')].map(b => b.textContent)), ['Mon jeu', 'Mon suivi', 'Ma famille', 'Mes infos', 'Mes trophées', 'Réglages']);
+  assert.equal(await page.evaluate(() => document.getElementById('main').textContent.includes('Investissement')), false, '« Investissement » devient « Trophées »');
+  // l'ancien sous-onglet Réglages ouvre sa page ; les chiffres ouvrent Mon jeu et son palmarès
   await page.evaluate(() => { S.tab = 'me'; S.stack = []; S.meTab = 'reglages'; render(); });
-  assert.ok(await page.evaluate(() => !!document.querySelector('.mesub [data-k="reglages"][aria-selected="true"]') && !!document.querySelector('.mehead .stats')), 'sous-menu et en-tête compact');
-  assert.equal(await page.locator('.stats svg').count(), 4);
-  await page.click('.stats [data-a="palmGo"]');
+  assert.deepEqual(await page.evaluate(() => [view().v, view().id]), ['moi', 'reglages']);
+  await page.evaluate(() => { S.stack = [{ v: 'me' }]; render(); });
+  await page.click('.bvchif [data-a="bvMoi"]');
   await page.waitForSelector('#palmares');
-  assert.equal(await page.evaluate(() => S.meTab), 'jeu');
   assert.equal(await page.locator('.meshort .btn svg').count(), 2);
   await page.evaluate(k => { M[k].fo = [ME()]; const j = Object.keys(M).find(x => x !== 'club' && x !== ME() && x !== k); M[j].fo = [k]; A.folList({ id: k }); }, await page.evaluate(() => window.kz));
   await page.waitForSelector('#sheet .menu [data-a="member"]');
@@ -1383,7 +1389,8 @@ test('Club : le cadre de la carte des trophées reste dans chaque apparence, sur
     const page = await browser.newPage({ viewport: { width: w, height: 800 } });
     await page.goto(DEMO + '/index.html');
     await page.waitForFunction(() => typeof A !== 'undefined' && typeof trophyCard === 'function', { polling: 300 });
-    await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; render(); });
+    // la carte des trophées vit sur la fiche d'un adhérent (Moi a ses deux compteurs)
+    await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'home'; S.stack = [{ v: 'member', id: Object.keys(M).find(k => k !== 'club' && k !== ME() && !isMinor(k)) }]; render(); });
     for (const st of ['epure', '', 'street']) {
       const r = await page.evaluate(st => { A.ustyle({ k: st }); const c = document.querySelector('.tcard'), mc = !!c.closest('.bpr .meclub') && innerWidth >= 1024; return [1, 2, 3, 4, 5].map(n => { c.className = 'card tcard cf' + n; return mc ? 'meclub:' + getComputedStyle(c).boxShadow : getComputedStyle(c).boxShadow; }); }, st);
       // profil sur grand écran (contrôle du designer) : la carte Investissement n'a plus de filet de couleur, son titre est intégré
@@ -1651,11 +1658,14 @@ test('Club : profil en section Club, classement en trois choix, agenda sans épi
   page.on('pageerror', e => errs.push(e.message));
   await page.goto(DEMO + '/index.html');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof A.rankMenu === 'function', { polling: 300 });
-  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); });
-  await page.waitForSelector('.meclub');
-  assert.ok(await page.evaluate(() => { const c = document.querySelector('.meclub'); return !!c.querySelector('.tcard') && !!c.closest('.bpr') && (document.querySelector('.stats').compareDocumentPosition(c) & 4); }), 'dans la colonne du club, après les statistiques, avec les trophées');
-  assert.ok(await page.locator('.meclub [data-a="admin"] svg').count(), 'gestion en pictogramme');
-  assert.equal(await page.locator('.phero ~ .btn[data-a="admin"]').count(), 0, 'plus de gros bouton');
+  // Moi : la carte du club, avec la gestion en pictogramme ; puis Mon jeu
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); S.tab = 'home'; S.stack = [{ v: 'me' }]; render(); });
+  await page.waitForSelector('.bvclubm');
+  assert.ok(await page.evaluate(() => !!(document.querySelector('.bvcpt').compareDocumentPosition(document.querySelector('.bvclubm')) & 4)), 'après les points et les trophées');
+  assert.ok(await page.locator('.bvclubm [data-a="admin"] svg').count(), 'gestion en pictogramme');
+  assert.equal(await page.locator('#main .btn[data-a="admin"]').count(), 0, 'plus de gros bouton');
+  await page.evaluate(() => { S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); });
+  await page.waitForSelector('.meshort');
   assert.equal(await page.locator('.meshort .btn').count(), 2, 'deux boutons');
   assert.equal(await page.locator('.meshort [data-k="play"]').count(), 0);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'rien ne déborde à 360 px');
@@ -1696,20 +1706,22 @@ test('Club : section Club avec de vrais comptes, plusieurs clubs, club principal
   // (le changement de club se termine en revenant à l'accueil : on rouvre le profil tant qu'il n'est pas affiché ;
   //  et c'est bien le club choisi qui reste ouvert, même si une synchronisation de l'ancien club était en route)
   //  le profil doit rester affiché quatre vérifications de suite (environ 2 s) : le retour à l'accueil de fin de changement est passé
-  await page.waitForFunction(id => { if (!document.querySelector('.meclub')) { document.querySelector('.ram-splash')?.remove(); S.tab = 'me'; S.stack = []; S.meTab = 'jeu'; render(); } const ok = !!document.querySelector('.meclub') && RAM.code && RAM.club === id; window.__stable = ok ? (window.__stable || 0) + 1 : 0; return window.__stable >= 4; }, autre.id, { timeout: 30000, polling: 500 });
-  assert.match(await page.locator('.meclubh .h3').innerText(), new RegExp(autre.name || 'Club'));
-  assert.equal(await page.locator('.meclub [data-a="ramClubs"] svg').count(), 1, 'changer de club, en pictogramme');
-  assert.equal(await page.locator('.meclub [data-a="admin"] svg').count(), 1, 'gestion, en pictogramme');
-  assert.equal(await page.locator('.meclubh .tag').count(), 0, 'pas encore principal');
-  await page.click('.meclub [data-a="ramMain"]');
-  await page.waitForSelector('.meclubh .tag', { timeout: 20000 });
-  assert.match(await page.locator('.meclubh .tag').innerText(), /Club principal/i);
-  assert.equal(await page.locator('.meclub [data-a="ramMain"]').count(), 0, 'le bouton disparaît');
+  // Moi : la carte du club ouvert (nouvelle organisation)
+  await page.waitForFunction(id => { if (!document.querySelector('.bvclubm')) { document.querySelector('.ram-splash')?.remove(); S.tab = 'home'; S.stack = [{ v: 'me' }]; render(); } const ok = !!document.querySelector('.bvclubm') && RAM.code && RAM.club === id; window.__stable = ok ? (window.__stable || 0) + 1 : 0; return window.__stable >= 4; }, autre.id, { timeout: 30000, polling: 500 });
+  assert.match(await page.locator('.bvclubm .bvcn').innerText(), new RegExp(autre.name || 'Club'));
+  assert.equal(await page.locator('.bvclubm [data-a="ramClubs"] svg').count(), 1, 'changer de club, en pictogramme');
+  assert.equal(await page.locator('.bvclubm [data-a="admin"] svg').count(), 1, 'gestion, en pictogramme');
+  assert.equal(await page.locator('.bvclubm .tag').count(), 0, 'pas encore principal');
+  await page.click('.bvclubm [data-a="ramMain"]');
+  await page.waitForSelector('.bvclubm .tag', { timeout: 20000 });
+  assert.match(await page.locator('.bvclubm .tag').innerText(), /Club principal/i);
+  assert.equal(await page.locator('.bvclubm [data-a="ramMain"]').count(), 0, 'le bouton disparaît');
   assert.equal(await page.locator('#sheet.open, #sheet .menu').count(), 0, 'pas de fenêtre ouverte en plus');
-  // le code du club : plus en haut, en dernier dans les réglages, juste avant la déconnexion
-  await page.evaluate(() => { S.meTab = 'reglages'; render(); });
-  await page.waitForSelector('.logout');
-  assert.ok(await page.evaluate(() => { const l = document.querySelector('.logout'), c = [...document.querySelectorAll('.card')].find(x => /Code du club/.test(x.textContent)); return c && !c.nextElementSibling && c.parentElement.classList.contains('bpl') && !!(c.compareDocumentPosition(l) & 4) && !!(document.querySelector('.phero').compareDocumentPosition(c) & 4); }), 'code du club au-dessus de la déconnexion');
+  assert.ok(await page.locator('#main .logout').isVisible(), 'la déconnexion en bas de Moi');
+  // le code du club : en dernier dans les Réglages
+  await page.evaluate(() => { S.tab = 'me'; S.stack = []; S.meTab = 'reglages'; render(); });
+  await page.waitForFunction(() => [...document.querySelectorAll('#main .card')].some(x => /Code du club/.test(x.textContent)));
+  assert.ok(await page.evaluate(() => { const c = [...document.querySelectorAll('#main .card')].find(x => /Code du club/.test(x.textContent)); return c && !c.nextElementSibling; }), 'code du club en dernier dans les réglages');
   assert.deepEqual(errs, []);
   await ctx.close();
 });

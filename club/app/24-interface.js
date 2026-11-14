@@ -701,3 +701,160 @@ V.club = () => {
   return `<div class="pad"><div class="bvclubh">${clubLogo() ? `<img class="bvclogo" src="${clubLogo()}" alt="">` : `<span class="tile bvclogo">${esc(club().short || '')}</span>`}<span class="grow"><b>Tennis · Padel · saison ${S.season}</b><span>${chiffres}</span>${I2.house ? `<span>Club-house : ${esc(I2.house)}</span>` : ''}</span></div>${isAdmin() && I2.joined < I2.members ? `<button class="note" data-a="open" data-v="join" style="width:100%;text-align:left">${I2.joined} adhérents sur ${I2.members} ont rejoint l'appli. <b style="color:var(--accent)">Inviter les autres</b></button>` : ''}<div class="bvtiles">${tiles.join('')}</div></div>`;
 };
 I.bag = '<path d="M5 8h14l-1 13H6zM9 8V6a3 3 0 016 0v2"/>';
+
+/* =========================================================================
+   Étape 6 — Moi : l'en-tête une seule fois (compact), la carte Adhésion, les Points du bar et les Trophées
+   (deux compteurs séparés, décision du 14/11), puis une liste de pages : Mon jeu, Mon suivi (bilans, vidéos,
+   historique : ce que l'enseignant publie dans /Dojo), Ma famille, Mes infos, Mes trophées, Réglages.
+   « Investissement » devient « Trophées ».
+   ========================================================================= */
+const BV_MOI = {
+  jeu: ['Mon jeu', 'score', 'Résultats, classement, palmarès'],
+  suivi: ['Mon suivi', 'video', 'Bilans, vidéos, historique'],
+  famille: ['Ma famille', 'users', ''],
+  infos: ['Mes infos', 'user', 'Ce que les adhérents voient'],
+  reglages: ['Réglages', 'gear', 'Affichage, notifications, compte']
+};
+TITLES.moi = () => [(BV_MOI[view().id] || ['Moi'])[0], 'Moi'];
+/* le corps d'un onglet de l'ancien profil (avec ce qu'y ajoute la synchro : fiche /RAM JA, code du club…) */
+function bvProfilCorps(t) {
+  const keep = S.meTab;
+  S.meTab = t;
+  let h;
+  try {
+    h = profile(ME());
+  } finally {
+    S.meTab = keep;
+  }
+  const a = h.indexOf('<div class="bar-tabs me-tabs"'),
+    e = a >= 0 ? sectionAt(h, 'div', a) : -1,
+    lo = h.indexOf('<button class="btn ghost full logout"'),
+    fin = lo >= 0 ? lo : h.lastIndexOf('</div>');
+  return e > 0 ? h.slice(e, fin) : '';
+}
+/* mes enfants : leur fiche et ce que le parent règle pour eux */
+function bvFamille() {
+  const me = ME(),
+    m = M[me];
+  return `<div class="card"><span class="kicker">Ma famille</span>${
+    (m.kids || [])
+      .map(
+        k =>
+          `<button class="item" data-a="member" data-id="${k}">${av(k, 'sm')}<span class="grow"><span class="nm">${esc(M[k].n)}</span> ${bd(k)}<br><span class="muted small">${catOf(k)} · ${esc(M[k].team || '')}</span></span></button>`
+      )
+      .join('') || '<p class="muted small">Aucun enfant rattaché à ton compte.</p>'
+  }<button class="btn sm ghost" data-a="addKid">${ic('plus')}Ajouter un enfant</button></div>`;
+}
+V.moi = id => {
+  if (id === 'suivi') return `<div class="pad">${typeof resaMine === 'function' ? resaMine() : ''}${persoBody()}</div>`;
+  if (id === 'famille') return `<div class="pad">${bvFamille()}</div>`;
+  let h = bvProfilCorps(id === 'jeu' || id === 'reglages' ? id : 'infos');
+  // Mes infos : la famille a sa page
+  if (id === 'infos') {
+    const i = h.indexOf('<div class="card"><span class="kicker">Ma famille</span>'),
+      e = i >= 0 ? sectionAt(h, 'div', i) : -1;
+    if (e > 0) h = h.slice(0, i) + h.slice(e);
+  }
+  return `<div class="pad">${h}</div>`;
+};
+A.bvMoi = d => A.open({ v: 'moi', id: d.k });
+/* la page Moi */
+V.me = id => {
+  if (id && id !== ME()) return profile(id);
+  const me = ME(),
+    m = M[me],
+    kid = isMinor(me),
+    w = m.res.filter(r => r.w).length,
+    pf = m.res.filter(r => r.perf).length,
+    pl = (n, a, b) => n + ' ' + (n > 1 ? b : a),
+    chiffres = [
+      pl(w, 'victoire', 'victoires'),
+      pl(m.res.length - w, 'défaite', 'défaites'),
+      pl(pf, 'perf', 'perfs'),
+      kid ? '' : pl(m.fol || 0, 'abonné', 'abonnés')
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    tags = [
+      m.role ? `<span class="bd ${RC[m.role] || ''}">${esc(m.role)}</span>` : '',
+      m.r && m.r !== 'NC' ? `<span class="bd rk">${esc(m.r)} tennis</span>` : '',
+      m.pl ? `<span class="bd padel">Niv ${m.pl} padel</span>` : '',
+      m.pad ? `<span class="bd">N° ${m.pad} padel</span>` : ''
+    ].join('');
+  // l'adhésion de la saison : validée par le club ou en attente ; le lien de paiement du club s'il existe
+  const ok = VALID[me] === S.season || isAdmin(),
+    adh = `<section class="card bvadh"><div class="row" style="gap:10px"><span class="bvh grow">${ic('euro')}Adhésion ${S.season}</span><span class="tag ${ok ? 'lime' : 'hot'}">${ok ? 'Validée' : 'En attente'}</span></div><p class="muted small">${ok ? 'Le club a validé ton adhésion pour cette saison.' : 'Le club doit encore valider ton adhésion pour cette saison.'}${m.team ? ' · ' + esc(m.team) : ''}</p>${CLUBINFO.pay ? `<a class="btn ghost full" href="${esc(/^https?:/i.test(CLUBINFO.pay) ? CLUBINFO.pay : 'https://' + CLUBINFO.pay)}" target="_blank" rel="noopener">${ic('euro')}Payer ma cotisation</a>` : ''}</section>`;
+  // les deux compteurs : points du bar, trophées (score et cadre)
+  const wal = CLUBINFO.mods.bar ? myWallet() : null,
+    L = lvlOf(me),
+    nx = nextFrame(me),
+    pts = `<section class="card bvpts"><div class="bvcpt">${wal ? `<button class="bvc" data-a="bvBar"><b>${wal.balance}</b><span>Points · bar</span></button>` : ''}<button class="bvc" data-a="open" data-v="trophies" data-id="${me}"><b>${esc(FRAMES[L].n)}</b><span>Trophées · ${score(me)} pts</span></button></div>${nx ? `<span class="bar" aria-hidden="true"><i style="width:${nx.pc}%"></i></span><p class="muted small">Encore ${nx.need} pts pour le cadre ${esc(nx.n.toLowerCase())}</p>` : ''}</section>`;
+  const nSuivi = typeof svUnread === 'function' ? svMine().reduce((a, k) => a + (svUnread(k) || 0), 0) : 0,
+    row = (k, extra) => {
+      const [l, i, s0] = BV_MOI[k],
+        s = k === 'famille' ? (m.kids || []).map(first).join(', ') || 'Rattacher un enfant' : s0;
+      return `<button class="bvmrow" data-a="bvMoi" data-k="${k}"><span class="tile">${ic(i)}</span><span class="grow"><b>${l}</b><small>${esc(s)}</small></span>${extra || ''}${ic('chev')}</button>`;
+    },
+    clubs = (window.RAM && RAM.live && RAM.clubs) || [],
+    plusieurs = clubs.length > 1,
+    gere = (isAdmin() || S.role === 'cap') && !pending(),
+    gereL = isAdmin() && S.role !== 'coach' ? 'Gérer le club' : S.role === 'coach' ? 'Mes groupes' : 'Gérer mon équipe',
+    lien = (a, i, l, s) =>
+      `<button class="bvmrow" ${a}><span class="tile">${ic(i)}</span><span class="grow"><b>${l}</b>${s ? `<small>${s}</small>` : ''}</span>${ic('chev')}</button>`;
+  const menu = [
+    row('jeu'),
+    row('suivi', nSuivi ? `<span class="cnt">${nSuivi}</span>` : ''),
+    kid ? '' : row('famille'),
+    row('infos'),
+    lien(`data-a="open" data-v="trophies" data-id="${me}"`, 'trophy', 'Mes trophées', 'Cadres, trophées, classement'),
+    S.favs && S.favs.length
+      ? lien('data-a="favEdit"', 'star', 'Mes favoris', S.favs.length + ' page' + (S.favs.length > 1 ? 's' : ''))
+      : '',
+    row('reglages')
+  ].join('');
+  // le club ouvert : son nom, club principal ou non, la gestion et le changement de club en pictogrammes
+  const ici = clubs.find(c => window.RAM && c.id === RAM.club),
+    clubC =
+      gere || plusieurs
+        ? `<section class="card bvclubm"><div class="bvclubmh"><span class="bvh grow">${ic('flag')}<span class="bvcn">${esc(club().name)}</span></span>${ici && ici.main ? '<span class="tag lime">Club principal</span>' : ''}${gere ? `<button class="ib" data-a="admin" aria-label="${gereL}" title="${gereL}">${ic('gear')}</button>` : ''}${plusieurs ? `<button class="ib" data-a="ramClubs" aria-label="Changer de club" title="Changer de club">${ic('swap')}</button>` : ''}</div>${plusieurs && ici && !ici.main ? `<button class="btn sm ghost" data-a="ramMain" data-id="${ici.id}">${ic('star')}Faire de ce club mon club principal</button>` : ''}</section>`
+        : '';
+  return `<div class="pad bvmoi">${pending() ? lockCard() : ''}<section class="card bvmoih"><label class="avedit" aria-label="Changer ma photo de profil">${av(me)}<span class="cam">${ic('image')}</span><input type="file" id="me-photo" accept="image/*"></label><span class="grow"><h2 class="bvnom">${esc(m.n)}</h2><span class="bds wrap">${tags}</span></span><p class="muted small bvchif"><button class="nm" data-a="bvMoi" data-k="jeu">${chiffres}</button></p></section>${pending() ? '' : adh}${pts}${clubC}<nav class="card bvmenu" aria-label="Mes pages">${menu}</nav>${window.RAM && RAM.user ? `<button class="btn ghost full logout" data-a="logout">${ic('logout')}Se déconnecter de /RAM Club</button>` : ''}</div>`;
+};
+TITLES.me = () => ['Moi', S.super ? 'Administrateur' : 'Mon profil'];
+/* les anciens sous-onglets du profil mènent à leur page */
+const bvMeTab = A.meTab;
+A.meTab = d => (BV_MOI[d.k] ? A.open({ v: 'moi', id: d.k }) : bvMeTab(d));
+const bvPalmGo = A.palmGo;
+A.palmGo = () => {
+  if (view().v === 'me') return A.open({ v: 'moi', id: 'jeu' });
+  return bvPalmGo();
+};
+/* « Investissement » devient « Trophées » */
+const bvTrophyTitle = TITLES.trophies;
+if (bvTrophyTitle)
+  TITLES.trophies = () => {
+    const [t, s] = bvTrophyTitle();
+    return [t, s === 'Mon investissement' ? 'Moi' : s];
+  };
+const bvTrophyCard = trophyCard;
+trophyCard = id => bvTrophyCard(id).replace('Investissement au club', 'Trophées au club');
+/* École > Mon espace : devenu « Mon suivi », dans Moi */
+const bvPlace5 = bvPlace;
+bvPlace = function () {
+  // l'ancien sous-onglet du profil demandé (Mon jeu, Mes infos, Réglages) : sa page dans Moi
+  if (S.tab === 'me' && !S.stack.length && BV_MOI[S.meTab]) {
+    S.stack = [{ v: 'moi', id: S.meTab }];
+    S.meTab = '';
+  }
+  if (S.tab === 'ecole' && S.ecTab === 'perso') {
+    S.ecTab = 'profs';
+    S.tab = sideNav() ? 'me' : 'home';
+    S.stack = [{ v: 'moi', id: 'suivi' }];
+  }
+  bvPlace5();
+};
+const bvEcole6 = V.ecole;
+V.ecole = () => {
+  if (S.ecTab === 'perso') S.ecTab = 'profs';
+  return bvEcole6().replace(/<button role="tab"[^>]*data-val="perso"[^>]*>[\s\S]*?<\/button>/, '');
+};
