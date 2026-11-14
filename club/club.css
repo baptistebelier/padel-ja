@@ -1827,3 +1827,10 @@ select option { background: var(--c-surface); color: var(--c-text); }
 @keyframes ramSegOut { to { transform: translateX(-100%); } }
 @keyframes bubPop { 0% { transform: scale(.15); opacity: 0; } 35% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes typDot { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+/* ===== Nouvelle organisation de /Buvette (app/24-interface.js, maquette validée le 14/11/2026) ===== */
+/* étape 1 : l'avatar « Moi » et le bouton Publier dans l'en-tête (téléphone) */
+.top .bvme { padding: 0; background: var(--c-accent); }
+.top .bvme .av.sm { width: 100%; height: 100%; font-size: 14px; border: 0; box-shadow: none; }
+.top .bvpub svg { width: 24px; height: 24px; }
+.addfab { display: none !important; }

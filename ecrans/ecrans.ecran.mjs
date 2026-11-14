@@ -101,13 +101,22 @@ test('Club : chaque onglet s’ouvre sans erreur et sans débordement sur 360 px
   const { page, errors } = await openPage(ctx, DEMO + '/index.html');
   await assertZoomAllowed(page);
   await page.waitForSelector('#tabs button[data-t]');
-  for (const t of ['home', 'chans', 'agenda', 'ecole', 'club', 'me']) {
-    await page.click(`#tabs button[data-t="${t}"]`);
+  // nouvelle organisation (14/11/2026) : 5 rubriques en bas, « Moi » derrière l'avatar de l'en-tête
+  assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('#tabs button[data-t]')].map(b => b.dataset.t)), ['home', 'agenda', 'jouer', 'chans', 'club'], 'les 5 rubriques');
+  assert.equal(await page.textContent('#tabs button[data-t="chans"]').then(t => t.replace(/\d+/g, '').trim()), 'Messages', '« Groupes » devient « Messages »');
+  assert.equal(await page.locator('#addfab:visible').count(), 0, 'plus de bouton + flottant');
+  assert.ok(await page.locator('#top .bvpub').isVisible(), 'Publier dans l’en-tête de l’Accueil');
+  for (const t of ['home', 'agenda', 'jouer', 'chans', 'club', 'me']) {
+    await page.click(t === 'me' ? '#top .bvme' : `#tabs button[data-t="${t}"]`);
     await page.waitForTimeout(400);
     const txt = await page.textContent('#main');
     assert.ok(txt && txt.trim().length > 20, `onglet ${t} vide`);
     assert.ok(await overflow(page) <= 1, `onglet ${t} : la page déborde horizontalement`);
   }
+  assert.equal(await page.evaluate(() => view().v), 'me', 'l’avatar ouvre Moi');
+  assert.ok(await page.locator('#top [data-a="back"]').isVisible(), 'Moi se referme par le retour');
+  // les anciennes adresses mènent à leur nouvelle place
+  assert.deepEqual(await page.evaluate(() => { S.stack = []; S.ecTab = 'mine'; A.tab({ t: 'ecole' }); const a = S.tab; A.goClub({ t: 'teams' }); return [a, S.tab, S.jouTab]; }), ['agenda', 'jouer', 'equipes']);
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -1343,10 +1352,11 @@ test('Club : répondre à un commentaire, modifier sa recherche, glisser entre s
     el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [t(a)] }));
     return S.tab;
   }, [de, a]);
+  // l'ordre des 5 rubriques : Accueil, Agenda, Jouer, Messages, Club
   await page.evaluate(() => { S.tab = 'chans'; S.stack = []; closeSheet(); render(); });
-  assert.equal(await glisse(300, 100), 'agenda');
+  assert.equal(await glisse(300, 100), 'club');
   await page.evaluate(() => { S.tab = 'chans'; render(); });
-  assert.equal(await glisse(100, 300), 'home');
+  assert.equal(await glisse(100, 300), 'jouer');
   // profil : sous-menu Mon jeu / Mes infos / Réglages / Investissement, en-tête compact avec les chiffres (refonte)
   await page.evaluate(() => { S.tab = 'me'; S.stack = []; S.meTab = 'reglages'; render(); });
   assert.ok(await page.evaluate(() => !!document.querySelector('.mesub [data-k="reglages"][aria-selected="true"]') && !!document.querySelector('.mehead .stats')), 'sous-menu et en-tête compact');
