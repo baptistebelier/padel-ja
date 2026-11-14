@@ -202,7 +202,7 @@ test('Coach : la saisie du thème n’est jamais effacée quand un autre club ch
   await post('/api/ram/main', { id: a.id });
   const today = new Date().toISOString().slice(0, 10), gid = 'gessai';
   await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'cours', id: gid, op: 'put', data: { type: 'train', name: 'Cours essai', sport: 'Padel', coach: a.key, once: today, h: '18 h', dur: '1 h', mem: [], ext: [], day: new Date().getDay() } }] });
-  await page.goto(`${JA}/club/coach.html`);   // sous /club/ : la vraie synchro (sous /coach/ en local : la démo)
+  await page.goto(`${JA}/club/coach.html?ui=1`);   // sous /club/ : la vraie synchro (sous /coach/ en local : la démo)
   await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
   await page.waitForTimeout(800);
   const club = await page.evaluate(() => RAM.club), other = club === a.id ? b : a;
@@ -235,7 +235,7 @@ test('Coach : la saisie du thème n’est jamais effacée quand un autre club ch
   await page.goto(JA + '/api/ram/clubs');
   await page.evaluate(() => new Promise(r => { const q = indexedDB.deleteDatabase('ram-cache'); q.onsuccess = q.onerror = q.onblocked = () => r(); }));
   await post(`/api/ram/c/${a.id}/ops`, { ops: [{ coll: 'cours', id: 'gvieux', op: 'put', data: { type: 'train', name: 'Cours ancien', sport: 'Padel', coach: a.key, once: vieux, h: '9 h', dur: '1 h', mem: [], ext: ['e1'], day: 1 } }, { coll: 'seance', id: `gvieux.${vieux}`, op: 'put', data: { g: 'gvieux', d: vieux, pres: { e1: 'P' } } }] });
-  await page.goto(`${JA}/club/coach.html`);
+  await page.goto(`${JA}/club/coach.html?ui=1`);
   await page.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
   await page.waitForTimeout(800);
   const has = () => page.evaluate(() => GROUPS.some(g => g.id === 'gvieux') && SEANCES.some(s => s.g === 'gvieux'));
@@ -280,7 +280,7 @@ test('JA en direct : un écran TV qui reçoit des différences retrouve exacteme
 });
 
 test('Club et Coach servis : un seul fichier de scripts, tout l’écran fonctionne, et le fichier est gardé pour le hors-ligne', async () => {
-  for (const [page0, onglet] of [['/club/demo', 'home'], ['/club/coach.html', 'planning']]) {
+  for (const [page0, onglet] of [['/club/demo', 'home'], ['/club/coach.html?ui=1', 'planning']]) {
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 800 } }), page = await ctx.newPage(), errs = [], js = [];
     page.on('pageerror', x => errs.push(x.message));
     page.on('response', r => { const p = new URL(r.url()).pathname; if (p.endsWith('.js') && !p.endsWith('sw.js')) js.push(p); });
@@ -418,7 +418,7 @@ test('Coach : Tableau de bord et Statistiques, planning en colonnes, un jour sur
   for (const [w, cols] of [[1280, 7], [375, 1]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 800 } }), page = await ctx.newPage(), errs = [];
     page.on('pageerror', x => errs.push(x.message));
-    await page.goto(JA + '/club/coach.html');
+    await page.goto(JA + '/club/coach.html?ui=1');
     await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
     assert.deepEqual(await page.evaluate(() => TABBAR.slice(0, 2).map(t => t[2])), ['Accueil', 'Stats'], 'libellés courts du menu (refonte)');
     assert.equal(await page.locator('.cotile').count(), 4, 'quatre petits chiffres');
@@ -453,7 +453,7 @@ test('Coach : Tableau de bord et Statistiques, planning en colonnes, un jour sur
 test('Coach : fiche élève en blocs, notes de 1 à 10 et toile, jauge du cycle, élève ponctuel, fiche enseignant', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coEleve === 'function' && typeof coDue === 'function');
   const large = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   // fiche élève : identité, actions juste en dessous, tuiles, groupes qui s'ouvrent
@@ -512,7 +512,7 @@ test('Coach : statistiques sans chiffre d’affaires, paiements à régulariser,
   const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
   page.on('dialog', d => d.accept());
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coPayTodo === 'function');
   const large = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   // statistiques : courbe du mois, autres périodes, aucun euro
@@ -574,7 +574,7 @@ test('Coach : statistiques sans chiffre d’affaires, paiements à régulariser,
 test('Coach : le volet du menu suit le doigt, comme /RAM JA', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 780 }, hasTouch: true }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('.cobar', { state: 'attached', timeout: 8000 });
   const touch = (type, x) => page.evaluate(([type, x]) => {
     const target = document.getElementById('main') || document.body, t = new Touch({ identifier: 1, target, clientX: x, clientY: 300 }), end = type === 'touchend';
@@ -727,7 +727,7 @@ test('Club : Gérer le club sans cours individuels, cartes vides, en-tête de di
 test('Coach : toute la largeur sur ordinateur, club dans l’en-tête, chiffres sur la courbe', async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
   for (const t of ['eleves', 'clubs', 'dash']) {
     await page.evaluate(x => { S.stack = []; A.tab({ t: x }); }, t);
@@ -761,7 +761,7 @@ test('Coach : toute la largeur sur ordinateur, club dans l’en-tête, chiffres 
 test('Coach : le calendrier de paiement d’un pack, et les filtres du Suivi', async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
   await page.evaluate(() => document.querySelectorAll('.ram-splash').forEach(x => x.remove()));
   // le plan du pack : ses séances et ses montants
@@ -821,7 +821,7 @@ test('Club : onglet Adhérents, accès depuis Le club, événement hors du mur p
 test('Coach : relier Google Agenda, les trois états du réglage', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
   assert.ok(await page.evaluate(() => coOutilsCard().includes('data-a="coGoogle"')));
   const texte = x => page.evaluate(v => { coGoogleSheet(v); const t = document.querySelector('#sheet').innerText; const larg = document.querySelector('#sheet').scrollWidth <= window.innerWidth; closeSheet(); return { t, larg }; }, x);
@@ -840,7 +840,7 @@ test('Coach : une adresse d’agenda refusée par Google n’est pas gardée, et
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
   await page.route('**/api/coach/agenda-verifier', r => r.fulfill({ json: { ok: false, raison: 'privee' } }));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof coCalTxt === 'function', null, { timeout: 8000 });
   await page.evaluate(() => { window.RAM = window.RAM || {}; RAM.live = true; OFFRES.icals = []; A.coIcalAdd(); });
   await page.fill('#co-ic', 'https://calendar.google.com/calendar/ical/x/public/basic.ics');
@@ -858,7 +858,7 @@ test('Coach : une adresse d’agenda refusée par Google n’est pas gardée, et
 test('Coach : participants d’une séance, Mes groupes, Suivi, formule d’un groupe, cycle sans dates, périodes en une fois', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
   // navigation
@@ -916,7 +916,7 @@ test('Coach : participants d’une séance, Mes groupes, Suivi, formule d’un g
 test('Coach : mes disponibilités, ce qui reste libre s’affiche au planning', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coDispoCard === 'function');
   await page.evaluate(() => { OFFRES.dispos = []; OFFRES.conges = []; A.open({ v: 'me' }); });
   await page.click('[data-a="coDispoAdd"]');
@@ -941,7 +941,7 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
   for (const w of [1280, 360]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 800 } }), page = await ctx.newPage(), errs = [];
     page.on('pageerror', x => errs.push(x.message));
-    await page.goto(JA + '/club/coach.html');
+    await page.goto(JA + '/club/coach.html?ui=1');
     await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
     await page.evaluate(() => { S.tab = 'planning'; S.stack = []; S.pl.v = 'semaine'; render(); });
     await page.waitForSelector('.cowg');
@@ -984,7 +984,7 @@ test('Coach : planning en vues jour et mois, ouvrir un collectif avec minimum et
 test('Coach : chaque formulaire de tarif et d’achat s’ouvre, avec la référence Shopify au bon endroit', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 800 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   for (const [f, form, sku] of [[() => A.coFoEdit({ id: OFFRES.formules[0].id }), '#co-fo', '#co-fv-sku'], [() => A.coPkEdit({ id: OFFRES.packs[0].id }), '#co-pk', '#co-kv-sku'], [() => A.coAbEdit({ id: OFFRES.abos[0].id }), '#co-ab', '.coabv .coabvs summary']]) {
     await page.evaluate(f);
@@ -1003,7 +1003,7 @@ test('Coach : chaque formulaire de tarif et d’achat s’ouvre, avec la référ
 test('Coach : un cycle reprend les séances déjà faites, le bon compte, et le paiement à un numéro de séance', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 800 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   // un groupe à qui il reste un créneau en plus : 13 dates pour un pack de 10
   const r = await page.evaluate(() => {
@@ -1067,7 +1067,7 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await post(cc, `/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'member', id: mine.key, op: 'put', data: { n: 'Ines Eleve', valid: saison, pl: 5 } }, { coll: 'member', id: club.key, op: 'put', data: { n: 'Sarah Coach', pro: { book: 'https://calendly.com/sarah/cours' } } }] });
 
   // le coach ouvre sa page publique
-  await coachP.goto(JA + '/club/coach.html');
+  await coachP.goto(JA + '/club/coach.html?ui=1');
   await coachP.waitForFunction(() => window.RAM && RAM.live, null, { timeout: 15000 });
   await coachP.evaluate(() => { S.stack = []; A.tab({ t: 'me' }); });
   await coachP.waitForSelector('[data-a="coResaPage"]', { timeout: 8000 });
@@ -1211,7 +1211,7 @@ test('Coach : raccourcis en haut, carte commune, jour épinglé, paiements à su
   const page = await browser.newPage({ viewport: { width: 390, height: 700 } });
   page.on('pageerror', e => { throw e; });
   page.on('dialog', d => d.accept());
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coPayTodo === 'function');
   await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); A.tab({ t: 'today' }); });
   // refonte : trois raccourcis et « Plus », avant les chiffres ; les autres raccourcis dans « Plus »
@@ -1265,7 +1265,7 @@ test('Club : agenda en cartes communes, l’étiquette du jour reste en haut pui
 test('Coach : en paysage, les sections se rangent sur deux colonnes ; sur téléphone et au planning, non', async () => {
   const page = await browser.newPage({ viewport: { width: 1180, height: 820 } });
   page.on('pageerror', e => { throw e; });
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coBento === 'function');
   await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); const e = coElGet(coStudents()[0]); e.achats = [{ id: 'hz', t: 'pack', ref: 'p1', d: TODAY, nom: 'Pack essai', n: 3, prix: 90, pay: { ech: [{ s: 0, m: 90, ok: '' }] } }]; A.tab({ t: 'asuivi' }); });
   await page.waitForSelector('.cobent .cocol .cosec');
@@ -1285,7 +1285,7 @@ test('Coach : en paysage, les sections se rangent sur deux colonnes ; sur télé
 test('Coach : un cycle reprend l’achat déjà noté du même produit au lieu d’en créer un second', async () => {
   const page = await browser.newPage({ viewport: { width: 1180, height: 820 } });
   page.on('pageerror', e => { throw e; });
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coCycleAchats === 'function');
   const r = await page.evaluate(() => {
     document.querySelector('.ram-splash')?.remove();
@@ -1581,7 +1581,7 @@ test('JA : le bouton pour activer les notifications, et le service worker les re
 test('Coach : l’objectif de l’élève sur la carte et la séance ; le panneau garde ce que le serveur a reçu, sans doublon', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', e => errs.push(e.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForFunction(() => typeof A !== 'undefined' && typeof coSesCard === 'function' && typeof window.ramNotifsMerge === 'function', { polling: 300 });
   const id = await page.evaluate(() => {
     document.querySelector('.ram-splash')?.remove();
@@ -1889,7 +1889,7 @@ test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA
     await page.waitForTimeout(300);
     await note('Club trophées');
     // /RAM Coach : chaque onglet du menu (planning compris), et les paiements
-    await page.goto(JA + '/club/coach.html');
+    await page.goto(JA + '/club/coach.html?ui=1');
     await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
     for (const t of await page.evaluate(() => TABBAR.map(x => x[0]))) {
       await page.evaluate(t => { document.querySelectorAll('.ram-splash').forEach(x => x.remove()); S.stack = []; A.tab({ t }); }, t);
@@ -2231,7 +2231,7 @@ test('JA : tournoi interne lancé avec un seul tableau à sections, joueur inscr
 test('Coach : réglages d’un cycle, remplaçant, séances à planifier, Abonné et états, attribution qui suit le groupe, discussion supprimée', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1180, height: 820 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   // un groupe avec un cycle de 6 séances dont 2 seulement ont une date
   const r = await page.evaluate(() => {
@@ -2337,7 +2337,7 @@ test('Club : l’appel de l’enseignant s’écrit dans la séance, comme dans 
 test('Coach : une séance change de date et d’heure, seule, sans toucher aux autres du groupe', async () => {
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   const r = await page.evaluate(() => {
     const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x) && !x.once && x.h && x.h !== '20 h 15'), l = coDates(g, isoIn(1), isoIn(60));
@@ -2373,7 +2373,7 @@ test('Coach : une séance change de date et d’heure, seule, sans toucher aux a
 test('Coach : un abonnement et ses variantes, dans une seule fenêtre', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   await page.evaluate(() => { OFFRES.abos = [{ id: 'a1', nom: 'Academy', periode: 'mois', duree: 6, prix: 120, parSemaine: 1 }]; A.open({ v: 'formules' }); A.coAbEdit({ id: 'a1' }); });
   await page.waitForSelector('#co-ab #co-avl .coabv');
@@ -2404,7 +2404,7 @@ test('Coach : un abonnement et ses variantes, dans une seule fenêtre', async ()
 test('Coach : renommer un groupe, objectifs et bilans de cycle sans rappel de bilan de séance, formules en cours à sélectionner, premiers pas cochés à la main', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   const large = () => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
   // renommer un groupe : sa discussion suit
@@ -2472,7 +2472,7 @@ test('Coach : renommer un groupe, objectifs et bilans de cycle sans rappel de bi
 test('Coach : statistiques — séances réalisées, heures, élèves, nouveaux élèves, sur le mois, le mois dernier, le trimestre ou la saison', async () => {
   const page = await browser.newPage({ viewport: { width: 360, height: 780 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   // un élève qui prend son tout premier cours ce mois-ci
   const k = await page.evaluate(() => {
@@ -2514,7 +2514,7 @@ test('Coach : statistiques — séances réalisées, heures, élèves, nouveaux 
 test('Coach : durée d’une séance ou de tout son cycle ; thèmes sans propositions ; sous-menu jamais replié ; filet contre l’écran blanc', async () => {
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } }), errs = [];
   page.on('pageerror', x => errs.push(x.message));
-  await page.goto(JA + '/club/coach.html');
+  await page.goto(JA + '/club/coach.html?ui=1');
   await page.waitForSelector('#tabs', { state: 'attached', timeout: 8000 });
   const r = await page.evaluate(() => {
     const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x) && !x.once && x.dur && x.dur !== '1 h 45'), l = coDates(g, isoIn(1), isoIn(60));
@@ -2581,13 +2581,19 @@ test('Dojo ?ui=2 : 5 rubriques partout, Statistiques en sous-onglet, Réglages h
     await page.evaluate(() => { S.tab = 'eleves'; S.stack = []; render(); });
     assert.equal(await page.locator('[aria-label="Formules et tarifs"], [aria-label="Échelles techniques"]').count(), 0, 'sous-menu Élèves sans doublons');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
-    // le choix reste sur l'appareil ; ?ui=1 revient à l'organisation actuelle
-    await page.goto(JA + '/club/coach.html');
-    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
-    assert.equal(await page.evaluate(() => document.documentElement.dataset.ui), '2', 'choix mémorisé');
+    // ?ui=1 revient à l'ancienne organisation en secours, et ce choix reste sur l'appareil
     await page.goto(JA + '/club/coach.html?ui=1');
     await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
-    assert.equal(await page.evaluate(() => TABBAR.length), 8, 'organisation actuelle');
+    assert.equal(await page.evaluate(() => TABBAR.length), 8, 'ancienne organisation');
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.ui), '1', 'secours mémorisé');
+    // sur un appareil neuf, la nouvelle organisation s'affiche sans rien ajouter à l'adresse
+    const neuf = await browser.newPage({ viewport: { width: w, height: 820 } });
+    await neuf.goto(JA + '/club/coach.html');
+    await neuf.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    assert.equal(await neuf.evaluate(() => document.documentElement.dataset.ui), '2', 'nouvelle organisation par défaut');
+    await neuf.close();
     assert.deepEqual(errs, []);
     await ctx.close();
   }
