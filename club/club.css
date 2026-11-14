@@ -1879,3 +1879,9 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .murside .bvscs { gap: 8px; }
 .murside .bvsc { min-height: 96px; padding: 10px; }
 #main .msb .msi .tile { width: 36px; height: 36px; }
+
+/* étape 3 : Agenda — la présence dans la carte du cours */
+.bvpres { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.bvpres + .bvpres { margin-top: 6px; }
+.bvpres .btn { min-height: 44px; }
+.bvpres-qui { flex: 1 0 100%; font-family: var(--f-sub); font-weight: 700; font-size: 14px; color: var(--c-muted); }

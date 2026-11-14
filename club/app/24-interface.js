@@ -449,3 +449,35 @@ document.addEventListener(
   },
   true
 );
+
+/* =========================================================================
+   Étape 3 — Agenda : la présence aux cours se donne dans l'agenda (pour soi et pour son enfant),
+   avec la même action qu'avant (« cresp » : l'enseignant la voit dans son appel, dans /Dojo).
+   École > Mes cours disparaît : les cours, les repas réservés, les rencontres sont dans « Mon agenda ».
+   ========================================================================= */
+const bvPresence = (g, iso, w) => {
+  const r = respOf(g, iso, w),
+    moi = w === ME();
+  return `<div class="ctl bvpres">${moi ? '' : `<span class="bvpres-qui">Pour ${esc(first(w))}</span>`}<button class="btn sm grow ${r === 'ok' ? '' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${w}" data-s="ok" aria-pressed="${r === 'ok'}" aria-label="${moi ? 'Je serai présent' : first(w) + ' sera présent'}">${ic('check')}Présent</button><button class="btn sm grow ${r === 'no' ? 'hot' : 'ghost'}" data-a="cresp" data-g="${g.id}" data-d="${iso}" data-u="${w}" data-s="no" aria-pressed="${r === 'no'}" aria-label="${moi ? 'Je serai absent' : first(w) + ' sera absent'}">${ic('x')}Absent</button></div>`;
+};
+const bvPlanItems = planItems;
+planItems = function (iso) {
+  const l = bvPlanItems(iso);
+  if (S.plan.scope !== 'me' || iso < TODAY) return l;
+  const me = ME(),
+    whos = [me].concat((M[me] && M[me].kids) || []);
+  l.forEach(i => {
+    if (i.cat !== 'ens' || i.cx || i.foot) return;
+    const g = grp(i.id);
+    if (!g) return;
+    const ws = whos.filter(w => (g.mem || []).includes(w));
+    if (ws.length) i.foot = ws.map(w => bvPresence(g, iso, w)).join('');
+  });
+  return l;
+};
+/* École : Mes cours est parti dans l'Agenda */
+const bvEcole = V.ecole;
+V.ecole = () => {
+  if (S.ecTab === 'mine') S.ecTab = 'profs';
+  return bvEcole().replace(/<button role="tab"[^>]*data-val="mine"[^>]*>[\s\S]*?<\/button>/, '');
+};
