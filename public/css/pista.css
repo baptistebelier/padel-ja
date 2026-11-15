@@ -34,6 +34,28 @@
 :root[data-mode='nuit'] { color-scheme: dark; }
 :root:not([data-mode='nuit']) { color-scheme: light; }
 
+/* ---------- fonds teintés et en-tête fixe (demande de Baptiste, novembre 2026) ----------
+   Fond de page et fond des cartes : blanc ou gris clair le jour, gris foncé la nuit, avec une légère teinte de la couleur
+   du menu (rouge /Pista). Remplace la nuit « bordeaux B ». L'en-tête reste en haut, opaque, au-dessus du contenu qui
+   passe dessous ; les intercalaires et onglets internes défilent avec leur carte. */
+:root {
+  --menu: #74102A;
+  --bg: color-mix(in srgb, var(--menu) 4%, #F6F6F6);
+  --card: color-mix(in srgb, var(--menu) 1.5%, #FFFFFF);
+  --card2: color-mix(in srgb, var(--menu) 5%, #F0F0F0);
+  --field: color-mix(in srgb, var(--menu) 5%, #F0F0F0);
+  --off: color-mix(in srgb, var(--menu) 8%, #E2E2E2);
+  --muted: #595D66;
+}
+:root[data-mode='nuit'] {
+  --bg: color-mix(in srgb, var(--menu) 8%, #18181A);
+  --card: color-mix(in srgb, var(--menu) 8%, #232326);
+  --card2: color-mix(in srgb, var(--menu) 9%, #2C2C30);
+  --field: color-mix(in srgb, var(--menu) 8%, #1E1E21);
+  --off: color-mix(in srgb, var(--menu) 10%, #3A3A3F);
+  --ink: #000000; --fg: #F4F4F5; --muted: #C8C8CE; --kick: #FF94AD;
+}
+
 /* ---------- 2. BASE ---------- */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
@@ -1482,6 +1504,18 @@ button.row.ps-recrow { width: 100%; border: 0; background: none; box-shadow: non
 .acct .phead h1 input { text-transform: inherit; letter-spacing: inherit; }
 /* 14-15 · Tournoi interne : même coque que l'éditeur, lignes de matchs et de participants avec étiquettes et « … » */
 .in-al { border-radius: 0; }
+
+/* en-tête fixe et opaque : pages du compte (surtitre, titre, actions) et éditeur ; le contenu défile dessous */
+html { scroll-padding-top: 150px; }
+.acct .phead { position: sticky; top: 0; z-index: 30; margin: calc(-1 * (var(--s5) + env(safe-area-inset-top, 0px))) calc(-1 * var(--s6)) var(--s5); padding: calc(var(--s5) + env(safe-area-inset-top, 0px)) var(--s6) var(--s4); background: var(--c-bg); }
+body.editor-page .top { top: 0; z-index: 30; padding-top: calc(var(--s5) + env(safe-area-inset-top, 0px)); }
+/* seul l'en-tête reste collé : le choix de section du téléphone et les intercalaires défilent avec la page */
+.r-itabs, .ps-itabs, .tsec-tabs { position: relative; top: auto; }
+@media (max-width: 720px) {
+  html { scroll-padding-top: 90px; }
+  .acct .phead { margin: calc(-1 * var(--s4)) calc(-1 * var(--s4)) var(--s4); padding: calc(var(--s3) + env(safe-area-inset-top, 0px)) var(--s4) var(--s3); }
+  .ps-secbar { position: static; }
+}
 
 /* ---------- 8. ANIMATIONS ---------- */
 @keyframes blink { 50% { opacity: .2; } }

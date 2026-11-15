@@ -94,7 +94,7 @@
   .phone.subfold .segt { grid-template-columns: 1fr; padding: 0; }
   .phone.subfold .segx { grid-row: 1; transform: scaleX(-1); }
   /* en-tête de page : surtitre, grand titre, actions à droite, sans barre */
-  #phone .top { background: transparent !important; border: 0 !important; box-shadow: none !important; padding-top: calc(22px + env(safe-area-inset-top, 0px)) !important; padding-bottom: 8px !important; min-height: 92px; align-items: flex-start; }
+  #phone .top { background: var(--c-bg) !important; border: 0 !important; box-shadow: none !important; padding-top: calc(22px + env(safe-area-inset-top, 0px)) !important; padding-bottom: 8px !important; min-height: 92px; align-items: flex-start; }
   #phone .top h1 { font-size: 48px !important; line-height: .95 !important; font-style: normal !important; }
   #phone .top h1 .sub { font-size: 12px !important; margin-bottom: 6px !important; }
   /* bouton Publier : dans l'en-tête, à droite, carré d'accent avec libellé */

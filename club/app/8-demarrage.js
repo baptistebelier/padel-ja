@@ -39,42 +39,15 @@ setInterval(() => {
   if (['home', 'chans'].includes(v.v) && !$('sheet')) render(true);
 }, 24000);
 
-/* Le bandeau du haut se retire quand on fait défiler vers le bas, revient quand on remonte */
-/* Il faut remonter d'au moins 160 px (ou revenir tout en haut) pour le faire revenir : le rebond en bas de page ne le rappelle plus */
-/* Le bandeau flotte au-dessus de la page : il glisse sans changer la taille de la zone qui défile, donc le défilement reste collé au doigt */
-var lastY = 0,
-  turnY = 0;
+/* Le bandeau du haut reste toujours affiché (demande de Baptiste) : il flotte au-dessus de la page, fond opaque,
+   et le contenu défile dessous ; la zone qui défile commence juste sous lui */
 function topPad() {
   const t = $('top'),
     m = $('main');
   m.style.paddingTop = t.offsetHeight + 'px';
-  m.style.setProperty(
-    '--segt',
-    t.classList.contains('hide') ? 'calc(env(safe-area-inset-top,0px) - ' + t.offsetHeight + 'px)' : '0px'
-  );
+  m.style.scrollPaddingTop = t.offsetHeight + 'px';
+  m.style.setProperty('--segt', '0px');
 }
-$('main').addEventListener(
-  'scroll',
-  () => {
-    const m = $('main'),
-      max = m.scrollHeight - m.clientHeight,
-      y = Math.min(Math.max(m.scrollTop, 0), max),
-      t = $('top'),
-      hid = t.classList.contains('hide');
-    if (y > lastY) {
-      turnY = y;
-      if (y > 80 && !hid && !['chan', 'rec'].includes(view().v)) {
-        t.classList.add('hide');
-        m.style.setProperty('--segt', 'calc(env(safe-area-inset-top,0px) - ' + t.offsetHeight + 'px)');
-      }
-    } else if (y < lastY && hid && (turnY - y > 160 || y < 30)) {
-      t.classList.remove('hide');
-      m.style.setProperty('--segt', '0px');
-    }
-    lastY = y;
-  },
-  { passive: true }
-);
 new ResizeObserver(topPad).observe($('top'), { box: 'border-box' });
 /* Glisser le doigt le long de la barre du bas pour choisir sa page, comme Instagram */
 /* Curseur de la barre du bas (comme Instagram) : il suit le doigt pendant le glissé, puis se cale sur l'onglet le plus proche.

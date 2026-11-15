@@ -3,6 +3,27 @@
    Chargée après /club/ds.css : jetons --c-*, traits, ombres et polices du socle commun.
    Jour par défaut, nuit bordeaux par js/theme.js (data-mode="nuit"). Aucun texte sous 12 px.
    ========================================================================= */
+/* ---------- fonds teintés et en-tête fixe (demande de Baptiste, novembre 2026) ----------
+   Fond de page et fond des cartes : blanc ou gris clair le jour, gris foncé la nuit, avec une légère teinte de la couleur
+   du menu (rouge /Pista). Remplace la nuit « bordeaux B ». L'en-tête reste en haut, opaque, au-dessus du contenu qui
+   passe dessous ; les intercalaires et onglets internes défilent avec leur carte. */
+:root {
+  --menu: #74102A;
+  --bg: color-mix(in srgb, var(--menu) 4%, #F6F6F6);
+  --card: color-mix(in srgb, var(--menu) 1.5%, #FFFFFF);
+  --card2: color-mix(in srgb, var(--menu) 5%, #F0F0F0);
+  --field: color-mix(in srgb, var(--menu) 5%, #F0F0F0);
+  --off: color-mix(in srgb, var(--menu) 8%, #E2E2E2);
+  --muted: #595D66;
+}
+:root[data-mode='nuit'] {
+  --bg: color-mix(in srgb, var(--menu) 8%, #18181A);
+  --card: color-mix(in srgb, var(--menu) 8%, #232326);
+  --card2: color-mix(in srgb, var(--menu) 9%, #2C2C30);
+  --field: color-mix(in srgb, var(--menu) 8%, #1E1E21);
+  --off: color-mix(in srgb, var(--menu) 10%, #3A3A3F);
+  --ink: #000000; --fg: #F4F4F5; --muted: #C8C8CE; --kick: #FF94AD;
+}
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

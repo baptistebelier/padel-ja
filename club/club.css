@@ -256,7 +256,7 @@ html, body { background: var(--c-bg); }
   .phone.subfold :is(#main, #subnav) > .seg > button, .phone.subfold .segt span, .phone.subfold .segt b { display: none; }
   .phone.subfold .segt { grid-template-columns: 1fr; padding: 0; }
   .phone.subfold .segx { grid-row: 1; transform: scaleX(-1); }
-  #phone .top { background: transparent; border: 0; box-shadow: none; padding-top: calc(22px + env(safe-area-inset-top, 0px)); padding-bottom: 8px; min-height: 92px; }
+  #phone .top { background: var(--c-bg); border: 0; box-shadow: none; padding-top: calc(22px + env(safe-area-inset-top, 0px)); padding-bottom: 8px; min-height: 92px; }
   #phone .top h1 { font-size: 48px; font-style: normal; }
   #phone .top h1 .sub { font-size: 12px; margin-bottom: 6px; }
   #phone .tabs button[data-t="me"] { display: flex; }

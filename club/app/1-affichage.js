@@ -164,11 +164,7 @@ function render(keep) {
     sub = 'Profil';
   }
   if (typeof favVisit === 'function') favVisit();
-  if (key !== lastKey) {
-    $('top').classList.remove('hide');
-    lastY = 0;
-    turnY = 0;
-  }
+  if (key !== lastKey) $('top').classList.remove('hide');
   $('top').innerHTML =
     (S.stack.length ? `<button class="ib" data-a="back" aria-label="Retour">${ic('back')}</button>` : '') +
     (clubLogo()

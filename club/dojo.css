@@ -309,7 +309,7 @@ button.copp:hover span:last-child { text-decoration: underline; }
   .phone.subfold :is(#main, #subnav) > .seg > button, .phone.subfold .segt span, .phone.subfold .segt b { display: none; }
   .phone.subfold .segt { grid-template-columns: 1fr; padding: 0; }
   .phone.subfold .segx { grid-row: 1; transform: scaleX(-1); }
-  #phone .top { background: transparent; border: 0; box-shadow: none; padding: calc(22px + env(safe-area-inset-top, 0px)) 28px 8px; min-height: 92px; align-items: center; }
+  #phone .top { background: var(--c-bg); border: 0; box-shadow: none; padding: calc(22px + env(safe-area-inset-top, 0px)) 28px 8px; min-height: 92px; align-items: center; }
   #phone .top h1 { font-size: 48px; }
   .cobm > .pad { padding: 0; }
   #main > .cobento { padding: 16px 24px 40px; box-sizing: border-box; max-width: none; }

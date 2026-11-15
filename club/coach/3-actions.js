@@ -635,40 +635,23 @@ Object.assign(A, {
   }
 });
 /* logo /RAM Coach (au lieu de /RAM Club) dans le menu latéral, quand le club n'a pas de logo à lui */
-/* couleurs de /RAM JA (nuit bordeaux, jour rosé, lime et rose /RAM), jamais celles du club : un logiciel de gestion */
+/* couleurs propres à /Dojo ; les fonds (page, cartes, champs) et le texte viennent de fondsTeintes : gris clair ou foncé teinté du rouge du menu */
 const CO_THEME = {
   true: {
-    bg: '#3A0C1B',
-    card: '#5A1630',
-    card2: '#6A1D3A',
-    line: '#8A3350',
-    field: '#4A1226',
-    off: '#8A3350',
-    fg: '#F7EFF0',
-    muted: '#EBCFD8',
     accent: '#E0F50A',
     'on-accent': '#1A0509',
     accent2: '#FF3D6B',
     hot: '#FF3D6B',
     'hot-tx': '#FF94AD',
-    'on-hot': '#FFFFFF',
-    stage: '#22060F'
+    'on-hot': '#FFFFFF'
   },
   false: {
-    bg: '#F2EBE4',
-    card: '#FFFFFF',
-    card2: '#F8F1EC',
-    line: '#E6DCD6',
-    field: '#F8F1EC',
-    fg: '#1A0509',
-    muted: '#6E5A61',
     accent: '#A30F35',
     'on-accent': '#FFFFFF',
     accent2: '#D0103A',
     hot: '#D0103A',
     'hot-tx': '#B3123D',
-    'on-hot': '#FFFFFF',
-    stage: '#E6DCD6'
+    'on-hot': '#FFFFFF'
   }
 };
 const coSetTheme = setTheme;
@@ -677,10 +660,12 @@ setTheme = function (i) {
   const r = document.documentElement.style,
     dk = effDark();
   Object.entries(CO_THEME[dk]).forEach(([k, v]) => r.setProperty('--' + k, v));
+  Object.entries(fondsTeintes('#74102A', dk)).forEach(([k, v]) => r.setProperty('--' + k, v));
+  r.setProperty('--stage', dk ? '#121214' : '#E2E2E2');
   r.setProperty('--rail-logo', `url("img/coach-v2-logo-${dk ? 'blanc' : 'noir'}.png")`);
   r.colorScheme = dk ? 'dark' : 'light';
   const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.content = dk ? '#3A0C1B' : '#74102A';
+  if (m) m.content = dk ? '#1F171B' : '#74102A';
 };
 /* ma fiche enseignant : rangée dans mon profil du club, visible de tous les adhérents (École, Enseignants) */
 A.coPro = () => {

@@ -4,15 +4,12 @@
   const root = document.documentElement;
   const saved = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
   const system = () => (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-  /* nuit « bordeaux B » de la maquette Figma, comme /Dojo (club/coach/3-actions.js, CO_THEME) :
-     ces valeurs remplacent les entrées du socle /club/ds.css (--bg, --card…) ; le jour garde celles du socle */
-  const NUIT_B = { bg: '#3A0C1B', card: '#5A1630', card2: '#6A1D3A', field: '#4A1226', off: '#8A3350', fg: '#F7EFF0', muted: '#EBCFD8', kick: '#FF94AD' };
+  /* fonds jour et nuit : gris teinté du rouge du menu, calculés par /css/pista.css et /css/site.css (plus de nuit « bordeaux B » posée ici) */
   function apply(t) {
     root.dataset.theme = t;
     root.dataset.mode = t === 'light' ? 'jour' : 'nuit';   // nom lu par le socle /club/ds.css
-    if (document.querySelector('link[href="/club/ds.css"]')) Object.entries(NUIT_B).forEach(([k, v]) => { if (t === 'light') root.style.removeProperty('--' + k); else root.style.setProperty('--' + k, v); });
     const m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.content = t === 'light' ? '#F2EBE4' : '#3A0C1B';
+    if (m) m.content = t === 'light' ? '#F1EDEE' : '#1F171B';
     document.querySelectorAll('[data-theme-toggle]').forEach(b => {
       b.setAttribute('aria-label', t === 'light' ? 'Passer en mode nuit' : 'Passer en mode jour');
       const s = b.querySelector('span'); if (s) s.textContent = t === 'light' ? 'Mode nuit' : 'Mode jour';

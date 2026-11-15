@@ -2072,6 +2072,50 @@ test('JA : Saisir un score (panneau), +1 jeu et +1 set ; menu « … » d’une 
   await ctx.close();
 });
 
+/* ---------- Les trois applis : l'en-tête reste en haut après un défilement, fond opaque ; les intercalaires défilent avec leur carte ---------- */
+test('Trois applis : en-tête fixe et opaque après un défilement, intercalaires non collants', async () => {
+  // couleur calculée sans transparence : rgb(...), rgba(..., 1) ou color(srgb ...) sans « / alpha » inférieur à 1
+  const opaque = c => c !== 'transparent' && !/rgba\([^)]*,\s*0?\.\d+\)|rgba\([^)]*,\s*0\)|\/\s*0?\.\d+\)|\/\s*0\)/.test(c);
+  const verifier = async (page, sel, scroller, quoi) => {
+    await page.evaluate(([s]) => { const el = s ? document.querySelector(s) : document.scrollingElement; el.scrollTop = 900; }, [scroller]);
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(h => { const el = document.querySelector(h); if (!el) return null; const b = el.getBoundingClientRect(), cs = getComputedStyle(el); return { top: b.top, bas: b.bottom, bg: cs.backgroundColor, vis: cs.visibility !== 'hidden' && cs.display !== 'none' && b.height > 0 }; }, sel);
+    assert.ok(r && r.vis, quoi + ' : en-tête présent');
+    assert.ok(r.top <= 1 && r.bas > 20, quoi + ' : en-tête visible en haut après le défilement (haut à ' + r.top + ' px)');
+    assert.ok(opaque(r.bg), quoi + ' : fond opaque (' + r.bg + ')');
+    // la carte ne se voit pas à travers : l'élément au milieu de l'en-tête appartient à l'en-tête
+    const dessus = await page.evaluate(h => { const el = document.querySelector(h), b = el.getBoundingClientRect(), x = document.elementFromPoint(b.left + b.width / 2, b.top + Math.min(b.height - 4, 30)); return !!x && el.contains(x); }, sel);
+    assert.ok(dessus, quoi + ' : en-tête au premier plan');
+  };
+  // /Pista : pages du compte (en-tête de page) et éditeur (barre du haut), sur ordinateur et téléphone
+  for (const [w, h] of [[1440, 900], [360, 760]]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: w < 700, hasTouch: w < 700 });
+    const { page, errors } = await openPage(ctx, JA + '/demo');
+    await page.goto(JA + '/app'); await page.waitForTimeout(600);
+    await page.evaluate(() => { const s = document.createElement('div'); s.style.height = '2400px'; document.querySelector('main').appendChild(s); });
+    await verifier(page, '.phead', null, '/Pista ' + w + ' › Mes tournois');
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('#psCols')).position), 'relative', 'intercalaires non collants');
+    await page.goBack(); await page.waitForTimeout(800);
+    await page.evaluate(() => { const s = document.createElement('div'); s.style.height = '2400px'; document.querySelector('main').appendChild(s); });
+    await verifier(page, w < 700 ? '.appbar' : '.top', null, '/Pista ' + w + ' › éditeur');
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+  // /Buvette (démo) et /Dojo : la barre du haut ne se retire plus au défilement
+  for (const [url, pc] of [[DEMO + '/index.html', false], [JA + '/club/coach.html?ui=1', false], [DEMO + '/index.html', true], [JA + '/club/coach.html?ui=1', true]]) {
+    const ctx = pc ? await browser.newContext({ viewport: { width: 1440, height: 900 } }) : await phone();
+    const { page, errors } = await openPage(ctx, url);
+    await page.waitForSelector('#top', { state: 'attached', timeout: 10000 });
+    await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); const s = document.createElement('div'); s.style.height = '2400px'; document.getElementById('main').appendChild(s); });
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { const m = document.getElementById('main'); m.scrollTop = 300; m.dispatchEvent(new Event('scroll')); m.scrollTop = 900; m.dispatchEvent(new Event('scroll')); });
+    await verifier(page, '#top', '#main', (url.includes('coach') ? '/Dojo' : '/Buvette') + (pc ? ' ordinateur' : ' téléphone'));
+    assert.ok(!(await page.evaluate(() => document.getElementById('top').classList.contains('hide'))), 'en-tête jamais retiré');
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
+});
+
 /* ---------- Agenda du club : promouvoir des événements sur le mur ; page d'un trophée : la jauge des paliers ---------- */
 test('Club : le bureau promeut plusieurs événements de l’agenda sur le mur ; un adhérent n’a pas le bouton ; jauge des paliers d’un trophée', async () => {
   const ctx = await phone();
