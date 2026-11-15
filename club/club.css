@@ -1957,3 +1957,17 @@ select option { background: var(--c-surface); color: var(--c-text); }
 :is(:root[data-style],:root) #phone #main .tcard.cf3 { box-shadow: 5px 5px 0 var(--b-or); }
 /* étape 7 : finitions — boutons du bar à 44 px au moins */
 #main .bar-it .ctl .btn { min-height: 44px; }
+
+/* Photo de profil : l'image entière, recadrée au centre (sans cette règle, seul son coin haut gauche s'affichait) */
+.av[style*="url("] { background-size: cover; background-position: center; background-repeat: no-repeat; }
+/* Cadre de trophée autour de chaque avatar, partout (et plus seulement dans l'en-tête de Moi) : anneau de la couleur du niveau, filet encre */
+.av.fr1, :has(> .av.fr1) { --lvl: var(--b-bronze); }
+.av.fr2, :has(> .av.fr2) { --lvl: var(--b-argent); }
+.av.fr3, :has(> .av.fr3) { --lvl: var(--b-or); }
+.av.fr4, :has(> .av.fr4) { --lvl: var(--b-platine); }
+.av.fr5, :has(> .av.fr5) { --lvl: var(--b-legende); }
+.av:is(.fr1,.fr2,.fr3,.fr4,.fr5) { box-shadow: 0 0 0 3px var(--lvl), 0 0 0 5px var(--c-ink); }
+.av.sm:is(.fr1,.fr2,.fr3,.fr4,.fr5) { box-shadow: 0 0 0 2px var(--lvl), 0 0 0 3px var(--c-ink); }
+.av.xl:is(.fr1,.fr2,.fr3,.fr4,.fr5), .phero .av:is(.fr1,.fr2,.fr3,.fr4,.fr5) { box-shadow: 0 0 0 5px var(--lvl), 0 0 0 7px var(--c-ink); margin: 8px; }
+/* en-tête au téléphone : l'avatar remplit son bouton, c'est le bouton qui porte le cadre */
+.top .bvme:has(> .av:is(.fr1,.fr2,.fr3,.fr4,.fr5)) { box-shadow: 0 0 0 3px var(--lvl), 0 0 0 5px var(--c-ink); }

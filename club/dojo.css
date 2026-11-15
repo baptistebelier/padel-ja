@@ -2141,3 +2141,17 @@ select option { background: var(--c-surface); color: var(--c-text); }
 @keyframes bubPop { 0% { transform: scale(.15); opacity: 0; } 35% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes typDot { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-4px); opacity: 1; } }
 @keyframes copop { 0% { transform: scale(1); } 40% { transform: scale(1.18) rotate(-3deg); } 100% { transform: scale(1); } }
+
+/* Photo de profil : l'image entière, recadrée au centre (sans cette règle, seul son coin haut gauche s'affichait) */
+.av[style*="url("] { background-size: cover; background-position: center; background-repeat: no-repeat; }
+/* Cadre de trophée autour de chaque avatar, partout (et plus seulement dans l'en-tête de Moi) : anneau de la couleur du niveau, filet encre */
+.av.fr1, :has(> .av.fr1) { --lvl: var(--b-bronze); }
+.av.fr2, :has(> .av.fr2) { --lvl: var(--b-argent); }
+.av.fr3, :has(> .av.fr3) { --lvl: var(--b-or); }
+.av.fr4, :has(> .av.fr4) { --lvl: var(--b-platine); }
+.av.fr5, :has(> .av.fr5) { --lvl: var(--b-legende); }
+.av:is(.fr1,.fr2,.fr3,.fr4,.fr5) { box-shadow: 0 0 0 3px var(--lvl), 0 0 0 5px var(--c-ink); }
+.av.sm:is(.fr1,.fr2,.fr3,.fr4,.fr5) { box-shadow: 0 0 0 2px var(--lvl), 0 0 0 3px var(--c-ink); }
+.av.xl:is(.fr1,.fr2,.fr3,.fr4,.fr5), .phero .av:is(.fr1,.fr2,.fr3,.fr4,.fr5) { box-shadow: 0 0 0 5px var(--lvl), 0 0 0 7px var(--c-ink); margin: 8px; }
+/* en-tête au téléphone : l'avatar remplit son bouton, c'est le bouton qui porte le cadre */
+.top .bvme:has(> .av:is(.fr1,.fr2,.fr3,.fr4,.fr5)) { box-shadow: 0 0 0 3px var(--lvl), 0 0 0 5px var(--c-ink); }
