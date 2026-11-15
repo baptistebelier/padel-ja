@@ -74,7 +74,7 @@
   function psMenuClose() { if (psMenuEl) { psMenuEl.remove(); psMenuEl = null; } }
   function psMenu(btn, items) {
     const was = psMenuEl && psMenuEl._for === btn; psMenuClose(); if (was) return;
-    const m = document.createElement('div'); m.className = 'r-menu ps-pop'; m.setAttribute('role', 'menu'); m._for = btn;
+    const m = document.createElement('div'); m.className = 'r-menu ps-pop'; m.setAttribute('role', 'menu'); m._for = btn; m._t = Date.now();
     const list = items.filter(Boolean);
     m.innerHTML = list.map(([l, ic, , d], i) => `<button type="button" role="menuitem" data-i="${i}"${d ? ' class="danger"' : ''}>${ic || ''}<span>${esc(l)}</span></button>`).join('');
     document.body.appendChild(m); psMenuEl = m;
@@ -86,7 +86,8 @@
   }
   document.addEventListener('click', e => { if (psMenuEl && !psMenuEl.contains(e.target) && !(psMenuEl._for && psMenuEl._for.contains(e.target))) psMenuClose(); }, true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && psMenuEl) { const b = psMenuEl._for; psMenuClose(); if (b) b.focus(); } });
-  addEventListener('scroll', psMenuClose, { passive: true });
+  // le défilement ferme le menu, sauf celui que le clic d'ouverture vient de provoquer
+  addEventListener('scroll', () => { if (psMenuEl && Date.now() - psMenuEl._t > 400) psMenuClose(); }, { passive: true });
   /* carte de terrain du Direct (maquette, point 5) : une ligne par paire, une case par set, le set gagné en citron */
   function psCourtCard(c, m, PS) {
     const r = R[m.id], sc = r.score;
@@ -105,14 +106,16 @@
   /* ---------- en-tête, intercalaires et colonnes de droite (maquette « Refonte /Pista ») ---------- */
   const secName = t => { const b = $('#nav button[data-tab="' + t + '"] .lg'); return b ? b.textContent : t; };
   // une seule action citron par en-tête : sur Inscriptions, « Ajouter » est déjà dans la Saisie rapide et Écran TV garde le citron
-  const PS_ACT = { programmation: 'Programmation automatique', direct: 'Saisir un score' };
+  const PS_ACT = { tournoi: 'Enregistrer', programmation: 'Programmation automatique', direct: 'Saisir un score', diffusion: 'Ouvrir l’écran TV' };
   function psTitles(t) {
     $('#hTag').textContent = [t.name || 'Tournoi', [t.category, t.gender].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     $('#hName').textContent = secName(tab);
     $('#abTitle').textContent = secName(tab);
     $('#abSub').textContent = t.name || 'Tournoi';
     const act = $('#psAct');
-    if (act) { act.hidden = !PS_ACT[tab]; act.lastChild.textContent = PS_ACT[tab] || ''; }
+    const lab = tab === 'tirage' && S && !S.draw ? 'Lancer le tirage' : PS_ACT[tab];
+    if (act) { act.hidden = !lab; act.lastChild.textContent = lab || ''; }
+    document.body.dataset.psTab = tab;
   }
   (function psInit() {
     // en-tête : Annuler, PDF, action de l'écran, Écran TV ; Overlay et l'aide passent dans « … »
@@ -122,6 +125,9 @@
     act.innerHTML = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><span></span>';
     act.onclick = () => {
       if (tab === 'programmation') return $('#schedAuto').click();
+      if (tab === 'tirage') { const d = $('#doDraw'); if (d) d.click(); return; }
+      if (tab === 'diffusion') return $('#btnTv').click();
+      if (tab === 'tournoi') { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); return A.toast('Fiche enregistrée', 'ok'); }
       if (tab === 'inscriptions') { const i = $('#addPair input[name="l1"]'); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } return; }
       if (tab === 'direct') {
         const m = S && S.matches.find(x => R[x.id] && R[x.id].state === 'live') || S && S.matches.find(x => R[x.id] && R[x.id].state === 'ready');
@@ -170,6 +176,34 @@
       sec.dataset.psView = b.dataset.v; $$('button', pt).forEach(x => x.setAttribute('aria-selected', x === b));
       if (b.dataset.v === 'order') { $('#orderBody').hidden = false; $('#orderCard').classList.add('open'); }
     });
+    // Écran TV & stream (maquette, écran 3) : vues en tuiles avec picto, Stream (overlay) avec le fond en segmenté, carte Télécommande
+    const dif = $('#tab-diffusion'), dg = $('.grid2', dif);
+    if (dg) {
+      const VIEW_IC = { bracket: '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>', poules: '<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/>',
+        schedule: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>', live: '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/>',
+        standings: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>', info: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>', stats: '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>', draw: '<path d="M4 7h3l10 10h3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3M17 14l3 3-3 3"/>' };
+      $$('#tvViews [data-tv]').forEach(b => { const k = b.querySelector('b'); b.title = 'Touche ' + (k ? k.textContent : ''); if (k) k.replaceWith(document.createRange().createContextualFragment(psIc(VIEW_IC[b.dataset.tv] || ''))); });
+      const [tvc, stc] = $$(':scope > .card', dg);
+      $('h3', tvc).innerHTML = psIc('<rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/>') + 'Télévision';
+      $('#tvViews').insertAdjacentHTML('beforebegin', '<span class="ps-lbl">Vue affichée</span>');
+      $('h3', stc).innerHTML = psIc('<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>') + 'Stream (overlay)';
+      // fond de l'overlay en segmenté : Vert, Transparent, Bleu (le choix passe par la liste d'origine, cachée)
+      const obg = $('#overlayBg'), obgLab = obg.closest('label');
+      obgLab.hidden = true;
+      obgLab.insertAdjacentHTML('afterend', `<div class="ps-obgw span2"><span class="ps-lbl">Fond</span><div class="seg ps-obg" role="tablist" aria-label="Fond de l'overlay">${[['green', 'Vert'], ['transparent', 'Transparent'], ['blue', 'Bleu']].map(([v, l]) => `<button type="button" role="tab" data-obg="${v}">${l}</button>`).join('')}</div></div>`);
+      $$('[data-obg]', stc).forEach(b => b.onclick = () => { obg.value = b.dataset.obg; obg.dispatchEvent(new Event('change')); $$('[data-obg]', stc).forEach(x => x.setAttribute('aria-selected', x === b)); });
+      const ob2 = $('#btnOverlay2'); if (ob2) { ob2.closest('label').replaceWith(ob2); ob2.classList.add('ps-obtn'); ob2.innerHTML = psIc('<path d="M12 15V3M7 8l5-5 5 5M4 15v6h16v-6"/>') + 'Ouvrir l’overlay'; }
+      const t2 = $('#btnTv2'); if (t2) t2.closest('.btns').hidden = true;   // « Ouvrir l'écran TV » est dans l'en-tête
+      // colonne de droite : Stream, puis Télécommande (code PIN et liens dans une zone qui s'ouvre)
+      const side = document.createElement('div'); side.className = 'ps-dcol';
+      stc.before(side); side.appendChild(stc);
+      const rc = document.createElement('section'); rc.className = 'card';
+      rc.innerHTML = `<h3>${psIc('<rect x="7" y="2" width="10" height="20"/><path d="M11 18h2"/>')}Télécommande</h3><p class="muted small">Changez la vue et saisissez les scores depuis votre téléphone : ouvrez le lien de la télécommande et tapez le code PIN.</p>
+        <div class="btns"><button type="button" id="psRcShow" aria-expanded="false">${psIc('<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>')}Afficher le code</button></div>`;
+      side.appendChild(rc);
+      const urls = $('#urls'); rc.appendChild(urls); urls.hidden = true;
+      $('#psRcShow', rc).onclick = () => { urls.hidden = !urls.hidden; $('#psRcShow', rc).setAttribute('aria-expanded', !urls.hidden); };
+    }
     // Direct : colonne de droite Repos des joueurs (jauges) et À suivre
     const side = document.createElement('aside'); side.className = 'ps-dside';
     side.innerHTML = '<section class="card"><h3><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>Repos des joueurs</h3><div id="psRest" class="ps-rest"></div></section>'
@@ -467,6 +501,7 @@
     renderTemplates();
     renderRealDurs();
     $$('[data-f]').forEach(el => fill(el, t[el.dataset.f]));
+    $$('input[name=psReg]').forEach(x => { x.checked = x.value === (t.regMode || ''); });
     $$('[data-c]').forEach(el => fill(el, (t.colors || {})[el.dataset.c]));
     $$('[data-d]').forEach(el => fill(el, (t.durations || {})[el.dataset.d]));
     $$('#tab-tournoi [data-show]').forEach(el => el.classList.toggle('hide', !el.dataset.show.split(' ').includes(t.formula || 'tf')));
@@ -713,6 +748,7 @@
      03 · TIRAGE AU SORT (cartes)
      ===================================================================== */
   let drawBuf = '';
+  let psDrawSel = null;
   function renderTirage() {
     const P = E.plan(S), D = S.draw, el = $('#drawPanel');
     if (!D) {
@@ -744,10 +780,24 @@
     const cur = E.currentPot(D) || (ps && ps.linger ? ps : null);
     const started = S.matches.some(m => m.points.length || m.status !== 'pending');
     if (!cur) {
-      el.innerHTML = `<div class="card"><div class="row-between"><div><span class="eyebrow">Tirage terminé</span><h3>Tableaux constitués</h3></div>
-        <div class="btns"><button class="accent" id="goTab">Voir les tableaux</button><button class="ghost" id="tvDraw">Récap. sur la TV</button>
-        <button class="ghost danger" id="drawReset" ${started ? 'disabled title="Des matchs ont commencé"' : ''}>Annuler le tirage</button></div></div>
-        ${sessionsPreview(D)}</div>`;
+      // tirage terminé (maquette, écran 2) : intercalaires par étape (poules, qualifications, tableau final), poules côte à côte avec les têtes de série,
+      // à droite les réglages et la liste des têtes de série
+      if (!D.sessions.some(s => s.key === psDrawSel)) psDrawSel = D.sessions[0] && D.sessions[0].key;
+      const seeds = E.selection(S).main.filter(p => A.seedOf(p.id)).sort((a, b) => A.seedOf(a.id) - A.seedOf(b.id));
+      el.innerHTML = `<div class="ps-bento"><div class="ps-bmain">
+        ${D.sessions.length > 1 ? `<div class="r-itabs ps-itabs" role="tablist">${D.sessions.map(s => `<button type="button" role="tab" data-ss="${s.key}" aria-selected="${s.key === psDrawSel}">${s.kind === 'poules' ? 'Poules · ' + s.letters.length : esc(s.label)}</button>`).join('')}</div>` : ''}
+        <section class="card ps-drawres"><div class="row-between"><span class="muted">Tirage terminé${S.draw.at ? ' le ' + new Date(S.draw.at).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : ''}</span><span class="tag ps-valid">Tirage validé</span></div>
+          ${sessionsPreview(D, D.sessions.length > 1 ? psDrawSel : null)}
+          <div class="btns"><button class="accent" id="goTab">Voir les tableaux</button><button id="tvDraw">Récapitulatif sur la TV</button>
+            <button id="drawReset" ${started ? 'disabled title="Des matchs ont commencé"' : ''}>Annuler le tirage</button></div></section></div>
+        <aside class="ps-bside">
+          <section class="card"><h3>${psIc('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>')}Réglages du tirage</h3>
+            <p class="muted small">${esc(E.FORMULAS[S.draw.formula || S.tournament.formula] || '')}${S.tournament.pouleMethod && String(S.draw.formula || '').startsWith('poules') ? ' · ' + (S.tournament.pouleMethod === 'serpentin' ? 'poules en serpentin (placement imposé)' : 'poules par rang (tirage)') : ''}</p>
+            <p class="muted small">Pour changer ces réglages, annulez le tirage puis modifiez la formule dans la fiche du tournoi.</p></section>
+          <section class="card"><h3>${psIc('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>')}Têtes de série</h3>
+            <div class="ps-seeds">${seeds.map(p => `<div class="ps-seed"><span class="r-pastille r-pastille--rose">${A.seedOf(p.id)}</span><span>${esc(A.pairName(p.id, 'last'))}</span><b>${E.weightOf(p) >= 99999 ? 'NC' : E.weightOf(p)}</b></div>`).join('') || '<p class="muted small">Aucune tête de série.</p>'}</div></section>
+        </aside></div>`;
+      $$('[data-ss]', el).forEach(b => b.onclick = () => { psDrawSel = b.dataset.ss; renderTirage(); });
       $('#goTab').onclick = () => setTab('tableaux');
       $('#tvDraw').onclick = () => send('display/set', { tv: 'draw', rotate: false });
       $('#drawReset').onclick = () => confirm('Annuler le tirage et tous les matchs ?') && send('draw/reset');
@@ -787,9 +837,9 @@
     return D.sessions.filter(s => !only || s.key === only).map(s => {
       const lastPos = D.last && D.last.session === s.key ? String(D.last.pos) : null;
       if (s.kind === 'poules') {
-        return `<h4>${esc(s.label)}</h4><div class="pgrid">${s.letters.map((L, i) => `<div><h5>Poule ${L}</h5>${Array.from({ length: s.sizes[i] }, (_, r) => {
-          const tk = s.fill[`${L}:${r}`];
-          return `<p class="${tk ? '' : 'empty'}">${r + 1}. ${tk ? esc(A.pairName(tk, 'last')) : '—'}</p>`; }).join('')}</div>`).join('')}</div>`;
+        return `<h4>${esc(s.label)}</h4><div class="pgrid">${s.letters.map((L, i) => `<div><div class="ps-ph"><b>Poule ${L}</b><small>Poids</small></div>${Array.from({ length: s.sizes[i] }, (_, r) => {
+          const tk = s.fill[`${L}:${r}`], pp = tk && A.pairs[tk], ts = tk && A.seedOf(tk);
+          return `<p class="ps-pr${tk ? '' : ' empty'}${ts ? ' ts1' : ''}"><i>${r + 1}</i><span>${tk ? esc(A.pairName(tk, 'last')) : '—'}${ts ? '<span class="tag ps-ts">TS</span>' : ''}</span><b>${pp ? (E.weightOf(pp) >= 99999 ? 'NC' : E.weightOf(pp)) : ''}</b></p>`; }).join('')}</div>`).join('')}</div>`;
       }
       return `<h4>${esc(s.label)} · ${s.size} places</h4><div class="lines">${E.sessionSlots(s).map((tk, i) => {
         const ts = tk && A.seedOf(tk);
@@ -895,7 +945,13 @@
   /* =====================================================================
      MODALE MATCH : score en direct, saisie manuelle, WO, remplacement
      ===================================================================== */
+  /* « Saisir un score » (maquette, écran 4) : panneau plein à droite (fenêtre du bas au téléphone).
+     Choix du match, grille des sets (cases modifiables), « Pendant le match » : +1 jeu et +1 set par paire,
+     Abandon ou forfait, Annuler / Valider le score. Le point par point, le serveur, le format, le terrain,
+     l'overlay, les remplacements et la remise à zéro restent dans « Plus d'options ». */
   function openMatchModal(id) {
+    const draft = {};   // cases du score en cours de frappe : gardées quand l'état du tournoi se met à jour
+    $('#modal').classList.add('ps-side');
     openModal(() => {
       const m = S.matches.find(x => x.id === id); if (!m) return '<p>Match introuvable</p>';
       const r = R[m.id];
@@ -904,68 +960,83 @@
       const flags = can && !m.manual && !m.wo ? E.pointFlags(r.fk, m.points, m.firstServer) : {};
       const live = sc && !sc.manual ? sc : null;
       const PS = E.pairsStatus(S, R);
-      const team = side => `
-        <div class="lteam ${r.winner && r.winner === r[side] ? 'win' : ''}">
-          <div class="lname">${live && live.server === side && !live.winner ? '<span class="ball">●</span>' : ''}${esc(A.sideName(m, side, 'initial'))}</div>
-          <div>${r.state !== 'done' && r.state !== 'live' ? A.restBadge(PS[r[side]]) : ''}</div>
-          <div class="lsets">${(sc ? sc.sets : []).map(s => `<span class="${s.w === side ? 'w' : ''}">${s.stb ? s.stb[side] : s[side]}${s.tb && s.w !== side ? `<sup>${s.tb[side]}</sup>` : ''}</span>`).join('')}
-            ${live && !live.winner ? `<span class="g">${live.mode === 'game' ? live.games[side] : ''}</span><span class="p">${live.labels[side]}</span>` : ''}</div>
-          ${flags[side] ? `<div class="flag">${flags[side]}</div>` : ''}
-          <button class="pt" data-pt="${side}" ${!can || r.state === 'done' ? 'disabled' : ''}>+ Point ${side === 'A' ? '(← ou 1)' : '(→ ou 2)'}</button>
-          <div class="games-row"><button class="ghost" data-gm="${side}" ${!can || r.state === 'done' ? 'disabled' : ''} title="Donne le jeu en cours (Maj + ${side === 'A' ? '←' : '→'})">+ Jeu</button>
-            <button class="ghost" data-ugm="${side}" ${!can ? 'disabled' : ''} title="Retire le dernier jeu gagné">− Jeu</button></div>
-          <button class="win-btn" data-win="${side}" ${!can || (r.winner && r.winner === r[side]) ? 'disabled' : ''} title="Désigne le vainqueur sans saisir de score : le tableau avance"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg> Vainqueur</button>
-        </div>`;
+      const off = !can || r.state === 'done';
+      // valeurs des cases : saisie en cours, sinon score enregistré (sets finis, puis jeux du set en cours)
+      const msets = (m.manual && m.manual.sets) || [];
+      const base = side => { const out = (sc ? sc.sets : []).map(s => s.stb ? s.stb[side] : s[side]); if (live && !live.winner && live.mode === 'game' && out.length < 3) out.push(live.games[side]); return out; };
+      const vA = base('A'), vB = base('B');
+      const val = (side, i) => draft[side + i] != null ? draft[side + i] : msets[i] ? msets[i][side === 'A' ? 0 : 1] : (side === 'A' ? vA : vB)[i] != null ? (side === 'A' ? vA : vB)[i] : '';
+      const won = (i, side) => sc && sc.sets[i] && sc.sets[i].w === side;
+      const cells = side => [0, 1, 2].map(i => `<input class="ps-set${won(i, side) ? ' w' : ''}" name="${side}${i}" type="number" inputmode="numeric" min="0" max="99" value="${esc(val(side, i))}" aria-label="Set ${i + 1}, ${esc(A.sideName(m, side))}">`).join('');
+      const choix = S.matches.filter(x => x.id === id || (R[x.id] && (R[x.id].state === 'live' || R[x.id].state === 'ready') && x.court)).sort((a, b) => a.num - b.num);
+      const restWarn = r.state === 'ready' ? ['A', 'B'].filter(s => PS[r[s]] && PS[r[s]].state === 'rest').map(s => `${A.pairName(r[s])} : repos obligatoire jusqu'à ${A.hhmm(PS[r[s]].restUntil)}`) : [];
       const replaceable = side => {
         const src = side === 'A' ? m.srcA : m.srcB;
         if (!src || !src.pair || !E.isPair(src.pair) || r.state === 'done' || m.points.length) return '';
         const w = E.selection(S).waiting; if (!w.length) return '';
         return `<label>Remplacer ${esc(A.pairName(src.pair))} (forfait) par<select data-rep="${src.pair}"><option value="">—</option>${w.map(p => `<option value="${p.id}">${esc(A.pairName(p.id))}</option>`).join('')}</select></label>`;
       };
-      const msets = (m.manual && m.manual.sets) || [];
-      const restWarn = r.state === 'ready' ? ['A', 'B'].filter(s => PS[r[s]] && PS[r[s]].state === 'rest').map(s => `${A.pairName(r[s])} : repos obligatoire jusqu'à ${A.hhmm(PS[r[s]].restUntil)}`) : [];
+      const state = ({ waiting: 'En attente', ready: 'Prêt', live: 'En direct', done: 'Terminé', bye: 'Exempt' })[r.state];
       return `
-        <div class="row-between"><div><span class="eyebrow">M${m.num} · ${m.court ? esc(A.courtName(m.court)) : 'non programmé'}</span><h3>${esc(E.matchLabel(m))}</h3></div>
-          <span class="pill st-${r.state}">${({ waiting: 'En attente', ready: 'Prêt', live: 'En cours', done: 'Terminé', bye: 'Exempt' })[r.state]}</span></div>
-        <div class="muted">Format ${r.fk} — ${E.FORMATS[r.fk].name}${live && live.decisivePoint ? ' · <b class="hot">POINT DÉCISIF</b>' : ''}</div>
-        ${restWarn.map(w => `<div class="alert err" style="margin-top:10px">${esc(w)} — accord écrit des 4 joueurs requis pour jouer avant.</div>`).join('')}
-        <div class="lscore">${team('A')}<div class="vs">VS</div>${team('B')}</div>
-        <div class="btns">
-          <button class="ghost" data-undo ${m.points.length ? '' : 'disabled'}>↶ Annuler le point</button>
-          <label class="inline">1er serveur <select data-srv><option value="A" ${m.firstServer === 'A' ? 'selected' : ''}>${esc(A.sideName(m, 'A'))}</option><option value="B" ${m.firstServer === 'B' ? 'selected' : ''}>${esc(A.sideName(m, 'B'))}</option></select></label>
-          <label class="inline">Format <select data-fmt><option value="">Par défaut</option>${E.FORMAT_KEYS.map(k => `<option ${m.format === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
-          ${r.state !== 'done' && m.status !== 'live' ? `<label class="inline">Terrain <select data-court><option value="">Non programmé</option>${S.courts.map(c => `<option value="${c.id}" ${m.court === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>` : ''}
-          <button class="ghost" data-stream>Envoyer sur l'overlay</button>
-        </div>
-        ${m.manual && m.manual.noScore ? '<div class="alert info" style="margin-top:10px">Vainqueur désigné sans score. Vous pouvez saisir le score ci-dessous quand vous l\'avez.</div>' : ''}
-        <details ${m.manual ? 'open' : ''}><summary>Saisie rapide du score final</summary>
-          <form class="manual" data-man>${[0, 1, 2].map(i => `<span>Set ${i + 1}</span><input type="number" min="0" max="99" name="a${i}" value="${msets[i] ? msets[i][0] : ''}"><b>-</b><input type="number" min="0" max="99" name="b${i}" value="${msets[i] ? msets[i][1] : ''}">`).join('')}
-          <button class="accent">Valider</button></form>
-          <p class="muted small">Super jeu décisif : saisir les points (ex. 10-8). Équipe 1 à gauche.</p>
+        <div class="ps-mh"><h3>Saisir un score</h3><button type="button" class="ps-ib" data-close aria-label="Fermer (Échap)">${PSI.x}</button></div>
+        <label class="ps-mf">Match<select data-pick>${choix.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${esc(x.court ? A.courtName(x.court) : 'Non programmé')} · M${x.num} · ${esc(E.matchLabel(x))}</option>`).join('')}</select></label>
+        <div class="ps-mst"><span class="tag ${r.state === 'live' ? 'ps-st-live' : r.state === 'done' ? 'ps-st-done' : ''}">${state}</span><span class="muted">Format ${r.fk} · ${esc(E.FORMATS[r.fk].name)}${live && live.decisivePoint ? ' · <b class="hot">point décisif</b>' : ''}</span></div>
+        ${restWarn.map(w => `<div class="alert err">${esc(w)} — accord écrit des 4 joueurs requis pour jouer avant.</div>`).join('')}
+        <form class="ps-grid" data-man autocomplete="off">
+          <span></span>${[1, 2, 3].map(i => `<small>Set ${i}</small>`).join('')}
+          ${['A', 'B'].map(side => `<div class="ps-gn${r.winner && r.winner === r[side] ? ' win' : ''}">${live && live.server === side && !live.winner ? '<i class="ps-srv" aria-label="au service"></i>' : ''}${esc(A.sideName(m, side, 'initial'))}${live && !live.winner ? ` <span class="ps-pts">${live.labels[side]}</span>` : ''}${flags[side] ? `<em class="ps-flag">${flags[side]}</em>` : ''}</div>${cells(side)}`).join('<hr>')}
+        </form>
+        <h4>Pendant le match</h4>
+        <div class="ps-during">${['A', 'B'].map(side => `<span>${esc(A.sideName(m, side, 'initial'))}</span>
+          <button type="button" data-gm="${side}" ${off ? 'disabled' : ''} title="Donne le jeu en cours (Maj + ${side === 'A' ? '←' : '→'})">${psIc('<path d="M12 5v14M5 12h14"/>')}+1 jeu</button>
+          <button type="button" data-st1="${side}" ${off ? 'disabled' : ''} title="Donne le set en cours">${psIc('<path d="M12 5v14M5 12h14"/>')}+1 set</button>`).join('')}</div>
+        <label class="chk ps-ab"><input type="checkbox" data-ab> Abandon ou forfait</label>
+        <div class="btns ps-wo" hidden>${['A', 'B'].map(side => `<button type="button" class="danger" data-wo="${side}" ${can ? '' : 'disabled'}>Forfait de ${esc(A.sideName(m, side))}</button>`).join('')}</div>
+        <details class="ps-opts"><summary>Plus d'options</summary>
+          <div class="ps-pp">${['A', 'B'].map(side => `<button type="button" class="pt" data-pt="${side}" ${off ? 'disabled' : ''}>+ Point ${esc(A.sideName(m, side, 'initial'))} ${side === 'A' ? '(← ou 1)' : '(→ ou 2)'}</button>`).join('')}</div>
+          <div class="btns">
+            <button type="button" data-undo ${m.points.length ? '' : 'disabled'}>Annuler le point</button>
+            ${['A', 'B'].map(side => `<button type="button" data-ugm="${side}" ${can ? '' : 'disabled'}>− Jeu ${esc(A.sideName(m, side, 'initial'))}</button>`).join('')}
+            ${['A', 'B'].map(side => `<button type="button" data-win="${side}" ${!can || (r.winner && r.winner === r[side]) ? 'disabled' : ''} title="Désigne le vainqueur sans saisir de score : le tableau avance">Vainqueur : ${esc(A.sideName(m, side, 'initial'))}</button>`).join('')}
+          </div>
+          <div class="form ps-oform">
+            <label>1er serveur<select data-srv><option value="A" ${m.firstServer === 'A' ? 'selected' : ''}>${esc(A.sideName(m, 'A'))}</option><option value="B" ${m.firstServer === 'B' ? 'selected' : ''}>${esc(A.sideName(m, 'B'))}</option></select></label>
+            <label>Format<select data-fmt><option value="">Par défaut</option>${E.FORMAT_KEYS.map(k => `<option ${m.format === k ? 'selected' : ''}>${k}</option>`).join('')}</select></label>
+            ${r.state !== 'done' && m.status !== 'live' ? `<label>Terrain<select data-court><option value="">Non programmé</option>${S.courts.map(c => `<option value="${c.id}" ${m.court === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>` : ''}
+            ${replaceable('A')}${replaceable('B')}
+          </div>
+          <div class="btns"><button type="button" data-stream>Envoyer sur l'overlay</button><button type="button" data-reset>Réinitialiser le score</button></div>
+          ${m.manual && m.manual.noScore ? '<p class="muted small">Vainqueur désigné sans score : saisissez le score dans les cases quand vous l\'avez.</p>' : ''}
+          <p class="muted small">Super jeu décisif : saisir les points (ex. 10-8). Clavier : ← → pour un point, Maj + ← → pour un jeu.</p>
         </details>
-        <div class="form" style="margin-top:12px">${replaceable('A')}${replaceable('B')}</div>
-        <div class="btns">
-          <button class="ghost danger" data-wo="A" ${can ? '' : 'disabled'}>WO ${esc(A.sideName(m, 'A'))}</button>
-          <button class="ghost danger" data-wo="B" ${can ? '' : 'disabled'}>WO ${esc(A.sideName(m, 'B'))}</button>
-          <button class="ghost" data-reset>Réinitialiser</button>
-          <button class="ghost" data-close>Fermer (Échap)</button>
-        </div>`;
+        <div class="btns ps-mact"><button type="button" data-close>Annuler</button><button type="button" class="accent" data-valid ${can ? '' : 'disabled'}>${psIc('<path d="M5 12l5 5 9-10"/>')}Valider le score</button></div>`;
     }, box => {
       const m = S.matches.find(x => x.id === id);
+      if (!m) return;
+      $$('.ps-set', box).forEach(i => i.oninput = () => { draft[i.name] = i.value; });
+      const pk = $('[data-pick]', box); if (pk) pk.onchange = () => { if (pk.value !== id) openMatchModal(pk.value); };
       $$('[data-pt]', box).forEach(b => b.onclick = () => send('match/point', { id, team: b.dataset.pt }));
       $$('[data-gm]', box).forEach(b => b.onclick = () => send('match/game', { id, team: b.dataset.gm }));
+      $$('[data-st1]', box).forEach(b => b.onclick = () => send('match/set', { id, team: b.dataset.st1 }));
       $$('[data-ugm]', box).forEach(b => b.onclick = () => send('match/ungame', { id, team: b.dataset.ugm }));
       $$('[data-win]', box).forEach(b => b.onclick = () => {
         const done = R[id].state === 'done';
         if (done && !confirm('Le match a déjà un vainqueur. Le remplacer par ' + A.sideName(m, b.dataset.win) + ' ?')) return;
-        send('match/winner', { id, team: b.dataset.win }).then(() => A.toast('Vainqueur : ' + A.sideName(m, b.dataset.win) + ' — score modifiable dans « Saisie rapide du score final »', 'ok'));
+        send('match/winner', { id, team: b.dataset.win }).then(() => A.toast('Vainqueur : ' + A.sideName(m, b.dataset.win) + ' — le score reste modifiable dans les cases', 'ok'));
       });
+      const ab = $('[data-ab]', box), wo = $('.ps-wo', box);
+      if (ab) { ab.checked = !!draft.ab; wo.hidden = !ab.checked; ab.onchange = () => { draft.ab = ab.checked; wo.hidden = !ab.checked; }; }
       const u = $('[data-undo]', box); if (u) u.onclick = () => send('match/undoPoint', { id });
       $('[data-srv]', box).onchange = e => send('match/server', { id, team: e.target.value });
       $('[data-fmt]', box).onchange = e => send('match/format', { id, format: e.target.value || null });
       const ct = $('[data-court]', box); if (ct) ct.onchange = e => send('schedule/move', { id, court: e.target.value || null });
       $('[data-stream]', box).onclick = () => { send('display/set', { stream: id }); A.toast('Match envoyé sur l\'overlay', 'ok'); };
-      $('[data-man]', box).onsubmit = e => { e.preventDefault(); const f = e.target; send('match/manual', { id, sets: [0, 1, 2].map(i => [f['a' + i].value, f['b' + i].value]) }); };
+      const valid = () => {
+        const f = $('[data-man]', box);
+        A.send('match/manual', { id, sets: [0, 1, 2].map(i => [f['A' + i].value, f['B' + i].value]) }).then(() => { Object.keys(draft).forEach(k => delete draft[k]); A.toast('Score validé', 'ok'); closeModal(); }, () => {});
+      };
+      $('[data-man]', box).onsubmit = e => { e.preventDefault(); valid(); };
+      $('[data-valid]', box).onclick = valid;
       $$('[data-wo]', box).forEach(b => b.onclick = () => confirm('Déclarer le forfait (WO) de ' + A.sideName(m, b.dataset.wo) + ' ?') && send('match/wo', { id, team: b.dataset.wo }));
       $('[data-reset]', box).onclick = () => confirm('Effacer le score de ce match ?') && send('match/reset', { id });
       $$('[data-rep]', box).forEach(s => s.onchange = () => s.value && send('draw/replace', { oldId: s.dataset.rep, newId: s.value }));
@@ -982,6 +1053,7 @@
   /* ---------------- modale générique ---------------- */
   function openModal(html, bind, opts) {
     opts = opts || {};
+    if (!opts.matchId) $('#modal').classList.remove('ps-side');
     modal = {
       opts,
       render() {
@@ -1001,7 +1073,7 @@
     $('#modal').hidden = false;
     modal.render();
   }
-  function closeModal() { modal = null; $('#modal').hidden = true; delete $('#modalBox').dataset.ready; }
+  function closeModal() { modal = null; $('#modal').hidden = true; $('#modal').classList.remove('ps-side'); delete $('#modalBox').dataset.ready; }
   $('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal') closeModal(); });
 
   /* =====================================================================
@@ -1038,6 +1110,21 @@
   }
   foldable($('#orderCard'), $('#orderBody'), 'padelja-order-open');
   foldable($('.tpl-card'), $('#tplBody'), 'padelja-tpl-open');
+  (function psFiche() {
+    // Fiche (maquette, écran 1) : colonne de droite « Inscriptions sur /Buvette » (choix en cases) et « Formats préenregistrés »
+    const tt = $('#tab-tournoi'), fside = document.createElement('aside'); fside.className = 'ps-fside';
+    const regSel = $('[data-f="regMode"]'), regLab = regSel && regSel.closest('label'), whereLab = $('[data-f="regWhere"]') && $('[data-f="regWhere"]').closest('label');
+    const REG = [['', 'Dans l’appli /Buvette du club'], ['ext', 'Ailleurs (préciser où)'], ['none', 'Ne pas publier sur /Buvette']];
+    fside.innerHTML = `<section class="card ps-reg"><h3>${psIc('<path d="M12 15V3M7 8l5-5 5 5M4 15v6h16v-6"/>')}Inscriptions sur /Buvette</h3>
+      <div class="ps-radios" role="radiogroup" aria-label="Où les joueurs s'inscrivent">${REG.map(([v, l]) => `<label><input type="radio" name="psReg" value="${v}">${l}</label>`).join('')}</div>
+      <div class="ps-where"></div><p class="muted small">Les joueurs du club voient le tournoi et s’inscrivent depuis leur téléphone.</p></section>`;
+    tt.appendChild(fside);
+    if (regLab) { regLab.hidden = true; [...regSel.options].forEach((o, i) => { o.textContent = REG[i] ? REG[i][1] : o.textContent; }); }
+    if (whereLab) $('.ps-where', fside).appendChild(whereLab);
+    $$('input[name=psReg]', fside).forEach(r => r.onchange = () => { if (!regSel || !r.checked) return; regSel.value = r.value; regSel.dispatchEvent(new Event('change')); });
+    const tplc = $('.tpl-card');
+    if (tplc) { fside.appendChild(tplc); $('#tplBody').hidden = false; tplc.classList.add('open'); const h = $('h3', tplc); if (h) h.innerHTML = psIc('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>') + 'Formats préenregistrés'; const sv = $('#tplSave'); if (sv) sv.innerHTML = psIc('<path d="M12 5v14M5 12h14"/>') + 'Enregistrer comme modèle'; }
+  })();
 
   /* RGPD : texte prêt à afficher pour informer les joueurs */
   if ($('#rgpdCopy')) $('#rgpdCopy').onclick = () => {
@@ -1063,12 +1150,13 @@
     if (navT) navT.after(sub);
     const pick = id => {
       secs.forEach(c => c.classList.toggle('cur', c.dataset.sec === id));
-      $$('.tsec-tab', tabs).forEach(b => b.classList.toggle('on', b.dataset.sec === id));
+      $$('.tsec-tab', tabs).forEach(b => { b.classList.toggle('on', b.dataset.sec === id); b.setAttribute('aria-selected', b.dataset.sec === id); });
       $$('button', sub).forEach(b => b.classList.toggle('on', b.dataset.sec === id));
       try { localStorage.setItem(TAB, id); } catch (e) {}
     };
     if (window.Pictos) Pictos.decorate(wrap);   // pictogrammes à la place des numéros 01, 02…
-    secs.forEach(card => {
+    tabs.classList.add('r-itabs');
+    secs.forEach((card, ci) => {
       const id = card.dataset.sec, head = document.createElement('div'), title = document.createElement('div'), body = document.createElement('div');
       head.className = 'row-between fold-h'; body.className = 'fold-b';
       card.insertBefore(head, card.firstChild);
@@ -1092,7 +1180,7 @@
         card.classList.toggle('open', o);
         try { localStorage.setItem(KEY + id, o ? '1' : '0'); } catch (e) {}
       });
-      tabs.insertAdjacentHTML('beforeend', `<button type="button" role="tab" class="tsec-tab" data-sec="${id}"><span>${(card.querySelector('h3 .pic') || {}).outerHTML || ''}</span>${card.dataset.label}</button>`);
+      tabs.insertAdjacentHTML('beforeend', `<button type="button" role="tab" class="tsec-tab" data-sec="${id}">${String(ci + 1).padStart(2, '0')} · ${card.dataset.label}</button>`);
       sub.insertAdjacentHTML('beforeend', `<button type="button" data-sec="${id}">${card.dataset.label}</button>`);
     });
     $$('.tsec-tab', tabs).forEach(b => b.onclick = () => pick(b.dataset.sec));
@@ -1302,6 +1390,7 @@
     const rv = d.rotateViews || ['bracket', 'poules', 'schedule', 'live', 'standings'];
     $$('#rotViews input').forEach(cb => { cb.checked = rv.includes(cb.value); });
     fill($('#rotate'), d.rotate); fill($('#rotateSec'), d.rotateSec); fill($('#ticker'), d.ticker); fill($('#overlayBg'), d.overlay);
+    $$('[data-obg]').forEach(b => b.setAttribute('aria-selected', b.dataset.obg === (d.overlay || 'green')));
     const opts = S.matches.filter(m => R[m.id] && (R[m.id].state === 'live' || R[m.id].state === 'ready' || m.id === d.stream)).sort((a, b) => a.num - b.num);
     const sel = $('#streamSel');
     if (document.activeElement !== sel) sel.innerHTML = `<option value="">— Aucun —</option>` + opts.map(m => `<option value="${m.id}" ${m.id === d.stream ? 'selected' : ''}>M${m.num} · ${esc(A.sideName(m, 'A'))} vs ${esc(A.sideName(m, 'B'))}${m.court ? ' · ' + esc(A.courtName(m.court)) : ''}</option>`).join('');

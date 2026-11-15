@@ -2030,6 +2030,44 @@ test('JA : style du socle (ds.css + pista.css) sans erreur, sans débordement à
   await desk.close(); await tel.close();
 });
 
+/* ---------- /Pista : saisir un score dans le panneau de droite, « +1 jeu » et « +1 set », menu « … » des matchs ---------- */
+test('JA : Saisir un score (panneau), +1 jeu et +1 set ; menu « … » d’une carte de match ; fiche en bento', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const { page, errors } = await openPage(ctx, JA + '/demo');
+  const id = new URL(page.url()).pathname.split('/')[2];
+  const mid = await page.evaluate(async id => {
+    const act = (type, payload) => fetch('/api/t/' + id + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, payload }) });
+    await act('draw/create', {}); await act('schedule/auto', {});
+    const m = ((await fetch('/api/t/' + id + '/export').then(r => r.json())).matches || []).find(x => x.court);
+    await act('match/start', { id: m.id });
+    return m.id;
+  }, id);
+  await page.reload(); await page.waitForTimeout(600);
+  await page.evaluate(() => document.querySelector('#nav [data-tab="direct"]').click());
+  await page.click(`#liveList [data-o="${mid}"]`);
+  await page.waitForSelector('#modal.ps-side .ps-grid');
+  // panneau collé à droite, sans voile
+  const box = await page.evaluate(() => { const r = document.getElementById('modalBox').getBoundingClientRect(); return { right: Math.max(0, Math.round(document.documentElement.clientWidth - r.right)), bg: getComputedStyle(document.getElementById('modal')).backgroundColor }; });
+  assert.equal(box.right, 0, 'panneau à droite');
+  assert.match(box.bg, /rgba\(0, 0, 0, 0\)|transparent/, 'pas de voile');
+  await page.click('[data-gm="A"]'); await page.waitForTimeout(400);
+  await page.click('[data-st1="A"]'); await page.waitForTimeout(400);
+  const sets = await page.evaluate(id => fetch(location.pathname.replace(/\/$/, '').replace(/^\/t\//, '/api/t/') + '/export').then(r => r.json()).then(s => s.matches.find(m => m.id === id).points.length), mid);
+  assert.ok(sets >= 16, '+1 jeu puis +1 set ajoutent les points du set');
+  assert.ok(await page.locator('.ps-set.w').count() >= 1, 'le set gagné est en citron');
+  await page.evaluate(() => { const b = document.querySelector('#modalBox [data-close]'); if (b && !document.getElementById('modal').hidden) b.click(); });
+  // menu « … » d'une carte de match de la programmation
+  await page.evaluate(() => document.querySelector('#nav [data-tab="programmation"]').click());
+  const more = page.locator('#sched [data-more]').first();
+  if (await more.count()) { await more.click(); assert.ok(await page.locator('.ps-pop [role=menuitem]').count() >= 1, 'menu « … » ouvert'); await page.keyboard.press('Escape'); }
+  // fiche : intercalaires du socle et colonne de droite
+  await page.evaluate(() => document.querySelector('#nav [data-tab="tournoi"]').click());
+  assert.ok(await page.locator('#tsecTabs.r-itabs [aria-selected="true"]').count() === 1, 'un intercalaire actif');
+  assert.ok(await page.locator('.ps-fside .ps-reg input[name=psReg]').count() === 3, 'Inscriptions sur /Buvette');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 /* ---------- Agenda du club : promouvoir des événements sur le mur ; page d'un trophée : la jauge des paliers ---------- */
 test('Club : le bureau promeut plusieurs événements de l’agenda sur le mur ; un adhérent n’a pas le bouton ; jauge des paliers d’un trophée', async () => {
   const ctx = await phone();

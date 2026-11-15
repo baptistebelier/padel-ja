@@ -595,10 +595,7 @@ button.urow { background: var(--c-surface-2); }
 .tsec-tabs { display: none; }
 /* niveau 3 : intercalaires collés en haut de la boîte d'édition (ordinateur, iPad en paysage) */
 @media (hover: hover) and (pointer: fine) and (min-width: 721px), (min-width: 1101px) {
-  .tsec-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 0 var(--s3); margin: 0 0 calc(-1 * var(--bw)); position: relative; z-index: 1; }
-  .tsec-tab { display: inline-flex; align-items: center; gap: var(--s2); min-height: 42px; padding: 0 12px; border: var(--bw) solid var(--c-ink); border-bottom: 0; border-radius: var(--rad-sm) var(--rad-sm) 0 0; background: var(--c-surface-2); color: var(--c-text); box-shadow: none; font: 700 15px/1.1 var(--f-label); letter-spacing: .02em; }
-  .tsec-tab span .pic { width: 18px; height: 18px; margin: 0; vertical-align: -3px; color: inherit; }
-  .tsec-tab.on { background: var(--c-accent); color: var(--c-on-accent); }
+  .tsec-tabs { display: flex; }
   .tsec { display: none; }
   .tsec.cur { display: block; }
   #tsecs .tsec.cur > .fold-b { display: block; }
@@ -1176,6 +1173,121 @@ button.ps-more .ic, .ps-ib .ic { width: 20px; height: 20px; }
   .ps-inslist .tbl tr[data-id] { grid-template-columns: 46px minmax(0, 1fr) auto; grid-template-areas: 'n a w' 'n b w' 'n d d' 'n x x'; gap: 4px 8px; }
   .ps-inslist .tbl tr[data-id] td:nth-child(5) { justify-self: start; }
   .ps-inslist .tbl tr[data-id] td:nth-child(6) { text-align: left; }
+}
+
+/* ---------- 10. ÉCRANS DE LA MAQUETTE COMPLÈTE (14 novembre) ---------- */
+/* 4 · Saisir un score : panneau plein à droite, sans voile ; au téléphone, fenêtre du bas */
+.modal.ps-side { place-items: stretch end; padding: 0; background: none; pointer-events: none; }
+body.has-rail .modal.ps-side { left: 0; }
+.modal.ps-side .modal-box { pointer-events: auto; width: min(460px, 100vw); max-height: none; height: 100%; padding: 26px 24px calc(24px + env(safe-area-inset-bottom, 0px)); border-width: 0 0 0 var(--bw); box-shadow: -6px 0 0 var(--c-ink); animation: none; display: flex; flex-direction: column; gap: 12px; }
+.ps-mh { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.ps-mh h3 { margin: 0; font: 400 30px/1 var(--f-display); text-transform: uppercase; }
+.ps-mf select { width: 100%; }
+.ps-mst { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); font-size: 14px; }
+.ps-mst .tag { box-shadow: none; padding: 1px 8px; font-size: 12px; }
+.ps-grid { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 52px); gap: 10px; align-items: center; margin: 4px 0; }
+.ps-grid > small { text-align: center; font: 700 12px var(--f-label); letter-spacing: .12em; text-transform: uppercase; color: var(--c-muted); }
+.ps-grid > hr { grid-column: 1 / -1; width: 100%; margin: 4px 0; border: 0; border-top: var(--bw) solid var(--c-ink); }
+.ps-gn { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.ps-gn.win { color: var(--c-kick); }
+.ps-srv { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 50%; background: var(--c-kick); vertical-align: 1px; }
+.ps-pts { display: inline-block; padding: 0 6px; border: var(--bw) solid var(--c-ink); background: var(--c-lime); color: var(--c-dark); font: 700 13px var(--f-label); }
+.ps-flag { display: block; font: 700 12px var(--f-label); letter-spacing: .06em; text-transform: uppercase; font-style: normal; color: var(--c-kick); }
+.modal-box :where(input.ps-set) { width: 52px; min-width: 0; height: 52px; padding: 0; text-align: center; font: 400 26px/1 var(--f-display); -moz-appearance: textfield; background-color: var(--c-surface-2); }
+input.ps-set::-webkit-inner-spin-button, input.ps-set::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.modal-box input.ps-set.w { background-color: var(--c-lime); color: var(--c-dark); }
+.modal.ps-side h4 { margin: 8px 0 0; }
+.ps-during { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; }
+.ps-during span { min-width: 0; overflow-wrap: anywhere; }
+.ps-during button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.ps-during .ic { width: 16px; height: 16px; }
+.ps-ab { margin-top: 4px; }
+.ps-opts { border-top: var(--bw) solid color-mix(in srgb, var(--c-ink) 12%, transparent); padding-top: 4px; }
+.ps-pp { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin-top: var(--s3); }
+.ps-pp .pt { min-height: 44px; padding: 8px; font-size: 15px; }
+.ps-oform { grid-template-columns: 1fr 1fr; margin-top: var(--s3); }
+.ps-mact { justify-content: flex-end; margin-top: auto; padding-top: var(--s3); }
+.ps-mact .accent { display: inline-flex; align-items: center; gap: var(--s2); }
+@media (max-width: 720px) {
+  .modal.ps-side { place-items: end stretch; }
+  .modal.ps-side .modal-box { width: 100%; height: auto; max-height: 88vh; overflow: auto; border-width: var(--bw) 0 0; box-shadow: 0 -6px 0 var(--c-ink); padding: 20px 16px calc(84px + env(safe-area-inset-bottom, 0px)); }
+  .ps-grid { grid-template-columns: minmax(0, 1fr) repeat(3, 48px); gap: 8px; }
+  .modal-box :where(input.ps-set) { width: 48px; height: 48px; }
+  .ps-during { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
+  .ps-pp, .ps-oform { grid-template-columns: 1fr; }
+}
+/* bento des sections de l'éditeur : colonne large à gauche, colonne de droite de 300 à 380 px (ordinateur et iPad paysage) */
+.ps-bento { display: flex; flex-direction: column; gap: var(--s5); }
+.ps-bmain, .ps-bside { display: flex; flex-direction: column; gap: var(--s5); min-width: 0; }
+.ps-bento .card, .ps-bside .card { margin: 0; }
+@media (min-width: 1024px) {
+  .ps-bento { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); align-items: start; }
+  .ps-bside { position: sticky; top: 130px; }
+  #tab-tournoi.on { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); column-gap: var(--s5); align-items: start; }
+  #tab-tournoi.on > .tsecs { grid-column: 1; grid-row: 1; }
+  #tab-tournoi.on > .ps-fside { grid-column: 2; grid-row: 1; position: sticky; top: 130px; }
+}
+.card h3 > .ic { display: inline-block; width: 20px; height: 20px; margin-right: 8px; vertical-align: -4px; color: var(--c-kick); }
+/* 1 · Fiche : intercalaires « 01 · Infos »… collés à la carte ; à droite Inscriptions sur /Buvette et Formats préenregistrés */
+.ps-fside { display: flex; flex-direction: column; gap: var(--s5); margin-bottom: var(--s5); }
+.ps-fside .card { margin: 0; }
+.ps-radios { display: grid; gap: 10px; }
+.ps-radios label { flex-direction: row; align-items: center; gap: 10px; font: 400 15px/1.35 var(--f-body); letter-spacing: 0; text-transform: none; cursor: pointer; }
+.ps-radios input[type=radio] { appearance: none; -webkit-appearance: none; flex: none; width: 24px; height: 24px; margin: 0; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); display: grid; place-items: center; cursor: pointer; }
+.ps-radios input[type=radio]:checked { background: var(--c-lime); }
+.ps-radios input[type=radio]:checked::after { content: ''; width: 7px; height: 12px; border: solid var(--c-dark); border-width: 0 3px 3px 0; transform: translateY(-2px) rotate(45deg); }
+.ps-radios input[type=radio]:focus-visible { outline: 3px solid var(--c-pink); outline-offset: 2px; }
+.ps-reg .ps-where { margin-top: var(--s3); }
+.ps-reg .ps-where input { width: 100%; }
+.ps-reg p { margin: var(--s3) 0 0; }
+.ps-fside .tpl-card .fold-tg, .ps-fside .tpl-card .fold-hint { display: none; }
+.ps-fside .tpl-card .fold-h { cursor: default; margin-bottom: var(--s3); }
+.ps-fside .tpl-card .fold-act { display: inline-flex; }
+.ps-fside .tpl-list { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.ps-fside .tpl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 0; border: 0; border-bottom: var(--bw) solid color-mix(in srgb, var(--c-ink) 14%, transparent); background: none; box-shadow: none; }
+.ps-fside .tpl.cur { background: none; color: inherit; }
+.ps-fside .tpl .tag { display: none; }
+.ps-fside .tpl b { grid-column: 1; font: 700 16px/1.2 var(--f-label); text-transform: none; }
+.ps-fside .tpl p { grid-column: 1; }
+.ps-fside .tpl .btns { grid-column: 2; grid-row: 1 / span 2; margin: 0; flex-wrap: nowrap; }
+.ps-fside .tpl.cur [data-apply] { background: var(--c-lime); color: var(--c-dark); }
+#tsecTabs.r-itabs { display: flex; }
+#tsecTabs .tsec-tab span:empty { display: none; }
+/* 2 · Tirage : poules côte à côte (rang, paire, TS rose, poids), têtes de série en pastilles roses */
+.tag.ps-valid { background: var(--c-green); color: var(--c-dark); box-shadow: none; padding: 1px 8px; font-size: 12px; }
+.ps-drawres .row-between { margin-bottom: var(--s3); }
+.ps-drawres h4 { display: none; }
+.ps-drawres .pgrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 22px 28px; }
+.ps-drawres .pgrid > div { padding: 0; border: 0; background: none; }
+.ps-ph { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 4px; border-bottom: var(--bw) solid var(--c-ink); }
+.ps-ph b { font: 400 20px/1.1 var(--f-display); text-transform: uppercase; }
+.ps-ph small { font: 700 12px var(--f-label); letter-spacing: .08em; text-transform: uppercase; color: var(--c-muted); }
+.pgrid p.ps-pr { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; margin: 0; padding: 8px 0; font-size: 14px; }
+.ps-pr i { font: 700 16px var(--f-label); font-style: normal; color: var(--c-muted); }
+.ps-pr b { font: 700 16px var(--f-label); }
+.ps-pr.ts1 > span { font-weight: 600; }
+.tag.ps-ts { padding: 1px 6px; font-size: 12px; background: var(--c-pink); color: var(--c-dark); box-shadow: none; margin-left: 6px; }
+.ps-seeds { display: flex; flex-direction: column; }
+.ps-seed { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 0; }
+.ps-seed + .ps-seed { border-top: var(--bw) solid var(--c-ink); }
+.ps-seed b { font: 700 16px var(--f-label); }
+/* 3 · Écran TV & stream : tuiles de vues avec picto, overlay à droite, carte Télécommande ; « Ouvrir l'écran TV » est l'action citron de l'en-tête */
+body[data-ps-tab='diffusion'] #btnTv { display: none; }
+.ps-lbl { display: block; margin: 0 0 8px; font: 700 12px/1.2 var(--f-label); letter-spacing: .12em; text-transform: uppercase; color: var(--c-muted); }
+#tab-diffusion .tvviews { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+#tab-diffusion .tvviews button { min-height: 76px; justify-content: center; gap: 8px; font: 700 15px/1.15 var(--f-label); }
+#tab-diffusion .tvviews .ic { width: 22px; height: 22px; }
+.ps-dcol { display: flex; flex-direction: column; gap: var(--s5); min-width: 0; }
+.ps-dcol .card { margin: 0; }
+.ps-obg { display: flex; width: 100%; }
+.ps-obg button { flex: 1; justify-content: center; padding: 0 10px; }
+.ps-obtn { display: inline-flex; align-items: center; gap: var(--s2); justify-self: start; }
+#psRcShow { display: inline-flex; align-items: center; gap: var(--s2); }
+@media (min-width: 1024px) {
+  #tab-diffusion .grid2 { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); }
+}
+@media (max-width: 720px) {
+  #tab-diffusion .tvviews { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ---------- 8. ANIMATIONS ---------- */

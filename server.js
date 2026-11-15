@@ -376,7 +376,7 @@ setInterval(() => {
 
 /* droits d'accès à un tournoi */
 const VIEW_ACTIONS = new Set(['noop', 'draw/flip', 'draw/flipRandom']);
-const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/game', 'match/ungame', 'match/server', 'match/start', 'display/set', 'ani/score']);
+const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/game', 'match/set', 'match/ungame', 'match/server', 'match/start', 'display/set', 'ani/score']);
 // anti-force brute : au-delà de 10 codes PIN / clés faux en 15 min, l'appareil est bloqué pour ce tournoi
 const accessFails = new Map();
 const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();

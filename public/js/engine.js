@@ -1258,6 +1258,21 @@
         if (m.status === 'pending') { m.status = 'live'; m.startedAt = m.startedAt || now; }
         afterScore(T, m); break;
       }
+      case 'match/set': {           // donne le set en cours à une équipe (« +1 set » de la saisie du score)
+        const m = findMatch(T, p.id);
+        const r = resolve(T)[m.id];
+        if (r.state === 'done' || r.state === 'waiting' || r.state === 'bye') break;
+        m.manual = null; m.wo = null;
+        const team = p.team === 'B' ? 'B' : 'A';
+        const fk = r.fk, n0 = computeScore(fk, m.points, m.firstServer).sets.length;
+        for (let i = 0; i < 400; i++) {
+          m.points.push(team);
+          const sc = computeScore(fk, m.points, m.firstServer);
+          if (sc.sets.length !== n0 || sc.winner) break;
+        }
+        if (m.status === 'pending') { m.status = 'live'; m.startedAt = m.startedAt || now; }
+        afterScore(T, m); break;
+      }
       case 'match/ungame': {        // retire le dernier jeu gagné par une équipe
         const m = findMatch(T, p.id);
         const team = p.team === 'B' ? 'B' : 'A';
