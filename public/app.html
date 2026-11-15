@@ -56,7 +56,7 @@
     act.querySelector('.ps-find').onclick = () => { qi.hidden = !qi.hidden; if (!qi.hidden) qi.focus(); };
     qi.oninput = () => { psQ = qi.value.trim().toLowerCase(); load(); };
     const tb = document.getElementById('psBento');
-    tb.outerHTML = (`<div class="r-bento ps-tbento"><div class="ps-tmain"><div class="ps-itabs" role="tablist" id="psCols"></div><section class="card ps-tlist"><div class="rows" id="psRows"><p class="muted">Chargement…</p></div></section></div>
+    tb.outerHTML = (`<div class="r-bento ps-tbento"><div class="ps-tmain"><div class="r-itabs ps-itabs" role="tablist" id="psCols"></div><section class="card ps-tlist"><div class="rows" id="psRows"><p class="muted">Chargement…</p></div></section></div>
       <aside class="r-bento__side"><section class="card"><h2>${pic(IC.plus).replace('class="ic"', 'class="pic"')}Créer depuis un modèle</h2><div class="ps-tpls" id="psTpls"></div></section>
       <section class="card"><h2>${pic(IC.cal).replace('class="ic"', 'class="pic"')}Ce mois-ci</h2><div class="ps-month" id="psMonth"></div></section></aside></div>`);
     document.getElementById('psCols').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) { psCol = b.dataset.c; load(); } });
@@ -65,7 +65,7 @@
   function psRender(up, live, closed, d) {
     const cols = [['up', 'À venir', up], ['live', 'En cours', live], ['closed', 'Clôturés', closed]];
     if (!cols.some(c => c[0] === psCol)) psCol = 'up';
-    document.getElementById('psCols').innerHTML = cols.map(([k, l, a]) => `<button type="button" role="tab" data-c="${k}" aria-selected="${k === psCol}">${l} <span>${a.length}</span></button>`).join('');
+    document.getElementById('psCols').innerHTML = cols.map(([k, l, a]) => `<button type="button" role="tab" data-c="${k}" aria-selected="${k === psCol}">${l} · ${a.length}</button>`).join('');
     const l = cols.find(c => c[0] === psCol)[2];
     const etat = t => t.closed ? (t.kind === 'animation' ? 'Terminée' : 'Clôturé') : t.drawn ? (t.kind === 'animation' ? 'Manche ' + t.rounds : t.done + '/' + t.matches + ' matchs') : 'Inscriptions';
     // blocs date : seul le prochain tournoi (le premier « À venir ») en citron

@@ -21,7 +21,7 @@
        · qualifiés du tableau précédent : une place par fraction, tirée au sort, jamais face à un autre
          qualifié pour leur premier match, en non-exempt si possible (art. 45-3-c, 46-2, 47-5, 47-6).
    - Les joueurs organisent eux-mêmes leurs matchs sur plusieurs semaines (le gagnant saisit le résultat
-     dans /RAM Club, l'adversaire le confirme) ou le juge-arbitre les programme (jour, heure, terrain) :
+     dans /Buvette, l'adversaire le confirme) ou le juge-arbitre les programme (jour, heure, terrain) :
      limites de parties par jour, repos et horaires sont vérifiés (art. 9, 13 et 14).
    - avis(avant, après) : les notifications à envoyer.
    ========================================================================= */

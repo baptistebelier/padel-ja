@@ -344,7 +344,7 @@ test('JA : tournois par statut et création dans une fenêtre, la même depuis l
   await page.goto(JA + '/app');
   // intercalaires À venir / En cours / Clôturés au-dessus de la liste, une ligne par tournoi
   await page.waitForSelector('#psCols [data-c]', { timeout: 8000 });
-  const cols = await page.$$eval('#psCols [data-c]', l => l.map(x => x.firstChild.textContent.trim()));
+  const cols = await page.$$eval('#psCols [data-c]', l => l.map(x => x.textContent.split(' · ')[0].trim()));
   assert.deepEqual(cols, ['À venir', 'En cours', 'Clôturés']);
   await page.click('#psCols [data-c="live"]');
   await page.waitForSelector('#psRows .ps-trow', { timeout: 8000 });
@@ -1601,7 +1601,8 @@ test('JA : en paysage, les pages passent sur plusieurs colonnes ; sur téléphon
   assert.equal(await colonnes('.g-2'), 2, 'joueurs');
   await page.goto(JA + '/statistiques');
   await page.waitForSelector('.st-grid');
-  assert.equal(await colonnes('.st-grid'), 3, 'statistiques');
+  // bento de la maquette : barres et Top 10 à gauche, catégories et export à droite
+  assert.equal(await colonnes('.st-grid'), 2, 'statistiques');
   assert.ok(await large());
   await page.setViewportSize({ width: 390, height: 800 });
   assert.equal(await colonnes('.st-grid'), 1, 'statistiques sur téléphone');

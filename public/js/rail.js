@@ -191,7 +191,7 @@
     nav.addEventListener('click', e => { if (Date.now() < until && e.isTrusted) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
 
-  /* ---------- navigation sans rechargement (comme /RAM Club) ----------
+  /* ---------- navigation sans rechargement (comme /Buvette) ----------
      Entre les pages de l'espace juge-arbitre, on ne recharge plus tout : la page visée est lue (souvent
      dès le survol du lien), son contenu remplace l'ancien, le menu reste en place, et seuls ses propres
      scripts s'exécutent. Styles, polices et scripts communs déjà chargés ne sont plus redemandés. */
@@ -350,11 +350,11 @@
     (window.RamSuggQ || []).forEach(r => rules.push(r));
     window.RamSuggQ = { push: r => rules.push(r) };
   }
-  /* annuaire des clubs commun à /RAM JA et /RAM Club : proposé dans les champs « Club »
-     (tournoi, paires, profil, adversaire d'une rencontre), clubs /RAM Club en premier */
+  /* annuaire des clubs commun à /RAM JA et /Buvette : proposé dans les champs « Club »
+     (tournoi, paires, profil, adversaire d'une rencontre), clubs /Buvette en premier */
   function clubList() {
     let annuaire = null;
-    const charger = () => (annuaire = annuaire || fetch('/api/clubs-directory').then(r => r.json()).then(d => (d.clubs || []).map(c => ({ v: c.name, l: [c.city, c.ramClub ? '/RAM Club' : c.tournaments ? c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') }))).catch(() => { annuaire = null; return []; }));
+    const charger = () => (annuaire = annuaire || fetch('/api/clubs-directory').then(r => r.json()).then(d => (d.clubs || []).map(c => ({ v: c.name, l: [c.city, c.ramClub ? '/Buvette' : c.tournaments ? c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') }))).catch(() => { annuaire = null; return []; }));
     window.RamSugg.add({ match: el => el.matches('input[data-f="club"], input[name="k1"], input[name="k2"], input[name="club"], input[data-clubs]'), source: () => charger() });
   }
   /* juges-arbitres /RAM JA proposés dans le champ « Juge-arbitre » (tournoi, préférences) ;
@@ -374,7 +374,7 @@
         ['input', 'change'].forEach(t => num.dispatchEvent(new Event(t, { bubbles: true })));
       }
     });
-    // joueurs de la base /RAM JA (et adhérents /RAM Club) : champs marqués data-joueurs
+    // joueurs de la base /RAM JA (et adhérents /Buvette) : champs marqués data-joueurs
     window.RamSugg.add({
       match: el => el.hasAttribute('data-joueurs'),
       filtre: false,

@@ -6,13 +6,9 @@
 <meta name="theme-color" content="#120A0C">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
 <title>Tournoi interne — /RAM JA</title>
-<link rel="stylesheet" href="/css/ram.css">
-<link rel="stylesheet" href="/css/theme.css">
-<link rel="stylesheet" href="/css/editor.css">
-<link rel="stylesheet" href="/css/ui.css">
-<link rel="stylesheet" href="/css/shell.css">
-<link rel="stylesheet" href="/css/street.css">
-<link rel="stylesheet" href="/css/neo.css">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/club/ds.css">
+<link rel="stylesheet" href="/css/pista.css">
 <script src="/js/theme.js"></script>
 <script src="/js/interne.js"></script>
 <script src="/js/adjoints.js" defer></script>
@@ -122,14 +118,14 @@ main#app { min-width: 0; }
   <div class="ab-title"><a class="ab-logo" href="/dashboard" aria-label="Tableau de bord"><img class="lg-n" src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"><img class="lg-j" src="/img/ja-ram-rouge-noir.png" alt="/RAM JA"></a><b id="abTitle">Tournoi interne</b><small id="abSub"></small></div>
 </header>
 <div class="shell">
-<aside class="side">
+<aside class="side r-sub">
   <div class="side-t"><span class="side-ey">Tournoi en cours</span><b id="sName">Tournoi interne</b><small id="sSub"></small><span class="side-st" id="sState"></span></div>
   <nav id="nav">
-    <button data-tab="tournoi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8 21h8M9 17h6"/></svg><i>01</i><span class="lg">Tournoi</span><span class="sh">Tournoi</span></button>
-    <button data-tab="participants"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.2c2.6.2 4.4 1.8 5 4.8"/></svg><i>02</i><span class="lg">Participants</span><span class="sh">Joueurs</span></button>
-    <button data-tab="tirage"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="9" height="13"/><rect x="12" y="4" width="9" height="13"/><path d="M16.5 8.5v4M14.5 10.5h4"/></svg><i>03</i><span class="lg">Tirage et composition</span><span class="sh">Tirage</span></button>
-    <button data-tab="tableaux"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h5v6H3zM3 14h5v6H3zM8 7h3v10H8M11 12h3M14 9h7v6h-7z"/></svg><i>04</i><span class="lg">Tableaux et résultats</span><span class="sh">Tableaux</span></button>
-    <button data-tab="programme"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4M12 13v3l2 1.5"/></svg><i>05</i><span class="lg">Programmation</span><span class="sh">Planning</span></button>
+    <button class="r-sub__it" data-tab="tournoi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 13v4M8 21h8M9 17h6"/></svg><i>01</i><span class="lg">Tournoi</span><span class="sh">Tournoi</span></button>
+    <button class="r-sub__it" data-tab="participants"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.2c2.6.2 4.4 1.8 5 4.8"/></svg><i>02</i><span class="lg">Participants</span><span class="sh">Joueurs</span></button>
+    <button class="r-sub__it" data-tab="tirage"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="9" height="13"/><rect x="12" y="4" width="9" height="13"/><path d="M16.5 8.5v4M14.5 10.5h4"/></svg><i>03</i><span class="lg">Tirage et composition</span><span class="sh">Tirage</span></button>
+    <button class="r-sub__it" data-tab="tableaux"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h5v6H3zM3 14h5v6H3zM8 7h3v10H8M11 12h3M14 9h7v6h-7z"/></svg><i>04</i><span class="lg">Tableaux et résultats</span><span class="sh">Tableaux</span></button>
+    <button class="r-sub__it" data-tab="programme"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4M12 13v3l2 1.5"/></svg><i>05</i><span class="lg">Programmation</span><span class="sh">Planning</span></button>
   </nav>
 </aside>
 <main id="app">
@@ -228,23 +224,23 @@ main#app { min-width: 0; }
         <div class="in-row"><label>Sport<select name="sport" ${tire ? 'disabled' : ''}><option ${i.sport === 'Tennis' ? 'selected' : ''}>Tennis</option><option ${i.sport === 'Padel' ? 'selected' : ''}>Padel</option></select></label>
         <label>Tableau<select name="simple" ${tire ? 'disabled' : ''}><option value="1" ${i.simple ? 'selected' : ''}>Simple</option><option value="0" ${i.simple ? '' : 'selected'}>Double</option></select></label>
         <label>Début<input type="date" name="dateStart" value="${esc(t.dateStart || '')}"></label><label>Fin prévue<input type="date" name="dateEnd" value="${esc(t.dateEnd || '')}"></label></div>
-        <label>Règlement et organisation (visibles par les joueurs dans /RAM Club)<textarea name="regle" rows="6" maxlength="8000" placeholder="Format des matchs, balles, réservation des courts, délais, forfaits…">${esc(i.regle || '')}</textarea></label>
-        <label class="chk" style="display:flex;flex-direction:row;gap:10px;align-items:center"><input type="checkbox" name="pub" ${t.regMode === 'none' ? '' : 'checked'}>Publier sur /RAM Club (tableau, règlement et participants pour les adhérents)</label>
+        <label>Règlement et organisation (visibles par les joueurs dans /Buvette)<textarea name="regle" rows="6" maxlength="8000" placeholder="Format des matchs, balles, réservation des courts, délais, forfaits…">${esc(i.regle || '')}</textarea></label>
+        <label class="chk" style="display:flex;flex-direction:row;gap:10px;align-items:center"><input type="checkbox" name="pub" ${t.regMode === 'none' ? '' : 'checked'}>Publier sur /Buvette (tableau, règlement et participants pour les adhérents)</label>
         <div><button class="btn">Enregistrer</button></div>
-      </form>${club ? '' : '<p class="muted small">Le club de ce tournoi n’a pas encore d’espace /RAM Club : le tournoi ne pourra pas y être publié.</p>'}</section>`;
+      </form>${club ? '' : '<p class="muted small">Le club de ce tournoi n’a pas encore d’espace /Buvette : le tournoi ne pourra pas y être publié.</p>'}</section>`;
   }
   function participants() {
     const i = I(), tire = Int.tire(i), tennis = i.sport === 'Tennis', aj = Int.ajoutPossible(i), fini = i.status === 'done';
     // classement FFT : il range les joueurs dans leur tableau et désigne les têtes de série
     const clSel = p => tennis ? `<select class="cl" data-cl="${p.id}" aria-label="Classement de ${esc(p.n)}">${opt('', '—', p.cl || '')}${Int.ECHELONS.map(e => opt(e, e, p.cl || '')).join('')}${p.cl && !Int.ECHELONS.includes(p.cl) ? opt(p.cl, p.cl, p.cl) : ''}</select>` : '';
     const tri = i.players.slice().sort((a, b) => Int.rang(b.cl) - Int.rang(a.cl) || a.n.localeCompare(b.n, 'fr'));
-    const ligne = p => `<div class="in-p"><span class="n">${esc(p.n)}${(p.ks || []).length ? '' : ' <span class="club">· hors /RAM Club</span>'}</span>${Int.place(i, p.id) || fini ? `${p.cl ? `<span class="club">${esc(p.cl)}</span>` : ''}${Int.tsDe(i, p.id) ? `<span class="club">Tête de série ${Int.tsDe(i, p.id)}</span>` : ''}` : `${tire ? '<span class="club">en attente de son tableau</span>' : ''}${clSel(p)}<select data-seed="${p.id}" aria-label="Tête de série choisie à la main"><option value="0">TS auto</option>${Array.from({ length: Math.min(16, i.players.length) }, (_, k) => `<option value="${k + 1}" ${+p.seed === k + 1 ? 'selected' : ''}>TS ${k + 1}</option>`).join('')}</select><button class="ib2" data-del="${p.id}" aria-label="Retirer ${esc(p.n)}">Retirer</button>`}</div>`;
+    const ligne = p => `<div class="in-p"><span class="n">${esc(p.n)}${(p.ks || []).length ? '' : ' <span class="club">· hors /Buvette</span>'}</span>${Int.place(i, p.id) || fini ? `${p.cl ? `<span class="club">${esc(p.cl)}</span>` : ''}${Int.tsDe(i, p.id) ? `<span class="club">Tête de série ${Int.tsDe(i, p.id)}</span>` : ''}` : `${tire ? '<span class="club">en attente de son tableau</span>' : ''}${clSel(p)}<select data-seed="${p.id}" aria-label="Tête de série choisie à la main"><option value="0">TS auto</option>${Array.from({ length: Math.min(16, i.players.length) }, (_, k) => `<option value="${k + 1}" ${+p.seed === k + 1 ? 'selected' : ''}>TS ${k + 1}</option>`).join('')}</select><button class="ib2" data-del="${p.id}" aria-label="Retirer ${esc(p.n)}">Retirer</button>`}</div>`;
     return `<section class="card"><span class="eyebrow">Participants · ${i.players.length}</span><h2>${i.simple ? 'Joueurs' : 'Équipes'}</h2>
       ${tennis && !tire && i.players.length ? '<p class="muted small">Les têtes de série suivent le classement (le quart du tableau final, une par section). « TS » les fixe à la main.</p>' : ''}
       ${tri.map(ligne).join('') || '<p class="muted">Ajoute les participants parmi les adhérents du club.</p>'}
       ${tire && aj.ok && !fini ? `<p class="note">Le tournoi a commencé : vous pouvez encore inscrire des joueurs classés <b>${esc(aj.min)}</b> ou mieux, qui entreront dans un tableau pas encore tiré.</p>` : ''}
       ${(tire && !aj.ok) || fini ? '' : `<form id="in-add" class="in-add"><input name="a" data-in-joueur placeholder="${i.simple ? 'Tape un nom : adhérents, joueurs /RAM JA' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" data-in-joueur placeholder="Joueur 2" autocomplete="off" required>'}${tennis ? `<select name="cl" aria-label="Classement" style="flex:0 0 120px">${opt('', 'Classement', '')}${Int.ECHELONS.filter(e => !tire || !aj.min || Int.rang(e) >= Int.rang(aj.min)).map(e => opt(e, e, '')).join('')}</select>` : ''}<button class="btn">Ajouter</button></form>
-      <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /RAM Club : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
+      <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /Buvette : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
       ${tire ? '<p class="muted small">Les placements se modifient dans « Tirage et composition ».</p>' : `<div class="in-row" style="margin-top:14px"><button type="button" class="btn ghost" data-go="tirage">Passer au tirage</button></div>`}</section>`;
   }
   /* l'arbre d'un tableau (ou d'une section), comme la feuille FFT : chaque joueur sur un trait (nom et classement
@@ -434,7 +430,7 @@ main#app { min-width: 0; }
   function ouvrir(t, sans) {
     if (!document.getElementById('tab-' + t)) t = 'tournoi';
     onglet = t;
-    document.querySelectorAll('#nav button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    document.querySelectorAll('#nav button[data-tab]').forEach(b => { b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', b.dataset.tab === t); });
     document.querySelectorAll('main .tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + t));
     if (!sans) { history.replaceState(null, '', '#' + t); scrollTo(0, 0); }
   }

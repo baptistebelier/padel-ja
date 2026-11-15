@@ -83,7 +83,7 @@
     + '.side-t .enc summary{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.4)}'
     + '.enc summary::-webkit-details-marker{display:none}.enc-t{display:flex;flex-direction:column;min-width:0;flex:1}'
     + '.enc .enc-t b,.enc .enc-t small,.enc-l a b,.enc-l a small{font-family:inherit;font-style:normal;text-transform:none;letter-spacing:normal;color:inherit}'
-    + '.enc .enc-t small,.enc-l a small{font-size:11px;text-transform:uppercase;letter-spacing:.05em;opacity:.75;display:block}'
+    + '.enc .enc-t small,.enc-l a small{font-size:12px;text-transform:uppercase;letter-spacing:.05em;opacity:.75;display:block}'
     + '.enc .enc-t b,.enc-l a b{font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
     + '.enc summary .ic{width:18px;height:18px;flex:none}.enc[open] summary .ic{transform:rotate(180deg)}'
     // la liste : exactement la largeur de la boîte, sans coins arrondis ajoutés (elle reprend ceux de la boîte)

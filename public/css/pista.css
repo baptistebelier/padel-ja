@@ -1051,7 +1051,7 @@ button.ps-more .ic, .ps-ib .ic { width: 20px; height: 20px; }
 
 /* Programmation : intercalaires, terrains sur une largeur qui tient, « À programmer » à droite */
 #tab-programmation[data-ps-view='sched'] #orderCard, #tab-programmation[data-ps-view='order'] .ps-schedcard { display: none; }
-.ps-schedcard #schedAuto { display: none; }
+.ps-schedcard #schedAuto, .ps-schedcard #schedClear { display: none; }
 #sched { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) minmax(230px, 280px); gap: 0 12px; overflow: visible; align-items: start; padding-right: 0; }
 #sched .scol { width: auto; min-width: 0; margin-bottom: 12px; }
 #sched .scol:first-child { grid-column: -2 / -1; grid-row: 1 / span 12; }
@@ -1107,6 +1107,8 @@ button.ps-more .ic, .ps-ib .ic { width: 20px; height: 20px; }
 .ps-sets i.w { background: var(--c-lime); color: var(--c-dark); }
 .ps-sets i.cur { background: var(--c-surface); border-style: dashed; }
 .lcard.ps-court .btns { margin-top: 8px; }
+.lcard.ps-court .btns button, .scard .sc-acts button.ps-ib { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.lcard.ps-court .btns .ic { width: 16px; height: 16px; }
 /* Inscriptions : « Ajouter la paire » et le bouton-icône de collage côte à côte ; la zone de collage s'ouvre par le bouton */
 .ps-addrow { display: flex; align-items: center; gap: var(--s2); }
 .ps-addrow > button.accent { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); }
@@ -1341,6 +1343,9 @@ body[data-ps-tab='diffusion'] #btnTv { display: none; }
   .ps-calc .cal .day { min-height: 64px; padding: 4px; }
   .ps-calc .cal .ev { font-size: 12px; padding: 2px 3px; }
   .phead-act #today { display: none; }
+  .ps-calc .cal-head h2 { font-size: 24px; }
+  .ps-plan .row .chip { display: none; }
+  .ps-plan .row strong { white-space: normal; }
 }
 /* 7 · Joueurs : recherche et segmenté, tableau avec pastilles de fidélité, fiche joueur à droite */
 @media (min-width: 1024px) { .ps-jgrid { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); } }
@@ -1406,6 +1411,77 @@ button.row.ps-recrow { width: 100%; border: 0; background: none; box-shadow: non
 /* fenêtres : panneaux pleins, sans voile sur la page (règle de la maquette : rien de transparent) */
 .nvdlg::backdrop { background: transparent; }
 .modal, .pmodal { background: none; }
+
+/* 10 · Statistiques : 4 compteurs à petit carré de couleur, barres par mois, Top 10 en intercalaires, catégories en barres horizontales */
+.ps-kpi small { display: flex; align-items: center; gap: 8px; }
+.ps-sq { display: inline-block; width: 12px; height: 12px; border: var(--bw) solid var(--c-ink); }
+.ps-sq-lime { background: var(--c-lime); } .ps-sq-pink { background: var(--c-pink); } .ps-sq-green { background: var(--c-green); }
+.ps-season { pointer-events: none; }
+@media (min-width: 1024px) { .st-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); } }
+.st-grid { align-items: start; }
+.st-grid .ps-bmain { display: flex; flex-direction: column; gap: var(--s5); min-width: 0; }
+.ps-bars { display: flex; align-items: flex-end; gap: 10px; height: 180px; padding-top: 10px; }
+.ps-bar { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 6px; text-align: center; }
+.ps-bar b { font: 700 15px var(--f-label); }
+.ps-bar i { display: block; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); }
+.ps-bar.on i { background: var(--c-lime); }
+.ps-bar span { font: 700 12px var(--f-label); letter-spacing: .08em; text-transform: uppercase; color: var(--c-muted); }
+.ps-top li { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: none; align-items: center; padding: 8px 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+.ps-top li + li { border-top: var(--bw) solid var(--c-ink); }
+.ps-top .r-pastille { grid-area: auto; }
+.ps-top .st-who, .ps-top .st-nums { grid-area: auto; }
+.ps-top .st-nums { display: flex; align-items: baseline; gap: 4px; }
+.ps-top .st-nums b { font: 700 18px var(--f-label); }
+.ps-hbars { display: flex; flex-direction: column; gap: 10px; }
+.ps-hbar { display: grid; grid-template-columns: 110px minmax(0, 1fr) 28px; gap: 10px; align-items: center; }
+.ps-hbar span { font: 700 14px var(--f-label); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-hbar i { display: block; height: 18px; min-width: 6px; border: var(--bw) solid var(--c-ink); background: var(--c-lime); }
+.ps-hbar i.alt { background: var(--c-green); }
+.ps-hbar b { font: 700 15px var(--f-label); }
+@media (max-width: 720px) { .ps-bars { gap: 4px; height: 150px; } .ps-hbar { grid-template-columns: 90px minmax(0, 1fr) 24px; } }
+/* pages en bento (profil, animation, statistiques, joueurs) : colonne large à gauche, colonne de droite de 300 à 380 px */
+@media (min-width: 1024px) { .acct .grid.g-2 { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); } }
+/* taille du texte « Grande » (Profil › Apparence) : toute l'interface agrandie, le zoom du navigateur reste possible */
+:root[data-texte='grand'] body { zoom: 1.125; }
+/* 11 · Profil : boîte à intercalaires, Apparence et Sur cet appareil à droite */
+.ps-pbox { margin-bottom: var(--s5); }
+.ps-pbox .ps-ppane > .eyebrow { display: none; }
+.ps-pbox .ps-ppane > h2 { font: 700 19px/1.15 var(--f-label); text-transform: none; margin: var(--s4) 0 var(--s3); }
+.ps-pbox .ps-ppane > h2:first-child { margin-top: 0; }
+.ps-psep { height: var(--bw); margin: var(--s4) 0; background: var(--c-ink); }
+.ps-txt { display: flex; width: 100%; margin-bottom: 6px; }
+.ps-txt button, #seg button { flex: 1; justify-content: center; }
+#seg { display: flex; width: 100%; }
+.card > .ps-lbl { margin-top: var(--s4); }
+#segFond, #segCoins { display: flex; flex-wrap: wrap; width: 100%; box-shadow: none; }
+#segFond button, #segCoins button { flex: 1 0 auto; justify-content: center; padding: 0 12px; border-bottom: var(--bw) solid var(--c-ink); }
+.ps-out { display: inline-flex; align-items: center; }
+/* 12-13 · Animation : tuiles de type d'animation, cartes de terrain avec cases de score, inscrits en lignes */
+.acct .an-formats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.acct .an-formats button { border: var(--bw) solid var(--c-ink); border-radius: var(--rad-sm); background: var(--c-surface-2); color: var(--c-text); box-shadow: none; font: inherit; text-transform: none; letter-spacing: 0; min-height: 84px; }
+.acct .an-formats button b { font: 700 19px/1.15 var(--f-label); text-transform: none; }
+.acct .an-formats button[aria-pressed='true'] { background: var(--c-lime); color: var(--c-dark); border-color: var(--c-ink); box-shadow: var(--sh); }
+.acct .an-formats button[aria-pressed='true'] small { color: var(--c-dark); }
+.acct .an-courts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--s4); }
+.acct .an-m { border: var(--bw) solid var(--c-ink); border-radius: var(--rad-sm); background: var(--c-surface); box-shadow: var(--sh); }
+.acct .an-m.done { border-color: var(--c-ink); }
+.acct .an-m .ct { font: 700 14px var(--f-label); letter-spacing: .1em; color: var(--c-text); }
+.acct .an-sc input { width: 56px; height: 52px; min-height: 52px; padding: 0; font: 400 26px var(--f-display); text-align: center; }
+.acct .an-sc b { display: grid; place-items: center; min-width: 48px; height: 48px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); font: 400 24px var(--f-display); }
+.acct .an-p { border-radius: 0; background: none; border-bottom: var(--bw) solid color-mix(in srgb, var(--c-ink) 14%, transparent); padding: 10px 0; }
+.acct .an-p .ib2, .ib2 { border: var(--bw) solid var(--c-ink); border-radius: 0; min-width: 40px; min-height: 40px; background: var(--c-surface-2); color: var(--c-text); box-shadow: none; font: 700 13px var(--f-label); text-transform: uppercase; }
+.acct .an-timer { font-size: 64px; }
+.acct .an-table th, .acct .an-table td { border-bottom: var(--bw) solid color-mix(in srgb, var(--c-ink) 14%, transparent); }
+.acct .an-table tr.top td:first-child { color: var(--c-kick); }
+.acct .an-links code { border: var(--bw) solid var(--c-ink); border-radius: 0; background: var(--c-surface-2); }
+.acct .an-qrbig { background: var(--c-bg); }
+.acct .an-qrbig > div { border: var(--bw) solid var(--c-ink); border-radius: 0; box-shadow: var(--sh-hero); }
+.toast { border-radius: 0; }
+@media (min-width: 1024px) { .acct .g-2 .g-2 { grid-template-columns: minmax(0, 1fr); } }
+.acct label.chk input[type=checkbox] { width: 52px; }
+.acct .phead h1 input { text-transform: inherit; letter-spacing: inherit; }
+/* 14-15 · Tournoi interne : même coque que l'éditeur, lignes de matchs et de participants avec étiquettes et « … » */
+.in-al { border-radius: 0; }
 
 /* ---------- 8. ANIMATIONS ---------- */
 @keyframes blink { 50% { opacity: .2; } }

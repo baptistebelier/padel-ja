@@ -10,7 +10,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja2">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
-<title>Statistiques — /RAM JA</title>
+<title>Statistiques — /Pista</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
@@ -20,44 +20,70 @@
 <body class="acct" data-page="stats">
 <main class="page">
   <header class="phead">
-    <div><span class="eyebrow">Mes tournois</span><h1>Statis<span class="band lime">tiques</span></h1>
-      <p>Les joueurs de vos tournois, comptés un par un (les paires changent d'un tournoi à l'autre). Mis à jour à chaque tournoi.</p></div>
+    <div><span class="eyebrow" id="stSaison">Mes tournois</span><h1>Statistiques</h1></div>
+    <div class="phead-act"><span class="btn ps-season"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="stSaison2">Saison</span></span></div>
   </header>
-  <div class="kpi-row" id="kpis"></div>
+  <div class="kpi-row ps-skpi" id="kpis"></div>
   <div class="grid g-2 st-grid">
-    <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Tournois joués</h2></div><i class="st-badge"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8"/></svg></i></div><div id="topT"><p class="muted">Chargement…</p></div></section>
-    <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Points gagnés</h2></div><i class="st-badge"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg></i></div><div id="topP"><p class="muted">Chargement…</p></div></section>
-  <section class="card st-card"><div class="card-h"><div><span class="eyebrow">Top 10</span><h2>Matchs joués</h2></div><i class="st-badge"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></i></div><div id="topM"><p class="muted">Chargement…</p></div></section>
+    <div class="ps-bmain">
+      <section class="card"><h2 class="h2s"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg>Tournois par mois</h2><div class="ps-bars" id="bars"></div></section>
+      <div class="ps-topw">
+        <div class="r-itabs ps-itabs" role="tablist" id="topTabs"><button type="button" role="tab" data-top="P" aria-selected="true">Points gagnés</button><button type="button" role="tab" data-top="T" aria-selected="false">Tournois joués</button><button type="button" role="tab" data-top="M" aria-selected="false">Matchs joués</button></div>
+        <section class="card st-card"><h2 class="h2s"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/></svg>Top 10</h2>
+          <div id="topP"><p class="muted">Chargement…</p></div><div id="topT" hidden></div><div id="topM" hidden></div></section>
+      </div>
+    </div>
+    <aside class="r-bento__side">
+      <section class="card"><h2 class="h2s"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Par catégorie</h2><div class="ps-hbars" id="cats"></div></section>
+      <section class="card"><h2 class="h2s"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Exporter</h2>
+        <p class="muted small">Tous les joueurs de vos tournois et leurs chiffres, pour le comité ou le club (fichier pour tableur).</p>
+        <div class="btns"><button class="btn" type="button" id="stExport"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Télécharger le tableau</button></div></section>
+    </aside>
   </div>
-  <p class="muted small">Points : barème FFT des tournois terminés ou clôturés. Matchs : matchs disputés (hors forfaits et exempts). Le club d'un joueur se renseigne à l'inscription de la paire.</p>
+  <p class="muted small">Joueurs comptés un par un (les paires changent d'un tournoi à l'autre). Points : barème FFT des tournois terminés ou clôturés. Matchs : matchs disputés (hors forfaits et exempts).</p>
 </main>
 <script>
 (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = s => document.querySelector(s);
-  const ico = d => `<i class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg></i>`;
   const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
-  const TROPHY = '<svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg>';
-  // une ligne du classement : rang, joueur, club, puis la valeur mise en avant et les autres chiffres
-  const list = (rows, key, unit) => rows.length ? `<ol class="st-list">${rows.map((p, i) => `
-    <li class="${i < 3 ? 'pod p' + (i + 1) : ''}">
-      <span class="st-rk">${i + 1}</span>
-      <div class="st-who"><b>${esc(p.last)}</b> ${esc(p.first)}<small>${p.club ? esc(p.club) : 'Club non renseigné'}</small></div>
-      <div class="st-nums"><b>${p[key]}</b><span>${unit}</span></div>
-      <div class="st-more">${[key !== 'tournaments' ? plural(p.tournaments, 'tournoi') : '', key !== 'points' && p.points ? p.points + ' pts' : '', key !== 'matches' && p.matches ? plural(p.matches, 'match') : '', p.wins ? plural(p.wins, 'victoire') : '', p.titles ? `${TROPHY} ${plural(p.titles, 'titre')}` : ''].filter(Boolean).map(x => `<em>${x}</em>`).join('')}</div>
-    </li>`).join('')}</ol>` : '<p class="muted">Pas encore de données : elles apparaîtront après vos premiers tournois (tirage fait, matchs joués).</p>';
+  // saison : de septembre à août
+  const now = new Date(), y0 = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  $('#stSaison').textContent = `Mes tournois · saison ${y0}-${y0 + 1}`; $('#stSaison2').textContent = `Saison ${y0}-${y0 + 1}`;
+  const MOIS = ['Sep', 'Oct', 'Nov', 'Déc', 'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août'];
+  // un classement : rang en pastille (rose pour le premier), joueur, valeur
+  const list = (rows, key, unit) => rows.length ? `<ol class="st-list ps-top">${rows.map((p, i) => `
+    <li><span class="r-pastille${i ? '' : ' r-pastille--rose'}">${i + 1}</span>
+      <div class="st-who"><b>${esc(p.last)}</b> ${esc(p.first)}<small>${p.club ? esc(p.club) : 'Club non renseigné'}${key !== 'tournaments' ? ' · ' + plural(p.tournaments, 'tournoi') : ''}${p.wins ? ' · ' + plural(p.wins, 'victoire') : ''}</small></div>
+      <div class="st-nums"><b>${p[key]}</b><span>${unit}</span></div></li>`).join('')}</ol>` : '<p class="muted">Pas encore de données : elles apparaîtront après vos premiers tournois (tirage fait, matchs joués).</p>';
+  let all = [];
   fetch('/api/stats').then(r => r.json()).then(d => {
     if (d.error) throw new Error(d.error);
-    $('#kpis').innerHTML = [
-      ['Tournois', d.tournaments, 'comptés', '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>'],
-      ['Joueurs', d.players, 'différents', '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/>'],
-      ['Matchs', d.matches, 'disputés', '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8"/>'],
-      ['Moyenne', d.tournaments ? Math.round(d.players / d.tournaments) : 0, 'joueurs / tournoi', '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>']
-    ].map(([l, n, u, i]) => `<div class="kpi"><div><small>${l}</small><b>${n}</b><span>${u}</span></div>${ico(i)}</div>`).join('');
+    const kp = [['Tournois joués', d.tournaments, 'tournois comptés', 'lime'], ['Matchs joués', d.matches, d.tournaments ? Math.round(d.matches / d.tournaments) + ' par tournoi' : 'disputés', 'pink'],
+      ['Joueurs', d.players, 'différents', 'green'], ['Joueurs en moyenne', d.tournaments ? (d.players / d.tournaments).toFixed(1).replace('.', ',') : 0, 'par tournoi', '']];
+    $('#kpis').innerHTML = kp.map(([l, n, u, c]) => `<div class="kpi ps-kpi"><div><small>${c ? `<i class="ps-sq ps-sq-${c}"></i>` : ''}${l}</small><b>${n}</b><span>${u}</span></div></div>`).join('');
     $('#topT').innerHTML = list(d.byTournaments, 'tournaments', 'tournois');
-    $('#topP').innerHTML = list(d.byPoints.filter(p => p.points > 0), 'points', 'points');
+    $('#topP').innerHTML = list(d.byPoints.filter(p => p.points > 0), 'points', 'pts');
     $('#topM').innerHTML = list(d.byMatches.filter(p => p.matches > 0), 'matches', 'matchs');
+    all = d.byTournaments || [];
   }).catch(e => { ['#topT', '#topP', '#topM'].forEach(s => { $(s).innerHTML = `<p class="muted">${esc(e.message || 'Statistiques indisponibles')}</p>`; }); });
+  // barres par mois et par catégorie : calculées à partir de la liste des tournois de la saison
+  fetch('/api/tournaments').then(r => r.json()).then(d => {
+    const ts = (d.tournaments || []).filter(t => t.dateStart && t.dateStart >= y0 + '-09-01' && t.dateStart < (y0 + 1) + '-09-01');
+    const per = Array(12).fill(0); ts.forEach(t => { per[(new Date(t.dateStart).getMonth() + 4) % 12]++; });
+    const last = Math.max(7, (now.getMonth() + 4) % 12), max = Math.max(1, ...per);
+    $('#bars').innerHTML = per.slice(0, last + 1).map((n, i) => `<div class="ps-bar${i === (now.getMonth() + 4) % 12 ? ' on' : ''}"><b>${n}</b><i style="height:${Math.max(4, Math.round(n / max * 100))}%"></i><span>${MOIS[i]}</span></div>`).join('');
+    const cat = {}; ts.forEach(t => { const k = t.kind === 'animation' ? 'Animations' : t.type === 'interne' ? 'Tournois internes' : t.category || 'Autres'; cat[k] = (cat[k] || 0) + 1; });
+    const ks = Object.keys(cat).sort((a, b) => (parseInt(a.slice(1)) || 1e9) - (parseInt(b.slice(1)) || 1e9)), cm = Math.max(1, ...Object.values(cat));
+    $('#cats').innerHTML = ks.map(k => `<div class="ps-hbar"><span>${esc(k)}</span><i class="${/^P/.test(k) ? '' : 'alt'}" style="width:${Math.round(cat[k] / cm * 100)}%"></i><b>${cat[k]}</b></div>`).join('') || '<p class="muted small">Aucun tournoi daté cette saison.</p>';
+  }).catch(() => {});
+  $('#topTabs').onclick = e => { const b = e.target.closest('[data-top]'); if (!b) return; document.querySelectorAll('#topTabs [data-top]').forEach(x => x.setAttribute('aria-selected', x === b)); ['P', 'T', 'M'].forEach(k => { $('#top' + k).hidden = k !== b.dataset.top; }); };
+  $('#stExport').onclick = () => {
+    if (!all.length) return alert('Aucune donnée à exporter pour l’instant.');
+    const rows = [['Nom', 'Prénom', 'Club', 'Tournois', 'Points', 'Matchs', 'Victoires']].concat(all.map(p => [p.last, p.first, p.club || '', p.tournaments, p.points || 0, p.matches || 0, p.wins || 0]));
+    const csv = '﻿' + rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'statistiques-saison.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
 })();
 </script>
 </body>

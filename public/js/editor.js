@@ -139,7 +139,8 @@
     more.type = 'button'; more.id = 'psMore'; more.className = 'sq'; more.setAttribute('aria-label', 'Plus d\'actions : overlay, export, aide');
     more.innerHTML = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
     $('#btnHelp').after(more);
-    more.onclick = () => $('#abMore').click();
+    // Programmation : « Vider (non commencés) » passe dans ce menu « … » ; ailleurs, la feuille des actions
+    more.onclick = () => tab === 'programmation' ? psMenu(more, [['Vider les matchs non commencés', PSI.x, () => $('#schedClear').click(), true], ['Autres actions', PSI.more, () => $('#abMore').click()]]) : $('#abMore').click();
     // « ‹ » du sous-menu (44 px) : replie la colonne 2 ; « › » dans l'en-tête la rouvre (choix gardé sur l'appareil)
     const fold = document.createElement('button'); fold.type = 'button'; fold.className = 'ps-fold'; fold.setAttribute('aria-label', 'Replier le menu du tournoi'); fold.innerHTML = PSI.left;
     $('.side-t').appendChild(fold);
@@ -588,7 +589,7 @@
     const box = $('#sug' + n);
     if (!sug.items.length) { box.hidden = true; sug.open = false; return; }
     box.innerHTML = sug.items.map((p, i) => `<div class="sg ${i === sug.active ? 'on' : ''}" data-i="${i}">${p.photo && /^(https?:\/\/|\/)[^"'()\s]+$/.test(p.photo) ? `<i class="sg-pp" style="background-image:url('${esc(p.photo)}')"></i>` : `<i class="sg-pp">${esc(((p.first || '')[0] || '') + ((p.last || '')[0] || '')).toUpperCase()}</i>`}<b>${esc(p.last)}</b> ${esc(p.first)}${p.mail ? ` <span>${esc(p.mail)}</span>` : ''}
-      <span>${p.licence ? 'Lic. ' + esc(p.licence) : ''}${p.rank ? ' · Clt ' + esc(p.rank) : ''}</span><em>${p.source === 'club' ? '/RAM Club · ' + esc(p.club || '') : (p.club ? esc(p.club) + ' · ' : '') + p.tournaments + ' tournoi' + (p.tournaments > 1 ? 's' : '')}</em></div>`).join('');
+      <span>${p.licence ? 'Lic. ' + esc(p.licence) : ''}${p.rank ? ' · Clt ' + esc(p.rank) : ''}</span><em>${p.source === 'club' ? '/Buvette · ' + esc(p.club || '') : (p.club ? esc(p.club) + ' · ' : '') + p.tournaments + ' tournoi' + (p.tournaments > 1 ? 's' : '')}</em></div>`).join('');
     box.hidden = false; sug.open = true; sug.n = n;
     // règle commune aux trois applis : la liste prend la largeur exacte et le style du champ tapé, collée dessous
     const inp = sug.inp && document.body.contains(sug.inp) ? sug.inp : null;
@@ -682,7 +683,7 @@
           <td class="num">${kind === 'main' && ts ? `<span class="ts">TS${ts}</span>` : i + 1}</td>
           <td>${plCell(p.p1, 'p1')}</td><td>${plCell(p.p2, 'p2')}</td>
           <td class="num"><b>${E.weightOf(p) >= 99999 ? 'NC' : E.weightOf(p)}</b></td>
-          <td>${fmtDate(p.registeredAt)} ${p.wc ? '<span class="tag">WC</span>' : ''}${p.src ? '<span class="tag lime" title="Inscrite par les joueurs depuis l’appli /RAM Club">/RAM Club</span>' : ''}</td>
+          <td>${fmtDate(p.registeredAt)} ${p.wc ? '<span class="tag">WC</span>' : ''}${p.src ? '<span class="tag lime" title="Inscrite par les joueurs depuis l’appli /Buvette">/Buvette</span>' : ''}</td>
           <td class="acts"><button class="ps-more" data-a="more" data-kind="${kind}" aria-haspopup="menu" aria-label="Actions de la paire ${esc(p.p1.last || '')} / ${esc(p.p2.last || '')}">${PSI.more}</button></td></tr>`;
       }).join('') + '</tbody>';
   }
@@ -1123,7 +1124,7 @@
     if (whereLab) $('.ps-where', fside).appendChild(whereLab);
     $$('input[name=psReg]', fside).forEach(r => r.onchange = () => { if (!regSel || !r.checked) return; regSel.value = r.value; regSel.dispatchEvent(new Event('change')); });
     const tplc = $('.tpl-card');
-    if (tplc) { fside.appendChild(tplc); $('#tplBody').hidden = false; tplc.classList.add('open'); const h = $('h3', tplc); if (h) h.innerHTML = psIc('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>') + 'Formats préenregistrés'; const sv = $('#tplSave'); if (sv) sv.innerHTML = psIc('<path d="M12 5v14M5 12h14"/>') + 'Enregistrer comme modèle'; }
+    if (tplc) { fside.appendChild(tplc); $('#tplBody').hidden = false; tplc.classList.add('open'); const h = $('h3', tplc); if (h) { const pc = h.querySelector('.pic'); h.textContent = 'Formats préenregistrés'; if (pc) h.prepend(pc); } const sv = $('#tplSave'); if (sv) sv.innerHTML = psIc('<path d="M12 5v14M5 12h14"/>') + 'Enregistrer comme modèle'; }
   })();
 
   /* RGPD : texte prêt à afficher pour informer les joueurs */

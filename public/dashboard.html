@@ -126,7 +126,7 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="eyebrow" style="margin:0">Tournoi en cours</span>${state}</div>
         <h2>${esc(cur.name || 'Sans nom')}</h2>
         <p>${esc([cur.category, cur.gender, cur.club, cur.dateStart && new Date(cur.dateStart).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean).join(' · '))}</p>
-        <div class="hero-stats"><div><b>${cur.pairs || 0}</b><span>paires inscrites${cur.maxPairs ? ' · ' + cur.maxPairs + ' places' : ''}</span></div><div><b>${cur.done}/${cur.matches}</b><span>matchs joués</span></div><div><b id="curCourtsN">–</b><span>terrains</span></div></div>
+        <div class="hero-stats"><div><b>${cur.kind === 'animation' || cur.type === 'interne' ? cur.players || 0 : cur.pairs || 0}</b><span>${cur.kind === 'animation' || cur.type === 'interne' ? 'joueurs inscrits' : 'paires inscrites' + (cur.maxPairs ? ' · ' + cur.maxPairs + ' places' : '')}</span></div><div><b>${cur.done}/${cur.matches}</b><span>matchs joués</span></div><div><b id="curCourtsN">–</b><span>terrains</span></div></div>
         ${cur.drawn ? `<div class="prog"><i style="width:${pct}%"></i></div>` : ''}
         <div class="ps-courts" id="curCourts" hidden></div>
         <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/t/${cur.id}">${pic(P.open)}Ouvrir le tournoi</a><a class="btn" href="/t/${cur.id}/remote" target="_blank">${pic(P.score)}Saisir un score</a><a class="btn" href="/t/${cur.id}/tv" target="_blank">${pic(P.tv)}Écran TV</a></div></div>`;

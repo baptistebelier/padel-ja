@@ -78,7 +78,7 @@
   const membres = () => all('member').map(m => ({ k: m.id, n: m.n, lic: m.lic || '', niv: m.pl ? 'niv ' + m.pl + ' padel' : m.r && m.r !== 'NC' ? m.r : '', compte: !!comptes[m.id] })).filter(m => m.n).sort((a, b) => a.n.localeCompare(b.n, 'fr'));
   const nid = p => p + Date.now().toString(36);
   const fmtD = iso => (iso ? new Date(iso + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : '');
-  /* enregistrer dans /RAM Club : mêmes droits que dans l'appli du club (bureau, enseignant, capitaine) */
+  /* enregistrer dans /Buvette : mêmes droits que dans l'appli du club (bureau, enseignant, capitaine) */
   async function ops(list, ok) {
     try {
       const r = await api(`/api/ram/c/${club.id}/ops`, { ops: list });
@@ -118,7 +118,7 @@
       <section class="card"><span class="eyebrow">Joueurs · ${mem.length}</span><h2>Effectif</h2>
       <label>Capitaine<select id="t-cap"><option value="">—</option>${mem.map(k => `<option value="${k}" ${t.cap === k ? 'selected' : ''}>${esc(nom(k))}</option>`).join('')}</select></label>
       ${mem.map(k => `<div class="ch-p"><span class="n">${esc(nom(k))}</span><select data-ros="${k}" aria-label="Rôle de ${esc(nom(k))}"><option value="T" ${ros[k] !== 'R' ? 'selected' : ''}>Titulaire</option><option value="R" ${ros[k] === 'R' ? 'selected' : ''}>Remplaçant</option></select><button class="ib2" data-out="${k}">Retirer</button></div>`).join('') || '<p class="ch-empty">Ajoute les joueurs de l’équipe.</p>'}
-      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" data-ch-joueur placeholder="Tape un nom : adhérents du club, joueurs /RAM JA" required autocomplete="off"></label><button class="btn">Ajouter</button></form><p class="muted small">Un joueur qui n’est pas encore dans /RAM Club y reçoit une fiche du club (sans compte) : il apparaît dans l’équipe et ses statistiques.</p></section>`;
+      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" data-ch-joueur placeholder="Tape un nom : adhérents du club, joueurs /RAM JA" required autocomplete="off"></label><button class="btn">Ajouter</button></form><p class="muted small">Un joueur qui n’est pas encore dans /Buvette y reçoit une fiche du club (sans compte) : il apparaît dans l’équipe et ses statistiques.</p></section>`;
   }
   const score = r => { if (r.fin) return r.fin; let a = 0, b = 0; (r.ms || []).forEach(m => { if (m.st === 'done') m.w === 0 ? a++ : b++; }); return [a, b]; };
   function recPart(r, t, c) {
@@ -228,10 +228,10 @@
         const m = it && it.d && it.d.k ? membres().find(x => x.k === it.d.k) : it ? null : memes[0];
         if (m) return ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: m.k }, { p: ['roster', m.k], t: 'set', v: 'T' }] }], m.n + ' ajouté · il est prévenu');
         if (!n) return;
-        // pas encore dans /RAM Club : une fiche du club sans compte, reprise de la base /RAM JA si on l'y a choisi
+        // pas encore dans /Buvette : une fiche du club sans compte, reprise de la base /RAM JA si on l'y a choisi
         const p = it && it.d && it.d.p, k = 'm' + Date.now().toString(36), conf = get('conf', 'main') || {};
         const fiche = Object.assign({ n, r: (p && /^\d|NC|^-/.test(p.rank || '') ? p.rank : '') || 'NC', g: 'H', via: '/RAM JA', valid: conf.season || '' }, p && p.licence ? { lic: p.licence } : {}, p && p.id ? { ficheJa: p.id } : {});   // sa fiche /RAM JA, que le serveur vérifie puis rattache
-        if (!confirm(n + ' n’est pas encore dans /RAM Club. Lui créer une fiche du club (sans compte) et l’ajouter à l’équipe ?')) return;
+        if (!confirm(n + ' n’est pas encore dans /Buvette. Lui créer une fiche du club (sans compte) et l’ajouter à l’équipe ?')) return;
         await ops([{ coll: 'member', id: k, op: 'put', data: fiche }, { coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: k }, { p: ['roster', k], t: 'set', v: 'T' }] }], n + ' ajouté à l’équipe');
       });
       on('#r-new', 'onsubmit', async e => {
@@ -259,7 +259,7 @@
   (async () => {
     try {
       clubs = ((await api('/api/ram/clubs')).clubs || []).filter(c => c.role === 'bureau' || c.role === 'coach' || c.super);
-      if (!clubs.length) { $('#app').innerHTML = '<div class="page-h"><span class="eyebrow">Championnats par équipes</span><h1>Équipes du club</h1></div><section class="card"><p>Les championnats se gèrent depuis le compte d’un membre du bureau ou d’un enseignant d’un club présent sur /RAM Club.</p><p><a class="btn" href="/club/">Ouvrir /RAM Club</a></p></section>'; return; }
+      if (!clubs.length) { $('#app').innerHTML = '<div class="page-h"><span class="eyebrow">Championnats par équipes</span><h1>Équipes du club</h1></div><section class="card"><p>Les championnats se gèrent depuis le compte d’un membre du bureau ou d’un enseignant d’un club présent sur /Buvette.</p><p><a class="btn" href="/club/">Ouvrir /Buvette</a></p></section>'; return; }
       club = clubs.find(c => c.main) || clubs[0];
       await charger();
     } catch (e) { $('#app').innerHTML = `<section class="card"><p>${esc(e.message)}</p></section>`; }

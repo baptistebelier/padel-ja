@@ -98,7 +98,7 @@
   function row(t, next) {
     const d = t.dateStart ? new Date(t.dateStart) : null;
     const st = t.closed ? '<span class="chip">Clôturé</span>' : t.drawn && t.done < t.matches ? '<span class="chip live">En direct</span>' : `<span class="chip">${t.kind === 'animation' ? (t.players || 0) + ' joueurs' : (t.pairs || 0) + ' paires'}</span>`;
-    return `<a class="row" href="/t/${t.id}"><div class="d${next ? ' ps-next1' : ''}"><b>${d ? d.getDate() : '–'}</b><span>${d ? MOIS[d.getMonth()].slice(0, 4) : 'date ?'}</span></div>
+    return `<a class="row" href="/t/${t.id}"><div class="d${next ? ' ps-next1' : ''}"><b>${d ? d.getDate() : '–'}</b><span>${d ? d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '') : 'date ?'}</span></div>
       <div><strong>${esc(t.name || 'Sans nom')}</strong><small>${esc([t.category, t.gender, t.club, t.startTime].filter(Boolean).join(' · '))}</small></div>${st}</a>`;
   }
   $('#prev').onclick = () => { cur.setMonth(cur.getMonth() - 1); render(); };

@@ -15,7 +15,7 @@
 </head>
 <body class="acct" data-page="admin">
 <main class="page">
-  <header class="phead"><div><span class="eyebrow">Réservé aux administrateurs</span><h1>Adminis<span class="band pink">tration</span></h1></div></header>
+  <header class="phead"><div><span class="eyebrow">Réservé aux administrateurs</span><h1>Administration</h1></div></header>
   <section><div class="pk" id="stats"></div></section>
   <section class="card">
     <span class="eyebrow">Comptes juges-arbitres</span>
@@ -28,7 +28,7 @@
   <section class="card">
     <div class="card-h"><div><span class="eyebrow">Fiche personne commune</span><h2 class="h2s">Réconciliation des fiches</h2></div>
       <button class="btn sm" id="rcAnalyse" type="button">Analyser</button></div>
-    <p class="muted small">Une personne = une fiche, partagée par /RAM JA, /RAM Club et /RAM Coach. L’analyse repère les fiches en double (même licence, même nom sans licence contradictoire, fiche élève sans compte et adhérent du même club). Rien n’est fusionné sans votre clic ; une sauvegarde complète est faite juste avant. Deux homonymes (licences ou comptes différents) ne sont jamais fusionnés : ils restent dans « À vérifier ».</p>
+    <p class="muted small">Une personne = une fiche, partagée par /RAM JA, /Buvette et /Dojo. L’analyse repère les fiches en double (même licence, même nom sans licence contradictoire, fiche élève sans compte et adhérent du même club). Rien n’est fusionné sans votre clic ; une sauvegarde complète est faite juste avant. Deux homonymes (licences ou comptes différents) ne sont jamais fusionnés : ils restent dans « À vérifier ».</p>
     <div id="rc"></div>
     <p class="small" id="rcmsg" role="status"></p>
   </section>
@@ -42,7 +42,7 @@
   <section class="card">
     <span class="eyebrow">Référentiel des clubs</span>
     <h2 class="h2s">Clubs en double</h2>
-    <p class="muted small">Un même club saisi sous deux noms (« TC Brive » et « Tennis Club de Brive ») ? Fusionnez-les : comptes, fiches joueurs, tournois, résultats et applis /RAM Club passent au club gardé, et l'autre nom reste reconnu.</p>
+    <p class="muted small">Un même club saisi sous deux noms (« TC Brive » et « Tennis Club de Brive ») ? Fusionnez-les : comptes, fiches joueurs, tournois, résultats et applis /Buvette passent au club gardé, et l'autre nom reste reconnu.</p>
     <div id="cdoubles"><p class="muted">Chargement…</p></div>
     <form id="cmerge" class="cmerge">
       <label>Club à fusionner (disparaît)<select name="from" required></select></label>
@@ -187,7 +187,7 @@
 
   // clubs en double : suggestions, puis fusion confirmée
   let CL = [];
-  const clLabel = c => `${c.name}${c.city ? ' (' + c.city + ')' : ''} · ${c.users} compte(s), ${c.tournaments} tournoi(s)${c.spaces.length ? ', appli /RAM Club' : ''}`;
+  const clLabel = c => `${c.name}${c.city ? ' (' + c.city + ')' : ''} · ${c.users} compte(s), ${c.tournaments} tournoi(s)${c.spaces.length ? ', appli /Buvette' : ''}`;
   async function loadClubs() {
     const d = await api('/api/admin/clubs').catch(e => ({ error: e.message }));
     if (d.error) { $('#cdoubles').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }
@@ -217,6 +217,34 @@
     loadClubs(); loadBackups();
   };
   loadClubs();
+})();
+</script>
+<script>
+/* Administration (maquette /Pista, écran 23) : à gauche une boîte à intercalaires (Accès & offres, Clubs en double,
+   Réconciliation des fiches) ; à droite Sauvegardes et Droit à l'effacement (RGPD), seul bouton rose de la page.
+   Les cartes existantes sont déplacées, leur code ne change pas. */
+(function () {
+  const $ = s => document.querySelector(s);
+  const card = el => el && el.closest('section.card');
+  const main = $('main.page'), acc = card($('#users')), rc = card($('#rc')), bk = card($('#backups')), cl = card($('#cdoubles')), rg = card($('#pq'));
+  if (!main || !acc) return;
+  const bento = document.createElement('div'); bento.className = 'r-bento ps-adm';
+  const left = document.createElement('div'); left.className = 'ps-bmain';
+  const right = document.createElement('aside'); right.className = 'r-bento__side';
+  const tabs = [['acc', 'Accès & offres', acc], ['clubs', 'Clubs en double', cl], ['rc', 'Réconciliation des fiches', rc]].filter(t => t[2]);
+  const it = document.createElement('div'); it.className = 'r-itabs ps-itabs'; it.setAttribute('role', 'tablist');
+  it.innerHTML = tabs.map(([k, l]) => `<button type="button" role="tab" data-at="${k}">${l}</button>`).join('');
+  left.appendChild(it);
+  tabs.forEach(([k, , c]) => { c.dataset.pane = k; left.appendChild(c); });
+  const pick = k => { it.querySelectorAll('[data-at]').forEach(b => b.setAttribute('aria-selected', b.dataset.at === k)); tabs.forEach(([x, , c]) => { c.hidden = x !== k; }); };
+  it.onclick = e => { const b = e.target.closest('[data-at]'); if (b) pick(b.dataset.at); };
+  pick('acc');
+  [bk, rg].filter(Boolean).forEach(c => right.appendChild(c));
+  // « Fusionner » des clubs : bouton neutre, le rose est réservé à la suppression définitive
+  const fu = $('#cmerge button.danger'); if (fu) fu.classList.remove('danger');
+  const stats = $('#stats'); const after = stats ? stats.closest('section') : main.querySelector('.phead');
+  after.after(bento); bento.append(left, right);
+  main.querySelectorAll(':scope > .grid.g-2').forEach(g => { if (!g.children.length) g.remove(); });
 })();
 </script>
 </body>

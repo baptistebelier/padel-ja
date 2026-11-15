@@ -10,7 +10,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja2">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
-<title>Mon profil — /RAM JA</title>
+<title>Profil — /Pista</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
@@ -21,14 +21,14 @@
 <body class="acct" data-page="profil">
 <main class="page">
   <header class="phead">
-    <div><span class="eyebrow">Compte</span><h1>Mon <span class="band lime">profil</span></h1></div>
+    <div><span class="eyebrow">Mon compte</span><h1>Profil</h1></div>
     <div class="phead-act"><a class="btn danger" href="/deconnexion">Se déconnecter</a></div>
   </header>
   <div class="grid g-2">
     <div class="grid" style="align-content:start">
       <section class="card" id="notifCard">
         <span class="eyebrow">Notifications</span><h2>Sur cet appareil</h2>
-        <p class="muted small" id="notifTxt">Recevez une notification quand un adhérent s'inscrit ou se retire de vos tournois depuis /RAM Club, et quand un tournoi est complet.</p>
+        <p class="muted small" id="notifTxt">Recevez une notification quand un adhérent s'inscrit ou se retire de vos tournois depuis /Buvette, et quand un tournoi est complet.</p>
         <button class="btn primary sm" type="button" id="notifOn">Activer les notifications</button>
       </section>
       <section class="card">
@@ -52,7 +52,7 @@
       <section class="card">
         <span class="eyebrow">Clubs</span><h2>Mes clubs</h2>
         <div class="rows" id="myClubs"><p class="muted small">Chargement…</p></div>
-        <p class="muted small">Le club de votre compte, vos adhésions /RAM Club et les clubs indiqués par les juges-arbitres dans leurs tournois, saison par saison.</p>
+        <p class="muted small">Le club de votre compte, vos adhésions /Buvette et les clubs indiqués par les juges-arbitres dans leurs tournois, saison par saison.</p>
       </section>
       <section class="card">
         <span class="eyebrow">Sécurité</span><h2>Mot de passe</h2>
@@ -150,14 +150,14 @@
   fetch('/api/me').then(r => r.json()).then(d => { if (!d.user) return location.href = '/connexion'; showUser(d.user); loadClubs(); });
   // mes clubs : une ligne par club et par saison, avec ses rôles (bureau, enseignant, adhérent, joueur)
   const ROLE = { bureau: 'Bureau', coach: 'Enseignant', adherent: 'Adhérent', joueur: 'Joueur' };
-  const SRC = { ramclub: '/RAM Club', compte: 'mon compte', tournoi: 'tournois /RAM JA' };
+  const SRC = { ramclub: '/Buvette', compte: 'mon compte', tournoi: 'tournois /RAM JA' };
   function loadClubs() {
     if (me && me.guest) { $('#myClubs').innerHTML = '<p class="empty">Créez un compte pour rejoindre un club.</p>'; return; }
     fetch('/api/me/clubs').then(r => r.json()).then(d => {
-      // adhérent d'un club /RAM Club : le club du compte est le sien, il se change depuis /RAM Club
+      // adhérent d'un club /Buvette : le club du compte est le sien, il se change depuis /Buvette
       const inp = $('#fMe').elements.club, hint = $('#clubHint');
       inp.readOnly = !!d.managed; hint.hidden = !d.managed;
-      if (d.managed) { inp.value = d.managed.club; hint.textContent = `Club de votre adhésion /RAM Club. Il change automatiquement si vous rejoignez un autre club sur /RAM Club.`; }
+      if (d.managed) { inp.value = d.managed.club; hint.textContent = `Club de votre adhésion /Buvette. Il change automatiquement si vous rejoignez un autre club sur /Buvette.`; }
       const groups = new Map(), order = ['bureau', 'coach', 'adherent', 'joueur'];
       (d.memberships || []).forEach(m => {
         const k = m.clubId + '|' + m.season, g = groups.get(k) || { club: m.club, season: m.season, roles: [], src: [], wait: false, lic: false };
@@ -166,7 +166,7 @@
         g.wait = g.wait || m.status === 'attente'; g.lic = g.lic || m.licenceClub;
         groups.set(k, g);
       });
-      // progression /RAM Club de la même saison : points d'investissement et trophées
+      // progression /Buvette de la même saison : points d'investissement et trophées
       (d.progress || []).forEach(p => { const g = groups.get(p.clubId + '|' + p.season); if (g) g.prog = p; });
       // groupes d'entraînement et équipes de la saison
       const DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
@@ -372,6 +372,56 @@
     } catch (e) { dit("L'activation a échoué : réessayez."); }
   };
   void card;
+})();
+</script>
+<script>
+/* Profil et réglages (maquette /Pista, écran 11) : à gauche une boîte à intercalaires
+   (Mes informations, Mes clubs, Mes modèles, Reprises), à droite Apparence (jour, nuit ou auto ; taille du texte)
+   puis Sur cet appareil (notifications, mot de passe, déconnexion). Les cartes existantes sont déplacées, leur code ne change pas. */
+(function () {
+  const $ = s => document.querySelector(s);
+  const card = el => el && el.closest('section.card');
+  const grid = $('main .grid.g-2'); if (!grid) return;
+  const [colL, colR] = grid.children;
+  const ident = card($('#av')), infos = card($('#fMe')), clubs = card($('#myClubs')), pw = card($('#fPw')), notif = $('#notifCard'), app = card($('#seg')), prefs = card($('#prof')), tpls = card($('#tpls'));
+  // gauche : intercalaires + une seule carte dont on change le contenu
+  const tabs = [['infos', 'Mes informations', [ident, infos]], ['clubs', 'Mes clubs', [clubs]], ['modeles', 'Mes modèles', [tpls]], ['reprises', 'Reprises', [prefs]]].filter(t => t[2].every(Boolean));
+  const it = document.createElement('div'); it.className = 'r-itabs ps-itabs'; it.setAttribute('role', 'tablist');
+  const box = document.createElement('section'); box.className = 'card ps-pbox';
+  tabs.forEach(([k, l, cards]) => {
+    it.insertAdjacentHTML('beforeend', `<button type="button" role="tab" data-pt="${k}">${l}</button>`);
+    const pane = document.createElement('div'); pane.className = 'ps-ppane'; pane.dataset.pane = k;
+    cards.forEach(c => { while (c.firstChild) pane.appendChild(c.firstChild); c.remove(); });
+    box.appendChild(pane);
+  });
+  let cur = 'infos'; try { cur = localStorage.getItem('pista-profil-onglet') || 'infos'; } catch (e) {}
+  const pick = k => { if (!tabs.some(t => t[0] === k)) k = 'infos'; it.querySelectorAll('[data-pt]').forEach(b => b.setAttribute('aria-selected', b.dataset.pt === k)); box.querySelectorAll('.ps-ppane').forEach(p => { p.hidden = p.dataset.pane !== k; }); try { localStorage.setItem('pista-profil-onglet', k); } catch (e) {} };
+  it.onclick = e => { const b = e.target.closest('[data-pt]'); if (b) pick(b.dataset.pt); };
+  colL.prepend(it, box); pick(cur);
+  // droite : Apparence (sans l'ancien « Style de l'interface »), taille du texte ; puis Sur cet appareil
+  if (app) {
+    const st = $('#segStyle'); if (st) { const h = st.previousElementSibling; if (h && h.tagName === 'H3') h.remove(); st.remove(); }
+    const h2 = app.querySelector('h2'); if (h2) h2.innerHTML = '<svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>Apparence';
+    const auto = app.querySelector('#seg [data-v="auto"]'); if (auto) auto.lastChild.textContent = 'Auto';
+    app.querySelector('#seg').insertAdjacentHTML('beforebegin', '<span class="ps-lbl">Mode</span>');
+    app.querySelector('#seg').insertAdjacentHTML('afterend', `<span class="ps-lbl">Taille du texte</span><div class="seg ps-txt" role="tablist"><button type="button" data-tx="">Normale</button><button type="button" data-tx="grand">Grande</button></div><p class="muted small">Le zoom du navigateur reste toujours possible.</p>`);
+    const mark = () => { const v = document.documentElement.dataset.texte || ''; app.querySelectorAll('[data-tx]').forEach(b => b.setAttribute('aria-selected', b.dataset.tx === v)); };
+    app.querySelectorAll('[data-tx]').forEach(b => b.onclick = () => { const v = b.dataset.tx; if (v) document.documentElement.dataset.texte = v; else delete document.documentElement.dataset.texte; try { localStorage.setItem('pista-texte', v); } catch (e) {} mark(); });
+    mark();
+    app.querySelectorAll('h3').forEach(h => { const l = document.createElement('span'); l.className = 'ps-lbl'; l.textContent = h.textContent; h.replaceWith(l); });
+    colR.prepend(app);
+  }
+  if (notif) {
+    const h2 = notif.querySelector('h2'); if (h2) h2.innerHTML = '<svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20"/><path d="M11 18h2"/></svg>Sur cet appareil';
+    if (pw) { const sep = document.createElement('div'); sep.className = 'ps-psep'; notif.appendChild(sep); while (pw.firstChild) notif.appendChild(pw.firstChild); pw.remove(); }
+    const out = document.querySelector('.phead-act a[href="/deconnexion"]');
+    if (out) { out.className = 'btn ps-out'; out.innerHTML = '<svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v16h-6M10 8l-4 4 4 4M6 12h10"/></svg>Se déconnecter'; const d = document.createElement('div'); d.className = 'btns'; d.appendChild(out); notif.appendChild(d); }
+    if (app) app.after(notif); else colR.prepend(notif);
+  }
+  // en-tête : « Enregistrer » en citron enregistre « Mes informations »
+  const act = document.querySelector('.phead-act');
+  if (act && $('#fMe')) { act.innerHTML = '<button class="btn primary" type="button" id="psSave"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Enregistrer</button>'; $('#psSave').onclick = () => { pick('infos'); $('#fMe').requestSubmit(); }; }
+  colL.querySelectorAll(':scope > section.card:empty').forEach(c => c.remove());
 })();
 </script>
 </body>
