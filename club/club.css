@@ -1980,3 +1980,9 @@ select option { background: var(--c-surface); color: var(--c-text); }
 /* Légende : le nom en bandeau noir, texte citron, couronne devant */
 #phone h2.leg, #main h2.leg { display: inline-flex; align-items: center; gap: 10px; width: fit-content; max-width: 100%; padding: 6px 12px; background: var(--b-charbon, #1A1A1A); color: var(--c-lime, #E0F50A); box-shadow: 4px 4px 0 var(--c-lime, #E0F50A); text-transform: uppercase; letter-spacing: .03em; transform: none; }
 #phone h2.leg::before, #main h2.leg::before { content: ''; flex: none; width: 1em; height: 1em; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Cpath d='M3 18h18l-1.5-10-4.5 4-3-6-3 6-4.5-4z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'%3E%3Cpath d='M3 18h18l-1.5-10-4.5 4-3-6-3 6-4.5-4z'/%3E%3C/svg%3E") center / contain no-repeat; }
+/* étiquette du sport : accrochée au coin haut droit de la publication (collée aux bords, filet encre à gauche et en bas) */
+#main .post:has(> .sp) { position: relative; }
+#main .post > .sp { top: 0; right: 0; border: 0; border-left: var(--bw) solid var(--c-ink); border-bottom: var(--bw) solid var(--c-ink); border-radius: 0 0 0 var(--rb); padding: 4px 10px; box-shadow: none; z-index: 1; }
+#main .post > .sp.duo { padding: 0; }
+#main .post > .sp.duo i { padding: 4px 10px; }
+#main .post:has(> .sp) [data-a="pmenu"] { margin-top: 26px; }
