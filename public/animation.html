@@ -74,29 +74,47 @@
 #an-next, #an-go { white-space: nowrap; }
 .rmw .an-m .t.w { color: #fff; } .rmw .an-m .t.l { color: #8a8a8a; } .rmw .an-m .ct { color: #9a9a9a; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ui-text); color: var(--ui-surface); padding: 12px 18px; border-radius: 10px; z-index: 99; font-weight: 600; max-width: calc(100vw - 32px); }
-/* écran TV et saisie par les joueurs */
-body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-family: var(--body); }
+/* écran TV et saisie par les joueurs (maquette /Pista, écrans 16 et 18) : sur le socle, jour ou nuit ; l'écran TV en bordeaux très sombre */
+body.an-tv { margin: 0; background: #2E0914; color: #FFFFFF; font-family: var(--f-body); }
+body.an-remote { margin: 0; background: var(--c-bg); color: var(--c-text); font-family: var(--f-body); }
 .tvw { padding: 3vh 3vw; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 3vw; min-height: 100vh; box-sizing: border-box; }
-.tvw h1 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 4.2vw; margin: 0 0 1vh; line-height: 1; }
-.tvw .k { font-family: var(--label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-size: 1.3vw; }
-.tvw .an-timer { font-size: 7vw; color: var(--accent); }
-.tvw .an-timer.end { color: var(--accent2); }
-.tvc { display: grid; gap: 1.2vh; margin-top: 2vh; }
-.tvm { display: grid; grid-template-columns: 6vw minmax(0, 1fr) 6vw minmax(0, 1fr); align-items: center; gap: 1vw; background: #171717; padding: 1.4vh 1.2vw; font-size: 1.7vw; }
-.tvm .c { font-family: var(--display); font-size: 2.2vw; color: var(--accent); }
-.tvm .s { font-family: var(--display); font-size: 2.4vw; text-align: center; }
-.tvm.king { outline: 3px solid var(--accent); }
-.tvl table { width: 100%; border-collapse: collapse; font-size: 1.6vw; }
-.tvl td { padding: .7vh .6vw; border-bottom: 1px solid #262626; }
-.tvl td:last-child { text-align: right; font-family: var(--display); font-size: 2vw; color: var(--accent); }
-.tvl tr:first-child td { color: var(--accent); }
-.rmw { padding: 16px; display: grid; gap: 12px; max-width: 520px; margin: 0 auto; }
-.rmw h1 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 28px; margin: 4px 0; }
-.rmw .an-m { background: #171717; border-color: #333; color: #fff; }
-.rmw input, .rmw button { font: inherit; }
-.rmw input { background: #0b0b0b; color: #fff; border: 2px solid #333; padding: 10px; }
-.rmw .btn { background: var(--accent); color: #111; border: 0; padding: 12px 16px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
-@media (max-width: 760px) { .tvw { grid-template-columns: 1fr; } .tvw h1 { font-size: 30px; } .tvm { font-size: 16px; grid-template-columns: 40px 1fr 40px 1fr; } .tvm .c, .tvm .s { font-size: 20px; } .tvl table { font-size: 16px; } .tvw .k { font-size: 12px; } .tvw .an-timer { font-size: 48px; } }
+.tvw h1 { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; font-size: 4.2vw; margin: 0 0 1vh; line-height: 1; }
+.tvw .k { font-family: var(--f-label); font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #FF3D6B; font-size: 1.3vw; }
+.tvw .an-timer { font-size: 7vw; color: #E0F50A; }
+.tvw .an-timer.end { color: #FF3D6B; }
+.tvc { display: grid; gap: 1.6vh; margin-top: 2vh; }
+.tvm { display: grid; grid-template-columns: 6vw minmax(0, 1fr) 6vw minmax(0, 1fr); align-items: center; gap: 1vw; background: #5A1630; border: 3px solid #000; box-shadow: 8px 8px 0 #000; padding: 1.4vh 1.2vw; font-size: 1.7vw; font-family: var(--f-label); font-weight: 700; }
+.tvm .c { display: grid; place-items: center; height: 5vw; border: 3px solid #000; background: #E0F50A; color: #000; font-family: var(--f-display); font-weight: 400; font-size: 2.2vw; }
+.tvm .s { display: grid; place-items: center; font-family: var(--f-display); font-weight: 400; font-size: 2.4vw; text-align: center; }
+.tvm.king { box-shadow: 8px 8px 0 #E0F50A; }
+.tvm .muted { color: #EBCFD8; }
+.tvl { background: #5A1630; border: 3px solid #000; box-shadow: 8px 8px 0 #000; padding: 2vh 1.6vw; align-self: start; }
+.tvl table { width: 100%; border-collapse: collapse; font-size: 1.6vw; font-family: var(--f-label); font-weight: 700; }
+.tvl td { padding: .8vh .6vw; border-bottom: 3px solid #000; }
+.tvl td:last-child { text-align: right; font-family: var(--f-display); font-weight: 400; font-size: 2vw; color: #E0F50A; }
+.tvl tr:first-child td:first-child { color: #E0F50A; }
+.tvqr .qr { background: #fff; padding: .5vw; border: 3px solid #000; }
+.rmw { padding: 0 16px 24px; display: grid; gap: 14px; max-width: 520px; margin: 0 auto; }
+.rmw-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -16px; padding: 14px 16px; background: var(--c-menu); color: var(--c-on-menu); border-bottom: var(--bw) solid var(--c-ink); }
+.rmw-top b { font: 400 26px/1 var(--f-display); color: var(--c-menu-act); }
+.rmw-top span { font: 700 15px var(--f-label); text-align: right; overflow-wrap: anywhere; }
+.rmw h1 { font: 400 30px/1.02 var(--f-display); text-transform: uppercase; margin: 2px 0; }
+.rmw .eyebrow { margin: 6px 0 0; }
+.rmw input { width: 100%; }
+.rmw form .btn { width: 100%; margin-top: 10px; }
+.rmw .an-m { background: var(--c-surface); color: var(--c-text); }
+.rmw .an-m .t.w { color: var(--c-text); } .rmw .an-m .t.l { color: var(--c-muted); } .rmw .an-m .ct { color: var(--c-text); }
+.rm-team { padding: 14px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); box-shadow: var(--sh); }
+.rm-team b { display: block; margin-bottom: 10px; font: 700 19px/1.2 var(--f-label); }
+.rm-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; gap: 12px; align-items: center; }
+.rm-row button { height: 52px; padding: 0; font: 400 26px var(--f-display); }
+.rmw .rm-row input { height: 64px; text-align: center; font: 400 40px var(--f-display); background-color: var(--c-surface-2); }
+.rm-team:first-of-type .rm-row input { background-color: var(--c-lime); color: var(--c-dark); }
+.rm-send { width: 100%; min-height: 56px; }
+.rm-court { display: grid; gap: 12px; padding-top: 6px; }
+.rm-court + .rm-court { border-top: var(--bw) solid var(--c-ink); padding-top: 16px; }
+@media (max-width: 760px) { .tvw { grid-template-columns: 1fr; } .tvw h1 { font-size: 30px; } .tvm { font-size: 16px; grid-template-columns: 40px 1fr 40px 1fr; } .tvm .c, .tvm .s { font-size: 20px; height: 40px; } .tvl table { font-size: 16px; } .tvw .k { font-size: 12px; } .tvw .an-timer { font-size: 48px; } }
+.rmw .rm-court.an-m { grid-template-columns: minmax(0, 1fr); padding: 6px 0 0; border: 0; background: none; box-shadow: none; }
 </style>
 </head>
 <body class="acct" data-page="tournois">
@@ -286,16 +304,34 @@ body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-f
       ${r && r.rest && r.rest.length ? `<p class="k" style="margin-top:2vh">Au repos : ${esc(r.rest.map(pname).join(', '))}</p>` : ''}</div>
       <div class="tvl">${tvPin ? `<div class="tvqr"><span class="qr">${qrSvg(remoteUrl(tvPin))}</span><span><b>Vos scores</b><br>Scannez avec votre téléphone</span></div>` : ''}<span class="k">Classement</span><table>${Ani.standings(S).rows.slice(0, 16).map((x, i) => `<tr><td>${i + 1}. ${esc(team(x.ids))}</td><td>${x.pf}</td></tr>`).join('')}</table></div></div>`;
   }
-  /* ---------- saisie par les joueurs (code du tournoi) ---------- */
+  /* ---------- saisie par les joueurs (maquette /Pista, écran 18) : code, mon match avec − et +, classement ---------- */
+  const rmTop = () => `<div class="rmw-top"><b>/Pista</b><span>${S ? esc(S.tournament.name) : 'Saisie des scores'}</span></div>`;
   function askPin() {
-    $('#app').innerHTML = `<div class="rmw"><h1>Saisie des scores</h1><p>Entrez le code donné par le juge-arbitre.</p><form id="pf"><input name="p" inputmode="numeric" autocomplete="one-time-code" placeholder="Code" required><button class="btn" style="margin-top:10px;width:100%">Entrer</button></form></div>`;
+    $('#app').innerHTML = `<div class="rmw">${rmTop()}<span class="eyebrow">Saisie des scores</span><h1>Entrer le code</h1><p class="muted">Le juge-arbitre donne le code du tournoi (sur l’écran TV ou à l’accueil).</p><form id="pf"><input name="p" inputmode="numeric" autocomplete="one-time-code" placeholder="Code" required aria-label="Code du tournoi"><button class="btn primary">Entrer</button></form></div>`;
     $('#pf').onsubmit = e => { e.preventDefault(); pin = e.target.p.value.trim(); try { localStorage.setItem(pinKey, pin); } catch (x) {} connect(); };
   }
+  const STEP = (k, s, d, l) => `<button type="button" data-step="${k}" data-side="${s}" data-d="${d}" aria-label="${l}">${d > 0 ? '+' : '−'}</button>`;
+  function remoteMatch(r, m) {
+    const k = r.n + '|' + m.id, open = !m.done || draft[k];
+    if (!open) return `<div class="rm-court"><span class="eyebrow">${esc(courtName(m.court))}</span>${matchHTML(r, m, true)}</div>`;
+    const side = (s, ids, v) => `<div class="rm-team"><b>${esc(team(ids))}</b><div class="rm-row">${STEP(k, s, -1, 'Un point de moins pour ' + esc(team(ids)))}<input type="number" inputmode="numeric" min="0" max="99" data-${s === 'a' ? 'sa' : 'sb'}="${k}" value="${v ?? ''}" aria-label="Score de ${esc(team(ids))}">${STEP(k, s, 1, 'Un point de plus pour ' + esc(team(ids)))}</div></div>`;
+    return `<div class="rm-court an-m"><span class="eyebrow">Manche ${r.n} · ${esc(courtName(m.court))}</span>${side('a', m.a, m.sa)}${side('b', m.b, m.sb)}
+      <button class="btn primary rm-send" data-ok="${k}">Envoyer le score</button></div>`;
+  }
   function remoteHTML() {
-    const r = cur(), a = A();
-    return `<div class="rmw"><span class="k" style="color:var(--accent);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px">${esc(F().name)}</span><h1>${esc(S.tournament.name)}</h1>
-      ${a.status === 'done' ? '<p>L’animation est terminée. Merci !</p>' : r ? `<p>Manche ${r.n} · saisissez le score de votre terrain.</p>${r.matches.map(m => matchHTML(r, m, true)).join('')}` : '<p>La première manche n’a pas commencé.</p>'}
-      <h1 style="font-size:20px;margin-top:10px">Classement</h1>${table(10)}</div>`;
+    const r = cur(), a = A(), t = left();
+    return `<div class="rmw">${rmTop()}${a.status === 'done' ? '<h1>Merci !</h1><p>L’animation est terminée.</p>'
+      : r ? `<span class="eyebrow">${esc(F().name)} · manche ${r.n}</span><h1>Mon match</h1>${t != null ? `<p class="muted">${t === 0 ? 'Temps écoulé' : mmss(t) + ' restantes'}</p>` : ''}${r.matches.map(m => remoteMatch(r, m)).join('')}
+        <p class="muted small">Le juge-arbitre voit le score tout de suite. Vous pouvez le corriger jusqu’à la manche suivante.</p>`
+      : '<h1>Mon match</h1><p>La première manche n’a pas commencé.</p>'}
+      <span class="eyebrow">Classement</span>${table(10)}</div>`;
+  }
+  function bindSteps() {
+    document.querySelectorAll('[data-step]').forEach(b => b.onclick = () => {
+      const inp = document.querySelector(`[data-${b.dataset.side === 'a' ? 'sa' : 'sb'}="${b.dataset.step}"]`); if (!inp) return;
+      inp.value = Math.max(0, Math.min(99, (+inp.value || 0) + +b.dataset.d));
+      inp.dispatchEvent(new Event('input'));
+    });
   }
 
   function render() {
@@ -310,7 +346,7 @@ body.an-tv, body.an-remote { margin: 0; background: #0b0b0b; color: #fff; font-f
     if ($('#an-add') && addVal) $('#an-add').n.value = addVal;
     if (focusKey === 'add' && $('#an-add')) $('#an-add').n.focus();
     else if (focusKey) { const el = document.querySelector(`[data-${focusKey.slice(0, 2)}="${focusKey.slice(3)}"]`); if (el) el.focus(); }
-    if (mode === 'ja') bindJA(); else if (mode === 'remote') bindScores(document);
+    if (mode === 'ja') bindJA(); else if (mode === 'remote') { bindScores(document); bindSteps(); }
   }
   // chronomètre : rafraîchi chaque seconde, signal sonore à la fin
   let rang = null;

@@ -47,6 +47,29 @@ td.n { font-family: var(--label); font-weight: 700; width: 40px; }
 .kv { display: grid; grid-template-columns: 50mm 1fr; gap: 0; }
 .kv div { padding: 5px 0; border-bottom: 1px solid #cfc9bf; } .kv div:nth-child(odd) { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #555; }
 @media print { body { background: none; } .bar { display: none; } .page { margin: 0; width: auto; min-height: 0; box-shadow: none; padding: 0 0 10mm; page-break-after: always; } .page.portrait { width: auto; } .foot { position: fixed; bottom: 0; left: 0; right: 0; } }
+/* Impressions A4 à l'encre seule (maquette /Pista, écran 19) : noir sur blanc, aucun aplat de couleur, titres droits.
+   La ligne gagnante est en gras avec un trait épais à gauche ; les en-têtes de tableau sont soulignés d'un trait noir. */
+.bar { background: #1A0509; }
+.bar button.go { background: #E0F50A; color: #1A0509; border-color: #E0F50A; }
+.page { color: #000; }
+.head { border-bottom: 3px solid #000; }
+.head h1 { transform: none; }
+.head h1 .band { background: none; color: inherit; padding: 0; transform: none; }
+.head .meta { color: #000; }
+th { background: none; color: #000; border-bottom: 2px solid #000; font-size: 11px; }
+td { border-bottom: 1px solid #000; }
+tr:nth-child(even) td { background: none; }
+.bcol h3 { background: none; color: #000; border-bottom: 2px solid #000; }
+.m { border: 1.5px solid #000; }
+.m .r + .r { border-top: 1px solid #000; }
+.m .r.win { background: none; font-weight: 800; box-shadow: inset 4px 0 0 #000; }
+.m .mh { background: none; color: #000; border-bottom: 1px solid #000; }
+.ts { background: none; color: #000; border: 1px solid #000; }
+.box { border: 2px solid #000; }
+.kv div { border-bottom: 1px solid #000; } .kv div:nth-child(odd) { color: #000; }
+/* aucun texte sous 12 px, à l'écran comme sur la feuille */
+body { font-size: 12px; }
+th, .m, .m .mh, .ts, .bcol h3, .foot, .head .meta, .bar span { font-size: 12px; }
 </style>
 </head>
 <body>
