@@ -3,49 +3,70 @@
 <head>
 <meta charset="utf-8">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0A0F2C">
-<title>/RAM JA — Télécommande</title>
-<link rel="stylesheet" href="/css/ram.css">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3A0C1B">
+<title>Télécommande — /Pista</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/club/ds.css">
+<link rel="stylesheet" href="/css/pista.css">
+<script src="/js/theme.js"></script>
 <style>
-.pic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -.2em; }
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; min-height: 100%; background: var(--ink); color: #fff; font-family: var(--body); }
-body::before { content: ""; position: fixed; inset: 0; background: var(--dots); pointer-events: none; }
-body { padding: 14px 14px 30px; }
-h1 { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 400; font-size: 26px; margin: 4px 0 14px; text-transform: uppercase; } h1 img { height: 42px; }
-select, input, button { font: inherit; color: inherit; border-radius: 0; border: 2px solid #3d3d3d; background: #151515; padding: 12px; width: 100%; position: relative; }
-button { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
-button { cursor: pointer; }
-.pin { display: grid; gap: 10px; margin-top: 30vh; }
-.team { margin-top: 14px; background: #151515; padding: 14px; border: 2px solid #3d3d3d; position: relative; }
-.team.srv { border-color: #d4ff3a88; }
-.tn { font-family: var(--display); font-size: 24px; text-transform: uppercase; }
-.ts { display: flex; gap: 6px; margin: 10px 0; font-family: var(--display); font-size: 28px; }
-.ts span { min-width: 40px; text-align: center; background: #0B0B0B; padding: 2px 4px; color: #ffffffa0; }
-.ts span.w { color: #fff; font-weight: 800; } .ts .g { background: #ffffff1c; color: #fff; } .ts .p { background: var(--accent); color: var(--bg); font-weight: 800; min-width: 60px; }
-.flag { color: var(--accent2); font-weight: 800; font-size: 13px; letter-spacing: .12em; min-height: 16px; }
-.big { background: var(--accent); color: var(--ink); border: 0; font-family: var(--display); font-weight: 400; font-size: 30px; padding: 24px; margin-top: 6px; box-shadow: 5px 5px 0 var(--accent2); }
-.big:active { transform: scale(.97); }
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-.muted { color: #8f98c7; font-size: 13px; margin-top: 16px; text-align: center; }
-.err { color: #ff5d6c; }
+/* Télécommande (maquette, écran 17) : vues de l'écran TV en tuiles, rotation, message défilant ; puis la saisie du score d'un match */
+.rc-h, #app { position: relative; z-index: 1; }
+body { padding: calc(14px + env(safe-area-inset-top, 0px)) 16px calc(30px + env(safe-area-inset-bottom, 0px)); max-width: 560px; margin: 0 auto; }
+.rc-h { margin: 6px 0 14px; }
+.rc-h h1 { font: 400 30px/1.02 var(--f-display); text-transform: uppercase; margin: 0; overflow-wrap: anywhere; }
+.rc-seg { display: flex; width: 100%; margin-bottom: 16px; }
+.rc-seg button { flex: 1; justify-content: center; }
+.rc-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rc-tiles button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 76px; background: var(--c-surface); font: 700 16px/1.15 var(--f-label); }
+.rc-tiles button[aria-pressed='true'] { background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--sh); }
+.rc-tiles .ic { width: 22px; height: 22px; }
+.rc-rot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 14px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); box-shadow: var(--sh-sm); }
+.rc-msg { display: grid; grid-template-columns: minmax(0, 1fr) 52px; gap: 10px; align-items: end; margin-top: 16px; }
+.rc-msg input { width: 100%; }
+.rc-msg button { display: grid; place-items: center; height: 48px; padding: 0; }
+.rc-msg .ic { width: 20px; height: 20px; }
+#ms { width: 100%; }
+.team { margin-top: 14px; padding: 14px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); box-shadow: var(--sh); }
+.team.srv .tn::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; background: var(--c-kick); vertical-align: 2px; }
+.tn { font: 700 19px/1.2 var(--f-label); overflow-wrap: anywhere; }
+.ts { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.ts span { display: grid; place-items: center; min-width: 42px; height: 42px; padding: 0 6px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); font: 400 22px/1 var(--f-display); }
+.ts span.w { background: var(--c-lime); color: var(--c-dark); }
+.ts .g { border-style: dashed; }
+.ts .p { background: var(--c-pink); color: var(--c-dark); min-width: 56px; }
+.flag { min-height: 16px; font: 700 13px var(--f-label); letter-spacing: .1em; text-transform: uppercase; color: var(--c-kick); }
+.big { width: 100%; min-height: 64px; margin-top: 6px; background: var(--c-accent); color: var(--c-on-accent); box-shadow: var(--sh); font: 400 26px/1 var(--f-display); }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.row button { width: 100%; min-height: 48px; }
+.info { margin-top: 14px; font-size: 14px; color: var(--c-muted); text-align: center; }
+.err { color: var(--c-kick); font-weight: 600; }
+.pin { display: grid; gap: 12px; margin-top: 18vh; }
+.pin input { width: 100%; text-align: center; font: 400 30px var(--f-display); letter-spacing: .3em; }
+.pin .big { min-height: 56px; font-size: 22px; }
 </style>
 </head>
 <body>
-<h1><img src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA">Télécommande</h1>
+<header class="rc-h"><span class="eyebrow">Télécommande · écran TV</span><h1 id="rcName">/Pista</h1></header>
 <div id="app"></div>
 <script src="/js/engine.js"></script>
 <script src="/js/client.js"></script>
 <script>
 (function () {
   const E = Engine, A = App, esc = A.esc, app = document.getElementById('app');
+  const ic = d => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const VIEWS = [['bracket', 'Tableau final', '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>'], ['poules', 'Poules', '<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/>'],
+    ['schedule', 'Programmation', '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>'], ['live', 'Scores en direct', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/>'],
+    ['standings', 'Classement', '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>'], ['info', 'Fiche tournoi', '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>'],
+    ['stats', 'Stats du club', '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>'], ['draw', 'Tirage', '<path d="M4 7h3l10 10h3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3M17 14l3 3-3 3"/>']];
   let sel = null; try { sel = localStorage.getItem('padelja-remote-match'); } catch (e) {}
-  let started = false;
+  let part = 'tv'; try { part = localStorage.getItem('padelja-remote-part') || 'tv'; } catch (e) {}
+  let started = false, msgDraft = null;
 
   function askPin(msg) {
-    app.innerHTML = `<div class="pin"><div>Code PIN affiché sur le PC (onglet « Écran TV &amp; stream ») :</div>
-      <input id="pin" inputmode="numeric" maxlength="6" placeholder="••••••"><button class="big" id="go">Connexion</button><div class="err">${msg || ''}</div></div>`;
+    app.innerHTML = `<div class="pin"><label for="pin">Code PIN affiché sur l'ordinateur (section « Écran TV &amp; stream », carte Télécommande)</label>
+      <input id="pin" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code"><button class="big" id="go">Connexion</button><div class="err">${msg || ''}</div></div>`;
     document.getElementById('go').onclick = () => { A.setPin(document.getElementById('pin').value.trim()); location.reload(); };
   }
 
@@ -59,36 +80,58 @@ button { cursor: pointer; }
   }
 
   function render(S) {
-    const R = A.R;
-    const list = S.matches.filter(m => R[m.id] && (R[m.id].state === 'live' || R[m.id].state === 'ready' || m.id === sel)).sort((a, b) => a.num - b.num);
-    if (!sel && S.display.stream) sel = S.display.stream;
-    const m = S.matches.find(x => x.id === sel);
-    let h = `<select id="ms"><option value="">— Choisir un match —</option>${list.map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>M${x.num} · ${esc(A.sideName(x, 'A'))} vs ${esc(A.sideName(x, 'B'))}${x.court ? ' · ' + esc(A.courtName(x.court)) : ''}</option>`).join('')}</select>`;
-    if (m) {
-      const r = R[m.id], sc = r.score;
-      const live = sc && !sc.manual && !sc.winner;
-      const fl = live ? E.pointFlags(r.fk, m.points, m.firstServer) : {};
-      const team = s => `<div class="team ${live && sc.server === s ? 'srv' : ''}"><div class="tn">${live && sc.server === s ? '● ' : ''}${esc(A.sideName(m, s, 'initial'))}</div>
-        <div class="ts">${sc ? sc.sets.map(x => `<span class="${x.w === s ? 'w' : ''}">${x.stb ? x.stb[s] : x[s]}</span>`).join('') : ''}${live ? `${sc.mode === 'game' ? `<span class="g">${sc.games[s]}</span>` : ''}<span class="p">${sc.labels[s]}</span>` : ''}</div>
-        <div class="flag">${fl[s] || ''}</div>
-        <button class="big" data-p="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ POINT</button>
-        <div class="row"><button data-g="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ JEU</button><button data-ug="${s}">− JEU</button></div></div>`;
-      h += `<div class="muted">${esc(E.matchLabel(m))} · Format ${r.fk}${r.state === 'done' ? ' · <b>Terminé</b>' : ''}${fl.decisive ? ' · <b style="color:var(--accent2)">POINT DÉCISIF</b>' : ''}</div>
-        ${team('A')}${team('B')}
-        <div class="row"><button id="undo">↶ Annuler</button><button id="srv">Changer serveur</button></div>
-        <div class="row"><button id="stream"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="1"/><path d="M16 10l6-3v10l-6-3z"/></svg> Mettre en overlay</button><button id="refresh">⟳</button></div>`;
+    const R = A.R, d = S.display || {};
+    document.getElementById('rcName').textContent = (S.tournament && S.tournament.name) || '/Pista';
+    let h = `<div class="seg rc-seg" role="tablist" aria-label="Partie de la télécommande"><button type="button" role="tab" data-part="tv" aria-selected="${part === 'tv'}">Écran TV</button><button type="button" role="tab" data-part="score" aria-selected="${part === 'score'}">Score d'un match</button></div>`;
+    if (part === 'tv') {
+      h += `<div class="rc-tiles">${VIEWS.map(([k, l, p]) => `<button type="button" data-tv="${k}" aria-pressed="${d.tv === k && !d.rotate}">${ic(p)}${l}</button>`).join('')}</div>
+        <label class="rc-rot chk"><span>Rotation automatique</span><input type="checkbox" id="rot" ${d.rotate ? 'checked' : ''}></label>
+        <form class="rc-msg" id="msgf"><label>Message défilant<input id="msg" value="${esc(msgDraft != null ? msgDraft : d.ticker || '')}" placeholder="Finale à 17 h…"></label><button class="accent" aria-label="Envoyer le message">${ic('<path d="M4 12l16-8-6 16-2-6z"/><path d="M12 14l8-10"/>')}</button></form>`;
+    } else {
+      const list = S.matches.filter(m => R[m.id] && (R[m.id].state === 'live' || R[m.id].state === 'ready' || m.id === sel)).sort((a, b) => a.num - b.num);
+      if (!sel && d.stream) sel = d.stream;
+      const m = S.matches.find(x => x.id === sel);
+      h += `<label>Match<select id="ms"><option value="">— Choisir un match —</option>${list.map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>M${x.num} · ${esc(A.sideName(x, 'A'))} contre ${esc(A.sideName(x, 'B'))}${x.court ? ' · ' + esc(A.courtName(x.court)) : ''}</option>`).join('')}</select></label>`;
+      if (m) {
+        const r = R[m.id], sc = r.score;
+        const live = sc && !sc.manual && !sc.winner;
+        const fl = live ? E.pointFlags(r.fk, m.points, m.firstServer) : {};
+        const on = r.state === 'live' || r.state === 'ready';
+        const team = s => `<div class="team ${live && sc.server === s ? 'srv' : ''}"><div class="tn">${esc(A.sideName(m, s, 'initial'))}</div>
+          <div class="ts">${sc ? sc.sets.map(x => `<span class="${x.w === s ? 'w' : ''}">${x.stb ? x.stb[s] : x[s]}</span>`).join('') : ''}${live ? `${sc.mode === 'game' ? `<span class="g">${sc.games[s]}</span>` : ''}<span class="p">${sc.labels[s]}</span>` : ''}</div>
+          <div class="flag">${fl[s] || ''}</div>
+          <button class="big" data-p="${s}" ${on ? '' : 'disabled'}>+ Point</button>
+          <div class="row"><button data-g="${s}" ${on ? '' : 'disabled'}>+1 jeu</button><button data-st="${s}" ${on ? '' : 'disabled'}>+1 set</button></div></div>`;
+        h += `<p class="info">${esc(E.matchLabel(m))} · Format ${r.fk}${r.state === 'done' ? ' · <b>Terminé</b>' : ''}${fl.decisive ? ' · <b class="err">point décisif</b>' : ''}</p>
+          ${team('A')}${team('B')}
+          <div class="row"><button id="undo">Annuler le point</button><button id="srv">Changer de serveur</button></div>
+          <div class="row"><button id="ugA">− Jeu ${esc(A.sideName(m, 'A', 'last'))}</button><button id="ugB">− Jeu ${esc(A.sideName(m, 'B', 'last'))}</button></div>
+          <div class="row"><button id="stream">Mettre en overlay</button><button id="refresh">Recharger</button></div>`;
+      }
     }
     app.innerHTML = h;
-    document.getElementById('ms').onchange = e => { sel = e.target.value; try { localStorage.setItem('padelja-remote-match', sel); } catch (_) {} render(A.state); };
-    if (m) {
-      app.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { if (navigator.vibrate) navigator.vibrate(30); A.send('match/point', { id: m.id, team: b.dataset.p }); });
-      app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => A.send('match/game', { id: m.id, team: b.dataset.g }));
-      app.querySelectorAll('[data-ug]').forEach(b => b.onclick = () => A.send('match/ungame', { id: m.id, team: b.dataset.ug }));
-      document.getElementById('undo').onclick = () => A.send('match/undoPoint', { id: m.id });
-      document.getElementById('srv').onclick = () => A.send('match/server', { id: m.id, team: m.firstServer === 'A' ? 'B' : 'A' });
-      document.getElementById('stream').onclick = () => A.send('display/set', { stream: m.id });
-      document.getElementById('refresh').onclick = () => location.reload();
+    app.querySelectorAll('[data-part]').forEach(b => b.onclick = () => { part = b.dataset.part; try { localStorage.setItem('padelja-remote-part', part); } catch (_) {} render(A.state); });
+    if (part === 'tv') {
+      app.querySelectorAll('[data-tv]').forEach(b => b.onclick = () => A.send('display/set', { tv: b.dataset.tv, rotate: false }));
+      document.getElementById('rot').onchange = e => A.send('display/set', { rotate: e.target.checked });
+      const mi = document.getElementById('msg');
+      mi.oninput = () => { msgDraft = mi.value; };
+      document.getElementById('msgf').onsubmit = e => { e.preventDefault(); A.send('display/set', { ticker: mi.value }).then(() => { msgDraft = null; }, () => {}); };
+      return;
     }
+    const ms = document.getElementById('ms');
+    ms.onchange = e => { sel = e.target.value; try { localStorage.setItem('padelja-remote-match', sel); } catch (_) {} render(A.state); };
+    const m = S.matches.find(x => x.id === sel);
+    if (!m) return;
+    app.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { if (navigator.vibrate) navigator.vibrate(30); A.send('match/point', { id: m.id, team: b.dataset.p }); });
+    app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => A.send('match/game', { id: m.id, team: b.dataset.g }));
+    app.querySelectorAll('[data-st]').forEach(b => b.onclick = () => A.send('match/set', { id: m.id, team: b.dataset.st }));
+    document.getElementById('ugA').onclick = () => A.send('match/ungame', { id: m.id, team: 'A' }).catch(() => {});
+    document.getElementById('ugB').onclick = () => A.send('match/ungame', { id: m.id, team: 'B' }).catch(() => {});
+    document.getElementById('undo').onclick = () => A.send('match/undoPoint', { id: m.id });
+    document.getElementById('srv').onclick = () => A.send('match/server', { id: m.id, team: m.firstServer === 'A' ? 'B' : 'A' });
+    document.getElementById('stream').onclick = () => A.send('display/set', { stream: m.id });
+    document.getElementById('refresh').onclick = () => location.reload();
   }
 })();
 </script>

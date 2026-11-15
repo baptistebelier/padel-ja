@@ -302,3 +302,51 @@ body.pointer { cursor: default; }
 .sx-r.p2, .sx-r.p3 { border-left-color: var(--accent2); }
 .sx-r.p2 .sx-rk, .sx-r.p3 .sx-rk { color: var(--accent2); }
 .sx-empty { font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--mut); font-size: 20px; padding: 20px 0; }
+
+/* =========================================================================
+   STYLE « /Pista » (maquette du 14 novembre, écran 16) — style par défaut des nouveaux tournois.
+   Bandeau du haut sombre (« /Pista » citron, tournoi en surtitre rose, vue en Anton blanc, heure à droite),
+   cartes pleines aux couleurs « Surfaces » à trait et ombre noirs, cases de score carrées (set gagné en citron),
+   bandeau défilant citron en bas. Les couleurs restent celles du tournoi (Fond, Surfaces, Accent, Accent 2).
+   ========================================================================= */
+.look-style-pista #stage::before { display: none; }
+.look-style-pista .deco { display: none; }
+.look-style-pista .tvh { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto auto; grid-template-rows: auto auto; align-items: center; column-gap: 28px; height: 118px; padding: 10px 56px; background: color-mix(in srgb, var(--bg) 70%, #000); border-bottom: 4px solid #000; }
+.look-style-pista .tvh-l, .look-style-pista .tvh-l > div, .look-style-pista .tvh-r { display: contents; }
+.look-style-pista .tvh::before { content: '/Pista'; grid-column: 1; grid-row: 1 / 3; font-family: var(--display); font-size: 48px; line-height: 1; color: var(--accent); }
+.look-style-pista .tvh-l .club { grid-column: 2; grid-row: 1 / 3; height: 70px; }
+.look-style-pista .tvh-l .club:not([src]), .look-style-pista .tvh-l .club[src=''] { display: none; }
+.look-style-pista .t-name { grid-column: 3; grid-row: 1; align-self: end; margin: 0; transform: none; font-family: var(--label); font-weight: 700; font-size: 20px; letter-spacing: .24em; color: var(--accent2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.look-style-pista .tvh-l .tag { display: none; }
+.look-style-pista .view-title { grid-column: 3; grid-row: 2; align-self: start; justify-self: start; padding: 0; background: none; color: var(--white); transform: none; box-shadow: none; border: 0; font-size: 50px; line-height: 1.05; }
+.look-style-pista .clock { grid-column: 5; grid-row: 1 / 3; font-size: 64px; }
+.look-style-pista .ja-mark { display: none; }
+.look-style-pista .views { top: 150px; height: 830px; }
+/* cartes : pleines, trait et ombre noirs ; « en direct » se dit par l'étiquette, pas par une ombre rose */
+.look-style-pista :is(.lpanel, .bc, .pcard, .smatch, .last-res, .rkb, .qm, .qq, .fr-m) { background: var(--primary); border: 3px solid #000; box-shadow: 10px 10px 0 #000; }
+.look-style-pista :is(.lpanel, .bc, .smatch).st-live { border-color: #000; box-shadow: 10px 10px 0 #000; }
+.look-style-pista .lp-h b { font-family: var(--label); font-weight: 700; font-size: 24px; letter-spacing: .1em; color: var(--accent2); }
+.look-style-pista .lp-h em { padding: 2px 10px; border: 3px solid #000; background: var(--accent2); color: #000; }
+.look-style-pista .lp-row .nm { font-family: var(--label); font-weight: 700; text-transform: none; font-size: 38px; }
+.look-style-pista .lp-row + .lp-row { border-top: 3px solid #000; }
+.look-style-pista .lp-row:not(.win) .nm { color: color-mix(in srgb, var(--white) 82%, var(--primary)); }
+.look-style-pista .lp-row.win .nm { color: var(--white); }
+.look-style-pista .lpanel .sets { gap: 12px; }
+.look-style-pista .lpanel .sets i { display: grid; place-items: center; min-width: 70px; height: 70px; border: 3px solid #000; background: color-mix(in srgb, var(--bg) 75%, #000); color: var(--white); font-size: 40px; }
+.look-style-pista .lpanel .sets i.w { background: var(--accent); color: #000; }
+.look-style-pista .lpanel .sets i.cur { background: color-mix(in srgb, var(--bg) 75%, #000); border-style: dashed; }
+.look-style-pista .lpanel .sets i.pts { background: var(--accent2); color: #000; min-width: 92px; }
+/* tableau final : la paire gagnante en citron, texte noir */
+.look-style-pista .bc-row + .bc-row { border-top: 3px solid #000; }
+.look-style-pista .bc-row.win { background: var(--accent); color: #000; }
+.look-style-pista .bc-row .nm { text-transform: none; }
+.look-style-pista .bc.final { border-color: #000; box-shadow: 10px 10px 0 #000; }
+.look-style-pista .blines path { stroke: #00000080; } .look-style-pista .blines path.done { stroke: var(--accent); }
+.look-style-pista .scol-h { transform: none; background: var(--accent); color: #000; border: 3px solid #000; }
+.look-style-pista .sm-time { color: #000; } .look-style-pista .st-live .sm-time { background: var(--accent2); color: #000; }
+.look-style-pista .band { transform: none; }
+.look-style-pista .info-kpi div, .look-style-pista .sx-kpi div { transform: none; border: 3px solid #000; box-shadow: 8px 8px 0 #000; background: var(--primary); }
+.look-style-pista .it i, .look-style-pista .sx-col h3 i { transform: none; }
+/* bandeau défilant : citron, texte noir */
+.look-style-pista .tvf { background: var(--accent); color: #000; border-top: 4px solid #000; }
+.look-style-pista .tvf .tick-in, .look-style-pista .tvf .tick-in * { color: #000; }

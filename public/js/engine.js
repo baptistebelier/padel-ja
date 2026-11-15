@@ -1086,9 +1086,10 @@
   /* ---------------------------------------------------------------------
      ÉTAT INITIAL & MIGRATION
      --------------------------------------------------------------------- */
-  const RAM_COLORS = { bg: '#0B0B0B', primary: '#151515', accent: '#E0F50A', accent2: '#F5104C' };
+  // charte /Pista (maquette du 14 novembre) : fond bordeaux très sombre, surfaces bordeaux, citron et rose
+  const RAM_COLORS = { bg: '#2E0914', primary: '#5A1630', accent: '#E0F50A', accent2: '#FF3D6B' };
   // habillage de l'écran TV et de l'overlay
-  const DEFAULT_LOOK = { font: 'anton', style: 'street', shadows: true, borders: true, bg: 'dots', corners: 'square', deco: true };
+  const DEFAULT_LOOK = { font: 'anton', style: 'pista', shadows: true, borders: true, bg: 'plain', corners: 'square', deco: false };
   const LOOK_FONTS = { anton: 'Anton', bebas: 'Bebas Neue', oswald: 'Oswald', archivo: 'Archivo Black', montserrat: 'Montserrat', teko: 'Teko', barlow: 'Barlow Condensed', marker: 'RAM Marker' };
 
   function initialState() {

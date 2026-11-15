@@ -45,6 +45,22 @@ body.green { background: #00FF00; } body.blue { background: #0047FF; } body.tran
 .winner.on { opacity: 1; transform: rotate(-2deg); }
 .enter .row { animation: slide .7s cubic-bezier(.2,.9,.3,1.1) both; } .enter .row + .row { animation-delay: .08s; }
 @keyframes slide { from { opacity: 0; transform: translateX(-60px); } }
+/* style « /Pista » (maquette, écran 17) : deux bandes nettes, la paire au service en citron, trait et ombre noirs, rien d'incliné */
+.look-style-pista .board { background: none; border: 0; box-shadow: none; gap: 10px; }
+.look-style-pista .board::before { display: none; }
+.look-style-pista .row { height: 76px; background: var(--white); color: #000; border: 4px solid #000; box-shadow: 8px 8px 0 #000; }
+.look-style-pista .row + .row { border-top: 4px solid #000; }
+.look-style-pista .row.serving { background: var(--accent); }
+.look-style-pista .nm b { font-family: var(--label); font-weight: 700; font-size: 36px; color: #000; }
+.look-style-pista .row.won .nm b { color: #000; }
+.look-style-pista .srv i { background: #000; box-shadow: none; }
+.look-style-pista .cell { color: #000; font-size: 42px; }
+.look-style-pista .cell.w { color: #000; }
+.look-style-pista .cell.cur { background: #0000001a; color: #000; }
+.look-style-pista .cell.pts { background: #000; color: var(--accent); }
+.look-style-pista .strip, .look-style-pista .winner, .look-style-pista .flag { transform: none; clip-path: none; border: 4px solid #000; }
+.look-style-pista .strip { color: #000; }
+.look-style-pista .sb { filter: none; }
 .hint { position: absolute; left: 70px; top: 60px; font: 700 22px var(--label); text-transform: uppercase; letter-spacing: .1em; color: #0009; }
 </style>
 </head>
