@@ -104,11 +104,16 @@
     const live = open.filter(t => t.drawn && t.done < t.matches);
     const upcoming = open.filter(t => !t.drawn && (!t.dateStart || t.dateStart >= today));
     const pairs = open.reduce((n, t) => n + (t.pairs || 0), 0);
+    // sous-libellés de la maquette : « tournoi en cours », « ce mois-ci », « cette saison » (saison de septembre à août)
+    const m0 = today.slice(0, 7), y = +today.slice(0, 4), saison = (+today.slice(5, 7) >= 9 ? y : y - 1) + '-09-01';
+    const ceMois = upcoming.filter(t => (t.dateStart || '').slice(0, 7) === m0).length;
+    const closedSaison = closed.filter(t => new Date(t.closedAt || t.dateStart || 0).toISOString().slice(0, 10) >= saison);
+    const pl = (n, a, b) => n > 1 ? b : a;
     $('#kpis').innerHTML = [
-      ['En direct', live.length, 'tournois', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/>', '/en-cours'],
-      ['À venir', upcoming.length, 'tournois', '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>', '/calendrier'],
-      ['Inscrits', pairs, 'paires', '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/>', '/app'],
-      ['Clôturés', closed.length, 'tournois', '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>', '/app#clotures']
+      ['En direct', live.length, pl(live.length, 'tournoi en cours', 'tournois en cours'), '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/>', '/en-cours'],
+      ['À venir', upcoming.length, ceMois ? ceMois + ' ce mois-ci' : 'aucun ce mois-ci', '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>', '/calendrier'],
+      ['Inscrits', pairs, pl(pairs, 'paire', 'paires') + ' dans vos tournois ouverts', '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/>', '/app'],
+      ['Clôturés', closedSaison.length, 'cette saison', '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>', '/app#clotures']
     ].map(([l, n, u, i, h]) => `<a class="kpi" href="${h}"><div><small>${l}</small><b>${n}</b><span>${u}</span></div>${ico(i)}</a>`).join('');
 
     // tournoi en cours : même règle que le raccourci /en-cours
@@ -121,29 +126,51 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="eyebrow" style="margin:0">Tournoi en cours</span>${state}</div>
         <h2>${esc(cur.name || 'Sans nom')}</h2>
         <p>${esc([cur.category, cur.gender, cur.club, cur.dateStart && new Date(cur.dateStart).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })].filter(Boolean).join(' · '))}</p>
-        <div class="hero-stats"><div><b>${cur.pairs || 0}</b><span>paires inscrites${cur.maxPairs ? ' · ' + cur.maxPairs + ' places' : ''}</span></div><div><b>${cur.done}/${cur.matches}</b><span>matchs joués</span></div><div><b>${pct}%</b><span>avancement</span></div></div>
+        <div class="hero-stats"><div><b>${cur.pairs || 0}</b><span>paires inscrites${cur.maxPairs ? ' · ' + cur.maxPairs + ' places' : ''}</span></div><div><b>${cur.done}/${cur.matches}</b><span>matchs joués</span></div><div><b id="curCourtsN">–</b><span>terrains</span></div></div>
         ${cur.drawn ? `<div class="prog"><i style="width:${pct}%"></i></div>` : ''}
+        <div class="ps-courts" id="curCourts" hidden></div>
         <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/t/${cur.id}">${pic(P.open)}Ouvrir le tournoi</a><a class="btn" href="/t/${cur.id}/remote" target="_blank">${pic(P.score)}Saisir un score</a><a class="btn" href="/t/${cur.id}/tv" target="_blank">${pic(P.tv)}Écran TV</a></div></div>`;
+      if (cur.kind !== 'animation' && cur.type !== 'interne') courts(cur);
     } else {
       $('#current').innerHTML = `<div style="position:relative;z-index:1"><span class="eyebrow">Tournoi en cours</span><h2>Aucun tournoi ouvert</h2><p>Créez votre prochain tournoi en partant d'un modèle.</p>
         <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div></div>`;
     }
 
     const next = open.filter(t => t !== cur).sort((a, b) => (a.dateStart || '9') < (b.dateStart || '9') ? -1 : 1).slice(0, 5);
-    $('#next').innerHTML = next.map(t => {
+    // blocs date : seul le prochain tournoi en citron (finition 7)
+    $('#next').innerHTML = next.map((t, i) => {
       const dt = t.dateStart ? new Date(t.dateStart) : null;
-      return `<a class="row" href="/t/${t.id}"><div class="d"><b>${dt ? dt.getDate() : '–'}</b><span>${dt ? MOIS[dt.getMonth()] : 'date ?'}</span></div>
+      return `<a class="row" href="/t/${t.id}"><div class="d${i === 0 && dt ? ' ps-next1' : ''}"><b>${dt ? dt.getDate() : '–'}</b><span>${dt ? MOIS[dt.getMonth()] : 'date ?'}</span></div>
         <div><strong>${esc(t.name || 'Sans nom')}</strong><small>${esc([t.category, t.gender, t.club].filter(Boolean).join(' · '))}</small></div><span class="chip">${t.pairs} paires</span></a>`;
     }).join('') || '<p class="empty">Aucun autre tournoi prévu.</p>';
   });
+
+  /* terrains du tournoi en cours : numéro (rose quand un match s'y joue), paires et score, ou « Libre » */
+  async function courts(cur) {
+    try {
+      if (!window.Engine) await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = '/js/engine.js'; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
+      const st = await fetch('/api/t/' + cur.id + '/export').then(r => r.ok ? r.json() : null);
+      if (!st || !st.courts) return;
+      $('#curCourtsN').textContent = st.courts.length;
+      const E = window.Engine, R = st.draw && st.draw.built ? E.resolve(st) : {};
+      const pn = id => { const p = (st.pairs || []).find(x => x.id === id); return p ? [p.p1, p.p2].map(x => x && x.last ? x.last.charAt(0) + x.last.slice(1).toLowerCase() : '').filter(Boolean).join(' / ') : '?'; };
+      const rows = st.courts.slice(0, 6).map((c, i) => {
+        const m = (st.matches || []).filter(x => x.court === c.id && R[x.id] && R[x.id].state === 'live')[0];
+        const sc = m && E.scoreText ? E.scoreText(R[m.id]) : '';
+        return `<div class="ps-crow"><b class="${m ? 'on' : ''}">${i + 1}</b><span>${m ? esc(pn(R[m.id].A) + ' · ' + pn(R[m.id].B) + (sc ? ' · ' + sc : '')) : 'Libre'}</span></div>`;
+      }).join('');
+      $('#curCourts').innerHTML = '<span class="eyebrow">Terrains</span>' + rows; $('#curCourts').hidden = false;
+    } catch (e) { /* les terrains restent masqués */ }
+  }
 
   fetch('/api/club-players').then(r => r.json()).then(d => {
     if (d.guest) {
       { $('#fans').innerHTML = '<p class="empty">Vos joueurs les plus fidèles apparaissent ici dès votre premier tournoi clôturé, avec un compte : <a href="/inscription">créer mon compte</a>.</p>'; return; }
     }
     const top = (d.players || []).slice(0, 5);
-    $('#fans').innerHTML = top.map((p, i) => `<a class="row" href="/joueurs#${p.id}"><div class="d"><b>${i + 1}</b><span>rang</span></div>
-      <div><strong>${esc(p.last)} ${esc(p.first)}</strong><small>${p.count} tournoi(s) · ${p.wins} victoire(s)</small></div><span class="chip">${p.points} pts</span></a>`).join('')
+    // joueurs fidèles : avatar aux initiales, « 8 tournois · 120 pts », pastille citron « Fidèle » à partir de 3 tournois
+    $('#fans').innerHTML = top.map((p, i) => `<a class="row ps-fan" href="/joueurs#${p.id}"><i class="avatar ps-fav${i ? '' : ' one'}" aria-hidden="true">${esc(((p.last || '')[0] || '') + ((p.first || '')[0] || ''))}</i>
+      <div><strong>${esc(p.last)} ${esc(p.first)}</strong><small>${p.count} tournoi${p.count > 1 ? 's' : ''} · ${p.points} pts</small></div>${p.count >= 3 ? '<span class="r-pastille r-pastille--citron">Fidèle</span>' : `<span class="r-pastille">${p.count}</span>`}</a>`).join('')
       || `<p class="empty">${esc(d.error || 'Vos joueurs apparaîtront ici dès votre premier tournoi clôturé.')}</p>`;
   }).catch(() => { $('#fans').innerHTML = '<p class="empty">Indisponible.</p>'; });
 })();

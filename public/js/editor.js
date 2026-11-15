@@ -58,6 +58,50 @@
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !wrap.hidden) close(); });
   })();
+  /* ---------- pictos au trait des boutons-icônes et des menus « … » ---------- */
+  const psIc = d => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const PSI = {
+    play: psIc('<path d="M7 4l13 8-13 8z"/>'), edit: psIc('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>'),
+    more: psIc('<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>'),
+    up: psIc('<path d="M6 15l6-6 6 6"/>'), down: psIc('<path d="M6 9l6 6 6-6"/>'), x: psIc('<path d="M6 6l12 12M18 6L6 18"/>'),
+    flag: psIc('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'), del: psIc('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
+    undo: psIc('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>'), paste: psIc('<rect x="6" y="4" width="12" height="17"/><path d="M9 4V2h6v2M9 10h6M9 14h6"/>'),
+    left: psIc('<path d="M15 6l-6 6 6 6"/>'), right: psIc('<path d="M9 6l6 6-6 6"/>')
+  };
+  /* menu « … » : liste d'actions (r-menu) sous le bouton ; Échap ou un clic ailleurs le ferme.
+     items : [libellé, picto, action, danger] ; les entrées fausses sont ignorées */
+  let psMenuEl = null;
+  function psMenuClose() { if (psMenuEl) { psMenuEl.remove(); psMenuEl = null; } }
+  function psMenu(btn, items) {
+    const was = psMenuEl && psMenuEl._for === btn; psMenuClose(); if (was) return;
+    const m = document.createElement('div'); m.className = 'r-menu ps-pop'; m.setAttribute('role', 'menu'); m._for = btn;
+    const list = items.filter(Boolean);
+    m.innerHTML = list.map(([l, ic, , d], i) => `<button type="button" role="menuitem" data-i="${i}"${d ? ' class="danger"' : ''}>${ic || ''}<span>${esc(l)}</span></button>`).join('');
+    document.body.appendChild(m); psMenuEl = m;
+    const r = btn.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + 'px';
+    m.style.top = (r.bottom + h + 8 > innerHeight && r.top - h - 4 > 0 ? r.top - h - 4 : r.bottom + 4) + 'px';
+    m.onclick = e => { const b = e.target.closest('[data-i]'); if (!b) return; const f = list[+b.dataset.i][2]; psMenuClose(); f(); };
+    m.querySelector('button').focus();
+  }
+  document.addEventListener('click', e => { if (psMenuEl && !psMenuEl.contains(e.target) && !(psMenuEl._for && psMenuEl._for.contains(e.target))) psMenuClose(); }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && psMenuEl) { const b = psMenuEl._for; psMenuClose(); if (b) b.focus(); } });
+  addEventListener('scroll', psMenuClose, { passive: true });
+  /* carte de terrain du Direct (maquette, point 5) : une ligne par paire, une case par set, le set gagné en citron */
+  function psCourtCard(c, m, PS) {
+    const r = R[m.id], sc = r.score;
+    const tag = { live: '<span class="tag ps-st-live">En direct</span>', done: '<span class="tag ps-st-done">Terminé</span>', ready: '<span class="tag">Prêt</span>' }[r.state] || '<span class="tag">En attente</span>';
+    const sets = sc ? sc.sets : [];
+    const cur = r.state === 'live' && sc && !sc.manual && !sc.winner && sc.mode === 'game';
+    const line = side => {
+      const boxes = sets.map(s => `<i class="${s.w === side ? 'w' : ''}">${s.stb ? s.stb[side] : s[side]}</i>`).join('') + (cur ? `<i class="cur">${sc.games[side]}</i>` : '');
+      const strong = r.winner ? r.winner === r[side] : sc && sc.server === side && r.state === 'live';
+      return `<div class="ps-cl${strong ? ' on' : ''}"><span>${esc(A.sideName(m, side))}</span>${r.state === 'ready' || r.state === 'waiting' ? A.restBadge(PS[r[side]]) : ''}<span class="ps-sets">${boxes}</span></div>`;
+    };
+    return `<div class="lcard ps-court st-${r.state}" data-o="${m.id}" role="button" tabindex="0" aria-label="${esc(c.name)} : saisir le score">
+      <div class="ps-ch"><b>${esc(c.name)}</b><small>${esc(E.matchLabel(m))}</small>${tag}</div>${line('A')}${line('B')}
+      ${r.state === 'ready' ? `<div class="btns"><button class="accent sm" data-st="${m.id}">${PSI.play}Lancer</button></div>` : ''}</div>`;
+  }
   /* ---------- en-tête, intercalaires et colonnes de droite (maquette « Refonte /Pista ») ---------- */
   const secName = t => { const b = $('#nav button[data-tab="' + t + '"] .lg'); return b ? b.textContent : t; };
   // une seule action citron par en-tête : sur Inscriptions, « Ajouter » est déjà dans la Saisie rapide et Écran TV garde le citron
@@ -90,17 +134,35 @@
     more.innerHTML = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
     $('#btnHelp').after(more);
     more.onclick = () => $('#abMore').click();
+    // « ‹ » du sous-menu (44 px) : replie la colonne 2 ; « › » dans l'en-tête la rouvre (choix gardé sur l'appareil)
+    const fold = document.createElement('button'); fold.type = 'button'; fold.className = 'ps-fold'; fold.setAttribute('aria-label', 'Replier le menu du tournoi'); fold.innerHTML = PSI.left;
+    $('.side-t').appendChild(fold);
+    const unfold = document.createElement('button'); unfold.type = 'button'; unfold.className = 'ps-unfold'; unfold.setAttribute('aria-label', 'Afficher le menu du tournoi'); unfold.innerHTML = PSI.right;
+    $('.top').prepend(unfold);
+    const setFold = on => { document.body.classList.toggle('ps-folded', on); try { localStorage.setItem('pista-sous-menu', on ? 'replie' : ''); } catch (e) {} };
+    try { if (localStorage.getItem('pista-sous-menu') === 'replie') document.body.classList.add('ps-folded'); } catch (e) {}
+    fold.onclick = () => { setFold(true); unfold.focus(); };
+    unfold.onclick = () => { setFold(false); fold.focus(); };
+    // « Coller une liste depuis Excel / MOJA » : bouton-icône à côté de « Ajouter la paire », il ouvre la zone de collage
+    const add = $('#addPair > button.accent'), paste = $('#tab-inscriptions details.paste');
+    if (add && paste) {
+      add.innerHTML = psIc('<path d="M12 5v14M5 12h14"/>') + 'Ajouter la paire';
+      const pb = document.createElement('button'); pb.type = 'button'; pb.className = 'ps-ib ps-pastebtn'; pb.setAttribute('aria-label', 'Coller une liste depuis Excel ou MOJA'); pb.title = 'Coller une liste depuis Excel / MOJA'; pb.innerHTML = PSI.paste;
+      const row = document.createElement('div'); row.className = 'ps-addrow'; add.before(row); row.append(add, pb);
+      pb.onclick = () => { paste.open = !paste.open; pb.setAttribute('aria-expanded', paste.open); if (paste.open) $('#pasteArea').focus(); };
+      paste.classList.add('ps-paste');
+    }
     // Inscriptions : intercalaires Retenues / Attente / Forfaits sur la liste
     const list = $('#tblMain').closest('.card');
     list.classList.add('ps-inslist'); list.dataset.psList = 'main';
     $('#addPair').closest('.card').classList.add('ps-insform');
-    const it = document.createElement('div'); it.className = 'ps-itabs'; it.id = 'psInsTabs'; it.setAttribute('role', 'tablist');
+    const it = document.createElement('div'); it.className = 'r-itabs ps-itabs'; it.id = 'psInsTabs'; it.setAttribute('role', 'tablist');
     list.before(it);
     it.addEventListener('click', e => { const b = e.target.closest('[data-l]'); if (!b) return; list.dataset.psList = b.dataset.l; $$('button', it).forEach(x => x.setAttribute('aria-selected', x === b)); });
     // Programmation : intercalaires Terrains et horaires / Ordre des matchs
     const sec = $('#tab-programmation'); sec.dataset.psView = 'sched';
     $('#sched').closest('.card').classList.add('ps-schedcard');
-    const pt = document.createElement('div'); pt.className = 'ps-itabs'; pt.setAttribute('role', 'tablist');
+    const pt = document.createElement('div'); pt.className = 'r-itabs ps-itabs'; pt.setAttribute('role', 'tablist');
     pt.innerHTML = '<button type="button" role="tab" data-v="sched" aria-selected="true">Terrains et horaires</button><button type="button" role="tab" data-v="order" aria-selected="false">Ordre des matchs</button>';
     $('#orderCard').before(pt);
     pt.addEventListener('click', e => {
@@ -117,8 +179,8 @@
   function psInsTabs(sel) {
     const it = $('#psInsTabs'); if (!it) return;
     const cur = $('#tblMain').closest('.card').dataset.psList || 'main';
-    it.innerHTML = [['main', 'Retenues', sel.main.length + ' / ' + S.tournament.maxPairs], ['wait', 'Attente', sel.waiting.length], ['wd', 'Forfaits', sel.withdrawn.length]]
-      .map(([k, l, n]) => `<button type="button" role="tab" data-l="${k}" aria-selected="${k === cur}">${l} <span>${n}</span></button>`).join('');
+    it.innerHTML = [['main', 'Retenues', sel.main.length + '/' + S.tournament.maxPairs], ['wait', 'Attente', sel.waiting.length], ['wd', 'Forfaits', sel.withdrawn.length]]
+      .map(([k, l, n]) => `<button type="button" role="tab" data-l="${k}" aria-selected="${k === cur}">${l} · ${n}</button>`).join('');
   }
   function psDirect(tl, PS) {
     const rest = $('#psRest'), next = $('#psNext'); if (!rest || !next) return;
@@ -177,6 +239,10 @@
     $('#sState').className = 'side-st' + (t.closed ? ' fin' : S.draw && nM && nD < nM ? ' live' : '');
     $('#hSub').textContent = [E.FORMULAS[t.formula || 'tf'], t.club, t.dateStart && new Date(t.dateStart).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ');
     psTitles(t);
+    // pastille du nombre de paires sur Inscriptions ; point citron sur Direct quand un match se joue
+    const nIns = $('#nav [data-tab="inscriptions"]'), nDir = $('#nav [data-tab="direct"]');
+    if (nIns) { let pc = $('.r-pastille', nIns); if (!pc) { pc = document.createElement('span'); pc.className = 'r-pastille'; nIns.appendChild(pc); } pc.textContent = S.pairs.filter(p => !p.withdrawn).length; }
+    if (nDir) { const on = S.matches.some(m => R[m.id] && R[m.id].state === 'live'); let d = $('.ps-dot', nDir); if (on && !d) { d = document.createElement('span'); d.className = 'ps-dot'; d.setAttribute('aria-label', 'match en cours'); nDir.appendChild(d); } if (!on && d) d.replaceWith(); }
     $('#btnUndo').disabled = !A.canUndo || !!t.closed;
     $('#closedBar').hidden = !t.closed;
     if (t.closed) $('#closedAt').textContent = 'le ' + new Date(t.closedAt).toLocaleDateString('fr-FR');
@@ -582,11 +648,7 @@
           <td>${plCell(p.p1, 'p1')}</td><td>${plCell(p.p2, 'p2')}</td>
           <td class="num"><b>${E.weightOf(p) >= 99999 ? 'NC' : E.weightOf(p)}</b></td>
           <td>${fmtDate(p.registeredAt)} ${p.wc ? '<span class="tag">WC</span>' : ''}${p.src ? '<span class="tag lime" title="Inscrite par les joueurs depuis l’appli /RAM Club">/RAM Club</span>' : ''}</td>
-          <td class="acts">
-            <button class="ghost sm" data-a="edit" title="Modifier">✎</button>
-            ${kind === 'wd' ? '<button class="ghost sm" data-a="restore">Réintégrer</button>' : '<button class="ghost sm" data-a="wd" title="Forfait / retrait">Forfait</button>'}
-            <button class="ghost sm danger" data-a="del" title="Supprimer">✕</button>
-          </td></tr>`;
+          <td class="acts"><button class="ps-more" data-a="more" data-kind="${kind}" aria-haspopup="menu" aria-label="Actions de la paire ${esc(p.p1.last || '')} / ${esc(p.p2.last || '')}">${PSI.more}</button></td></tr>`;
       }).join('') + '</tbody>';
   }
 
@@ -602,13 +664,13 @@
     $$('#tab-inscriptions tr[data-id]').forEach(tr => {
       const id = tr.dataset.id;
       $$('[data-pl]', tr).forEach(el => el.onclick = () => openPlayer(A.pairs[id][el.dataset.pl]));
-      $$('[data-a]', tr).forEach(b => b.onclick = () => {
-        const a = b.dataset.a;
-        if (a === 'edit') openPairModal(id);
-        if (a === 'restore') send('pair/withdraw', { id, value: false });
-        if (a === 'del' && confirm('Supprimer définitivement cette paire ?')) send('pair/remove', { id });
-        if (a === 'wd') { if (S.draw && S.draw.entrants.includes(id)) openReplaceModal(id); else send('pair/withdraw', { id, value: true }); }
-      });
+      // un seul « … » par ligne (maquette, point 6) : Modifier la paire, Déclarer forfait (ou Réintégrer), Retirer
+      $$('[data-a="more"]', tr).forEach(b => b.onclick = () => psMenu(b, [
+        ['Modifier la paire', PSI.edit, () => openPairModal(id)],
+        b.dataset.kind === 'wd' ? ['Réintégrer', PSI.undo, () => send('pair/withdraw', { id, value: false })]
+          : ['Déclarer forfait', PSI.flag, () => { if (S.draw && S.draw.entrants.includes(id)) openReplaceModal(id); else send('pair/withdraw', { id, value: true }); }],
+        ['Retirer', PSI.del, () => { if (confirm('Supprimer définitivement cette paire ?')) send('pair/remove', { id }); }, true]
+      ]));
     });
     psInsTabs(sel);
   }
@@ -780,7 +842,7 @@
       const st = E.pouleStandings(S, R, P.id);
       const k = S.draw.formula === 'poules_tf' ? (+S.tournament.pouleQualif || 2) : 0;
       const ms = S.matches.filter(m => m.phase === 'P' && m.poule === P.id).sort((a, b) => a.depth - b.depth || a.idx - b.idx);
-      return `<div><h4>Poule ${P.id} ${st.complete ? '<span class="tag lime">Terminée</span>' : ''}</h4>
+      return `<div data-pp="${P.id}"><h4>Poule ${P.id} ${st.complete ? '<span class="tag lime">Terminée</span>' : ''}</h4>
         <table class="tbl ptab"><thead><tr><th>#</th><th>Paire</th><th>J</th><th>V</th><th>Pts</th><th>Sets</th><th>Jeux</th></tr></thead><tbody>
         ${st.rows.map(x => `<tr class="${x.rank <= k ? 'q' : ''}"><td class="rank">${x.rank}</td><td>${esc(A.pairName(x.pair, 'initial'))}</td><td>${x.played}</td><td>${x.won}</td><td class="pts">${x.pts}</td><td>${x.sw - x.sl >= 0 ? '+' : ''}${x.sw - x.sl}</td><td>${x.gw - x.gl >= 0 ? '+' : ''}${x.gw - x.gl}</td></tr>`).join('')}
         </tbody></table><div class="pmatches">${ms.map(matchMini).join('')}</div></div>`;
@@ -801,6 +863,33 @@
     $('#classEd').innerHTML = Object.keys(groups).sort((a, b) => parseInt(a) - parseInt(b) || parseInt(b.split('-')[1]) - parseInt(a.split('-')[1]))
       .map(k => `<div class="cgroup"><h4>${E.matchLabel(groups[k][0])}</h4>${groups[k].sort((a, b) => a.idx - b.idx).map(matchMini).join('')}</div>`).join('');
     $$('#tab-tableaux [data-m]').forEach(el => el.onclick = () => openMatchModal(el.dataset.m));
+    psTabTabs(has, q, main, cls, LS);
+  }
+  /* intercalaires des Tableaux (finition 8) : Poule A… Qualifications, Tableau final, Classement, Points FFT ; une seule partie affichée */
+  let psTabSel = null;
+  function psTabTabs(has, q, main, cls, LS) {
+    const sec = $('#tab-tableaux');
+    let it = $('#psTabTabs');
+    if (!it) { it = document.createElement('div'); it.className = 'r-itabs ps-itabs'; it.id = 'psTabTabs'; it.setAttribute('role', 'tablist'); $('#tabPoules').before(it);
+      it.addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { psTabSel = b.dataset.t; renderTableaux(); } }); }
+    const tabs = (has ? S.poules : []).map(P => ['P' + P.id, 'Poule ' + P.id]);
+    if (q.length) tabs.push(['Q', 'Qualifications']);
+    if (main.length) tabs.push(['TF', 'Tableau final']);
+    if (cls.length) tabs.push(['CL', 'Classement']);
+    if (LS.groups.length) tabs.push(['RK', 'Points FFT']);
+    const parts = { Q: '#cardQualif', TF: '#cardTf', CL: '#classCard', RK: '#liveRank' };
+    sec.classList.toggle('ps-tabbed', tabs.length > 1);
+    if (tabs.length < 2) { it.hidden = true; $$('[data-pp]', sec).forEach(d => { d.hidden = false; }); return; }
+    if (!tabs.some(t => t[0] === psTabSel)) {
+      // par défaut : le tableau final dès que les poules sont jouées ou qu'il a commencé, sinon la première partie
+      const tfOn = main.some(m => R[m.id] && R[m.id].state !== 'waiting');
+      psTabSel = tfOn && main.length ? 'TF' : tabs[0][0];
+    }
+    it.hidden = false;
+    it.innerHTML = tabs.map(([k, l]) => `<button type="button" role="tab" data-t="${k}" aria-selected="${k === psTabSel}">${l}</button>`).join('');
+    const pc = $('#tabPoules > .card'); if (pc) pc.hidden = psTabSel[0] !== 'P';
+    $$('[data-pp]', sec).forEach(d => { d.hidden = 'P' + d.dataset.pp !== psTabSel; });
+    Object.entries(parts).forEach(([k, s]) => { const el = $(s); if (el && tabs.some(t => t[0] === k)) el.hidden = k !== psTabSel; });
   }
 
   /* =====================================================================
@@ -921,18 +1010,20 @@
   $('#schedAuto').onclick = () => send('schedule/auto');
   $('#schedClear').onclick = () => confirm('Retirer des terrains tous les matchs non commencés ?') && send('schedule/clear');
 
+  /* carte de match (maquette, point 4) : ▶ et ✎ visibles en 44 px, Monter / Descendre / Retirer du créneau dans « … » */
   function schedCard(m, tl, PS) {
     const r = R[m.id], t = tl[m.id];
-    const team = s => `<div class="sc-t"><span>${esc(A.sideName(m, s))}</span>${r.state === 'ready' || r.state === 'waiting' ? A.restBadge(PS[r[s]]) : ''}</div>`;
+    const team = (s, pre) => `<div class="sc-t"><span>${pre}${esc(A.sideName(m, s))}</span>${r.state === 'ready' || r.state === 'waiting' ? A.restBadge(PS[r[s]]) : ''}</div>`;
+    const etat = r.state === 'live' ? '<span class="tag ps-st-live">En cours</span>' : r.state === 'done' ? '<span class="tag ps-st-done">Joué · ' + esc(E.scoreText(r)) + '</span>' : '';
+    const menu = r.state !== 'done' && m.status !== 'live';
     return `<div class="scard st-${r.state}" draggable="${r.state === 'done' ? 'false' : 'true'}" data-id="${m.id}">
-      <div class="sc-top"><b>M${m.num}</b><span>${esc(E.matchLabel(m))}</span><span class="fmt">${r.fk}</span></div>
-      ${team('A')}${team('B')}
-      <div class="sc-bot"><span class="time">${t ? (r.state === 'live' ? '● En cours depuis ' + A.hhmm(m.startedAt) : r.state === 'done' ? '✓ ' + esc(E.scoreText(r)) : '~' + A.hhmm(t.start)) : ''}</span>
+      <div class="sc-top"><span>${t ? (r.state === 'live' ? 'Depuis ' + A.hhmm(m.startedAt) : r.state === 'done' ? '' : A.hhmm(t.start)) : ''}${t && r.state !== 'done' ? ' · ' : ''}M${m.num} · ${r.fk}</span><span class="tag ps-sc-lbl">${esc(E.matchLabel(m))}</span></div>
+      ${team('A', '')}${team('B', 'contre ')}
+      <div class="sc-bot">${etat}
         <span class="sc-acts">
-          ${r.state === 'ready' && m.court ? `<button class="sm accent" data-start title="Lancer le match">▶</button>` : ''}
-          ${r.state !== 'done' && m.status !== 'live' ? `<button class="sm ghost" data-up title="Monter">▲</button><button class="sm ghost" data-down title="Descendre">▼</button>` : ''}
-          ${m.court && r.state !== 'done' && m.status !== 'live' ? `<button class="sm ghost" data-un title="Retirer du terrain">✕</button>` : ''}
-          <button class="sm ghost" data-open title="Score">✎</button>
+          ${r.state === 'ready' && m.court ? `<button class="accent ps-ib" data-start aria-label="Lancer le match M${m.num}">${PSI.play}</button>` : ''}
+          <button class="ps-ib" data-open aria-label="Score du match M${m.num}">${PSI.edit}</button>
+          ${menu ? `<button class="ps-more" data-more aria-label="Plus d'actions pour M${m.num}" aria-haspopup="menu">${PSI.more}</button>` : ''}
         </span></div></div>`;
   }
 
@@ -1118,10 +1209,14 @@
       card.ondragend = () => { dragging = false; card.classList.remove('drag'); };
       const b = (s, fn) => { const el = $(s, card); if (el) el.onclick = e => { e.stopPropagation(); fn(); }; };
       b('[data-start]', () => startMatch(id));
-      b('[data-up]', () => m.court && send('schedule/move', { id, court: m.court, index: Math.max(0, m.order - 1) }));
-      b('[data-down]', () => m.court && send('schedule/move', { id, court: m.court, index: m.order + 1 }));
-      b('[data-un]', () => send('schedule/move', { id, court: null }));
       b('[data-open]', () => openMatchModal(id));
+      const mb = $('[data-more]', card);
+      if (mb) mb.onclick = e => { e.stopPropagation(); psMenu(mb, [
+        m.court && ['Monter', PSI.up, () => send('schedule/move', { id, court: m.court, index: Math.max(0, m.order - 1) })],
+        m.court && ['Descendre', PSI.down, () => send('schedule/move', { id, court: m.court, index: m.order + 1 })],
+        m.court && ['Retirer du créneau', PSI.x, () => send('schedule/move', { id, court: null })],
+        !m.court && ['Ouvrir le match', PSI.edit, () => openMatchModal(id)]
+      ]); };
       card.ondblclick = () => openMatchModal(id);
     });
     $$('#sched .scol').forEach(colEl => {
@@ -1148,20 +1243,12 @@
     $('#liveList').innerHTML = S.courts.map(c => {
       const q = S.matches.filter(m => m.court === c.id && !R[m.id].staticBye).sort((a, b) => a.order - b.order);
       const cur = q.find(m => R[m.id].state === 'live') || q.find(m => R[m.id].state === 'ready' || R[m.id].state === 'waiting');
-      if (!cur) return `<div class="lcard"><h4>${esc(c.name)}</h4><p class="muted">Aucun match programmé</p></div>`;
-      const r = R[cur.id], sc = r.score;
-      const line = side => `<div class="lc-row ${sc && sc.server === side && r.state === 'live' ? 'srv' : ''}"><span>${esc(A.sideName(cur, side))}</span>
-        ${r.state !== 'live' ? A.restBadge(PS[r[side]]) : ''}
-        <b>${sc ? sc.sets.map(s => s.stb ? s.stb[side] : s[side]).join(' ') : ''} ${r.state === 'live' && sc && !sc.manual ? `<em>${sc.mode === 'game' ? sc.games[side] : ''}</em> <u>${sc.labels[side]}</u>` : ''}</b>
-        <button class="pt sm" data-pt="${side}" data-id="${cur.id}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'} title="+1 point">+1</button><button class="ghost sm" data-gm="${side}" data-id="${cur.id}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'} title="+1 jeu">+J</button></div>`;
-      return `<div class="lcard st-${r.state}"><h4>${esc(c.name)} <span>M${cur.num} · ${esc(E.matchLabel(cur))} · ${r.fk}</span></h4>${line('A')}${line('B')}
-        <div class="btns">${r.state === 'ready' ? `<button class="accent sm" data-st="${cur.id}">▶ Lancer</button>` : ''}<button class="ghost sm" data-u="${cur.id}">↶</button><button class="ghost sm" data-o="${cur.id}">Détails</button></div></div>`;
+      if (!cur) return `<div class="lcard ps-court"><div class="ps-ch"><b>${esc(c.name)}</b><span class="tag ps-st-free">Libre</span></div><p class="muted">Aucun match programmé</p></div>`;
+      return psCourtCard(c, cur, PS);
     }).join('');
-    $$('#liveList [data-pt]').forEach(b => b.onclick = () => send('match/point', { id: b.dataset.id, team: b.dataset.pt }));
-    $$('#liveList [data-gm]').forEach(b => b.onclick = () => send('match/game', { id: b.dataset.id, team: b.dataset.gm }));
-    $$('#liveList [data-u]').forEach(b => b.onclick = () => send('match/undoPoint', { id: b.dataset.u }));
-    $$('#liveList [data-o]').forEach(b => b.onclick = () => openMatchModal(b.dataset.o));
-    $$('#liveList [data-st]').forEach(b => b.onclick = () => startMatch(b.dataset.st));
+    // la carte s'ouvre sur la saisie du score ; ▶ lance un match prêt
+    $$('#liveList [data-o]').forEach(b => { b.onclick = e => { if (!e.target.closest('[data-st]')) openMatchModal(b.dataset.o); }; b.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === b) { e.preventDefault(); openMatchModal(b.dataset.o); } }; });
+    $$('#liveList [data-st]').forEach(b => b.onclick = e => { e.stopPropagation(); startMatch(b.dataset.st); });
 
     const order = { playing: 0, rest: 1, ready: 2, fresh: 3, idle: 4 };
     const rows = Object.values(PS).sort((a, b) => order[a.state] - order[b.state] || (b.waiting || 0) - (a.waiting || 0));

@@ -38,6 +38,7 @@
   --c-green: #9BD43C;
   --c-orange: #F2A93B;
   --c-dark: #1A0509;
+  --c-bordeaux: #8E1838;
   /* traits, ombres, coins */
   --bw: 2px;
   --sh: 4px 4px 0 var(--c-ink);
@@ -242,6 +243,18 @@
 .r-poster { background: var(--c-lime); color: var(--c-dark); border: var(--bw) solid var(--c-ink); border-radius: var(--rad-sm); padding: 14px; min-height: 120px; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--s2); }
 .r-poster h3 { font: 400 34px/1.02 var(--f-display); text-transform: uppercase; margin: 0; }
 .r-post__acts { display: flex; gap: var(--s2); flex-wrap: wrap; padding-top: var(--s2); border-top: var(--bw) solid color-mix(in srgb, var(--c-ink) 12%, transparent); }
+
+/* Intercalaires (Figma « Intercalaire (.ps-itabs) ») : 2 à 5 onglets collés au-dessus d'une carte, sans espace.
+   Actif : fond surface, 39 px, se fond dans la carte ; inactif : surface 2, 35 px, texte gris. Bord 2 px encre. */
+.r-itabs { position: relative; z-index: 1; display: flex; align-items: flex-end; gap: 6px; padding-left: var(--s3); margin-bottom: calc(-1 * var(--bw)); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.r-itabs > button, .r-itabs > a { flex: none; display: inline-flex; align-items: center; gap: var(--s2); min-height: 35px; padding: 0 14px; border: var(--bw) solid var(--c-ink); border-bottom: 0; border-radius: var(--rad-sm) var(--rad-sm) 0 0; background: var(--c-surface-2); color: var(--c-muted); font: 700 14px/1.1 var(--f-label); letter-spacing: .02em; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.r-itabs > [aria-selected='true'], .r-itabs > [aria-current] { min-height: 39px; padding-bottom: var(--bw); background: var(--c-surface); color: var(--c-text); }
+.r-itabs > :focus-visible { outline: 3px solid var(--c-pink); outline-offset: 2px; }
+/* Pastille de compte : nombre court (paires, rang). Bordeaux par défaut, --rose pour le premier ou une tête de série, --citron pour « Fidèle » */
+.r-pastille { display: inline-flex; align-items: center; flex: none; padding: 2px 7px; border: var(--bw) solid var(--c-ink); border-radius: var(--rad-pill); background: var(--c-bordeaux); color: #FFFFFF; font: 700 12px/1.2 var(--f-label); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.r-pastille--rose { background: var(--c-pink); color: var(--c-dark); }
+.r-pastille--citron { background: var(--c-lime); color: var(--c-dark); }
+:root[data-mode='nuit'] .r-pastille:not(.r-pastille--rose):not(.r-pastille--citron) { background: var(--c-menu-2); }
 
 /* ---------- Navigation à deux niveaux ---------- */
 /* en-tête de page : surtitre, grand titre, actions à droite */

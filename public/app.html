@@ -68,10 +68,11 @@
     document.getElementById('psCols').innerHTML = cols.map(([k, l, a]) => `<button type="button" role="tab" data-c="${k}" aria-selected="${k === psCol}">${l} <span>${a.length}</span></button>`).join('');
     const l = cols.find(c => c[0] === psCol)[2];
     const etat = t => t.closed ? (t.kind === 'animation' ? 'Terminée' : 'Clôturé') : t.drawn ? (t.kind === 'animation' ? 'Manche ' + t.rounds : t.done + '/' + t.matches + ' matchs') : 'Inscriptions';
-    document.getElementById('psRows').innerHTML = l.map(t => {
+    // blocs date : seul le prochain tournoi (le premier « À venir ») en citron
+    document.getElementById('psRows').innerHTML = l.map((t, i) => {
       const dt = t.dateStart ? new Date(t.dateStart) : null;
       const tags = [t.type === 'interne' ? 'Interne' : t.kind === 'animation' ? 'Animation' : [t.category, t.gender].filter(Boolean).join(' '), etat(t)].filter(Boolean);
-      return `<div class="row ps-trow"><div class="d"><b>${dt ? dt.getDate() : '–'}</b><span>${dt ? MOIS[dt.getMonth()] : 'date ?'}</span></div>
+      return `<div class="row ps-trow"><div class="d${psCol === 'up' && i === 0 && dt ? ' ps-next1' : ''}"><b>${dt ? dt.getDate() : '–'}</b><span>${dt ? MOIS[dt.getMonth()] : 'date ?'}</span></div>
         <div class="ps-tname"><a href="/t/${t.id}"><strong>${esc(t.name || 'Sans nom')}</strong></a><small>${tags.map((x, i) => `<span class="tag ${i ? (t.drawn && !t.closed ? 'ps-live' : '') : ''}">${esc(x)}</span>`).join('')}<span class="ps-np">${t.kind === 'animation' ? t.players + ' joueurs' : t.pairs + (t.maxPairs ? '/' + t.maxPairs : '') + ' paires'}</span>${t.adjoint ? '<span class="ps-np">adjoint</span>' : ''}</small></div>
         <div class="ps-tact"><a class="btn sq" href="/t/${t.id}/tv" target="_blank" aria-label="Écran TV de ${esc(t.name || 'ce tournoi')}">${pic(IC.tv)}</a>${t.adjoint ? '' : `<button class="sq" data-dup="${t.id}" aria-label="Dupliquer">${pic(IC.dup)}</button><button class="sq" data-del="${t.id}" aria-label="Supprimer">${pic(IC.del)}</button>`}<a class="btn primary sm" href="/t/${t.id}">Ouvrir</a></div>
         <span class="ps-chev" aria-hidden="true">${pic(IC.chev)}</span></div>`;
