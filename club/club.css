@@ -1941,7 +1941,7 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .card.bvmenu { padding: 0; gap: 0; }
 .bvmrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; min-height: 64px; background: none; color: var(--c-text); text-align: left; font: inherit; border-top: 1px solid color-mix(in srgb, var(--c-ink) 18%, transparent); }
 .bvmrow:first-child { border-top: 0; }
-.bvmrow .tile { width: 40px; height: 40px; background: var(--c-surface); }
+.bvmrow .tile { width: 40px; height: 40px; background: var(--c-lime); color: var(--c-dark); }
 .bvmrow .grow { min-width: 0; }
 .bvmrow b { display: block; font-weight: 600; font-size: 16px; }
 .bvmrow small { display: block; color: var(--c-muted); font-size: 13px; margin-top: 2px; }
