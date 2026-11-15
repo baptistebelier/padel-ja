@@ -357,7 +357,10 @@ test('JA : tournois par statut et création dans une fenêtre, la même depuis l
     assert.equal(new URL(page.url()).pathname, url, 'reste sur la page');
     assert.equal(await page.evaluate(() => scrollY), y0, 'sans défilement');
     const onglets = await page.$$eval('.nvtabs button', l => l.map(x => x.textContent));
-    assert.deepEqual(onglets, ['Modèles officiels', 'Mes modèles', 'Vierge', 'Animations', 'Tournoi interne']);
+    assert.deepEqual(onglets, ['Officiels', 'Mes modèles', 'Vierge', 'Animations', 'Interne']);
+    // le premier modèle est présélectionné (en citron) et son nom est déjà proposé
+    assert.equal(await page.locator('.nvbody .tpl.cur').count(), 1, 'un modèle présélectionné');
+    assert.ok((await page.inputValue('#nvName')).length > 0, 'nom proposé');
   }
   // créer une animation depuis la fenêtre, sur téléphone aussi sans débordement
   await page.click('.nvtabs button:nth-child(4)');

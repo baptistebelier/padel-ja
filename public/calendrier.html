@@ -10,7 +10,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja2">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
-<title>Mon calendrier — /RAM JA</title>
+<title>Calendrier — /Pista</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
@@ -21,24 +21,31 @@
 <body class="acct" data-page="calendrier">
 <main class="page">
   <header class="phead">
-    <div><span class="eyebrow">Planning</span><h1>Mon <span class="band lime">calendrier</span></h1></div>
-    <div class="phead-act"><label class="ufilter" style="margin:0">Sport<select id="fsport" aria-label="Filtrer par sport"><option value="">Tous</option><option>Padel</option><option>Tennis</option></select></label><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div>
+    <div><span class="eyebrow">Mon calendrier</span><h1>Calendrier</h1></div>
+    <div class="phead-act"><button class="btn" type="button" id="today"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Aujourd’hui</button><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div>
   </header>
-  <div class="grid g-main">
-    <section class="card">
+  <div class="r-bento ps-calb">
+    <section class="card ps-calc">
       <div class="cal-head">
+        <button class="ps-ib" type="button" id="prev" aria-label="Mois précédent"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
         <h2 id="month"></h2>
-        <button class="btn sm" id="prev" aria-label="Mois précédent">‹</button>
-        <button class="btn sm" id="today">Aujourd'hui</button>
-        <button class="btn sm" id="next" aria-label="Mois suivant">›</button>
+        <button class="ps-ib" type="button" id="next" aria-label="Mois suivant"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        <div class="seg ps-calv" role="tablist" aria-label="Vue"><button type="button" role="tab" data-v="mois">Mois</button><button type="button" role="tab" data-v="planning">Planning</button></div>
       </div>
       <div class="cal" id="cal"></div>
-      <div class="legend"><span><i style="background:var(--ui-accent)"></i>En direct</span><span><i style="background:var(--ui-accent2)"></i>À venir</span><span><i style="background:var(--ui-text-mut2)"></i>Clôturé</span></div>
+      <div class="rows ps-plan" id="plan" hidden></div>
     </section>
-    <section class="card" style="align-self:start">
-      <span class="eyebrow" id="listLabel">Ce mois-ci</span><h2>Tournois</h2>
-      <div class="rows" id="list"></div>
-    </section>
+    <aside class="r-bento__side">
+      <section class="card"><h2 class="h2s"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="listLabel">Ce mois-ci</span></h2>
+        <div class="ps-month" id="mstats"></div>
+        <span class="ps-lbl">Sport</span>
+        <div class="seg ps-sport ps-calsport" role="tablist" aria-label="Sport"><button type="button" role="tab" data-sp="">Tous</button><button type="button" role="tab" data-sp="Padel">Padel</button><button type="button" role="tab" data-sp="Tennis">Tennis</button></div>
+        <span class="ps-lbl">Légende</span>
+        <div class="legend ps-legend"><span><i class="ev-t"></i>Tournoi</span><span><i class="ev-a"></i>Animation</span><span><i class="ev-i"></i>Tournoi interne</span><span><i class="ev-l"></i>En direct</span></div>
+      </section>
+      <section class="card"><h2 class="h2s"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Sans date</h2>
+        <div class="ps-tpls" id="undated"></div></section>
+    </aside>
   </div>
 </main>
 <script>
@@ -48,19 +55,22 @@
   const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
   const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const todayIso = iso(new Date());
+  const chev = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
   let cur = new Date(); cur.setDate(1);
   let toutes = [];
-  const kind = t => t.closed ? 'closed' : t.drawn && t.done < t.matches ? 'live' : '';
+  // vue : la grille du mois sur ordinateur et iPad, le planning (liste par date) au téléphone ; le choix est gardé sur l'appareil
+  let vue = (() => { try { return localStorage.getItem('ja-cal-vue'); } catch (e) { return null; } })() || (matchMedia('(max-width: 720px)').matches ? 'planning' : 'mois');
+  // couleur d'un événement : en direct (rose), animation (vert), tournoi interne (blanc), tournoi (citron), clôturé (gris)
+  const kind = t => t.closed ? 'closed' : t.drawn && t.done < t.matches ? 'live' : t.type === 'animation' || t.kind === 'animation' ? 'ani' : t.type === 'interne' || t.kind === 'interne' ? 'int' : 'tour';
   const covers = (t, day) => t.dateStart && day >= t.dateStart && day <= (t.dateEnd && t.dateEnd >= t.dateStart ? t.dateEnd : t.dateStart);
-
   const sportChoisi = () => { try { return localStorage.getItem('ja-sport') || ''; } catch (e) { return ''; } };
   const garderSport = v => { try { localStorage.setItem('ja-sport', v); } catch (e) {} };
-  const TYPES = { tournoi: 'Tournoi', animation: 'Animation', interne: 'Tournoi interne' };
   function render() {
-    const fs0 = document.getElementById('fsport'); if (fs0 && !fs0.dataset.pret) { fs0.dataset.pret = 1; fs0.value = sportChoisi(); fs0.onchange = () => { garderSport(fs0.value); render(); }; }
     const tours = toutes.filter(t => !sportChoisi() || (t.sport || 'Padel') === sportChoisi());
     const y = cur.getFullYear(), m = cur.getMonth();
     $('#month').textContent = MOIS[m] + ' ' + y;
+    document.querySelectorAll('.ps-calv [data-v]').forEach(b => b.setAttribute('aria-selected', b.dataset.v === vue));
+    document.querySelectorAll('.ps-calsport [data-sp]').forEach(b => b.setAttribute('aria-selected', b.dataset.sp === sportChoisi()));
     const first = new Date(y, m, 1), start = new Date(first);
     start.setDate(1 - ((first.getDay() + 6) % 7));   // lundi de la première semaine
     let html = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => `<div class="dow">${d}</div>`).join('');
@@ -74,22 +84,28 @@
     }
     $('#cal').innerHTML = html;
     const monthKey = iso(first).slice(0, 7);
-    const inMonth = tours.filter(t => t.dateStart && (t.dateStart.slice(0, 7) === monthKey || (t.dateEnd || '').slice(0, 7) === monthKey))
-      .sort((a, b) => a.dateStart < b.dateStart ? -1 : 1);
+    const inMonth = tours.filter(t => t.dateStart && (t.dateStart.slice(0, 7) === monthKey || (t.dateEnd || '').slice(0, 7) === monthKey)).sort((a, b) => a.dateStart < b.dateStart ? -1 : 1);
     const undated = tours.filter(t => !t.dateStart && !t.closed);
-    $('#listLabel').textContent = MOIS[m] + ' ' + y;
-    $('#list').innerHTML = inMonth.map(row).join('') + (undated.length ? `<p class="small muted" style="margin:16px 4px 4px">Sans date</p>` + undated.map(row).join('') : '')
-      || '<p class="empty">Aucun tournoi ce mois-ci.</p>';
+    // planning : une ligne par événement du mois, le prochain en citron
+    const nxt = inMonth.find(t => t.dateStart >= todayIso);
+    $('#plan').innerHTML = inMonth.map(t => row(t, t === nxt)).join('') || '<p class="empty">Aucun tournoi ce mois-ci.</p>';
+    $('#cal').hidden = vue !== 'mois'; $('#plan').hidden = vue !== 'planning';
+    $('#listLabel').textContent = y === new Date().getFullYear() && m === new Date().getMonth() ? 'Ce mois-ci' : MOIS[m] + ' ' + y;
+    const nA = inMonth.filter(t => kind(t) === 'ani').length;
+    $('#mstats').innerHTML = `<div class="ps-mstat"><b>${inMonth.length - nA}</b><span>tournoi${inMonth.length - nA > 1 ? 's' : ''}</span></div><div class="ps-mstat"><b>${nA}</b><span>animation${nA > 1 ? 's' : ''}</span></div>`;
+    $('#undated').innerHTML = undated.map(t => `<a class="r-row" href="/t/${t.id}"><span class="r-row__txt"><b>${esc(t.name || 'Sans nom')}</b><small>${esc([t.category, t.gender].filter(Boolean).join(' ') || (kind(t) === 'ani' ? 'Animation' : kind(t) === 'int' ? 'Tournoi interne' : 'Tournoi'))} · ${t.drawn ? 'en cours' : 'inscriptions'}</small></span>${chev}</a>`).join('') || '<p class="empty">Tous vos tournois ont une date.</p>';
   }
-  function row(t) {
+  function row(t, next) {
     const d = t.dateStart ? new Date(t.dateStart) : null;
-    const st = t.closed ? '<span class="chip">Clôturé</span>' : t.drawn && t.done < t.matches ? '<span class="chip live">Direct</span>' : `<span class="chip">${t.pairs} paires</span>`;
-    return `<a class="row" href="/t/${t.id}"><div class="d"><b>${d ? d.getDate() : '–'}</b><span>${d ? MOIS[d.getMonth()].slice(0, 4) : 'date ?'}</span></div>
+    const st = t.closed ? '<span class="chip">Clôturé</span>' : t.drawn && t.done < t.matches ? '<span class="chip live">En direct</span>' : `<span class="chip">${t.kind === 'animation' ? (t.players || 0) + ' joueurs' : (t.pairs || 0) + ' paires'}</span>`;
+    return `<a class="row" href="/t/${t.id}"><div class="d${next ? ' ps-next1' : ''}"><b>${d ? d.getDate() : '–'}</b><span>${d ? MOIS[d.getMonth()].slice(0, 4) : 'date ?'}</span></div>
       <div><strong>${esc(t.name || 'Sans nom')}</strong><small>${esc([t.category, t.gender, t.club, t.startTime].filter(Boolean).join(' · '))}</small></div>${st}</a>`;
   }
   $('#prev').onclick = () => { cur.setMonth(cur.getMonth() - 1); render(); };
   $('#next').onclick = () => { cur.setMonth(cur.getMonth() + 1); render(); };
   $('#today').onclick = () => { cur = new Date(); cur.setDate(1); render(); };
+  document.querySelector('.ps-calv').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; vue = b.dataset.v; try { localStorage.setItem('ja-cal-vue', vue); } catch (_) {} render(); };
+  document.querySelector('.ps-calsport').onclick = e => { const b = e.target.closest('[data-sp]'); if (!b) return; garderSport(b.dataset.sp); render(); };
   render();
   fetch('/api/tournaments').then(r => r.json()).then(d => {
     if (d.error) return location.href = '/connexion';
