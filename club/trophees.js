@@ -306,8 +306,8 @@ const FRAMES = [
   { n: 'Argent', min: 500 },
   { n: 'Or', min: 1200 },
   { n: 'Platine', min: 2500 },
-  { n: 'Diamant', min: 4500 },
-  { n: 'Légende', min: 5000 }
+  { n: 'Diamant', min: 5000 },
+  { n: 'Légende', min: 10000 }
 ];
 /* palier Légende : le nom passe aussi en bandeau noir à couronne (profil, Moi) */
 const legN = id => (M[id] && id !== 'club' && lvlOf(id) >= 6 ? ' leg' : '');

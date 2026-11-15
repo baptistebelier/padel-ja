@@ -1971,7 +1971,7 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .av.xl:is(.fr1,.fr2,.fr3,.fr4,.fr5,.fr6), .phero .av:is(.fr1,.fr2,.fr3,.fr4,.fr5,.fr6) { box-shadow: 0 0 0 5px var(--lvl), 0 0 0 7px var(--c-ink); margin: 8px; }
 /* en-tête au téléphone : l'avatar remplit son bouton, c'est le bouton qui porte le cadre */
 .top .bvme:has(> .av:is(.fr1,.fr2,.fr3,.fr4,.fr5,.fr6)) { box-shadow: 0 0 0 3px var(--lvl), 0 0 0 5px var(--c-ink); }
-/* Palier Légende (5000 pts) : anneau citron, filet encre, ombre citron et couronne posée en haut du cadre */
+/* Palier Légende (10000 pts) : anneau citron, filet encre, ombre citron et couronne posée en haut du cadre */
 .av.fr6, :has(> .av.fr6) { --lvl: var(--c-lime, #E0F50A); }
 .av.fr6 { position: relative; margin: 12px 8px 8px; box-shadow: 0 0 0 3px var(--c-ink), 0 0 0 6px var(--lvl), 0 0 0 8px var(--c-ink), 6px 6px 0 6px var(--lvl); }
 .av.sm.fr6 { margin: 9px 5px 5px; box-shadow: 0 0 0 2px var(--lvl), 0 0 0 3px var(--c-ink), 3px 3px 0 3px var(--lvl); }
@@ -1986,3 +1986,14 @@ select option { background: var(--c-surface); color: var(--c-text); }
 #main .post > .sp.duo { padding: 0; }
 #main .post > .sp.duo i { padding: 4px 10px; }
 #main .post:has(> .sp) [data-a="pmenu"] { margin-top: 26px; }
+
+/* Déroulé du stage : l'heure à gauche de la frise, l'intitulé à droite sur toute la largeur restante */
+.stdl .dl-f li { grid-template-columns: 64px 22px minmax(0, 1fr); }
+.stdl .dl-f li::before { grid-row: 1; }
+.stdl .dl-f .dl-h { grid-column: 1; grid-row: 1; }
+.stdl .dl-f .dl-t { grid-column: 3; grid-row: 1; min-width: 0; overflow-wrap: anywhere; }
+/* Promouvoir sur le mur : seul sur sa ligne, au-dessus des autres boutons, sur toute la largeur de la carte */
+.ecacts .btn[data-a="promo"] { flex: 1 0 100%; order: -1; }
+/* Intercalaires (sous-menus) : plus collés en haut de l'écran pendant le défilement, ils restent au-dessus de leur carte */
+@media (max-width: 1023px) { #main > .seg, #main > .seg:not(.haut) { position: relative; top: auto; } }
+@media (min-width: 1024px) { #main > .seg.haut { position: relative; top: auto; } }
