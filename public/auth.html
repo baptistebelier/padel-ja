@@ -11,15 +11,17 @@
 <script src="/js/splash.js"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja2">
-<title>Connexion — /RAM JA</title>
+<title>Connexion — /Pista</title>
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja2">
-<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/site.css">
+<script src="/js/theme.js"></script>
 </head>
 <body class="auth-page">
-<header class="nav"><a href="/" class="logo"><img src="/img/ja-ram-rouge-blanc.png" alt="/RAM JA"></a><a href="/demo" class="btn ghost">Essayer la démo</a></header>
 <main class="auth">
-  <div class="auth-box">
+  <section class="auth-hero"><a href="/" class="logo" aria-label="/Pista, accueil">/Pista</a><h2>Le logiciel du juge-arbitre de padel.</h2><p>Inscriptions, tirage, scores en direct et écran TV, sur tous vos appareils.</p><a href="/demo" class="btn dark"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>Essayer la démo</a></section>
+  <section class="auth-side"><div class="auth-box card">
     <div class="tabs"><button data-m="login">Connexion</button><button data-m="signup">Créer un compte</button></div>
     <h1 id="title"></h1>
     <form id="f" autocomplete="on">
@@ -37,7 +39,7 @@
       <p class="alt" data-only="login"><a href="/mot-de-passe-oublie">Mot de passe oublié ?</a></p>
       <p class="alt" data-only="forgot reset"><a href="/connexion">Retour à la connexion</a></p>
     </form>
-  </div>
+  </div></section>
 </main>
 <script>
 (function () {
@@ -53,7 +55,7 @@
     document.querySelector('.tabs').hidden = m === 'forgot' || m === 'reset';
     document.getElementById('ok').hidden = true;
     document.getElementById('pwLabel').textContent = m === 'reset' ? 'Nouveau mot de passe' : 'Mot de passe';
-    document.getElementById('title').innerHTML = { signup: 'Créer <span class="band lime">mon compte</span>', forgot: 'Mot de passe <span class="band lime">oublié</span>', reset: 'Nouveau <span class="band lime">mot de passe</span>' }[m] || 'Espace <span class="band lime">juge-arbitre</span>';
+    document.getElementById('title').innerHTML = { signup: 'Créer mon compte', forgot: 'Mot de passe oublié', reset: 'Nouveau mot de passe' }[m] || 'Espace juge-arbitre';
     document.getElementById('go').textContent = { signup: 'Créer mon compte', forgot: 'Recevoir le lien', reset: 'Enregistrer et me connecter' }[m] || 'Se connecter';
     f.password.autocomplete = m === 'login' ? 'current-password' : 'new-password';
     if (m === 'login' || m === 'signup') history.replaceState(null, '', (m === 'signup' ? '/inscription' : '/connexion') + location.search);
