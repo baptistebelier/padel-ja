@@ -252,7 +252,7 @@ const RARES = [
 const RAR = ['Courant', 'Peu courant', 'Rare', 'Très rare'];
 /* Chemin des cadres : chaque cadre est une étape posée sur une barre de progression,
    remplie jusqu'au score de l'adhérent (entre deux étapes, au prorata des points) */
-const FR_COUL = ['#8A8A8A', '#C8834B', '#C9D1D9', '#F2C230', '#5FD3C6', '#7FB4FF'];
+const FR_COUL = ['#8A8A8A', '#C8834B', '#C9D1D9', '#F2C230', '#5FD3C6', '#7FB4FF', '#E0F50A'];
 const CADENAS =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="4.5" y="10" width="15" height="11" rx="2.5" fill="currentColor"/><circle cx="12" cy="15.5" r="1.7" fill="var(--card)"/></svg>';
 /* chemin de progression commun : étapes [{ n, min }], valeur atteinte, étape atteinte L,
@@ -306,8 +306,11 @@ const FRAMES = [
   { n: 'Argent', min: 500 },
   { n: 'Or', min: 1200 },
   { n: 'Platine', min: 2500 },
-  { n: 'Diamant', min: 4500 }
+  { n: 'Diamant', min: 4500 },
+  { n: 'Légende', min: 5000 }
 ];
+/* palier Légende : le nom passe aussi en bandeau noir à couronne (profil, Moi) */
+const legN = id => (M[id] && id !== 'club' && lvlOf(id) >= 6 ? ' leg' : '');
 /* Historique de démo : les autres adhérents ont déjà des points, toi tu as des compteurs */
 const XP = {
   hugo: 1700,
