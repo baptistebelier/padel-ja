@@ -105,7 +105,7 @@ section.block h2 { font: 400 clamp(34px, 4vw, 52px)/1 var(--f-display); text-tra
 .ok { padding: 10px 14px; border: var(--bw) solid var(--c-ink); background: var(--c-green); color: var(--c-dark); font-size: 14px; }
 /* connecteur Claude : une colonne de cartes */
 .doc { width: min(920px, 100% - 32px); margin: 0 auto; padding: 48px 0 64px; display: grid; gap: 22px; }
-.doc > h1 { font: 400 clamp(36px, 5vw, 56px)/1.02 var(--f-display); text-transform: uppercase; margin-bottom: 10px; }
+.doc h1 { font: 400 clamp(36px, 5vw, 56px)/1.02 var(--f-display); text-transform: uppercase; margin-bottom: 10px; }
 .doc h2 { display: flex; align-items: center; gap: 10px; font: 700 20px/1.2 var(--f-label); margin-bottom: 8px; }
 .doc h2 .pic { color: var(--c-kick); }
 .doc h3 { font: 700 16px var(--f-label); margin: 16px 0 6px; }
@@ -115,7 +115,8 @@ section.block h2 { font: 400 clamp(34px, 4vw, 52px)/1 var(--f-display); text-tra
 .copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; margin-top: 10px; }
 .copy input { min-height: 48px; padding: 0 14px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); color: var(--c-text); font: 400 15px var(--f-body); min-width: 0; }
 pre, code { font-family: ui-monospace, Menlo, Consolas, monospace; }
-pre { margin: 8px 0; padding: 12px 14px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); overflow-x: auto; font-size: 14px; }
+.doc > * { min-width: 0; }
+pre { margin: 8px 0; padding: 12px 14px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); overflow-x: auto; font-size: 14px; white-space: pre-wrap; word-break: break-all; }
 code { font-size: 13px; }
 .tools { display: flex; flex-direction: column; }
 .tools div { display: flex; align-items: center; gap: 12px; padding: 10px 0; }

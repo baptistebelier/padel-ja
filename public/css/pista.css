@@ -1438,7 +1438,7 @@ button.row.ps-recrow { width: 100%; border: 0; background: none; box-shadow: non
 .ps-hbar i { display: block; height: 18px; min-width: 6px; border: var(--bw) solid var(--c-ink); background: var(--c-lime); }
 .ps-hbar i.alt { background: var(--c-green); }
 .ps-hbar b { font: 700 15px var(--f-label); }
-@media (max-width: 720px) { .ps-bars { gap: 4px; height: 150px; } .ps-hbar { grid-template-columns: 90px minmax(0, 1fr) 24px; } }
+@media (max-width: 720px) { .ps-season { display: none; } .ps-bars { gap: 4px; height: 150px; } .ps-hbar { grid-template-columns: 90px minmax(0, 1fr) 24px; } }
 /* pages en bento (profil, animation, statistiques, joueurs) : colonne large à gauche, colonne de droite de 300 à 380 px */
 @media (min-width: 1024px) { .acct .grid.g-2 { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); } }
 /* taille du texte « Grande » (Profil › Apparence) : toute l'interface agrandie, le zoom du navigateur reste possible */
