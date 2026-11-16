@@ -123,3 +123,49 @@
 
 :root[data-ui="2"] .u2gt { display: flex; flex-direction: column; gap: 4px; }
 :root[data-ui="2"] .u2gt .h3 { font: 400 26px/1.05 var(--f-display); text-transform: uppercase; }
+
+/* ---------- Aujourd'hui : une carte par séance du jour, l'appel directement dessus ---------- */
+:root[data-ui="2"] .u2apw { display: flex; flex-direction: column; gap: 14px; }
+:root[data-ui="2"] .u2ap { display: flex; flex-direction: column; gap: 0; padding: 0; background: var(--c-surface); }
+:root[data-ui="2"] .u2ap > .u2hs { border: 0; border-bottom: var(--bw, 2px) solid var(--c-ink); box-shadow: none; }
+:root[data-ui="2"] .u2ap.cx { opacity: .75; }
+:root[data-ui="2"] .u2apl { display: flex; flex-direction: column; padding: 4px 12px; }
+:root[data-ui="2"] .u2apr { display: flex; align-items: center; gap: 10px; min-height: 52px; border-top: 1px solid color-mix(in srgb, var(--c-ink) 14%, transparent); }
+:root[data-ui="2"] .u2apr:first-child { border-top: 0; }
+:root[data-ui="2"] .u2apn { flex: 1; min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
+:root[data-ui="2"] .u2apb { flex: none; display: flex; gap: 6px; }
+:root[data-ui="2"] .u2apb button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: var(--bw, 2px) solid var(--c-ink); background: var(--c-surface-2); color: var(--c-text); font: 700 14px var(--f-sub); cursor: pointer; transition: background .12s, transform .12s; }
+:root[data-ui="2"] .u2apb button svg { width: 18px; height: 18px; flex: none; }
+:root[data-ui="2"] .u2apb button.on.P { background: var(--c-green); color: var(--c-dark); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--c-ink); }
+:root[data-ui="2"] .u2apb button.on.A { background: var(--c-pink); color: var(--c-dark); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--c-ink); }
+:root[data-ui="2"] .u2apf { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px 10px; border-top: 1px solid color-mix(in srgb, var(--c-ink) 14%, transparent); }
+:root[data-ui="2"] .u2apf .btn { min-height: 36px; padding: 4px 12px; font-size: 14px; box-shadow: none; }
+:root[data-ui="2"] .u2lnk { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 6px 4px; color: var(--c-muted); font: 700 14px var(--f-sub); cursor: pointer; text-decoration: underline; }
+:root[data-ui="2"] .u2lnk svg { width: 14px; height: 14px; transform: scaleX(-1); }
+/* collectif nombreux (plus de 8 élèves) : liste compacte sur deux colonnes à grand écran, boutons réduits à leur picto */
+:root[data-ui="2"] .u2ap.many .u2apr { min-height: 44px; }
+:root[data-ui="2"] .u2ap.many .u2apb button { min-height: 34px; padding: 0 8px; }
+:root[data-ui="2"] .u2ap.many .u2apb button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (min-width: 700px) { :root[data-ui="2"] .u2ap.many .u2apl { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; } }
+
+/* ---------- Aujourd'hui | Statistiques sur téléphone : de vrais intercalaires de classeur, comme sur ordinateur ---------- */
+@media (max-width: 1023px) {
+  :root[data-ui="2"] #main > .seg.haut.u2sous { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 6px; width: max-content; max-width: calc(100% - 24px); margin: 0 12px -2px; padding: 0; background: transparent; border: 0; box-shadow: none; overflow: visible; position: relative; z-index: 2; -webkit-mask-image: none; mask-image: none; }
+  :root[data-ui="2"] #main > .seg.haut.u2sous button { flex: none; width: auto; min-height: 44px; padding: 0 16px; justify-content: center; background: var(--c-bg); color: var(--c-text); border: var(--bw, 2px) solid var(--c-ink); border-bottom: 0; box-shadow: none; transform: none; font: 700 16px var(--f-sub); letter-spacing: .02em; text-transform: none; }
+  :root[data-ui="2"] #main > .seg.haut.u2sous button[aria-selected="true"] { background: var(--card, var(--c-surface)); color: var(--c-text); box-shadow: inset 0 4px 0 var(--c-lime); padding-bottom: 2px; }
+  :root[data-ui="2"] #main > .seg.haut.u2sous button svg { color: var(--c-muted); }
+  :root[data-ui="2"] #main > .seg.haut.u2sous button[aria-selected="true"] svg { color: var(--c-ico) !important; }
+}
+
+/* téléphone : Présent / Absent réduits à leur picto (coche, croix), le nom garde la place */
+@media (max-width: 560px) {
+  :root[data-ui="2"] .u2apb button { min-width: 46px; justify-content: center; padding: 0 8px; }
+  :root[data-ui="2"] .u2apb button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  :root[data-ui="2"] .u2apl { padding: 2px 10px; }
+  :root[data-ui="2"] .u2apn { min-width: 0; }
+  :root[data-ui="2"] .u2auj { padding: 12px; }
+}
+@media (max-width: 1023px) {
+  :root[data-ui="2"] #main > .seg.haut.u2sous + .pad { padding-top: 0; margin-top: 0; }
+  :root[data-ui="2"] #main > .seg.haut.u2sous + .pad > :first-child { margin-top: 0; }
+}

@@ -48,20 +48,66 @@ if (UI2) {
   const u2Today = V.today,
     u2Dash = V.dash;
   /* ---------- Étape 2 — Aujourd'hui : la prochaine séance et l'appel, la semaine, « À faire », le mois en chiffres ---------- */
+  /* carte d'une séance du jour : l'heure dans l'encart coloré (comme l'historique), un toucher ouvre la séance, et l'appel se
+     fait ici : Présent / Absent par élève, enregistré aussitôt par la même action que la page de la séance (coPres) */
+  function u2AppelCard(x) {
+    const { g, d } = x,
+      id = sesKey(g, d),
+      s = sesFind(g, d) || {},
+      cx = isCx(g, d),
+      plus = (s.plus || []).filter(k => !coStu(g).includes(k)),
+      st = coStu(g)
+        .filter(k => !(s.out || []).includes(k))
+        .concat(plus),
+      pr = REGLES.presDe(sesFind(g, d), g, d) || {},
+      nP = st.filter(k => pr[k] === 'P').length,
+      nT = st.filter(k => pr[k]).length,
+      fait = st.length > 0 && nT === st.length,
+      theme = s.theme || (REGLES.cycleDe(g, d) || {}).theme,
+      sub = [durAt(g, d), plural(st.length, 'élève'), theme ? esc(theme) : ''].filter(Boolean).join(' · '),
+      tag = cx
+        ? '<span class="tag cost cx">Annulée</span>'
+        : fait
+          ? `<span class="tag ok">Appel fait · ${nP}/${st.length}</span>`
+          : nT
+            ? `<span class="tag">${nT}/${st.length} pointés</span>`
+            : '<span class="tag cost todo">Appel à faire</span>',
+      row = k => {
+        const v = pr[k] || '',
+          fn = svFirst(k),
+          ln = svName(k).slice(fn.length).trim();
+        return `<div class="u2apr">${coAv(k, 'sm')}<span class="u2apn"><b>${esc(fn)}</b> ${esc(ln)}${v === 'E' ? ' <span class="tag">Excusé</span>' : ''}</span><span class="u2apb" role="group" aria-label="Présence de ${esc(svName(k))}">${['P', 'A']
+          .map(
+            z =>
+              `<button class="${v === z ? 'on ' + z : ''}" data-a="coPres" data-id="${id}" data-k="${k}" data-s="${z}" aria-pressed="${v === z}" aria-label="${presLbl[z]} : ${esc(svName(k))}">${ic(PRES_IC[z])}<span>${presLbl[z]}</span></button>`
+          )
+          .join('')}</span></div>`;
+      };
+    return `<div class="card u2ap${cx ? ' cx' : ''}${st.length > 8 ? ' many' : ''}">${u2Hist({ d, h: hAt(g, d), title: esc(g.name), sub, cx, tone: cx ? 'ab' : 'ok', tags: tag, go: `data-a="open" data-v="seance" data-id="${id}"` })}${
+      cx
+        ? ''
+        : st.length
+          ? `<div class="u2apl">${st.map(row).join('')}</div>`
+          : '<p class="muted small u2ape">Aucun élève dans ce groupe.</p>'
+    }<div class="u2apf"><button class="btn ghost sm" data-a="coOpenChan" data-id="${g.id}">${ic('chat')}Écrire au groupe</button><button class="u2lnk" data-a="open" data-v="seance" data-id="${id}">Ouvrir la séance${ic('back')}</button></div></div>`;
+  }
   function u2Prochaine() {
     const nm = new Date().getHours() * 60 + new Date().getMinutes(),
       l = coSessions(TODAY, isoIn(7), 'me', 1),
       next = l.find(x => !isCx(x.g, x.d) && (x.d > TODAY || hMin(hAt(x.g, x.d)) + durMin(durAt(x.g, x.d)) > nm));
+    const today = l.filter(x => x.d === TODAY);
     let h = '';
-    if (next) {
+    if (today.length)
+      h += `<div class="card u2c u2auj"><div class="calh">${ic('clock')}<b>Aujourd’hui · ${plural(today.length, 'séance')}</b></div><div class="u2apw">${today.map(u2AppelCard).join('')}</div></div>`;
+    else if (next) {
       const { g, d } = next,
         st = coStu(g),
         quand = d === TODAY ? 'Aujourd’hui' : d === isoIn(1) ? 'Demain' : fmtD(d),
         theme = (sesDu(g, d) || {}).theme || (REGLES.cycleDe(g, d) || {}).theme;
-      h += `<div class="card u2c u2next"><div class="calh">${ic('clock')}<b>${quand} · ${esc(hAt(g, d))} · ${esc(durAt(g, d))}</b></div><span class="h3">${esc(g.name)}</span>${theme ? `<p class="muted small">Thème : ${esc(theme)}</p>` : ''}${st.length ? `<div class="u2avs">${st.map(k => coAv(k, 'sm')).join('')}<span class="muted small">${plural(st.length, 'élève')}</span></div>` : ''}<div class="ecacts"><button class="btn" data-a="open" data-v="seance" data-id="${sesKey(g, d)}">${ic('check')}Faire l’appel</button><button class="btn ghost" data-a="coNewGrpMsg">${ic('chat')}Écrire au groupe</button></div></div>`;
+      h += `<div class="card u2c u2next"><div class="calh">${ic('clock')}<b>${quand} · ${esc(hAt(g, d))} · ${esc(durAt(g, d))}</b></div><span class="h3">${esc(g.name)}</span>${theme ? `<p class="muted small">Thème : ${esc(theme)}</p>` : ''}${st.length ? `<div class="u2avs">${st.map(k => coAv(k, 'sm')).join('')}<span class="muted small">${plural(st.length, 'élève')}</span></div>` : ''}<div class="ecacts"><button class="btn" data-a="open" data-v="seance" data-id="${sesKey(g, d)}">${ic('cal')}Ouvrir la séance</button><button class="btn ghost" data-a="coOpenChan" data-id="${g.id}">${ic('chat')}Écrire au groupe</button></div></div>`;
     } else h += `<div class="card">${none('cal', 'Aucun cours dans les 7 jours', '')}</div>`;
     // la semaine : une ligne par cours, un clic ouvre la séance
-    const rest = l.filter(x => x !== next);
+    const rest = l.filter(x => x !== next && !today.includes(x));
     if (rest.length)
       h += `<div class="card u2c u2sem"><div class="calh">${ic('cal')}<b>Cette semaine</b></div>${rest
         .map(x => {
@@ -205,11 +251,14 @@ if (UI2) {
   V.eleves = () => {
     const n = Object.keys(u2Dues()).length,
       it = `<button role="tab" aria-selected="${S.elF === 'pay'}" aria-label="À encaisser" data-a="coElF" data-v="pay">${ic('euro')}<span class="lb">À encaisser</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
+    // « Abonnés » : les élèves dont l'abonnement est en cours (achat de type abonnement commencé, non fini, non quitté : REGLES.aboEnCours)
+    const nAbo = coStudents().filter(k => coInClub(M[k] || coEl(k) || {}) && coAbonne(k)).length,
+      ab = `<button role="tab" aria-selected="${S.elF === 'abo'}" aria-label="Abonnés" data-a="coElF" data-v="abo">${ic('shield')}<span class="lb">Abonnés</span>${nAbo ? `<span class="cnt">${nAbo}</span>` : ''}</button>`;
     let h = u2ElevesE();
-    // l'entrée « À encaisser » après « Sans compte »
+    // les entrées « À encaisser » puis « Abonnés » après « Sans compte »
     h = h.replace(
       /(<div class="seg[^"]*" role="tablist">[\s\S]*?aria-label="Sans compte"[\s\S]*?<\/button>)/,
-      '$1' + it
+      '$1' + it + ab
     );
     if (S.elF !== 'pay') return h;
     const i = h.indexOf('</div>', h.indexOf('role="tablist"'));

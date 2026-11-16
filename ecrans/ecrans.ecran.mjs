@@ -2958,6 +2958,41 @@ test('Liste déroulante : largeur et style de la boîte, choix pris en compte, �
   await ctx.close();
 });
 
+/* ---------- Dojo, Aujourd'hui : l'appel sur la carte de la séance ; intercalaires collés sur téléphone ; onglet Abonnés ---------- */
+test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregistrés aussitôt), intercalaires de classeur sur téléphone, onglet Abonnés', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  await page.evaluate(() => { S.tab = 'today'; S.stack = []; render(); });
+  // une carte par séance du jour, avec l'élève, son nom et ses deux raccourcis
+  const n = await page.evaluate(() => coSessions(TODAY, TODAY, 'me', 1).length);
+  assert.equal(await page.locator('#main .u2ap').count(), n, 'une carte par séance du jour');
+  assert.equal(await page.locator('#main .u2apr').first().locator('[data-a="coPres"]').count(), 2, 'Présent et Absent');
+  assert.equal(await page.locator('#main .u2ap [data-v="seance"]').first().isVisible(), true, 'toucher la carte ouvre la séance');
+  assert.equal(await page.locator('#main .u2ap [data-a="coOpenChan"]').first().isVisible(), true, 'Écrire au groupe reste sur la carte');
+  assert.equal(await page.locator('#main [data-a="coNewGrpMsg"]').count(), 0, 'plus de gros bouton Écrire au groupe');
+  // un clic enregistre aussitôt, par la même action que la page de la séance
+  const cible = await page.evaluate(() => { const b = document.querySelector('.u2ap .u2apb button[data-s="A"]'); return { id: b.dataset.id, k: b.dataset.k }; });
+  await page.locator(`.u2ap .u2apb button[data-s="A"][data-k="${cible.k}"]`).first().click();
+  assert.equal(await page.evaluate(c => (sesGet(c.id).pres || {})[c.k], cible), 'A', 'absence enregistrée');
+  assert.equal(await page.locator(`.u2ap .u2apb button.on.A[data-k="${cible.k}"]`).count() > 0, true, 'retour visuel sur le bouton');
+  // intercalaires : collés à la carte, avec le dessin de l'ordinateur (onglet actif à liseré citron, pas de bandeau segmenté)
+  const seg = await page.evaluate(() => { const s = document.querySelector('#main > .seg.u2sous'), b = s.querySelector('button[aria-selected="true"]'), c = document.querySelector('#main .card').getBoundingClientRect(), r = b.getBoundingClientRect(), cs = getComputedStyle(s); return { ecart: Math.abs(c.top - r.bottom), fond: cs.backgroundColor, borderBottom: getComputedStyle(b).borderBottomWidth }; });
+  assert.ok(seg.ecart <= 2, 'intercalaire collé au haut de la carte : ' + seg.ecart);
+  assert.equal(seg.fond, 'rgba(0, 0, 0, 0)', 'plus de bandeau coloré derrière les onglets');
+  assert.equal(seg.borderBottom, '0px', 'onglet sans trait dessous');
+  // Élèves : quatrième onglet « Abonnés », avec son compteur, qui liste les abonnés
+  await page.evaluate(() => { const e = coEl(ELEVES[0].id); e.achats = [{ id: 'ab-test', t: 'abo', ref: 'x', d: isoIn(-10), nom: 'Abonnement', prix: 40 }]; S.tab = 'eleves'; S.stack = []; S.elF = 'all'; render(); });
+  const tab = page.locator('#main .seg [data-v="abo"], #subnav .seg [data-v="abo"]').first();
+  assert.equal((await tab.textContent()).replace(/\d+/g, '').trim(), 'Abonnés', 'onglet Abonnés');
+  assert.equal(await tab.locator('.cnt').textContent(), '1', 'compteur');
+  await tab.click();
+  assert.equal(await page.locator('#main .colist .item[data-v="eleve"]').count(), 1, 'un seul abonné listé');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
 /* ---------- interrupteurs (ds.css, .tg) : bouton entièrement dans la piste, mêmes marges des deux côtés, dans les deux positions ---------- */
 test('Interrupteur : le bouton reste dans la piste, marges égales à gauche (éteint) et à droite (allumé), centré, jour et nuit', async () => {
   for (const mode of ['jour', 'nuit']) {
