@@ -2910,3 +2910,30 @@ test('Dojo ?ui=2 : Messages sur grand écran, la conversation ouverte à côté 
   assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+/* ---------- liste déroulante maison (club/liste.js) : même largeur et même style que la boîte d'où elle part ---------- */
+test('Liste déroulante : largeur et style de la boîte, choix pris en compte, Échap la referme', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 860 } });
+  const { page, errors } = await openPage(ctx, JA + '/demo');
+  const id = new URL(page.url()).pathname.split('/')[2];
+  await page.goto(`${JA}/t/${id}`);
+  await page.waitForTimeout(600);
+  const sel = page.locator('select:visible').first();
+  await sel.click();
+  const box = page.locator('.rl');
+  await box.waitFor();
+  const m = await page.evaluate(() => {
+    const s = [...document.querySelectorAll('select')].find(e => e.offsetParent), b = document.querySelector('.rl');
+    const a = s.getBoundingClientRect(), c = b.getBoundingClientRect(), x = getComputedStyle(s), y = getComputedStyle(b);
+    return { w: [a.width, c.width], l: [a.left, c.left], radius: [x.borderRadius, y.borderRadius], font: [x.fontFamily, y.fontFamily], border: [x.borderTopWidth, y.borderTopWidth] };
+  });
+  for (const k of ['w', 'l', 'radius', 'font', 'border']) assert.equal(m[k][0], m[k][1], 'la liste doit reprendre : ' + k);
+  const avant = await sel.inputValue();
+  await box.locator('button[data-i]:not([aria-selected="true"])').first().click();
+  assert.notEqual(await sel.inputValue(), avant, 'le choix change la valeur du select');
+  await sel.click();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('.rl:visible').count(), 0, 'Échap referme la liste');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
