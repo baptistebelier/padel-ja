@@ -2875,16 +2875,21 @@ test('Dojo ?ui=2 : groupe sans tarif affiché, formule demandée groupe par grou
   await ctx.close();
 });
 
-test('Dojo ?ui=2 : la fiche élève s’ouvre en un clic, formules en tête, onglets Séances et Échanges', async () => {
+test('Dojo ?ui=2 : liste des élèves en une colonne avec aperçu à droite, fiche ouverte depuis l’aperçu, onglets Séances et Échanges', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 820 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
   await page.goto(JA + '/club/coach.html?ui=2');
   await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
   await page.evaluate(() => { S.tab = 'eleves'; S.elF = 'all'; S.stack = []; render(); });
-  assert.equal(await page.locator('#main .coprev').count(), 0, 'plus d’aperçu');
-  await page.click('#main .item[data-v="eleve"] >> nth=0');
+  assert.equal(await page.locator('#main .coprev').count(), 1, 'l’aperçu de l’élève choisi à droite');
+  const cols = await page.evaluate(() => getComputedStyle(document.querySelector('#main .cobm .colist')).gridTemplateColumns.split(' ').length);
+  assert.equal(cols, 1, 'une seule colonne de liste');
+  await page.click('#main .item[data-v="eleve"] >> nth=1');
   await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(() => view().v), 'eleve', 'un clic : la fiche');
+  assert.equal(await page.evaluate(() => view().v), 'eleves', 'un clic choisit l’élève, sans quitter la liste');
+  await page.click('#main .coprev [data-a="coOpenEl"]');
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => view().v), 'eleve', '« Ouvrir la fiche » : la fiche');
   assert.ok(await page.locator('[data-k="elTab"][data-val="histo"]').first().textContent().then(t => t.includes('Séances')), 'onglet Séances');
   assert.ok(await page.locator('[data-k="elTab"][data-val="suivi"]').first().textContent().then(t => t.includes('Échanges')), 'onglet Échanges');
   assert.deepEqual(errs, []);
@@ -2935,5 +2940,38 @@ test('Liste déroulante : largeur et style de la boîte, choix pris en compte, �
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.rl:visible').count(), 0, 'Échap referme la liste');
   assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+/* ---------- Dojo : fiches élève et groupe, historique en cartes empilées, planning, intercalaires ---------- */
+test('Dojo : planning en Semaine, intercalaire collé à sa carte, fiche élève en une carte, fiche de groupe avec cycle et élèves en tête', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  // Aujourd'hui : l'intercalaire touche le haut de sa carte (écart de 2 px au plus, le trait de la carte passe dessous)
+  const ecart = await page.evaluate(() => { const t = document.querySelector('.u2sous button[aria-selected="true"]').getBoundingClientRect(), c = document.querySelector('#main .card').getBoundingClientRect(); return Math.abs(c.top - t.bottom); });
+  assert.ok(ecart <= 2, 'intercalaire collé à la carte : ' + ecart);
+  // planning : Semaine par défaut, sur téléphone aussi
+  const tel = await browser.newContext({ viewport: { width: 360, height: 760 }, isMobile: true, hasTouch: true }), p2 = await tel.newPage();
+  await p2.goto(JA + '/club/coach.html');
+  await p2.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  await p2.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
+  assert.equal(await p2.locator('.covue [aria-pressed="true"]').textContent(), 'Semaine', 'Semaine par défaut sur téléphone');
+  await tel.close();
+  // fiche élève : une carte, onglets dedans ; l'historique en cartes empilées avec date et heure
+  await page.evaluate(() => { S.tab = 'eleves'; S.stack = [{ v: 'eleve', id: ELEVES[0].id }]; S.elTab = 'fiche'; render(); });
+  assert.equal(await page.locator('#main .u2fiche .u2itabs button').count(), 4, 'quatre onglets dans la carte');
+  assert.ok(await page.locator('#main .u2fiche .u2fb .cohd, #main .u2fiche .u2fb .card').count() > 0, 'des sous-cartes sous les onglets');
+  await page.evaluate(() => { S.elTab = 'histo'; render(); });
+  if (await page.locator('.u2hs').count()) assert.ok((await page.locator('.u2hs .u2hd').first().textContent()).match(/\d/), 'date et heure dans l’encart');
+  // fiche de groupe : cycle et élèves visibles dès l'ouverture, actions de programmation
+  await page.evaluate(() => { const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)); S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: g.id }]; render(); });
+  assert.ok(await page.locator('#main .u2gh [data-a="coPlan"]').isVisible(), 'programmer un cycle');
+  assert.ok(await page.locator('#main .u2gh [data-a="coOffAdd"]').isVisible(), 'périodes sans cours');
+  const y = await page.evaluate(() => { const e = [...document.querySelectorAll('#main .u2gl .calh b')].find(b => /Élèves/.test(b.textContent)); return e ? e.getBoundingClientRect().top : 99999; });
+  assert.ok(y < 800, 'la liste des élèves est visible sans défiler : ' + y);
+  assert.ok(await page.locator('#main [data-a="coAdd"]').count() > 0 && await page.locator('#main [data-a="coRm"]').count() > 0, 'ajout et retrait d’élève');
+  assert.deepEqual(errs, []);
   await ctx.close();
 });

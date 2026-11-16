@@ -471,7 +471,7 @@ const CO_PLEIN = '.cotiles,.coshort,.cotopact,.covue,.cobento,.cosearchbar';
 function coBento() {
   const main = $('main'),
     pad = CO_BENTO.matches && main.querySelector(':scope > .pad');
-  if (!pad || pad.matches('.covues,.covuej,.covuem') || ['chan', 'dm', 'post', 'art', 'aide'].includes(view().v))
+  if (!pad || pad.matches('.covues,.covuej,.covuem,.u2g') || ['chan', 'dm', 'post', 'art', 'aide'].includes(view().v))
     return;
   const groupes = [];
   [...pad.children].forEach(el => {
