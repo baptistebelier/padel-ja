@@ -1164,15 +1164,29 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
 
   // sans compte : la page publique
   await pp.goto(JA + '/r/' + club.id + '/' + club.key);
+  // ordinateur : formules (durée visible), calendrier du mois, horaires et récapitulatif côte à côte
+  await pp.setViewportSize({ width: 1280, height: 900 });
   await pp.waitForSelector('#nx', { timeout: 8000 });
-  await pp.click('#nx');   // la semaine suivante : forcément à venir
-  await pp.waitForSelector('.slots button', { timeout: 8000 });
-  assert.ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'page publique sans débordement');
-  await pp.locator('.slots button').first().click();
+  assert.ok(await pp.locator('.fo').count() >= 1 && /\d h/.test(await pp.locator('.fo .du').first().innerText()), 'la durée de chaque formule est visible');
+  await pp.click('#nx');   // le mois suivant : forcément à venir
+  await pp.waitForSelector('.slot', { timeout: 8000 });
+  assert.ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'page publique sans débordement (ordinateur)');
+  assert.ok(await pp.evaluate(() => { const a = document.querySelector('section[aria-label="Horaires"]').getBoundingClientRect(), b = document.querySelector('.card[aria-label="Votre cours"]').getBoundingClientRect(); return b.top >= a.bottom - 1 && Math.abs(a.left - b.left) < 4; }), 'récapitulatif sous les horaires, dans la colonne de droite');
+  await pp.locator('.slot').first().click();
+  assert.equal(await pp.locator('.slot[aria-pressed=true]').count(), 1);
+  // téléphone : bande de jours, barre du bas fixe, pas de débordement
+  await pp.setViewportSize({ width: 360, height: 780 });
+  assert.ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'page publique sans débordement (téléphone)');
+  assert.ok(await pp.locator('.bas').isVisible() && !(await pp.locator('.steps').isVisible()), 'téléphone : barre du bas, pas de pastilles d’étapes');
+  await pp.click('.bas [data-a=suite]');
+  await pp.waitForSelector('#f', { timeout: 8000 });
+  assert.ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'formulaire sans débordement (téléphone)');
   await pp.fill('#p', 'Léa'); await pp.fill('#n', 'Roy'); await pp.fill('#t', '0600000000'); await pp.fill('#em', `lea-${t}@exemple.test`); await pp.fill('#o', 'Volée');
-  await pp.check('#ac');
-  await pp.click('#f .go');
+  await pp.click('[data-niv=Loisir]');
+  await pp.check('#ac', { force: true });
+  await pp.click('#go');
   await pp.waitForFunction(() => /réservé/i.test(document.querySelector('h1').textContent), null, { timeout: 8000 });
+  assert.ok(await pp.locator('#ag').isVisible() && /annuler/.test(await pp.locator('a[href*="annuler"]').getAttribute('href')), 'agenda et lien d’annulation');
   assert.deepEqual(errs, []);
   await cc.close(); await sc.close(); await pub.close();
 });
