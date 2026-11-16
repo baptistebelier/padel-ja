@@ -406,3 +406,11 @@
 #phone #main .bpr .meclub .tcard.cf5 { box-shadow: inset 0 3px 0 rgb(111, 183, 255) !important; }
 .gcard .gbar .gbt { display: flex !important; flex-wrap: nowrap; overflow: hidden; }
 .gcard .gbar .gbt i { display: block !important; height: 100% !important; flex: none; }
+
+/* ---------- barre du bas au téléphone (maquette Figma « Barre de navigation – essai », variante A validée le 16/11/2026) ----------
+   segments bord à bord sans trait, onglet actif citron sur toute la hauteur jusqu'en bas de l'écran ; plus de carré flottant. */
+@media (max-width: 1023px) {
+  #phone .tabs { padding: 0 !important; gap: 0 !important; align-items: stretch !important; }
+  #phone .tabs > button { min-height: calc(62px + env(safe-area-inset-bottom, 0px)) !important; padding: 10px 2px calc(10px + env(safe-area-inset-bottom, 0px)) !important; justify-content: center !important; }
+  #phone .tabs > button, #phone .tabs > button[aria-current="page"] { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; outline: 0 !important; }
+}

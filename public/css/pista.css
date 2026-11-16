@@ -915,6 +915,10 @@ button.urow { background: var(--c-surface-2); }
   .ps-bottom .r-rail__it { min-width: 0; text-decoration: none; padding: 4px 0; box-shadow: none; }
   .ps-bottom .r-rail__it[aria-current='page'] { box-shadow: var(--sh-sm); }
   .ps-bottom .r-rail__it span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* segments bord à bord sans trait, onglet actif citron sur toute la hauteur jusqu'en bas de l'écran (maquette Figma « Barre de navigation – essai », variante A validée le 16/11/2026) */
+  .ps-bottom { padding: 0; gap: 0; align-items: stretch; }
+  .ps-bottom .r-rail__it { min-height: calc(62px + env(safe-area-inset-bottom, 0px)); padding: 10px 2px calc(10px + env(safe-area-inset-bottom, 0px)); border: 0; border-radius: 0; }
+  .ps-bottom .r-rail__it[aria-current='page'] { border: 0; box-shadow: none; }
 
   /* éditeur : barre du haut (logo, écran TV, actions), sélecteur « Section ▾ », pas de colonne */
   body.editor-page main { min-height: 0; padding: 6px var(--s3) var(--s6); }
