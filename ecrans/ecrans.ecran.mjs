@@ -2958,6 +2958,33 @@ test('Liste déroulante : largeur et style de la boîte, choix pris en compte, �
   await ctx.close();
 });
 
+/* ---------- en-tête sur deux rangées (iPhone, zone sûre) : le contenu commence toujours sous lui, dans /Dojo et /Buvette ---------- */
+test('En-tête sur deux rangées à 390 px avec zone sûre : le contenu commence sous lui (Dojo et Buvette), y compris après un changement de page', async () => {
+  for (const [url, pages] of [['/club/coach.html', ['planning', 'eleves', 'today']], ['/club/index.html', ['home', 'agenda', 'jouer']]]) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + url);
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    await page.evaluate(() => document.querySelector('.ram-splash')?.remove());
+    // zone sûre de l'iPhone (47 px) simulée, et un en-tête que le titre et un sélecteur de club font passer sur deux rangées
+    await page.addStyleTag({ content: '.top { padding-top: 57px !important; } .cotopclub select { width: 190px; }' });
+    for (const t of pages) {
+      await page.evaluate(t => { S.tab = t; S.stack = []; render(true); }, t);
+      await page.evaluate(() => { const top = document.getElementById('top'); if (!top.querySelector('.cotopclub')) { const l = document.createElement('label'); l.className = 'cotopclub'; l.innerHTML = '<select><option>Tous mes clubs</option></select>'; (top.querySelector('h1') || top.firstChild).after(l); } });
+      await page.waitForTimeout(500);
+      const r = await page.evaluate(() => {
+        const top = document.getElementById('top'), m = document.getElementById('main'), hb = top.getBoundingClientRect().bottom;
+        const first = [...m.children].find(e => !e.matches('.seg-out') && e.getBoundingClientRect().height > 0);
+        return { hb, ft: first.getBoundingClientRect().top, h: top.offsetHeight, rows: top.querySelectorAll('.ib, .cotopclub').length };
+      });
+      assert.ok(r.ft >= r.hb - 1, `${url} ${t} : le contenu (${Math.round(r.ft)}) commence sous l’en-tête (${Math.round(r.hb)})`);
+      assert.ok(r.h > 100, `${url} ${t} : l’en-tête fait bien deux rangées (${r.h} px)`);
+    }
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
 /* ---------- Dojo : fiches élève et groupe, historique en cartes empilées, planning, intercalaires ---------- */
 test('Dojo : planning en Semaine, intercalaire collé à sa carte, fiche élève en une carte, fiche de groupe avec cycle et élèves en tête', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 } }), page = await ctx.newPage(), errs = [];

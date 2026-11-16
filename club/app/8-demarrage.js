@@ -44,15 +44,30 @@ setInterval(() => {
 function topPad() {
   const t = $('top'),
     m = $('main');
-  const h = t.offsetHeight + 'px';
-  m.style.paddingTop = h;
-  m.style.scrollPaddingTop = h;
-  /* --top-h : hauteur réelle de l'en-tête (elle varie avec ses boutons et son titre), mise à jour par le ResizeObserver ci-dessous ;
-     la marge du haut de la zone qui défile la suit, et les styles peuvent la lire (var(--top-h)) */
+  if (!t || !m) return;
+  const h = Math.ceil(t.getBoundingClientRect().height) + 'px';
+  /* La marge du haut est une BORDURE transparente, pas un padding : la zone qui défile commence sous l'en-tête, donc le contenu
+     ET tout ce qui reste collé en haut (sticky, top: 0) se placent sous lui, dans tous les navigateurs. Avec un padding, Safari (iPhone,
+     appli installée) collait ces éléments derrière l'en-tête alors que Chrome les décalait de la marge. */
+  m.style.paddingTop = '0px';
+  m.style.borderTop = h + ' solid transparent';
+  m.style.scrollPaddingTop = '0px';
+  /* --top-h : hauteur réelle de l'en-tête (zone sûre de l'iPhone comprise, une ou deux rangées), lisible par les styles */
   document.documentElement.style.setProperty('--top-h', h);
-  m.style.setProperty('--segt', '0px');   // le défilement commence déjà sous l'en-tête (marge du haut) : les éléments collés n'ont pas de décalage de plus
+  m.style.setProperty('--segt', '0px');
 }
+/* recalcul à chaque changement de taille de l'en-tête (retour à la ligne, bouton ajouté), au chargement des polices (le titre
+   change de largeur), à la rotation, au redimensionnement et à chaque changement de page */
 new ResizeObserver(topPad).observe($('top'), { box: 'border-box' });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(topPad);
+addEventListener('resize', topPad);
+addEventListener('orientationchange', () => setTimeout(topPad, 200));
+const renderSansMarge = render;
+render = function () {
+  const r = renderSansMarge.apply(this, arguments);
+  topPad();
+  return r;
+};
 /* Glisser le doigt le long de la barre du bas pour choisir sa page, comme Instagram */
 /* Curseur de la barre du bas (comme Instagram) : il suit le doigt pendant le glissé, puis se cale sur l'onglet le plus proche.
    Il fait exactement la largeur d'un onglet : la marge entre le curseur et le bord de la barre est la même en haut, en bas et sur les côtés. */
