@@ -2999,6 +2999,42 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- Dojo : supprimer un groupe (le groupe seul) ---------- */
+test('Dojo : « Supprimer le groupe » demande confirmation, retire le groupe seul et garde formules, séances effectuées et historique', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  const av = await page.evaluate(() => {
+    const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)), k = coStu(g)[0], e = coEl(k);
+    e.achats = [{ id: 'a-supp', t: 'pack', ref: 'p1', d: isoIn(-20), n: 5, nom: 'Pack', prix: 100 }];
+    const passee = isoIn(-3), future = isoIn(5);
+    sesGet(g.id + '.' + passee).pres = { [k]: 'P' };
+    sesGet(g.id + '.' + future).theme = 'À venir';
+    S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: g.id }]; render();
+    return { id: g.id, name: g.name, k, passee, future, nGroupes: GROUPS.length };
+  });
+  await page.locator('#main [data-a="coGrpDel"]').click();
+  const msg = await page.locator('#layer').textContent();
+  assert.ok(/Supprimé/.test(msg) && /Gardé/.test(msg) && /formules/.test(msg) && /paiements/.test(msg), 'la confirmation dit ce qui part et ce qui reste');
+  assert.equal(await page.evaluate(id => !!grp(id), av.id), true, 'rien n’est supprimé avant la confirmation');
+  await page.locator('#layer [data-a="coGrpDelOk"]').click();
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(a => ({ groupe: !!grp(a.id), n: GROUPS.length, achats: coEl(a.k).achats.map(x => x.id), passee: sesFind({ id: a.id, _club: undefined }, a.passee) || SEANCES.find(s => s.id === a.id + '.' + a.passee), future: !!SEANCES.find(s => s.id === a.id + '.' + a.future), vue: view().v }), av);
+  assert.equal(r.groupe, false, 'le groupe est supprimé');
+  assert.equal(r.n, av.nGroupes - 1, 'un seul groupe en moins');
+  assert.deepEqual(r.achats, ['a-supp'], 'formules intactes');
+  assert.equal(r.passee.pres[av.k], 'P', 'présences intactes');
+  assert.equal(r.passee.gnom, av.name, 'la séance effectuée garde le nom du groupe');
+  assert.equal(r.future, false, 'séance à venir sans appel retirée');
+  assert.notEqual(r.vue, 'cgroupe', 'retour hors de la fiche supprimée');
+  // l'historique de l'élève affiche encore la séance, avec le nom du groupe
+  await page.evaluate(a => { S.tab = 'eleves'; S.elTab = 'histo'; S.stack = [{ v: 'eleve', id: a.k }]; render(); }, av);
+  assert.ok((await page.locator('#main .u2hl').textContent()).includes(av.name), 'séance passée visible dans la fiche de l’élève');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
 /* ---------- liste déroulante au toucher (iPhone) : toujours la nôtre, jamais la liste native, jamais de focus sur le select ---------- */
 test('Liste déroulante tactile : un toucher ouvre notre panneau, le select natif ne reçoit ni toucher ni focus, valeur synchronisée', async () => {
   const desk = await browser.newContext({ viewport: { width: 1366, height: 860 } }), dp = await desk.newPage();

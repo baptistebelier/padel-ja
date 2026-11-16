@@ -157,3 +157,9 @@
   :root[data-ui="2"] .u2apn { min-width: 0; }
   :root[data-ui="2"] .u2auj { padding: 12px; }
 }
+
+/* bouton discret « Supprimer le groupe », en bas de la fiche (style danger) */
+:root[data-ui="2"] .u2gdel { display: flex; justify-content: flex-start; padding-top: 6px; }
+:root[data-ui="2"] .u2dng { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; background: none; border: var(--bw, 2px) solid transparent; color: var(--hot-tx, #E0284A); font: 700 15px var(--f-sub); cursor: pointer; text-decoration: underline; }
+:root[data-ui="2"] .u2dng:hover, :root[data-ui="2"] .u2dng:focus-visible { border-color: currentColor; text-decoration: none; }
+:root[data-ui="2"] .u2dng svg { width: 18px; height: 18px; }

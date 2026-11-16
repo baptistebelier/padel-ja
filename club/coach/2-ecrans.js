@@ -799,9 +799,9 @@ ${(e.parents || []).length ? hd(ic('kid') + 'Parents') + `<div class="card">${e.
             s =>
               evCard({
                 cat: 'ens',
-                t: (grp(s.g) || {}).h || '',
+                t: (grp(s.g) || {}).h || s.gh || '',
                 go: `data-a="open" data-v="seance" data-id="${s.id}"`,
-                title: esc((grp(s.g) || {}).name || 'Séance'),
+                title: esc((grp(s.g) || {}).name || s.gnom || 'Séance'),
                 lines: [s.theme && ['ladder', esc(s.theme), 'muted']],
                 tags: s.pres[id] === 'P' ? evTag(presLbl[s.pres[id]]) : evCx(presLbl[s.pres[id]])
               })

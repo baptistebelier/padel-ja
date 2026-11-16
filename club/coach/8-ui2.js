@@ -688,8 +688,8 @@ if (UI2) {
               .map(s =>
                 u2Hist({
                   d: s.d,
-                  h: (grp(s.g) || {}).h || '',
-                  title: esc((grp(s.g) || {}).name || 'Séance'),
+                  h: (grp(s.g) || {}).h || s.gh || '',
+                  title: esc((grp(s.g) || {}).name || s.gnom || 'Séance'),
                   sub: s.theme ? esc(s.theme) : '',
                   tone: s.pres[id] === 'P' ? 'ok' : s.pres[id] === 'E' ? 'ex' : 'ab',
                   tags: `<span class="tag">${presLbl[s.pres[id]]}</span>`,
@@ -810,6 +810,39 @@ if (UI2) {
             .join('')
         )
       : '';
-    return `<div class="pad u2g">${head}${formule}${tiles}<div class="u2g2"><div class="u2gl">${eleves}${discussion}${cycles}</div><div class="u2gr">${avenir}${faites}${coOffHtml(g)}${themes}${bilans}</div></div></div>`;
+    return `<div class="pad u2g">${head}${formule}${tiles}<div class="u2g2"><div class="u2gl">${eleves}${discussion}${cycles}<div class="u2gdel"><button class="u2dng" data-a="coGrpDel" data-id="${g.id}">${ic('trash')}Supprimer le groupe</button></div></div><div class="u2gr">${avenir}${faites}${coOffHtml(g)}${themes}${bilans}</div></div></div>`;
+  };
+
+  /* Supprimer un groupe : le groupe seul. Gardés : formules, achats, paiements, séances effectuées (présences, bilans), historique des élèves,
+     discussion. Retirées avec lui : ses séances à venir sans appel ni bilan. Les séances gardées reçoivent le nom et l'heure du groupe (gnom, gh)
+     pour rester lisibles dans la fiche de chaque élève. Même règle côté connecteur (lib/mcp-outils.js, coach_supprimer_groupe). */
+  const u2Meme = (s, g) => s.g === g.id && (s._club || '') === (g._club || '');
+  const u2Donnees = s => Object.keys(s.pres || {}).length > 0 || !!s.recap || !!s.noRecap;
+  A.coGrpDel = d => {
+    const g = grp(d.id);
+    if (!g) return;
+    const venir = SEANCES.filter(s => u2Meme(s, g) && s.d > TODAY && !u2Donnees(s)).length,
+      faites = SEANCES.filter(s => u2Meme(s, g) && !(s.d > TODAY && !u2Donnees(s))).length;
+    sheet(
+      'Supprimer le groupe',
+      `<div class="body"><p>Le groupe <b>${esc(g.name)}</b> va être supprimé.</p><p><b>Supprimé :</b> le groupe, son cycle en cours et ses dates${venir ? `, et ${plural(venir, 'séance à venir', 'séances à venir')} sans appel ni bilan` : ''}.</p><p><b>Gardé :</b> les formules et achats des élèves, leurs paiements, ${faites ? plural(faites, 'séance effectuée', 'séances effectuées') + ' avec leurs présences et bilans' : 'les séances effectuées'}, l’historique de chaque élève et la discussion du groupe.</p><button class="btn full hot" data-a="coGrpDelOk" data-id="${g.id}">${ic('trash')}Supprimer le groupe</button><button class="btn full ghost" data-a="close">Garder le groupe</button></div>`
+    );
+  };
+  A.coGrpDelOk = d => {
+    const g = grp(d.id);
+    closeSheet();
+    if (!g) return;
+    for (let i = SEANCES.length - 1; i >= 0; i--) {
+      const x = SEANCES[i];
+      if (!u2Meme(x, g)) continue;
+      if (x.d > TODAY && !u2Donnees(x)) SEANCES.splice(i, 1);
+      else {
+        x.gnom = g.name;
+        x.gh = g.h || '';
+      }
+    }
+    GROUPS.splice(GROUPS.indexOf(g), 1);
+    S.stack = S.stack.filter(v => !(v.v === 'cgroupe' && v.id === g.id));
+    coSave('Groupe supprimé : formules, séances effectuées et paiements gardés');
   };
 }
