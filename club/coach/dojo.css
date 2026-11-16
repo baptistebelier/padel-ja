@@ -4,8 +4,9 @@
    en-tête surtitre + grand titre + actions, menu principal sombre (« /Dojo »), sous-menu bordeaux,
    élément actif carré citron ; au téléphone, barre du bas à 5 entrées.
    ========================================================================= */
-:root { --dj-rail: #22060F; --dj-sub: #74102A; }
-:root[style*='color-scheme: light'] { --dj-rail: #2A0610; --dj-sub: #74102A; }
+/* même rouge bordeaux que /Pista : menu #74102A, sous-menu #4A0A1B, jour comme nuit */
+:root { --dj-rail: #74102A; --dj-sub: #4A0A1B; }
+:root[style*='color-scheme: light'] { --dj-rail: #74102A; --dj-sub: #4A0A1B; }
 
 /* ---------- en-tête : surtitre au-dessus du titre ---------- */
 #phone .top h1 { display: flex !important; flex-direction: column-reverse; justify-content: center; gap: 6px; white-space: normal; line-height: 1.12 !important; font-style: normal !important; flex: 1 1 auto !important; }
