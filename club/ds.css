@@ -374,3 +374,12 @@
 .objer { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 .objer input { flex: 1; min-width: 0; }
 .objmv { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+
+/* ---------- Sur-titres et titres d'étiquette : jamais de fond coloré ni d'inclinaison, lisibles jour et nuit ----------
+   (demande de Baptiste : un texte rose clair sur un bandeau rose surligné était illisible). Le style « street » ne les surligne plus. */
+:root :is(.kicker, .coey, .segt span, .top h1 .sub, .cohd > span, .evl.cotheme) { background: none !important; transform: none !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; width: auto !important; }
+:root :is(.kicker, .coey, .segt span, .top h1 .sub) { color: color-mix(in srgb, var(--c-kick) 78%, var(--c-text)) !important; opacity: 1 !important; }
+:root :is(.cohero, .hero-t, .r-hero) :is(.kicker, .coey) { color: var(--c-on-hero) !important; opacity: .85 !important; }
+:root :is(.poster, .promo-w, .card.setup) :is(.kicker, .coey) { color: var(--c-on-accent) !important; }
+:root :is(.cohd > span, .evl.cotheme, .evl.cotheme svg) { color: inherit !important; }
+:root :is(.kicker, .coey, .cohd > span) svg { color: currentColor !important; }

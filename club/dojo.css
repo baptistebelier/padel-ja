@@ -230,12 +230,6 @@ html, body { background: var(--c-bg); }
   :is(#main, #subnav) > .seg button:hover { color: #FFFFFF; background: color-mix(in srgb, #FFFFFF 5.88%, transparent); }
   :is(#main, #subnav) > .seg button[aria-selected='true'] { transform: none; }
 }
-:root[data-style='street'] .coey { display: inline-block; width: fit-content; max-width: 100%; background: var(--accent2); padding: 2px 8px; transform: rotate(-1.5deg); margin-bottom: 6px; }
-:root[data-style='street'] .cohero .coey { background: var(--co-lime); }
-:root[data-style='street'] .cohd span { flex: none; display: inline-block; max-width: 100%; background: var(--accent); color: var(--on-accent); padding: 2px 8px; transform: rotate(-1.5deg); }
-:root[data-style='street'] #main .card .kicker { display: inline-block; width: fit-content; max-width: 100%; background: var(--accent2); padding: 2px 8px; transform: rotate(-1.5deg); }
-:root[data-style='street'] .evl.cotheme { display: inline-flex; width: fit-content; background: var(--accent); color: var(--on-accent); padding: 2px 8px; transform: rotate(-1.5deg); }
-:root[data-style='street'] .evl.cotheme svg { color: var(--on-accent); }
 @media (max-width: 1023px) {
   .top { flex-wrap: wrap; row-gap: 6px; }
   .top.hide { transform: none; }
@@ -2172,6 +2166,3 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .cobs .calh > svg, .coday .calh > svg, :root[data-ui="2"] .u2c .calh > svg, #main > .seg.haut button[aria-selected="true"] svg { color: var(--c-ico) !important; }
 
 /* titres des sections : simples et lisibles, sans surlignage incliné (le texte garde la couleur de la page) */
-:root[data-style='street'] .cohd span, :root[data-style='street'] .coey { display: inline; background: none; color: inherit; padding: 0; transform: none; }
-:root[data-style='street'] .coey { color: var(--c-kick); }
-:root[data-style='street'] .cohero .coey { color: var(--c-lime); }

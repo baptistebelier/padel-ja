@@ -2999,6 +2999,46 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- sur-titres : pas de surlignage ni d'inclinaison, contraste suffisant, jour et nuit, même en style « street » ---------- */
+test('Sur-titres et étiquettes de titre : sans fond coloré ni inclinaison, contraste d’au moins 4,5:1, jour et nuit (/Dojo et /Buvette)', async () => {
+  for (const mode of ['jour', 'nuit']) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), errs = [];
+    await ctx.addInitScript(m => { try { localStorage.setItem('club-mode', m); } catch (e) { /* rien */ } }, mode);
+    for (const [url, vues] of [['/club/coach.html', [s => { const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)); S.tab = 'today'; S.stack = [{ v: 'seance', id: g.id + '.' + TODAY }]; }, () => { S.tab = 'today'; S.stack = []; }, () => { S.tab = 'eleves'; S.stack = [{ v: 'eleve', id: ELEVES[0].id }]; S.elTab = 'fiche'; }]], ['/club/index.html', [() => { S.tab = 'home'; S.stack = []; }, () => { S.tab = 'agenda'; S.stack = []; }]]]) {
+      const page = await ctx.newPage();
+      page.on('pageerror', x => errs.push(x.message));
+      await page.goto(JA + url);
+      await page.waitForFunction(() => typeof S !== 'undefined' && typeof render === 'function', null, { timeout: 8000 });
+      await page.waitForTimeout(1500);
+      await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); document.documentElement.dataset.style = 'street'; });
+      for (const [i, vue] of vues.entries()) {
+        await page.evaluate(`(${vue})(); render(true)`);
+        await page.waitForTimeout(350);
+        const mal = await page.evaluate(() => {
+          const lum = c => { const [r, g, b] = c.map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+          // les couleurs mélangées (color-mix) sont rendues « color(srgb 0.9 0.5 0.6) » : composantes de 0 à 1
+          const rgba = s => { const m = s.match(/[\d.]+/g).map(Number), k = /^color\(/.test(s) ? 255 : 1; return { c: m.slice(0, 3).map(v => v * k), a: m.length > 3 ? m[3] : 1 }; };
+          const fond = el => { for (let e = el; e; e = e.parentElement) { const b = rgba(getComputedStyle(e).backgroundColor); if (b.a > .9) return b.c; } return [255, 255, 255]; };
+          const out = [];
+          document.querySelectorAll('.kicker, .coey, .segt span, .top h1 .sub, .cohd > span, .evl.cotheme').forEach(el => {
+            if (!el.getClientRects().length || !el.textContent.trim()) return;
+            const cs = getComputedStyle(el), t = rgba(cs.color), f = fond(el), mix = t.c.map((v, k) => v * t.a + f[k] * (1 - t.a)), r = (Math.max(lum(mix), lum(f)) + .05) / (Math.min(lum(mix), lum(f)) + .05), bg = rgba(cs.backgroundColor);
+            const nom = el.className.toString().split(' ')[0] + ' « ' + el.textContent.trim().slice(0, 24) + ' »';
+            if (cs.transform !== 'none') out.push(nom + ' : inclinée');
+            if (bg.a > 0.05) out.push(nom + ' : fond coloré ' + cs.backgroundColor);
+            if (r < 4.5) out.push(nom + ' : contraste ' + r.toFixed(1));
+          });
+          return out;
+        });
+        assert.deepEqual(mal, [], `${url} vue ${i} (${mode})`);
+      }
+      await page.close();
+    }
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
 /* ---------- Dojo : objectifs et compétences (élève, groupe) ; lecture seule dans /Buvette ---------- */
 test('Objectifs et compétences : créés dans /Dojo (élève, groupe), validés d’un toucher, progression, lecture seule dans /Buvette', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }), page = await ctx.newPage(), errs = [];
