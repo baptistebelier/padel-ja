@@ -299,3 +299,16 @@
   .r-bento__side { position: sticky; top: var(--s2); display: flex; flex-direction: column; gap: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .r-btn, .r-switch::after { transition: none; } }
+
+/* ---------- Interrupteur (switch) : un seul dessin pour /Buvette et /Dojo (button.tg, role="switch") ----------
+   Bouton de 20 px dans une piste de 52 x 30 px (bordure de 2 px comprise), centré en hauteur, 3 px de marge intérieure des deux côtés
+   (5 px depuis le bord extérieur de la piste), déplacement exact de 22 px : jamais de débordement sur la bordure.
+   box-sizing explicite sur les pseudo-éléments (« * » ne les couvre pas : le bouton faisait 24 px et débordait de 1 px sur iOS),
+   et apparence native du bouton retirée (Safari). Piste éteinte : mi-chemin entre le texte et la carte, au moins 3:1 jour et nuit. */
+.tg { -webkit-appearance: none; appearance: none; box-sizing: border-box; display: block; position: relative; flex: none; width: 52px; height: 44px; margin: 0; padding: 0; border: 0; background: none; color: inherit; font-size: 0; cursor: pointer; }
+.tg::before, .tg::after { content: ''; position: absolute; box-sizing: border-box; }
+.tg::before { left: 0; top: 7px; width: 52px; height: 30px; border: var(--bw) solid var(--c-ink); border-radius: var(--rad-pill); background: color-mix(in srgb, var(--c-text) 50%, var(--c-surface)); transition: background .2s; }
+.tg::after { left: 5px; top: 12px; width: 20px; height: 20px; border: var(--bw) solid var(--c-ink); border-radius: var(--rad-pill); background: var(--b-creme, #F7EFF0); transition: transform .2s ease; }
+.tg[aria-checked='true']::before { background: var(--c-green); }
+.tg[aria-checked='true']::after { transform: translateX(22px); }
+.tg:focus-visible { outline: 3px solid var(--c-pink); outline-offset: 2px; }

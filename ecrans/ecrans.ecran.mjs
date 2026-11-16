@@ -2958,6 +2958,38 @@ test('Liste déroulante : largeur et style de la boîte, choix pris en compte, �
   await ctx.close();
 });
 
+/* ---------- interrupteurs (ds.css, .tg) : bouton entièrement dans la piste, mêmes marges des deux côtés, dans les deux positions ---------- */
+test('Interrupteur : le bouton reste dans la piste, marges égales à gauche (éteint) et à droite (allumé), centré, jour et nuit', async () => {
+  for (const mode of ['jour', 'nuit']) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await ctx.addInitScript(m => { try { localStorage.setItem('club-mode', m); } catch (e) { /* rien */ } }, mode);
+    await page.goto(JA + '/club/index.html');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    const r = await page.evaluate(() => {
+      const host = document.createElement('div');
+      host.innerHTML = '<button class="tg" role="switch" aria-checked="false" id="tg-off"></button><button class="tg" role="switch" aria-checked="true" id="tg-on"></button>';
+      document.getElementById('main').append(host);
+      const mesure = id => {
+        const el = document.getElementById(id), b = getComputedStyle(el, '::before'), a = getComputedStyle(el, '::after'), px = v => parseFloat(v);
+        const tx = new DOMMatrix(a.transform === 'none' ? undefined : a.transform).m41, bw = px(b.borderTopWidth);
+        return { trackW: px(b.width), trackH: px(b.height), trackTop: px(b.top), border: bw, knobW: px(a.width), knobH: px(a.height), knobLeft: px(a.left) + tx, knobTop: px(a.top), box: a.boxSizing, boxT: b.boxSizing, h: el.offsetHeight, w: el.offsetWidth };
+      };
+      return { off: mesure('tg-off'), on: mesure('tg-on') };
+    });
+    for (const [pos, m] of Object.entries(r)) {
+      assert.equal(m.box, 'border-box', `${mode} ${pos} : bouton en border-box`);
+      assert.equal(m.boxT, 'border-box', `${mode} ${pos} : piste en border-box`);
+      assert.ok(m.knobLeft >= m.border + 2 && m.knobLeft + m.knobW <= m.trackW - m.border - 2, `${mode} ${pos} : le bouton tient dans la piste (${m.knobLeft}→${m.knobLeft + m.knobW} sur ${m.trackW})`);
+      assert.equal(m.knobTop - m.trackTop - m.border, m.trackTop + m.trackH - m.border - (m.knobTop + m.knobH), `${mode} ${pos} : bouton centré en hauteur`);
+    }
+    const gauche = r.off.knobLeft - r.off.border, droite = r.on.trackW - r.on.border - (r.on.knobLeft + r.on.knobW);
+    assert.equal(gauche, droite, `${mode} : même marge intérieure des deux côtés (${gauche} / ${droite})`);
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
 /* ---------- en-tête sur deux rangées (iPhone, zone sûre) : le contenu commence toujours sous lui, dans /Dojo et /Buvette ---------- */
 test('En-tête sur deux rangées à 390 px avec zone sûre : le contenu commence sous lui (Dojo et Buvette), y compris après un changement de page', async () => {
   for (const [url, pages] of [['/club/coach.html', ['planning', 'eleves', 'today']], ['/club/index.html', ['home', 'agenda', 'jouer']]]) {
