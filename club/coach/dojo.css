@@ -146,3 +146,11 @@
 .codayl { border-top: var(--bw, 2px) solid rgba(0, 0, 0, .25); margin-top: 12px; }
 .codayl .item { min-height: 48px; }
 .coday .ecacts { display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 0 0; }
+
+/* téléphone : fondu sur le côté de la bande d'onglets où il reste des onglets (app/8-demarrage.js, segHint) ;
+   plus fort que le « mask-image: none !important » ci-dessus */
+@media (max-width: 1023px) {
+  #main > .seg:not(.haut).plus-d { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent) !important; mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent) !important; }
+  #main > .seg:not(.haut).plus-g { -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px) !important; mask-image: linear-gradient(90deg, transparent, #000 40px) !important; }
+  #main > .seg:not(.haut).plus-g.plus-d { -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent) !important; mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent) !important; }
+}

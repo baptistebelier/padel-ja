@@ -1530,3 +1530,6 @@ body.editor-page .top { top: 0; z-index: 30; padding-top: calc(var(--s5) + env(s
 @media (prefers-reduced-motion: reduce) {
   .tab, .dcard, .modal-box, .pmodal-box, .ps-secwrap .r-sheet, .rail, .sheet-box { animation: none; transition: none; }
 }
+
+/* boutons dont le picto SVG précède le texte (Annuler, Supprimer…) : sur une ligne, picto et texte alignés */
+#btnUndo, #spUndo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }

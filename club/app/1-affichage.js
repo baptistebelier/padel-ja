@@ -242,6 +242,7 @@ function render(keep) {
      élément fixe resté dans #main dès que la page défilait (vues Jour et Liste de l'Agenda, École, Club) */
   nav.querySelectorAll(':scope > .seg:not(.seg-out)').forEach(e => e.remove());
   if (wide && newSeg) nav.appendChild(newSeg);
+  if (!wide && newSeg) segHint(newSeg);
   if (wide && lastKey && key !== lastKey) {
     if (newSeg && !oldSeg) newSeg.classList.add('seg-in');
     else if (oldSeg && !newSeg) {

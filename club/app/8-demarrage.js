@@ -807,6 +807,22 @@ A.motif = d => {
   });
 })();
 
+/* téléphone : la bande d'onglets sous l'en-tête défile ; un fondu marque le côté où il en reste (classes plus-g / plus-d,
+   lues par club.css) et l'onglet actif est ramené en vue */
+function segHint(seg) {
+  const maj = () => {
+    seg.classList.toggle('plus-d', seg.scrollLeft + seg.clientWidth < seg.scrollWidth - 2);
+    seg.classList.toggle('plus-g', seg.scrollLeft > 14);
+  };
+  if (!seg._hint) {
+    seg._hint = 1;
+    seg.addEventListener('scroll', maj, { passive: true });
+  }
+  const on = seg.querySelector('[aria-selected="true"]');
+  if (on && seg.scrollWidth > seg.clientWidth && (on.offsetLeft < seg.scrollLeft || on.offsetLeft + on.offsetWidth > seg.scrollLeft + seg.clientWidth)) seg.scrollLeft = Math.max(0, on.offsetLeft - 24);
+  maj();
+  setTimeout(maj, 300);
+}
 /* ---------- version ordinateur, comme /RAM JA : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
 function ramRail(title, sub) {
   let rb = $('rbot');

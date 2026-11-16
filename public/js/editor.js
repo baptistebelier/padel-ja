@@ -1151,7 +1151,7 @@
     if (navT) navT.after(sub);
     const pick = id => {
       secs.forEach(c => c.classList.toggle('cur', c.dataset.sec === id));
-      $$('.tsec-tab', tabs).forEach(b => { b.classList.toggle('on', b.dataset.sec === id); b.setAttribute('aria-selected', b.dataset.sec === id); });
+      $$('.tsec-tab', tabs).forEach(b => { b.classList.toggle('on', b.dataset.sec === id); b.setAttribute('aria-selected', b.dataset.sec === id); if (b.dataset.sec === id && tabs.scrollWidth > tabs.clientWidth) tabs.scrollTo({ left: Math.max(0, b.offsetLeft - 24), behavior: 'smooth' }); });
       $$('button', sub).forEach(b => b.classList.toggle('on', b.dataset.sec === id));
       try { localStorage.setItem(TAB, id); } catch (e) {}
     };
@@ -1185,6 +1185,9 @@
       sub.insertAdjacentHTML('beforeend', `<button type="button" data-sec="${id}">${card.dataset.label}</button>`);
     });
     $$('.tsec-tab', tabs).forEach(b => b.onclick = () => pick(b.dataset.sec));
+    // la bande d'intercalaires défile : un fondu marque le côté où il en reste (classes lues par /club/ds.css)
+    const reste = () => { tabs.classList.toggle('plus-d', tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 2); tabs.classList.toggle('plus-g', tabs.scrollLeft > 2); };
+    tabs.addEventListener('scroll', reste, { passive: true }); addEventListener('resize', reste); reste(); setTimeout(reste, 400);
     $$('button', sub).forEach(b => b.onclick = () => { if (tab !== 'tournoi') setTab('tournoi'); pick(b.dataset.sec); scrollTo({ top: 0 }); });
     let cur = ''; try { cur = localStorage.getItem(TAB) || ''; } catch (e) {}
     pick(secs.some(c => c.dataset.sec === cur) ? cur : secs[0].dataset.sec);

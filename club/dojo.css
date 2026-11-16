@@ -234,7 +234,7 @@ html, body { background: var(--c-bg); }
   :is(#main, #subnav) > .seg { max-width: none; margin-left: 0; margin-right: 0; -webkit-mask-image: none; mask-image: none; background: var(--co-side); border: 0; padding: 6px; }
   :is(#main, #subnav) > .seg button[aria-selected='true'] { color: #FFFFFF; background: var(--co-side-on); border-color: color-mix(in srgb, #FFFFFF 14.9%, transparent); box-shadow: inset 0 -3px 0 var(--co-lime); }
   :is(#main, #subnav) > .seg button[aria-selected='true']::before { display: none; }
-  :is(#main, #subnav) > .seg button[aria-selected='true'] svg { color: var(--co-lime); }
+  :is(#main, #subnav) > .seg button[aria-selected='true'] svg { color: var(--c-on-menu-act, var(--c-dark)); }
 }
 :root[data-style='street'] .coey { display: inline-block; width: fit-content; max-width: 100%; background: var(--accent2); padding: 2px 8px; transform: rotate(-1.5deg); margin-bottom: 6px; }
 :root[data-style='street'] .cohero .coey { background: var(--co-lime); }
@@ -2172,3 +2172,10 @@ select option { background: var(--c-surface); color: var(--c-text); }
 /* Intercalaires (sous-menus) : plus collés en haut de l'écran pendant le défilement, ils restent au-dessus de leur carte */
 @media (max-width: 1023px) { #main > .seg, #main > .seg:not(.haut) { position: relative; top: auto; } }
 @media (min-width: 1024px) { #main > .seg.haut { position: relative; top: auto; } }
+
+/* téléphone : fondu sur le côté de la bande d'onglets où il reste des onglets (app/8-demarrage.js, segHint) */
+@media (max-width: 1023px) {
+  #main > .seg:not(.haut).plus-d { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); }
+  #main > .seg:not(.haut).plus-g { -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px); mask-image: linear-gradient(90deg, transparent, #000 40px); }
+  #main > .seg:not(.haut).plus-g.plus-d { -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
+}
