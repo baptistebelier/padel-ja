@@ -61,6 +61,10 @@ function topPad() {
 new ResizeObserver(topPad).observe($('top'), { box: 'border-box' });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(topPad);
 addEventListener('resize', topPad);
+addEventListener('load', () => [0, 300, 1000, 2500].forEach(t => setTimeout(topPad, t)));   // en-tête recomposé après coup (polices, sélecteur de club)
+if (document.fonts) document.fonts.addEventListener('loadingdone', topPad);
+if (window.visualViewport) visualViewport.addEventListener('resize', topPad);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) topPad(); });
 addEventListener('orientationchange', () => setTimeout(topPad, 200));
 const renderSansMarge = render;
 render = function () {

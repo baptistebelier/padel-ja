@@ -66,11 +66,12 @@
     if (change) ['input', 'change'].forEach(t => s.dispatchEvent(new Event(t, { bubbles: true })));
   }
   function pose() {
-    const r = sel.getBoundingClientRect(), cs = getComputedStyle(sel);
+    // bouton-picto (data-rl-hote) : la liste prend le style du bouton et une largeur minimale, alignée sur son bord droit
+    const hote = sel.dataset.rlHote ? sel.closest(sel.dataset.rlHote) : null, r = (hote || sel).getBoundingClientRect(), cs = getComputedStyle(hote || sel), larg = Math.max(r.width, +sel.dataset.rlMin || 0), gauche = Math.max(8, Math.min(r.left, innerWidth - 8 - larg));
     // fond opaque : celui de la boîte, sinon la surface de l'appli
     const bg = /rgba\(.*,\s*0\)|transparent/.test(cs.backgroundColor) ? '' : cs.backgroundColor;
     Object.assign(box.style, {
-      left: r.left + 'px', width: r.width + 'px',
+      left: (hote ? gauche : r.left) + 'px', width: (hote ? larg : r.width) + 'px',
       borderRadius: cs.borderTopLeftRadius === cs.borderBottomRightRadius ? cs.borderRadius : cs.borderTopLeftRadius,
       fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, letterSpacing: cs.letterSpacing, textTransform: cs.textTransform,
       borderWidth: cs.borderTopWidth, borderStyle: cs.borderTopStyle === 'none' ? 'solid' : cs.borderTopStyle, borderColor: cs.borderTopColor,

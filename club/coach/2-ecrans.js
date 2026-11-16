@@ -486,7 +486,7 @@ const coPlanTools = () =>
 /* la sélection du club, dans l'en-tête de Planning, Élèves, Statistiques et Historique (quand j'enseigne dans plusieurs clubs) */
 const coTopClub = () =>
   coMulti()
-    ? `<label class="cotopclub"><span class="sr">Club affiché</span><select id="co-topclub"><option value="all"${!S.coClub || S.coClub === 'all' ? ' selected' : ''}>Tous mes clubs</option>${coClubList()
+    ? `<label class="cotopclub" title="Club affiché"><span class="sr">Club affiché</span><span class="cotc-i" aria-hidden="true">${ic('club')}${S.coClub && S.coClub !== 'all' ? '<i class="cotc-d"></i>' : ''}</span><select id="co-topclub" data-rl-hote=".cotopclub" data-rl-min="240"><option value="all"${!S.coClub || S.coClub === 'all' ? ' selected' : ''}>Tous mes clubs</option>${coClubList()
         .map(c => `<option value="${c.id}"${S.coClub === c.id ? ' selected' : ''}>${esc(c.name)}</option>`)
         .join('')}</select></label>`
     : '';

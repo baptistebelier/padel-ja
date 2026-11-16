@@ -2999,6 +2999,41 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- Dojo : pas de logo de club dans l'en-tête ; sélecteur de club en bouton picto sur téléphone ---------- */
+test('Dojo : plus de logo de club dans l’en-tête (gardé dans /Buvette), sélecteur de club en bouton carré à picto sur téléphone qui ouvre la liste maison', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => { document.querySelector('.ram-splash')?.remove(); club().logoD = club().logoL = 'img/favicon.png'; CO_EXT.c2 = { name: 'TC Brive', key: ME(), chans: new Set() }; S.tab = 'planning'; S.stack = []; S.coClub = 'all'; render(); });
+  await page.waitForTimeout(500);
+  assert.equal(await page.locator('#top .toplogo').count(), 0, 'pas de logo de club dans l’en-tête de /Dojo');
+  const m = await page.evaluate(() => { const b = document.querySelector('.cotopclub').getBoundingClientRect(), i = [...document.querySelectorAll('#top .ib')].find(e => e.offsetWidth).getBoundingClientRect(); return { w: b.width, h: b.height, iw: i.width, ih: i.height, haut: document.getElementById('top').offsetHeight, icone: !!document.querySelector('.cotopclub .cotc-i svg') }; });
+  assert.deepEqual([m.w, m.h], [m.iw, m.ih], 'bouton carré de la taille des autres boutons');
+  assert.equal(m.icone, true, 'picto de club');
+  assert.ok(m.haut < 100, 'l’en-tête tient sur une seule rangée (' + m.haut + ' px)');
+  // le toucher ouvre la liste maison, sous le bouton, sans donner le focus au select natif
+  const b = await page.locator('.cotopclub').boundingBox();
+  await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+  await page.waitForTimeout(300);
+  assert.equal(await page.locator('.rl:visible').count(), 1, 'la liste maison s’ouvre');
+  assert.ok((await page.locator('.rl').boundingBox()).width >= 200, 'liste assez large pour les noms de club');
+  assert.notEqual(await page.evaluate(() => document.activeElement && document.activeElement.tagName), 'SELECT');
+  await page.locator('.rl button[data-i]').nth(1).tap();
+  await page.waitForTimeout(300);
+  assert.equal(await page.locator('.cotopclub .cotc-d').count(), 1, 'pastille quand un club précis est filtré');
+  // /Buvette garde le logo de son club
+  const bv = await ctx.newPage();
+  await bv.goto(JA + '/club/index.html');
+  await bv.waitForFunction(() => typeof S !== 'undefined' && typeof club === 'function', null, { timeout: 8000 });
+  await bv.waitForTimeout(1200);
+  await bv.evaluate(() => { document.querySelector('.ram-splash')?.remove(); club().logoD = club().logoL = 'img/favicon.png'; S.tab = 'home'; S.stack = []; render(); });
+  assert.equal(await bv.locator('#top .toplogo').count(), 1, 'le logo du club reste dans /Buvette');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
 /* ---------- sur-titres : pas de surlignage ni d'inclinaison, contraste suffisant, jour et nuit, même en style « street » ---------- */
 test('Sur-titres et étiquettes de titre : sans fond coloré ni inclinaison, contraste d’au moins 4,5:1, jour et nuit (/Dojo et /Buvette)', async () => {
   for (const mode of ['jour', 'nuit']) {
@@ -3234,7 +3269,7 @@ test('En-tête sur deux rangées à 390 px avec zone sûre : le contenu commence
     await page.addStyleTag({ content: '.top { padding-top: 57px !important; } .cotopclub select { width: 190px; }' });
     for (const t of pages) {
       await page.evaluate(t => { S.tab = t; S.stack = []; render(true); }, t);
-      await page.evaluate(() => { const top = document.getElementById('top'); if (!top.querySelector('.cotopclub')) { const l = document.createElement('label'); l.className = 'cotopclub'; l.innerHTML = '<select><option>Tous mes clubs</option></select>'; (top.querySelector('h1') || top.firstChild).after(l); } });
+      await page.evaluate(() => { const top = document.getElementById('top'); if (!top.querySelector('.test-large')) { const l = document.createElement('span'); l.className = 'test-large'; l.style.cssText = 'flex:0 0 330px;height:44px'; (top.querySelector('h1') || top.firstChild).after(l); } });   // un en-tête qui passe sur deux rangées
       await page.waitForTimeout(500);
       const r = await page.evaluate(() => {
         const top = document.getElementById('top'), m = document.getElementById('main'), hb = top.getBoundingClientRect().bottom;
