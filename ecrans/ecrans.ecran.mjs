@@ -2989,6 +2989,12 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   assert.equal(await tab.locator('.cnt').textContent(), '1', 'compteur');
   await tab.click();
   assert.equal(await page.locator('#main .colist .item[data-v="eleve"]').count(), 1, 'un seul abonné listé');
+  // « En activité » : un pack en cours ; l'ordre des onglets est Tous, En activité, Abonnés, Sans compte, À encaisser
+  await page.evaluate(() => { const e = coEl(ELEVES[1].id); e.achats = [{ id: 'pk-test', t: 'pack', ref: 'p1', d: isoIn(-5), n: 5, nom: 'Pack', prix: 100 }]; S.elF = 'all'; render(); });
+  const ordre = await page.evaluate(() => [...document.querySelectorAll('#main .seg [role="tab"], #subnav .seg [role="tab"]')].map(b => b.getAttribute('aria-label')));
+  assert.deepEqual(ordre, ['Tous les élèves', 'En activité', 'Abonnés', 'Sans compte', 'À encaisser'], 'ordre des onglets');
+  await page.locator('#main .seg [data-v="act"], #subnav .seg [data-v="act"]').first().click();
+  assert.equal(await page.locator('#main .colist .item[data-v="eleve"]').count(), 1, 'un seul élève en activité (le pack en cours)');
   assert.deepEqual(errs, []);
   await ctx.close();
 });

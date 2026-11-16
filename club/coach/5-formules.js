@@ -153,6 +153,9 @@ function coDue(id, d) {
 function coPacks(id) {
   return REGLES.couverture((coEl(id) || {}).achats || [], coVenues(id), OFFRES).achats;
 }
+/* « En activité » : l'élève a un pack ou un cycle en cours, c'est-à-dire une attribution dont l'état est « En cours » (des séances restent à consommer :
+   REGLES.etatAchat, le même calcul que la carte « Formules achetées » et les jauges de cycle). Un abonnement n'y figure que s'il porte un cycle. */
+const coEnActivite = id => coPacks(id).some(a => REGLES.etatAchat(a, TODAY) === 'encours' && (a.t === 'pack' || (a.t === 'abo' && a.cycle)));
 /* un pack individuel et ses séances à planifier : un groupe sans créneau (g.libre : seulement les dates posées,
    regles.js trainOn) avec un cycle de N séances ; l'achat y est rattaché (cycle, groupe). Chaque séance reçoit sa
    date depuis le cycle, à tout moment. */

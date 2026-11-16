@@ -726,7 +726,7 @@ function coEleves() {
     l = coStudents()
       .filter(k => !q || fold(svName(k)).includes(q))
       .filter(k => coInClub(M[k] || coEl(k) || {}))
-      .filter(k => f === 'all' || (f === 'abo' ? coAbonne(k) : f === 'nc' ? !M[k] : f === 'jeunes' ? M[k] && isMinor(k) : coSport(k) === f))
+      .filter(k => f === 'all' || (f === 'act' ? coEnActivite(k) : f === 'abo' ? coAbonne(k) : f === 'nc' ? !M[k] : f === 'jeunes' ? M[k] && isMinor(k) : coSport(k) === f))
       .sort((a, b) => svName(a).localeCompare(svName(b)));
   const chip = (v, t, i) =>
       `<button class="chip" data-a="coElF" data-v="${v}" aria-pressed="${f === v}">${ic(i)}${t}</button>`,

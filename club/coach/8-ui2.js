@@ -251,14 +251,22 @@ if (UI2) {
   V.eleves = () => {
     const n = Object.keys(u2Dues()).length,
       it = `<button role="tab" aria-selected="${S.elF === 'pay'}" aria-label="À encaisser" data-a="coElF" data-v="pay">${ic('euro')}<span class="lb">À encaisser</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
-    // « Abonnés » : les élèves dont l'abonnement est en cours (achat de type abonnement commencé, non fini, non quitté : REGLES.aboEnCours)
-    const nAbo = coStudents().filter(k => coInClub(M[k] || coEl(k) || {}) && coAbonne(k)).length,
-      ab = `<button role="tab" aria-selected="${S.elF === 'abo'}" aria-label="Abonnés" data-a="coElF" data-v="abo">${ic('shield')}<span class="lb">Abonnés</span>${nAbo ? `<span class="cnt">${nAbo}</span>` : ''}</button>`;
+    // « Abonnés » : les élèves dont l'abonnement est en cours (achat de type abonnement commencé, non fini, non quitté : REGLES.aboEnCours) ;
+    // « En activité » : ceux qui ont un pack ou un cycle en cours (coEnActivite, coach/5-formules.js)
+    const dans = coStudents().filter(k => coInClub(M[k] || coEl(k) || {})),
+      nAbo = dans.filter(coAbonne).length,
+      nAct = dans.filter(coEnActivite).length,
+      onglet = (v, l, i, n) =>
+        `<button role="tab" aria-selected="${S.elF === v}" aria-label="${l}" data-a="coElF" data-v="${v}">${ic(i)}<span class="lb">${l}</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
     let h = u2ElevesE();
-    // les entrées « À encaisser » puis « Abonnés » après « Sans compte »
+    // ordre : Tous les élèves, En activité, Abonnés, Sans compte, À encaisser
     h = h.replace(
       /(<div class="seg[^"]*" role="tablist">[\s\S]*?aria-label="Sans compte"[\s\S]*?<\/button>)/,
-      '$1' + it + ab
+      '$1' + it
+    );
+    h = h.replace(
+      /(<div class="seg[^"]*" role="tablist">\s*<button[\s\S]*?<\/button>)/,
+      '$1' + onglet('act', 'En activité', 'ladder', nAct) + onglet('abo', 'Abonnés', 'shield', nAbo)
     );
     if (S.elF !== 'pay') return h;
     const i = h.indexOf('</div>', h.indexOf('role="tablist"'));
