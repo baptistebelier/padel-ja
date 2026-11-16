@@ -258,7 +258,9 @@
   }
   (async () => {
     try {
-      clubs = ((await api('/api/ram/clubs')).clubs || []).filter(c => c.role === 'bureau' || c.role === 'coach' || c.super);
+      // visiteur sans compte (démo) : pas d'appel qui répondrait 401, on lui explique directement
+      const moi = await api('/api/me').catch(() => ({}));
+      clubs = (!moi.user || moi.user.guest ? [] : (await api('/api/ram/clubs')).clubs || []).filter(c => c.role === 'bureau' || c.role === 'coach' || c.super);
       if (!clubs.length) { $('#app').innerHTML = '<div class="page-h"><span class="eyebrow">Championnats par équipes</span><h1>Équipes du club</h1></div><section class="card"><p>Les championnats se gèrent depuis le compte d’un membre du bureau ou d’un enseignant d’un club présent sur /Buvette.</p><p><a class="btn" href="/club/">Ouvrir /Buvette</a></p></section>'; return; }
       club = clubs.find(c => c.main) || clubs[0];
       await charger();
