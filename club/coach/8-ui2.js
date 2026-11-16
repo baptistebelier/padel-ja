@@ -613,10 +613,14 @@ if (UI2) {
   const U2M = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
   /* petite carte de séance de l'historique (élève, groupe) : l'encart coloré porte la date et l'heure ; les cartes
      s'empilent, ce n'est pas un agenda. tone : ok (faite), ex (excusé), ab (absent ou annulée), '' (à venir) */
-  const u2Hist = o => {
+  const u2HistCarte = o => {
     const el = o.go ? 'button' : 'div';
     return `<${el} class="u2hs ${o.tone || ''}"${o.go ? ' ' + o.go : ''}><span class="u2hd"><b>${esc(DA[new Date(o.d + 'T12:00').getDay()])} ${+o.d.slice(8)}</b><span>${U2M[+o.d.slice(5, 7) - 1]}</span>${o.h ? `<i>${esc(o.h)}</i>` : ''}</span><span class="u2hb"><span class="nm${o.cx ? ' u2cx' : ''}">${o.title}</span>${o.sub ? `<span class="muted small">${o.sub}</span>` : ''}</span>${o.tags ? `<span class="u2ht">${o.tags}</span>` : ''}</${el}>`;
   };
+  const u2Hist = o =>
+    o.del
+      ? `<div class="u2sw"><button class="u2swd" type="button" ${o.del} aria-label="Supprimer cette séance">${ic('trash')}</button>${u2HistCarte(o)}</div>`
+      : u2HistCarte(o);
   /* une séance d'un groupe (à venir ou faite), en petite carte */
   const u2Ses = (g, d) => {
     const s = sesFind(g, d),
@@ -653,7 +657,8 @@ if (UI2) {
       cx,
       tone: cx ? 'ab' : past ? 'ok' : '',
       tags: tag ? `<span class="tag cost ${tag[1]}">${tag[0]}</span>` : '',
-      go: `data-a="open" data-v="seance" data-id="${sesKey(g, d)}"`
+      go: `data-a="open" data-v="seance" data-id="${sesKey(g, d)}"`,
+      del: `data-a="u2SesDel" data-g="${g.id}" data-d="${d}"`
     });
   };
 
@@ -693,7 +698,8 @@ if (UI2) {
                   sub: s.theme ? esc(s.theme) : '',
                   tone: s.pres[id] === 'P' ? 'ok' : s.pres[id] === 'E' ? 'ex' : 'ab',
                   tags: `<span class="tag">${presLbl[s.pres[id]]}</span>`,
-                  go: `data-a="open" data-v="seance" data-id="${s.id}"`
+                  go: `data-a="open" data-v="seance" data-id="${s.id}"`,
+                  del: `data-a="u2SesDel" data-g="${s.g}" data-d="${s.d}" data-k="${id}"`
                 })
               )
               .join('')}</div>`
@@ -1118,4 +1124,172 @@ if (UI2) {
     closeSheet();
     coSave('Séance programmée le ' + fmtD(d) + (achat ? ' · décomptée de l’achat' : ''));
   });
+
+  /* ---------- Supprimer une séance de l'historique : glissement vers la gauche (téléphone), survol et clavier (ordinateur) ----------
+     Même règle que le connecteur (coach_supprimer_seance) : sans élève, la séance disparaît pour tous ; depuis la fiche d'UN élève, seul cet
+     élève est retiré d'une séance de groupe ou à plusieurs. Les achats ne changent pas : le décompte suit les séances faites, donc le pack est
+     recrédité. Filet de sécurité : un bandeau « Annuler » pendant quelques secondes. */
+  const u2Copie = o => JSON.parse(JSON.stringify(o));
+  function u2SesRetire(gid, d, k) {
+    const g = grp(gid);
+    if (!g) return null;
+    const sid = gid + '.' + d,
+      meme = s => s.id === sid && (s._club || '') === (g._club || ''),
+      sRec = SEANCES.find(meme),
+      tous = (g.mem || []).concat(g.ext || []),
+      avant = { g: u2Copie(g), s: sRec ? u2Copie(sRec) : null, tout: g.once ? SEANCES.filter(x => x.g === gid && (x._club || '') === (g._club || '')).map(u2Copie) : [] },
+      partiel = !!k && !(g.once && tous.length <= 1);
+    if (!partiel) {
+      if (g.once) {
+        GROUPS.splice(GROUPS.indexOf(g), 1);
+        for (let i = SEANCES.length - 1; i >= 0; i--) if (SEANCES[i].g === gid && (SEANCES[i]._club || '') === (g._club || '')) SEANCES.splice(i, 1);
+      } else {
+        (g.cycles || []).forEach(c => (c.dates = (c.dates || []).filter(x => x !== d)));
+        g.extra = (g.extra || []).filter(x => x !== d);
+        g.cancel = (g.cancel || []).filter(x => x !== d);
+        if (typeof trainOn === 'function' && trainOn(g, d)) g.skip = (g.skip || []).concat(d);
+        if (sRec) SEANCES.splice(SEANCES.indexOf(sRec), 1);
+      }
+    } else if (g.once) {
+      g.mem = (g.mem || []).filter(x => x !== k);
+      g.ext = (g.ext || []).filter(x => x !== k);
+      if (sRec && sRec.pres) delete sRec.pres[k];
+    } else {
+      const s = sesGet(sid);
+      if (s.pres) delete s.pres[k];
+      s.plus = (s.plus || []).filter(x => x !== k);
+      if (!s.plus.length) delete s.plus;
+      if (tous.includes(k)) s.out = [...new Set((s.out || []).concat(k))];
+    }
+    return () => {
+      // annuler : le groupe et les séances reprennent leur état d'avant
+      const actuel = GROUPS.find(x => x.id === gid && (x._club || '') === (g._club || ''));
+      if (actuel) {
+        Object.keys(actuel).forEach(c => delete actuel[c]);
+        Object.assign(actuel, u2Copie(avant.g));
+      } else GROUPS.push(u2Copie(avant.g));
+      const remet = rec => {
+        const i = SEANCES.findIndex(x => x.id === rec.id && (x._club || '') === (rec._club || ''));
+        if (i >= 0) SEANCES.splice(i, 1, u2Copie(rec));
+        else SEANCES.push(u2Copie(rec));
+      };
+      if (avant.s) remet(avant.s);
+      else {
+        const i = SEANCES.findIndex(meme);
+        if (i >= 0) SEANCES.splice(i, 1);
+      }
+      avant.tout.forEach(remet);
+    };
+  }
+  let u2Rappel = null;
+  function u2Banniere(msg, restaure) {
+    if (u2Rappel) clearTimeout(u2Rappel.t);
+    const ancien = $('u2undo');
+    if (ancien) ancien.remove();
+    const b = document.createElement('div');
+    b.id = 'u2undo';
+    b.className = 'u2undo';
+    b.setAttribute('role', 'status');
+    b.innerHTML = `<span>${esc(msg)}</span><button type="button" data-a="u2Annule">Annuler</button>`;
+    $('phone').appendChild(b);
+    u2Rappel = { restaure, t: setTimeout(() => { b.remove(); u2Rappel = null; }, 7000) };
+  }
+  A.u2Annule = () => {
+    if (!u2Rappel) return;
+    clearTimeout(u2Rappel.t);
+    u2Rappel.restaure();
+    u2Rappel = null;
+    const b = $('u2undo');
+    if (b) b.remove();
+    coSave('Séance rétablie');
+  };
+  A.u2SesDel = d => {
+    const restaure = u2SesRetire(d.g, d.d, d.k || '');
+    if (!restaure) return;
+    coSave();
+    u2Banniere(d.k ? 'Séance retirée de la fiche' : 'Séance supprimée', restaure);
+  };
+  /* le glissement : seuil d'angle (plus horizontal que vertical) et de distance, un seul élément ouvert à la fois, le défilement vertical reste libre */
+  (function () {
+    const L = 88;
+    let st = null,
+      ouvert = null,
+      vu = 0;
+    const ferme = w => {
+      if (!w) return;
+      w.classList.remove('open');
+      const c = w.querySelector('.u2hs');
+      if (c) c.style.transform = '';
+    };
+    document.addEventListener('touchstart', e => {
+      const w = e.target.closest && e.target.closest('.u2sw');
+      if (ouvert && w !== ouvert && !(e.target.closest && e.target.closest('.u2swd'))) {
+        ferme(ouvert);
+        ouvert = null;
+      }
+      if (!w || e.touches.length !== 1 || e.target.closest('.u2swd')) return (st = null);
+      const t = e.touches[0];
+      st = { w, x: t.clientX, y: t.clientY, dx: 0, lock: false, base: w.classList.contains('open') ? -L : 0 };
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (!st) return;
+      const t = e.touches[0],
+        dx = t.clientX - st.x,
+        dy = t.clientY - st.y;
+      if (!st.lock) {
+        if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx) * 0.6) return (st = null);   // défilement vertical : on laisse faire
+        if (Math.abs(dx) > 10 && Math.abs(dx) > 1.6 * Math.abs(dy)) st.lock = true;
+        else return;
+      }
+      if (e.cancelable) e.preventDefault();
+      st.dx = dx;
+      const c = st.w.querySelector('.u2hs');
+      c.style.transition = 'none';
+      c.style.transform = 'translateX(' + Math.max(-st.w.offsetWidth, Math.min(0, st.base + dx)) + 'px)';
+    }, { passive: false });
+    document.addEventListener('touchend', () => {
+      if (!st || !st.lock) return (st = null);
+      const w = st.w,
+        c = w.querySelector('.u2hs'),
+        total = st.base + st.dx;
+      c.style.transition = '';
+      c.style.transform = '';
+      vu = Date.now();
+      if (-total > w.offsetWidth * 0.6) {
+        w.classList.remove('open');
+        ouvert = null;
+        vu = 0;
+        w.querySelector('.u2swd').click();   // glissement long et complet : suppression directe
+        vu = Date.now();
+      } else if (-total > L / 2) {
+        if (ouvert && ouvert !== w) ferme(ouvert);
+        w.classList.add('open');
+        ouvert = w;
+      } else {
+        ferme(w);
+        if (ouvert === w) ouvert = null;
+      }
+      st = null;
+    });
+    // un toucher sur une carte ouverte la referme (il n'ouvre pas la séance) ; juste après un glissement, aucun clic ne passe
+    document.addEventListener('click', e => {
+      const carte = e.target.closest && e.target.closest('.u2sw > .u2hs');
+      if (Date.now() - vu < 350 || (carte && carte.parentNode.classList.contains('open'))) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (carte) {
+          ferme(carte.parentNode);
+          if (ouvert === carte.parentNode) ouvert = null;
+        }
+      }
+    }, true);
+    // clavier : Suppr ou Retour arrière sur une carte la supprime
+    document.addEventListener('keydown', e => {
+      const carte = e.target.closest && e.target.closest('.u2sw > .u2hs');
+      if (carte && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault();
+        carte.parentNode.querySelector('.u2swd').click();
+      }
+    });
+  })();
 }

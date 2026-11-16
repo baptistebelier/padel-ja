@@ -163,3 +163,19 @@
 :root[data-ui="2"] .u2dng { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; background: none; border: var(--bw, 2px) solid transparent; color: var(--hot-tx, #E0284A); font: 700 15px var(--f-sub); cursor: pointer; text-decoration: underline; }
 :root[data-ui="2"] .u2dng:hover, :root[data-ui="2"] .u2dng:focus-visible { border-color: currentColor; text-decoration: none; }
 :root[data-ui="2"] .u2dng svg { width: 18px; height: 18px; }
+
+/* ---------- séance de l'historique : glissement vers la gauche (téléphone), corbeille au survol (ordinateur) ---------- */
+:root[data-ui="2"] .u2sw { position: relative; }
+:root[data-ui="2"] .u2sw > .u2hs { position: relative; z-index: 1; transition: transform .18s ease; touch-action: pan-y; }
+:root[data-ui="2"] .u2swd { position: absolute; top: 0; right: 0; bottom: 0; width: 88px; display: grid; place-items: center; padding: 0; border: var(--bw, 2px) solid var(--c-ink); background: var(--hot, #E0284A); color: var(--on-hot, #FFFFFF); cursor: pointer; }
+:root[data-ui="2"] .u2swd svg { width: 26px; height: 26px; color: inherit; }
+:root[data-ui="2"] .u2sw.open > .u2hs { transform: translateX(-88px); }
+@media (hover: hover) and (pointer: fine) {
+  /* ordinateur : pas de glissement ; la corbeille apparaît au survol et au focus, par-dessus la carte */
+  :root[data-ui="2"] .u2swd { top: 50%; bottom: auto; right: 10px; width: 40px; height: 40px; margin-top: -20px; z-index: 2; opacity: 0; pointer-events: none; transition: opacity .12s; }
+  :root[data-ui="2"] .u2sw:hover .u2swd, :root[data-ui="2"] .u2sw:focus-within .u2swd { opacity: 1; pointer-events: auto; }
+}
+/* le bandeau « Séance supprimée — Annuler » */
+.u2undo { position: fixed; z-index: 90; left: var(--gut, 16px); right: var(--gut, 16px); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; background: var(--c-dark, #1A0509); color: #FFFFFF; border: var(--bw, 2px) solid var(--c-ink); box-shadow: var(--sh, 4px 4px 0 #000); font: 600 15px var(--f-body); }
+.u2undo button { min-height: 40px; padding: 0 14px; border: var(--bw, 2px) solid #000; background: var(--c-lime, #E0F50A); color: var(--c-dark, #1A0509); font: 700 15px var(--f-sub); cursor: pointer; }
+@media (min-width: 1024px) { .u2undo { left: auto; right: 28px; bottom: 28px; width: min(420px, 90vw); } }

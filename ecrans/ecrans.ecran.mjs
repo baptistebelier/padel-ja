@@ -2999,6 +2999,79 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- Dojo : supprimer une séance de l'historique d'un élève (glissement, corbeille, annulation) ---------- */
+test('Historique d’un élève : glissement vers la gauche pour supprimer, défilement vertical libre, annulation, corbeille au survol et clavier sur ordinateur', async () => {
+  const preparer = async page => page.evaluate(() => {
+    document.querySelector('.ram-splash')?.remove();
+    const k = ELEVES[0].id;
+    for (const [i, d] of [[1, isoIn(-3)], [2, isoIn(-6)]]) {
+      GROUPS.push({ id: 'gsw' + i, type: 'train', name: 'Cours test ' + i, once: d, day: 1, h: '18 h', dur: '1 h', sport: 'Padel', coach: ME(), mem: M[k] ? [k] : [], ext: M[k] ? [] : [k] });
+      SEANCES.push({ id: 'gsw' + i + '.' + d, g: 'gsw' + i, d, pres: { [k]: 'P' } });
+    }
+    S.tab = 'eleves'; S.elTab = 'histo'; S.stack = [{ v: 'eleve', id: k }]; render();
+    return { k, n: SEANCES.length, g: GROUPS.length };
+  });
+  // ---- téléphone : toucher réel (CDP)
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
+  await page.waitForTimeout(1500);
+  const base = await preparer(page);
+  const cdp = await ctx.newCDPSession(page);
+  const geste = async (x0, y0, x1, y1, pas = 6) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0 }] });
+    for (let i = 1; i <= pas; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + ((x1 - x0) * i) / pas, y: y0 + ((y1 - y0) * i) / pas }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+  };
+  const centre = async n => { const b = await page.locator('#main .u2sw > .u2hs').nth(n).boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2, w: b.width }; };
+  await page.evaluate(() => { const m = document.getElementById('main'), e = document.querySelector('#main .u2sw'); m.scrollTop += e.getBoundingClientRect().top - 220; });   // les cartes hors de la barre du bas
+  await page.waitForTimeout(300);
+  assert.ok((await page.locator('#main .u2sw').count()) >= 2, 'des séances à supprimer');
+  // défilement vertical : le geste ne doit rien ouvrir
+  let c = await centre(0);
+  await geste(c.x, c.y, c.x - 6, c.y - 60);
+  assert.equal(await page.locator('#main .u2sw.open').count(), 0, 'un geste vertical n’ouvre pas la corbeille');
+  // glissement moyen : la corbeille apparaît, une seule carte ouverte à la fois
+  c = await centre(0);
+  await geste(c.x + 60, c.y, c.x - 20, c.y + 4);
+  assert.equal(await page.locator('#main .u2sw.open').count(), 1, 'la corbeille est révélée');
+  c = await centre(1);
+  await geste(c.x + 60, c.y, c.x - 20, c.y + 4);
+  assert.equal(await page.locator('#main .u2sw.open').count(), 1, 'un seul élément ouvert à la fois');
+  // toucher la corbeille : suppression, bandeau, annulation
+  await page.locator('#main .u2sw.open .u2swd').tap();
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => SEANCES.length), base.n - 1, 'séance supprimée');
+  assert.equal(await page.locator('#u2undo').isVisible(), true, 'bandeau « Annuler »');
+  await page.locator('#u2undo button').tap();
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => [SEANCES.length, GROUPS.length]).then(a => a.join()), [base.n, base.g].join(), 'annuler rétablit la séance et son cours');
+  // glissement long et complet : suppression directe
+  c = await centre(1);
+  await geste(c.x + c.w / 2 - 10, c.y, c.x - c.w / 2 + 5, c.y + 3);
+  assert.equal(await page.evaluate(() => SEANCES.length), base.n - 1, 'un long glissement supprime directement');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+  // ---- ordinateur : corbeille au survol, suppression au clavier
+  const dctx = await browser.newContext({ viewport: { width: 1280, height: 860 } }), dp = await dctx.newPage();
+  await dp.goto(JA + '/club/coach.html');
+  await dp.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
+  await dp.waitForTimeout(1500);
+  const b2 = await preparer(dp);
+  const carte = dp.locator('#main .u2sw > .u2hs', { hasText: 'Cours test 1' }).first(), corbeille = dp.locator('#main .u2sw', { hasText: 'Cours test 1' }).first().locator('.u2swd');
+  assert.equal(await corbeille.evaluate(e => getComputedStyle(e).opacity), '0', 'corbeille cachée au repos');
+  await carte.hover();
+  await dp.waitForTimeout(350);
+  assert.equal(await corbeille.evaluate(e => getComputedStyle(e).opacity), '1', 'corbeille visible au survol');
+  await carte.focus();
+  await dp.keyboard.press('Delete');
+  await dp.waitForTimeout(300);
+  assert.equal(await dp.evaluate(() => SEANCES.length), b2.n - 1, 'Suppr supprime la séance au clavier');
+  await dctx.close();
+});
+
 /* ---------- Dojo : programmer une séance depuis la fiche d'un élève, rattachée à un achat ---------- */
 test('Dojo : « Programmer une séance » sur la fiche élève, achat présélectionné, séance rattachée et décomptée, achat attribué si besoin (390 et 1280 px)', async () => {
   for (const largeur of [390, 1280]) {
