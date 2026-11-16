@@ -17,11 +17,11 @@
   --muted: #595D66;
 }
 :root[data-mode='nuit'] {
-  --bg: color-mix(in srgb, var(--menu) 8%, #18181A);
-  --card: color-mix(in srgb, var(--menu) 8%, #232326);
-  --card2: color-mix(in srgb, var(--menu) 9%, #2C2C30);
-  --field: color-mix(in srgb, var(--menu) 8%, #1E1E21);
-  --off: color-mix(in srgb, var(--menu) 10%, #3A3A3F);
+  --bg: color-mix(in srgb, var(--menu) 2.5%, #18181A);
+  --card: color-mix(in srgb, var(--menu) 2.5%, #232326);
+  --card2: color-mix(in srgb, var(--menu) 3%, #2C2C30);
+  --field: color-mix(in srgb, var(--menu) 2.5%, #1E1E21);
+  --off: color-mix(in srgb, var(--menu) 3.5%, #3A3A3F);
   --ink: #000000; --fg: #F4F4F5; --muted: #C8C8CE; --kick: #FF94AD;
 }
 * { box-sizing: border-box; }

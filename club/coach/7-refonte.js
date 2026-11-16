@@ -207,7 +207,7 @@ function coGrpCard(g) {
           : '<span class="tag ok">En cours</span>'
       : '',
     cyc = E ? ` · ${esc(c.nom || 'Cycle')} ${E.faites}/${E.prevues}` : '';
-  return `<div class="card cogcard"><div class="row" style="gap:12px"><span class="tile">${ic('users')}</span><span class="grow"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${esc(coSlot(g))} · ${esc(g.dur || '')}${cyc}</span></span>${tag}<button class="ib" data-a="open" data-v="cgroupe" data-id="${g.id}" aria-label="Ouvrir ${esc(g.name)}">${ic('back')}</button></div><div class="cogfill"><b>${n}${max ? '/' + max : ''} élève${n > 1 ? 's' : ''}</b>${max ? `<span class="gbt"><i style="width:${pct}%"></i></span>` : ''}</div></div>`;
+  return `<div class="card cogcard"><div class="row" style="gap:12px"><span class="tile">${ic('users')}</span><span class="grow"><span class="h3">${esc(g.name)}</span><br><span class="muted small">${esc(coSlot(g))} · ${esc(g.dur || '')}${cyc}</span></span>${tag}<button class="ib" data-a="open" data-v="cgroupe" data-id="${g.id}" aria-label="Ouvrir ${esc(g.name)}">${ic('back')}</button></div><div class="cogfill"><b>${E ? `${E.faites}/${E.prevues} séances` : `${n} élève${n > 1 ? 's' : ''}`}</b>${E ? `<span class="gbt" role="img" aria-label="${E.faites} séances sur ${E.prevues}"><i style="width:${E.prevues ? Math.min(100, Math.round((100 * E.faites) / E.prevues)) : 0}%"></i></span>` : ''}</div></div>`;
 }
 function coHistoCard(id) {
   const l = coSessions(isoIn(-45), isoIn(-1), '', 1)
@@ -413,8 +413,7 @@ A.coPlMore = () =>
     'Planning',
     `<div class="body"><div class="menu"><button data-a="coNewGrp">${ic('users')}Créer un groupe</button><button data-a="nvNew" data-m="cours">${ic('school')}Ouvrir un collectif</button><button data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div></div>`
   );
-/* au téléphone, le planning s'ouvre sur le jour */
-if (!coWide() && !S.pl.v) S.pl.v = 'jour';
+/* le planning s'ouvre sur la semaine, au téléphone comme sur grand écran (S.pl.v vide = semaine, voir coVueTabs) */
 /* Statistiques : 4 périodes (mois en cours, mois dernier, trimestre en cours, saison), le reste dans « Autre période »
    (3 ou 12 derniers mois, un trimestre passé : coAutrePer, coach/2-ecrans.js) */
 A.coDashAutre = () =>

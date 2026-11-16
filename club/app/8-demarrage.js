@@ -44,9 +44,13 @@ setInterval(() => {
 function topPad() {
   const t = $('top'),
     m = $('main');
-  m.style.paddingTop = t.offsetHeight + 'px';
-  m.style.scrollPaddingTop = t.offsetHeight + 'px';
-  m.style.setProperty('--segt', '0px');
+  const h = t.offsetHeight + 'px';
+  m.style.paddingTop = h;
+  m.style.scrollPaddingTop = h;
+  /* --top-h : hauteur réelle de l'en-tête (elle varie avec ses boutons et son titre), mise à jour par le ResizeObserver ci-dessous ;
+     la marge du haut de la zone qui défile la suit, et les styles peuvent la lire (var(--top-h)) */
+  document.documentElement.style.setProperty('--top-h', h);
+  m.style.setProperty('--segt', '0px');   // le défilement commence déjà sous l'en-tête (marge du haut) : les éléments collés n'ont pas de décalage de plus
 }
 new ResizeObserver(topPad).observe($('top'), { box: 'border-box' });
 /* Glisser le doigt le long de la barre du bas pour choisir sa page, comme Instagram */

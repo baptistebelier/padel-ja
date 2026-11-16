@@ -338,17 +338,7 @@ if (UI2) {
   };
 
   /* ---------- Étape 6 — Fiche élève en un clic, formules en tête, onglets Fiche · Séances · Progression · Échanges ---------- */
-  const u2OpenE = A.open;
-  A.open = d => (d && d.v === 'eleve' ? coOpenBase(d) : u2OpenE(d));
-  const u2ElevesL = V.eleves;
-  V.eleves = () => {
-    let h = u2ElevesL();
-    if (S.elF === 'pay' || !coWide()) return h;
-    // plus d'aperçu à droite : la liste prend la largeur, un clic ouvre la fiche
-    const [aside] = coCut(h, '<aside class="cobs">', 'aside');
-    if (aside) h = h.replace(aside, '').replace('<div class="cobento">', '<div class="cobento u2one">');
-    return h.replace(/ aria-current="true"/, '');
-  };
+  /* Élèves, grand écran : une seule colonne de liste ; toucher un élève l'affiche à droite (aperçu de 7-refonte.js), « Ouvrir la fiche » ouvre sa fiche */
   const u2Eleve = V.eleve;
   V.eleve = id => {
     let h = u2Eleve(id)
@@ -560,5 +550,209 @@ if (UI2) {
     u2Rail(t, sub);
     u2Nav();
     u2Pastilles();
+  };
+
+  /* ---------- Fiche élève en une seule carte, fiche de groupe, historique en petites cartes empilées ---------- */
+  const U2M = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  /* petite carte de séance de l'historique (élève, groupe) : l'encart coloré porte la date et l'heure ; les cartes
+     s'empilent, ce n'est pas un agenda. tone : ok (faite), ex (excusé), ab (absent ou annulée), '' (à venir) */
+  const u2Hist = o => {
+    const el = o.go ? 'button' : 'div';
+    return `<${el} class="u2hs ${o.tone || ''}"${o.go ? ' ' + o.go : ''}><span class="u2hd"><b>${esc(DA[new Date(o.d + 'T12:00').getDay()])} ${+o.d.slice(8)}</b><span>${U2M[+o.d.slice(5, 7) - 1]}</span>${o.h ? `<i>${esc(o.h)}</i>` : ''}</span><span class="u2hb"><span class="nm${o.cx ? ' u2cx' : ''}">${o.title}</span>${o.sub ? `<span class="muted small">${o.sub}</span>` : ''}</span>${o.tags ? `<span class="u2ht">${o.tags}</span>` : ''}</${el}>`;
+  };
+  /* une séance d'un groupe (à venir ou faite), en petite carte */
+  const u2Ses = (g, d) => {
+    const s = sesFind(g, d),
+      cx = isCx(g, d),
+      past = d <= TODAY,
+      pr = REGLES.presDe(s, g, d),
+      nP = Object.keys(pr).length ? Object.values(pr).filter(v => v === 'P').length : null,
+      brouillon = BROUILLONS.some(b => b.id === sesKey(g, d) && (b._club || '') === (g._club || '')),
+      tag = cx
+        ? ['Annulée', 'cx']
+        : !past
+          ? s && s.theme
+            ? null
+            : ['Thème à définir', '']
+          : s && s.recap
+            ? ['Bilan envoyé', 'ok']
+            : brouillon
+              ? ['Brouillon', '']
+              : s && s.noRecap
+                ? ['Sans bilan', '']
+                : coOf().rappelBilans
+                  ? ['Bilan à écrire', 'todo']
+                  : null,
+      sub = past
+        ? [nP != null ? nP + '/' + coStu(g).length + ' présents' : 'Appel à faire', s && s.theme ? esc(s.theme) : '']
+            .filter(Boolean)
+            .join(' · ')
+        : [durAt(g, d), s && s.theme ? esc(s.theme) : ''].filter(Boolean).join(' · ');
+    return u2Hist({
+      d,
+      h: hAt(g, d),
+      title: esc(g.name),
+      sub,
+      cx,
+      tone: cx ? 'ab' : past ? 'ok' : '',
+      tags: tag ? `<span class="tag cost ${tag[1]}">${tag[0]}</span>` : '',
+      go: `data-a="open" data-v="seance" data-id="${sesKey(g, d)}"`
+    });
+  };
+
+  /* Fiche élève : une grande carte (identité, coordonnées, boutons, puis les onglets en intercalaires du contenu), et dessous
+     les sous-cartes de l'onglet, chacune avec son picto */
+  const u2EleveF = V.eleve;
+  V.eleve = id => {
+    const h = u2EleveF(id),
+      iPad = h.indexOf('<div class="pad">'),
+      iSeg = h.indexOf('<div class="seg', iPad + 1),
+      iBody = h.indexOf('<div class="pad">', iSeg + 1);
+    if (iPad < 0 || iSeg < 0 || iBody < 0) return h;
+    const tabs = h.slice(iSeg, iBody).replace(/^<div class="seg[^"]*"/, '<div class="r-itabs u2itabs"');
+    let body = h.slice(iBody + '<div class="pad">'.length, h.lastIndexOf('</div>'));
+    const e = coEl(id) || {},
+      ct = (M[id] && M[id].ct) || {},
+      tel = e.tel || ct.tel || '',
+      mail = e.mail || ct.mail || '',
+      fn = svFirst(id),
+      ln = svName(id).slice(fn.length).trim(),
+      cell = (i, lab, v, href) =>
+        v
+          ? `<a class="u2ct" href="${href}"><span class="u2cti">${ic(i)}</span><span class="u2ctt"><small>${lab}</small><b>${esc(v)}</b></span></a>`
+          : `<button class="u2ct u2ctadd" data-a="coEditEl" data-id="${id}"><span class="u2cti">${ic(i)}</span><span class="u2ctt"><small>${lab}</small><b>Ajouter</b></span></button>`;
+    if (S.elTab === 'histo') {
+      const hs = SEANCES.filter(s => s.pres && s.pres[id] && s.d <= TODAY).sort((a, b) => b.d.localeCompare(a.d)),
+        nP = hs.filter(s => s.pres[id] === 'P').length;
+      body =
+        `<div class="cotiles">${coTile('cal', hs.length, 'Séances')}${coTile('check', (hs.length ? Math.round((nP * 100) / hs.length) : 0) + ' %', 'Présence')}${coTile('excuse', hs.filter(s => s.pres[id] === 'E').length, 'Excusé')}${coTile('x', hs.filter(s => s.pres[id] === 'A').length, 'Absent')}</div>` +
+        (hs.length
+          ? `<div class="u2hl">${hs
+              .map(s =>
+                u2Hist({
+                  d: s.d,
+                  h: (grp(s.g) || {}).h || '',
+                  title: esc((grp(s.g) || {}).name || 'Séance'),
+                  sub: s.theme ? esc(s.theme) : '',
+                  tone: s.pres[id] === 'P' ? 'ok' : s.pres[id] === 'E' ? 'ex' : 'ab',
+                  tags: `<span class="tag">${presLbl[s.pres[id]]}</span>`,
+                  go: `data-a="open" data-v="seance" data-id="${s.id}"`
+                })
+              )
+              .join('')}</div>`
+          : none('cal', 'Aucune séance', ''));
+    }
+    return `<div class="pad"><div class="card u2fiche"><div class="u2fh">${coAv(id, 'lg')}<div class="u2fn"><span class="u2fp">${esc(fn)}</span><b class="u2fl">${esc(ln)}</b><span class="tag">${M[id] ? 'Compte /RAM Club' : 'Sans compte'}</span></div><div class="u2fc">${cell('phone', 'Téléphone', tel, 'tel:' + esc(String(tel).replace(/[^+\d]/g, '')))}${cell('mail', 'E-mail', mail, 'mailto:' + esc(mail))}</div><div class="u2fa"><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte /RAM</button>`}</div></div>${tabs}<div class="u2fb">${body}</div></div></div>`;
+  };
+
+  /* Fiche de groupe : le cycle en cours et sa progression en haut, les élèves tout de suite (ajout et retrait), puis les
+     séances à venir et effectuées en petites cartes, et les actions (cycle à l'avance, périodes sans cours) à portée de main */
+  const u2GroupeF = V.cgroupe;
+  V.cgroupe = id => {
+    const g = grp(id);
+    if (!g) return u2GroupeF(id);
+    const st = coStu(g),
+      up = coDates(g, isoIn(1), g.to && g.to > isoIn(1) ? g.to : isoIn(180)),
+      past = coDates(g, g.from || isoIn(-365), TODAY).reverse(),
+      c = REGLES.cycleCourant(g, TODAY),
+      E = c ? REGLES.cycleEtat(g, c, cycleSes(g), TODAY) : null,
+      pct = E && E.prevues ? Math.min(100, Math.round((100 * E.faites) / E.prevues)) : 0,
+      reste = E ? E.seances.filter(x => x.etat === 'next').length : 0,
+      etat = E
+        ? reste <= 1
+          ? '<span class="tag hot">À renouveler</span>'
+          : reste <= 3
+            ? '<span class="tag ac">Fin proche</span>'
+            : '<span class="tag ok">En cours</span>'
+        : '',
+      ch = g._club
+        ? CO_EXT[g._club] && CO_EXT[g._club].chans && CO_EXT[g._club].chans.has(g.id)
+          ? { id: g.id, name: g.name, ext: g._club }
+          : null
+        : chans.find(x => x.id === g.id),
+      todo = past.filter(d => {
+        const s = sesFind(g, d);
+        return !isCx(g, d) && !(s && (s.recap || s.noRecap)) && !BROUILLONS.some(b => b.id === sesKey(g, d));
+      }).length,
+      recaps = past.map(d => ({ d, s: sesFind(g, d) })).filter(x => x.s && x.s.recap),
+      next = up.slice(0, 5),
+      box = (icn, title, extra, inner) =>
+        `<div class="card u2c u2gs"><div class="calh">${ic(icn)}<b>${title}</b>${extra || ''}</div>${inner}</div>`;
+    const head = `<div class="card u2gh"><div class="u2gt"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span></div><div class="u2gc"><div class="u2gcl"><span class="u2gct">${ic('ladder')}${
+      E
+        ? `<b>${esc(c.nom || 'Cycle en cours')}</b><span class="muted">${E.faites}/${E.prevues} séances</span>`
+        : `<b>${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : 'Pas de cycle en cours'}</b><span class="muted">${g.to ? 'jusqu’au ' + fmtD(g.to) : 'séances chaque semaine'}</span>`
+    }</span>${etat}</div>${E ? `<span class="gbt u2gj" role="img" aria-label="${E.faites} séances sur ${E.prevues}"><i style="width:${pct}%"></i></span>` : ''}</div><div class="u2ga"><button class="btn" data-a="coPlan" data-id="${g.id}" title="Programmer un cycle à l’avance">${ic('plus')}Nouveau cycle</button><button class="btn ghost" data-a="coOffAdd" data-id="${g.id}">${ic('ban')}Périodes sans cours</button><button class="btn ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Modifier</button></div></div>`;
+    const tiles = `<div class="cotiles">${coTile('user', g.coach && M[g.coach] ? first(g.coach) : 'À choisir', 'Enseignant', 1)}<div class="cotile">${ic('users')}<b>${st.length}${g.max ? '<small>/' + g.max + '</small>' : ''}</b><span>${g.max ? 'Places occupées' : plural(st.length, 'élève')}</span>${g.max ? `<span class="cobarre" aria-hidden="true"><i style="width:${Math.min(100, Math.round((st.length * 100) / g.max))}%"></i></span>` : ''}</div>${coGrpOffer(g)}</div>`;
+    const formule = u2SansFormule(g)
+      ? `<div class="card u2c u2fo"><div class="calh">${ic('ball')}<b>Formule à choisir</b></div><p class="muted small">Ce groupe n’a pas encore de formule. Choisis-la : c’est elle qui donne le prix des séances et, pour un pack, leur nombre.</p><button class="btn" data-a="coGrpOf" data-id="${g.id}">${ic('ball')}Choisir la formule</button></div>`
+      : '';
+    const eleves = box(
+      'users',
+      'Élèves · ' + st.length,
+      '',
+      `${st.map(k => `<div class="corow">${coAv(k)}<button class="nm grow" data-a="open" data-v="eleve" data-id="${k}" style="text-align:left">${esc(svName(k))}</button><button class="ib" data-a="coRm" data-g="${g.id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} du groupe">${ic('x')}</button></div>`).join('') || empty('users', 'Aucun élève', '')}<button class="btn sm full" data-a="coAdd" data-id="${g.id}">${ic('plus')}Ajouter des élèves</button>`
+    );
+    const avenir = box(
+      'cal',
+      'Séances à venir · ' + up.length,
+      `<button class="chip" data-a="coPlan" data-id="${g.id}">${ic('plus')}Ajouter</button>`,
+      up.length
+        ? `<div class="u2hl">${up
+            .slice(0, 6)
+            .map(d => u2Ses(g, d))
+            .join('')}</div>${up.length > 6 ? `<p class="muted small">Et ${plural(up.length - 6, 'autre séance', 'autres séances')}.</p>` : ''}`
+        : empty('cal', 'Aucune séance à venir', 'Programme un cycle, un pack ou des dates une par une.')
+    );
+    const faites = box(
+      'check',
+      'Séances effectuées · ' + past.length,
+      todo && coOf().rappelBilans ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '',
+      past.length
+        ? `<div class="u2hl">${past
+            .slice(0, 6)
+            .map(d => u2Ses(g, d))
+            .join('')}</div>${
+            past.length > 6
+              ? `<details class="coplus"><summary>Voir les ${plural(past.length - 6, 'autre séance', 'autres séances')}</summary><div class="u2hl">${past
+                  .slice(6)
+                  .map(d => u2Ses(g, d))
+                  .join('')}</div></details>`
+              : ''
+          }`
+        : empty('check', 'Aucune séance faite', 'Après chaque séance : l’appel et le bilan, ici.')
+    );
+    const cycles = box(
+      'ladder',
+      'Cycles et réglages',
+      '',
+      `${coCycleBar(g)}<div class="cokv"><span class="muted">${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : g.to ? 'Cycle en cours, jusqu’au ' + fmtD(g.to) : 'En cours, chaque semaine'}</span>${coCycleTg(g)}</div>${coLocTg(g)}${typeof coCyclesHtml === 'function' ? coCyclesHtml(g) : ''}`
+    );
+    const discussion = box(
+      'chat',
+      'Discussion du groupe',
+      '',
+      ch
+        ? `${ch.ext ? `<div class="item"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(ch.name)}</span><br><span class="muted small">Dans /RAM Club, ${esc(coClubName(g))}</span></span></div>` : `<button class="item" data-a="open" data-v="chan" data-id="${ch.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(ch.name)}</span><br><span class="muted small">Dans /RAM Club pour les élèves et les parents</span></span></button>`}<button class="item" data-a="coChanDel" data-id="${g.id}"><span class="tile">${ic('x')}</span><span class="grow"><span class="nm">Supprimer la discussion</span><br><span class="muted small">Le groupe et ses séances restent</span></span></button>`
+        : `<p class="muted small">Ce groupe n'a pas de discussion dans /RAM Club.</p><button class="btn sm full ghost" data-a="coChanNew" data-id="${g.id}">${ic('plus')}Créer la discussion du groupe</button>`
+    );
+    const themes = next.length
+      ? `<details class="card cothm"><summary><b>Thèmes des prochaines séances</b><span class="muted small"> · les élèves les voient dans leurs cours</span></summary><form id="co-themes" data-id="${g.id}">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" autocomplete="off" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<button class="btn full">Enregistrer les thèmes</button></form></details>`
+      : '';
+    const bilans = recaps.length
+      ? box(
+          'doc',
+          'Bilans du groupe',
+          '',
+          recaps
+            .slice(0, 6)
+            .map(
+              x =>
+                `<button class="item" data-a="open" data-v="seance" data-id="${sesKey(g, x.d)}"><span class="tile">${ic('doc')}</span><span class="grow"><span class="nm">${fmtD(x.d)}</span><br><span class="muted small">${esc(String(x.s.recap).slice(0, 110))}</span></span></button>`
+            )
+            .join('')
+        )
+      : '';
+    return `<div class="pad u2g">${head}${formule}${tiles}<div class="u2g2"><div class="u2gl">${eleves}${discussion}${cycles}</div><div class="u2gr">${avenir}${faites}${coOffHtml(g)}${themes}${bilans}</div></div></div>`;
   };
 }

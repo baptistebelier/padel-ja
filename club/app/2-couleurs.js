@@ -64,14 +64,14 @@ const BASE = {
     muted: '#595D66'
   }
 };
-// part de la couleur du menu dans chaque fond : [jour, nuit]
+// part de la couleur du menu dans chaque fond : [jour, nuit] ; la nuit reste proche du gris (2,5 à 3,5 %)
 const TEINTE = {
-  bg: [0.04, 0.08],
-  card: [0.015, 0.08],
-  card2: [0.05, 0.09],
-  field: [0.05, 0.08],
-  off: [0.08, 0.1],
-  line: [0.08, 0.1]
+  bg: [0.04, 0.025],
+  card: [0.015, 0.025],
+  card2: [0.05, 0.03],
+  field: [0.05, 0.025],
+  off: [0.08, 0.035],
+  line: [0.08, 0.035]
 };
 /* couleur du menu : la couleur principale du club si elle est assez foncée pour un texte blanc, sinon le rouge /RAM */
 const menuOf = main => (main && lum(main) < 0.2 ? main : '#74102A');

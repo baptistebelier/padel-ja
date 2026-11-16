@@ -2179,3 +2179,13 @@ select option { background: var(--c-surface); color: var(--c-text); }
   #main > .seg:not(.haut).plus-g { -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px); mask-image: linear-gradient(90deg, transparent, #000 40px); }
   #main > .seg:not(.haut).plus-g.plus-d { -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
 }
+
+/* pictos jaune citron : la couleur citron reste la nuit ; le jour, un vert-olive foncé lisible sur fond clair (contraste 6:1) */
+:root { --c-ico: #E0F50A; }
+:root[style*='color-scheme: light'] { --c-ico: #4F6200; }
+.cobs .calh > svg, .coday .calh > svg, :root[data-ui="2"] .u2c .calh > svg, #main > .seg.haut button[aria-selected="true"] svg { color: var(--c-ico) !important; }
+
+/* titres des sections : simples et lisibles, sans surlignage incliné (le texte garde la couleur de la page) */
+:root[data-style='street'] .cohd span, :root[data-style='street'] .coey { display: inline; background: none; color: inherit; padding: 0; transform: none; }
+:root[data-style='street'] .coey { color: var(--c-kick); }
+:root[data-style='street'] .cohero .coey { color: var(--c-lime); }

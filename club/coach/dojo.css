@@ -155,3 +155,8 @@
   #main > .seg:not(.haut).plus-g { -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px) !important; mask-image: linear-gradient(90deg, transparent, #000 40px) !important; }
   #main > .seg:not(.haut).plus-g.plus-d { -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent) !important; mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent) !important; }
 }
+
+/* pictos jaune citron : la couleur citron reste la nuit ; le jour, un vert-olive foncé lisible sur fond clair (contraste 6:1) */
+:root { --c-ico: #E0F50A; }
+:root[style*='color-scheme: light'] { --c-ico: #4F6200; }
+.cobs .calh > svg, .coday .calh > svg, :root[data-ui="2"] .u2c .calh > svg, #main > .seg.haut button[aria-selected="true"] svg { color: var(--c-ico) !important; }
