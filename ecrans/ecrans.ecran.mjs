@@ -2999,6 +2999,63 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- Dojo : programmer une séance depuis la fiche d'un élève, rattachée à un achat ---------- */
+test('Dojo : « Programmer une séance » sur la fiche élève, achat présélectionné, séance rattachée et décomptée, achat attribué si besoin (390 et 1280 px)', async () => {
+  for (const largeur of [390, 1280]) {
+    const ctx = await browser.newContext(largeur < 700 ? { viewport: { width: largeur, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: largeur, height: 860 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
+    await page.waitForTimeout(1200);
+    const ids = await page.evaluate(() => {
+      document.querySelector('.ram-splash')?.remove();
+      const [a, b] = [ELEVES[0].id, ELEVES[1].id];
+      OFFRES.formules.push({ id: 'ftest', nom: 'Cours individuel test', sport: 'Padel', joueurs: 1, duree: 75, prix: 40, par: 'seance' });
+      OFFRES.packs.push({ id: 'ptest', formule: 'ftest', nom: 'Pack test 10 séances', seances: 10, prix: 350 });
+      coEl(a).achats = [{ id: 'a-prog', t: 'pack', ref: 'ptest', d: isoIn(-30), n: 10, nom: 'Pack test 10 séances', prix: 350, pay: { ech: [{ s: 0, m: 350, ok: isoIn(-30) }] } }];
+      coEl(b).achats = [];
+      S.tab = 'eleves'; S.elTab = 'fiche'; S.stack = [{ v: 'eleve', id: a }]; render();
+      return { a, b };
+    });
+    // le bouton est bien visible près de « Modifier la fiche »
+    assert.equal(await page.locator('#main [data-a="u2Prog"]').isVisible(), true, 'bouton Programmer une séance');
+    await page.locator('#main [data-a="u2Prog"]').click();
+    await page.waitForSelector('#u2-prog');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, `${largeur} px : le panneau ne déborde pas`);
+    assert.equal(await page.inputValue('#co-pa'), 'a-prog', 'achat compatible présélectionné');
+    assert.ok((await page.locator('#co-pa option:checked').textContent()).includes('restante'), 'séances restantes affichées');
+    // la formule préremplit durée, sport et prix
+    await page.evaluate(() => { const f = document.getElementById('co-pf'); f.value = 'f:ftest'; f.dispatchEvent(new Event('change', { bubbles: true })); });
+    assert.equal(await page.inputValue('#co-pdu'), '1 h 15', 'durée de la formule');
+    await page.fill('#co-pd', await page.evaluate(() => isoIn(4)));
+    await page.fill('#co-pt', 'Bandeja');
+    await page.locator('#u2-prog .btn').click();
+    await page.waitForTimeout(300);
+    const r = await page.evaluate(ids => { const g = GROUPS.find(x => x.achat === 'a-prog'); const dispo = REGLES.achatsDecomptables(coPacks(ids.a), TODAY, REGLES.progParAchat(GROUPS, TODAY))[0]; return { g: g && { once: g.once, prix: g.tarif.prix, couvert: g.couvert, goal: g.goal, dur: g.dur, mem: g.mem.concat(g.ext) }, prog: dispo && dispo.programmees, aprog: dispo && dispo.a_programmer, restantes: dispo && dispo.restantes }; }, ids);
+    assert.ok(r.g, 'séance créée au planning, rattachée à l’achat');
+    assert.deepEqual([r.g.prix, r.g.couvert, r.g.goal, r.g.dur], [0, 'pack', 'Bandeja', '1 h 15'], 'couverte par le pack, thème et durée');
+    assert.deepEqual(r.g.mem, [ids.a], 'avec l’élève');
+    assert.equal(r.prog, 1, 'une séance programmée sur le pack'); assert.equal(r.aprog, r.restantes - 1, 'séances à placer décomptées');
+    // élève sans achat : attribuer le pack choisi et créer la séance d'un coup
+    await page.waitForSelector('#u2-prog', { state: 'detached', timeout: 4000 });   // la première feuille est refermée
+    await page.evaluate(b => { S.stack = [{ v: 'eleve', id: b }]; render(); }, ids.b);
+    await page.locator('#main [data-a="u2Prog"]').click();
+    await page.waitForSelector('#u2-prog');
+    await page.evaluate(() => { const f = document.getElementById('co-pf'); f.value = 'p:ptest'; f.dispatchEvent(new Event('change', { bubbles: true })); });
+    assert.ok((await page.inputValue('#co-pa')).startsWith('new:'), 'Attribuer le pack proposé et présélectionné');
+    await page.fill('#co-pd', await page.evaluate(() => isoIn(5)));
+    await page.locator('#u2-prog .btn').click();
+    await page.waitForTimeout(300);
+    const r2 = await page.evaluate(b => { const e = coEl(b); const g = GROUPS.find(x => x.achat && e.achats.some(a => a.id === x.achat)); return { achats: e.achats.map(a => a.t + ':' + a.n), couvert: g && g.couvert, actif: coEnActivite(b) }; }, ids.b);
+    const dbg = await page.evaluate(() => JSON.stringify({ feuille: !!document.getElementById('u2-prog'), achat: document.getElementById('co-pa') && document.getElementById('co-pa').value, date: document.getElementById('co-pd') && document.getElementById('co-pd').value, toast: (document.querySelector('.toast') || {}).textContent }));
+    assert.deepEqual(r2.achats, ['pack:10'], largeur + ' px : achat créé ' + dbg);
+    assert.equal(r2.couvert, 'pack', 'séance rattachée au nouvel achat');
+    assert.equal(r2.actif, true, 'l’élève passe En activité');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
 /* ---------- Dojo : pas de logo de club dans l'en-tête ; sélecteur de club en bouton picto sur téléphone ---------- */
 test('Dojo : plus de logo de club dans l’en-tête (gardé dans /Buvette), sélecteur de club en bouton carré à picto sur téléphone qui ouvre la liste maison', async () => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
@@ -3027,7 +3084,8 @@ test('Dojo : plus de logo de club dans l’en-tête (gardé dans /Buvette), sél
   const bv = await ctx.newPage();
   await bv.goto(JA + '/club/index.html');
   await bv.waitForFunction(() => typeof S !== 'undefined' && typeof club === 'function', null, { timeout: 8000 });
-  await bv.waitForTimeout(1200);
+  await bv.waitForTimeout(2500);   // la première visite peut recharger la page une fois (service worker)
+  await bv.waitForFunction(() => typeof S !== 'undefined' && typeof club === 'function', null, { timeout: 8000 });
   await bv.evaluate(() => { document.querySelector('.ram-splash')?.remove(); club().logoD = club().logoL = 'img/favicon.png'; S.tab = 'home'; S.stack = []; render(); });
   assert.equal(await bv.locator('#top .toplogo').count(), 1, 'le logo du club reste dans /Buvette');
   assert.deepEqual(errs, []);

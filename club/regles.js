@@ -629,7 +629,51 @@
     return vu;
   }
 
+  /* ---------- Programmer une séance pour un élève, rattachée à un achat ---------- */
+  /* séances à venir déjà rattachées à chaque achat : { idAchat: nombre } (séances ponctuelles « achat », dates de cycle exclues) */
+  function progParAchat(groupes, today) {
+    const m = {};
+    (groupes || []).forEach(g => { if (g && g.achat && g.once && g.once > today) m[g.achat] = (m[g.achat] || 0) + 1; });
+    return m;
+  }
+  /* les achats qu'une séance peut décompter : pack ou abonnement non terminé (état « En cours »), avec ce qu'il en reste.
+     achats : le résultat de couverture() (champ used) ; programmees : progParAchat(). Un pack : restantes = séances non consommées,
+     a_programmer = restantes moins celles déjà programmées ; un abonnement : sans compte de séances (null) sauf fréquence réglée. */
+  function achatsDecomptables(achats, today, programmees) {
+    return (achats || [])
+      .filter(a => (a.t === 'pack' || a.t === 'abo') && etatAchat(a, today) === 'encours')
+      .map(a => {
+        const total = a.t === 'pack' ? +a.n || 0 : seancesAbo(a),
+          fini = Number.isFinite(total),
+          restantes = fini ? Math.max(0, total - (+a.used || 0)) : null,
+          prog = (programmees && programmees[a.id]) || 0,
+          nom = a.nom || (a.t === 'pack' ? 'Pack' : 'Abonnement');
+        return {
+          id: a.id, t: a.t, nom, cycle: a.cycle || '', restantes, programmees: prog,
+          a_programmer: fini ? Math.max(0, restantes - prog) : null,
+          libelle: nom + (fini ? ', ' + restantes + ' restante' + (restantes > 1 ? 's' : '') : '') + (prog ? ' · ' + prog + ' déjà programmée' + (prog > 1 ? 's' : '') : '')
+        };
+      });
+  }
+  /* la séance ponctuelle d'un élève (cours individuel) : comme « Ajouter une séance » du planning ; rattachée à un achat elle ne se paie
+     plus à l'unité (prix 0, couvert : pack ou abonnement) et garde son identifiant (achat) pour le décompte */
+  function seanceElevePlan(o) {
+    const [y, m, d] = String(o.date).split('-'),
+      g = {
+        type: 'train', name: o.nom || 'Cours individuel', sport: o.sport || 'Padel', once: o.date, day: dowOf(o.date), h: o.h, dur: o.dur || '1 h',
+        defLoc: o.lieu || 'En salle', coach: o.coach, mem: o.mem || [], ext: o.ext || [], sub: d + '/' + m + '/' + y + ' ' + o.h + ' · ' + (o.dur || '1 h'),
+        tarif: { mode: 'seance', prix: o.achat ? 0 : +o.prix || 0 }, at: o.at || Date.now()
+      };
+    if (o.achat) { g.achat = o.achat.id; g.couvert = o.achat.t; }
+    if (o.theme) g.goal = o.theme;
+    if (o.lieu) g.locPref = 1;
+    return g;
+  }
+
   return {
+    progParAchat,
+    achatsDecomptables,
+    seanceElevePlan,
     objDe,
     objProgres,
     objBascule,
