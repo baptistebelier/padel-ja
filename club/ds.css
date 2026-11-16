@@ -341,3 +341,36 @@
   /* page qui commence par des chiffres, des filtres ou un bouton (pas par une carte) : un peu d'air sous l'onglet */
   :root:root #main > .seg.seg + .pad > :first-child:not(.card):not(.cobento):not(.u2fiche) { margin-top: 12px; }
 }
+
+/* ---------- Objectifs et compétences (fiche élève et fiche de groupe de /Dojo, École > Mon espace de /Buvette) ---------- */
+.obj-card { display: flex; flex-direction: column; gap: 4px; }
+.obj { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; border-top: 1px solid color-mix(in srgb, var(--c-ink) 16%, transparent); }
+.obj:first-of-type, .objlibre + .obj { border-top: 0; }
+.objh { display: flex; align-items: center; gap: 10px; }
+.objh b { flex: 1; min-width: 0; font: 700 19px/1.15 var(--f-label); overflow-wrap: anywhere; }
+.objp { flex: none; font: 700 16px var(--f-label); color: var(--c-muted); white-space: nowrap; }
+.objb { display: block; height: 12px; border: var(--bw) solid var(--c-ink); background: var(--c-bg); }
+.objb i { display: block; height: 100%; background: var(--c-green); transition: width .25s; }
+.objl { display: flex; flex-direction: column; gap: 6px; }
+.objc { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; padding: 6px 10px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); color: var(--c-text); text-align: left; font: inherit; cursor: pointer; }
+.objc.ro { cursor: default; }
+.objk { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); color: var(--c-dark); }
+.objk svg { width: 18px; height: 18px; opacity: 0; }
+.objc.on .objk { background: var(--c-green); }
+.objc.on .objk svg { opacity: 1; }
+.objc.on { background: color-mix(in srgb, var(--c-green) 18%, var(--c-surface-2)); }
+.objt { align-self: flex-start; }
+.objlibre { margin: 0 0 6px; color: var(--c-muted); }
+.objr { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: var(--bw) solid var(--c-ink); background: var(--c-surface-2); }
+.objn { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-weight: 600; }
+.objn small { color: var(--c-muted); font: 700 14px var(--f-label); }
+.objg { display: flex; flex-wrap: wrap; gap: 6px; }
+.objs { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px 0 6px; border: var(--bw) solid var(--c-ink); background: var(--c-surface); color: var(--c-text); font: 700 14px var(--f-label); cursor: pointer; }
+.objs i { display: grid; place-items: center; width: 18px; height: 18px; border: var(--bw) solid var(--c-ink); background: var(--c-bg); }
+.objs i svg { width: 12px; height: 12px; opacity: 0; color: var(--c-dark); }
+.objs.on { background: color-mix(in srgb, var(--c-green) 28%, var(--c-surface)); }
+.objs.on i { background: var(--c-green); }
+.objs.on i svg { opacity: 1; }
+.objer { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.objer input { flex: 1; min-width: 0; }
+.objmv { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }

@@ -810,7 +810,7 @@ if (UI2) {
             .join('')
         )
       : '';
-    return `<div class="pad u2g">${head}${formule}${tiles}<div class="u2g2"><div class="u2gl">${eleves}${discussion}${cycles}<div class="u2gdel"><button class="u2dng" data-a="coGrpDel" data-id="${g.id}">${ic('trash')}Supprimer le groupe</button></div></div><div class="u2gr">${avenir}${faites}${coOffHtml(g)}${themes}${bilans}</div></div></div>`;
+    return `<div class="pad u2g">${head}${formule}${tiles}<div class="u2g2"><div class="u2gl">${eleves}${u2ObjGroupe(g)}${discussion}${cycles}<div class="u2gdel"><button class="u2dng" data-a="coGrpDel" data-id="${g.id}">${ic('trash')}Supprimer le groupe</button></div></div><div class="u2gr">${avenir}${faites}${coOffHtml(g)}${themes}${bilans}</div></div></div>`;
   };
 
   /* Supprimer un groupe : le groupe seul. Gardés : formules, achats, paiements, séances effectuées (présences, bilans), historique des élèves,
@@ -844,5 +844,145 @@ if (UI2) {
     GROUPS.splice(GROUPS.indexOf(g), 1);
     S.stack = S.stack.filter(v => !(v.v === 'cgroupe' && v.id === g.id));
     coSave('Groupe supprimé : formules, séances effectuées et paiements gardés');
+  };
+
+  /* ---------- Objectifs et compétences : d'un élève ou d'un groupe, compétences validées d'un seul toucher ----------
+     Collection « objectif » (OBJECTIFS, regles.js objDe / objProgres / objBascule) ; l'élève les lit dans /Buvette, École, Mon espace (objMes). */
+  const objId = () => 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    objCid = () => 'c' + Math.random().toString(36).slice(2, 7),
+    objListe = sc => OBJECTIFS.filter(o => (sc.g ? o.g === sc.g : o.to === sc.k)).sort((a, b) => (a.ord || 0) - (b.ord || 0)),
+    objAjout = sc =>
+      `<button class="btn ghost sm full" data-a="u2ObjEdit" ${sc.g ? `data-g="${sc.g}"` : `data-to="${sc.k}"`}>${ic('plus')}Ajouter un objectif</button>`,
+    objEntete = (o, p) => {
+      const pct = p.total ? Math.round((100 * p.ok) / p.total) : 0,
+        g = o.g ? grp(o.g) : null;
+      return `<div class="objh"><b>${esc(o.nom)}</b><span class="objp">${p.ok}/${p.total}</span><button class="ib" data-a="u2ObjEdit" data-id="${o.id}" aria-label="Modifier l’objectif ${esc(o.nom)}">${ic('edit')}</button></div>${g && !o.to ? `<span class="tag objt">Objectif du groupe · ${esc(g.name)}</span>` : ''}<span class="objb" role="img" aria-label="${p.ok} sur ${p.total}"><i style="width:${pct}%"></i></span>`;
+    };
+  /* la fiche d'un élève : ses objectifs et ceux de ses groupes ; chaque compétence se valide d'un toucher */
+  function u2ObjEleve(k) {
+    const L = REGLES.objDe(OBJECTIFS, k, coGroupsOf(k).map(g => g.id)),
+      libre = ((coEl(k) || {}).goals || '').trim();
+    return `<div class="card obj-card">${libre ? `<p class="objlibre">${esc(libre)}</p>` : ''}${
+      L.length
+        ? L.map(o => {
+            const p = REGLES.objProgres(o, [k]);
+            return `<div class="obj">${objEntete(o, p)}<div class="objl">${(o.comps || [])
+              .map(c => {
+                const on = !!(o.ok && o.ok[c.id] && o.ok[c.id][k]);
+                return `<button class="objc${on ? ' on' : ''}" role="switch" aria-checked="${on}" data-a="u2Comp" data-o="${o.id}" data-c="${c.id}" data-k="${k}"><span class="objk">${ic('check')}</span><span class="grow">${esc(c.nom)}</span></button>`;
+              })
+              .join('')}</div></div>`;
+          }).join('')
+        : '<p class="muted small">Aucun objectif pour le moment.</p>'
+    }${objAjout({ k })}</div>`;
+  }
+  /* la fiche d'un groupe : ses objectifs, avec la validation élève par élève (une pastille par élève) */
+  function u2ObjGroupe(g) {
+    const st = coStu(g),
+      L = objListe({ g: g.id });
+    return `<div class="card u2c u2gs obj-card"><div class="calh">${ic('target')}<b>Objectifs du groupe</b></div>${
+      L.length
+        ? L.map(o => {
+            const p = REGLES.objProgres(o, st);
+            return `<div class="obj">${objEntete(o, p)}<div class="objl">${(o.comps || [])
+              .map(c => {
+                const n = st.filter(k => o.ok && o.ok[c.id] && o.ok[c.id][k]).length;
+                return `<div class="objr"><span class="objn">${esc(c.nom)}<small>${n}/${st.length}</small></span><span class="objg">${st
+                  .map(k => {
+                    const on = !!(o.ok && o.ok[c.id] && o.ok[c.id][k]);
+                    return `<button class="objs${on ? ' on' : ''}" role="switch" aria-checked="${on}" data-a="u2Comp" data-o="${o.id}" data-c="${c.id}" data-k="${k}" aria-label="${esc(svName(k))} : ${esc(c.nom)}">${coAv(k, 'xs')}<span>${esc(svFirst(k))}</span><i>${ic('check')}</i></button>`;
+                  })
+                  .join('')}</span></div>`;
+              })
+              .join('')}</div></div>`;
+          }).join('')
+        : '<p class="muted small">Un objectif de groupe s’applique à chaque élève ; la validation reste individuelle.</p>'
+    }${objAjout({ g: g.id })}</div>`;
+  }
+  A.u2Comp = d => {
+    const o = OBJECTIFS.find(x => x.id === d.o);
+    if (!o) return;
+    const on = REGLES.objBascule(o, d.c, d.k, TODAY);
+    coSave(on ? 'Compétence validée' : 'Validation retirée');
+  };
+  const objLigne = c =>
+    `<div class="objer" data-c="${c.id}"><input value="${esc(c.nom)}" placeholder="Compétence" aria-label="Compétence" autocomplete="off"><button type="button" class="ib" data-a="u2CompMv" data-s="-1" aria-label="Monter">${ic('up')}</button><button type="button" class="ib" data-a="u2CompMv" data-s="1" aria-label="Descendre">${ic('down')}</button><button type="button" class="ib" data-a="u2CompRm" aria-label="Retirer la compétence">${ic('x')}</button></div>`;
+  A.u2ObjEdit = d => {
+    const o = d.id ? OBJECTIFS.find(x => x.id === d.id) : null,
+      to = d.to || (o && o.to) || '',
+      g = d.g || (o && o.g) || '';
+    sheet(
+      o ? 'Modifier l’objectif' : 'Nouvel objectif',
+      `<form class="body" id="u2-obj" data-id="${o ? o.id : ''}" data-to="${to}" data-g="${g}"><div class="fld"><label for="u2o-nom">Objectif</label><input id="u2o-nom" value="${esc(o ? o.nom : '')}" placeholder="Ex. Maîtriser la bandeja" autocomplete="off" required></div><div class="fld"><label>Compétences à acquérir</label><div id="u2o-cs">${(o ? o.comps : [{ id: objCid(), nom: '' }]).map(objLigne).join('')}</div><button type="button" class="btn ghost sm full" data-a="u2CompAdd">${ic('plus')}Ajouter une compétence</button></div>${
+        o
+          ? `<div class="objmv"><button type="button" class="btn ghost sm" data-a="u2ObjMv" data-id="${o.id}" data-s="-1">${ic('up')}Monter l’objectif</button><button type="button" class="btn ghost sm" data-a="u2ObjMv" data-id="${o.id}" data-s="1">${ic('down')}Descendre l’objectif</button></div>`
+          : ''
+      }<button class="btn full">${ic('check')}Enregistrer</button>${o ? `<button type="button" class="btn full ghost" data-a="u2ObjDel" data-id="${o.id}">${ic('trash')}Supprimer l’objectif</button>` : ''}</form>`
+    );
+  };
+  A.u2CompAdd = () => {
+    const z = $('u2o-cs');
+    z.insertAdjacentHTML('beforeend', objLigne({ id: objCid(), nom: '' }));
+    z.lastElementChild.querySelector('input').focus();
+  };
+  A.u2CompRm = (d, el) => el.closest('.objer').remove();
+  A.u2CompMv = (d, el) => {
+    const r = el.closest('.objer'),
+      s = +d.s;
+    if (s < 0 && r.previousElementSibling) r.parentNode.insertBefore(r, r.previousElementSibling);
+    if (s > 0 && r.nextElementSibling) r.parentNode.insertBefore(r.nextElementSibling, r);
+    el.focus();
+  };
+  A.u2ObjMv = d => {
+    const o = OBJECTIFS.find(x => x.id === d.id);
+    if (!o) return;
+    const sc = objListe(o.g ? { g: o.g } : { k: o.to }),
+      i = sc.indexOf(o),
+      j = i + +d.s;
+    if (j < 0 || j >= sc.length) return toast(+d.s < 0 ? 'Déjà en premier' : 'Déjà en dernier');
+    sc.splice(j, 0, sc.splice(i, 1)[0]);
+    sc.forEach((x, n) => (x.ord = n));
+    closeSheet();
+    coSave('Objectif déplacé');
+  };
+  A.u2ObjDel = d => {
+    const o = OBJECTIFS.find(x => x.id === d.id);
+    if (!o || !confirm('Supprimer l’objectif « ' + o.nom + ' » et ses validations ?')) return;
+    OBJECTIFS.splice(OBJECTIFS.indexOf(o), 1);
+    closeSheet();
+    coSave('Objectif supprimé');
+  };
+  document.addEventListener('submit', e => {
+    if (e.target.id !== 'u2-obj') return;
+    e.preventDefault();
+    const f = e.target,
+      nom = $('u2o-nom').value.trim(),
+      comps = [...f.querySelectorAll('.objer')].map(r => ({ id: r.dataset.c, nom: r.querySelector('input').value.trim() })).filter(c => c.nom);
+    if (!nom) return;
+    let o = f.dataset.id ? OBJECTIFS.find(x => x.id === f.dataset.id) : null;
+    if (!o) {
+      o = { id: objId(), nom, comps, at: Date.now() };
+      if (f.dataset.g) o.g = f.dataset.g;
+      else o.to = f.dataset.to;
+      const sc = objListe(o.g ? { g: o.g } : { k: o.to });
+      o.ord = sc.length ? Math.max(...sc.map(x => x.ord || 0)) + 1 : 0;
+      OBJECTIFS.push(o);
+    } else {
+      o.nom = nom;
+      const gardees = new Set(comps.map(c => c.id));
+      if (o.ok) {
+        Object.keys(o.ok).forEach(c => !gardees.has(c) && delete o.ok[c]);
+        if (!Object.keys(o.ok).length) delete o.ok;
+      }
+      o.comps = comps;
+    }
+    closeSheet();
+    coSave('Objectif enregistré');
+  });
+  /* la fiche élève : la sous-carte « Objectifs » devient structurée ; la fiche de groupe : une carte d'objectifs sous les élèves */
+  const u2EleveObj = V.eleve;
+  V.eleve = id => {
+    const h = u2EleveObj(id);
+    return h.replace(/(Objectifs<\/span><\/h2>)<div class="card"><p>[\s\S]*?<\/p><\/div>/, (m, t) => t + u2ObjEleve(id));
   };
 }

@@ -2999,6 +2999,51 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- Dojo : objectifs et compétences (élève, groupe) ; lecture seule dans /Buvette ---------- */
+test('Objectifs et compétences : créés dans /Dojo (élève, groupe), validés d’un toucher, progression, lecture seule dans /Buvette', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  const k = await page.evaluate(() => { const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)); window.__g = g.id; S.tab = 'eleves'; S.elTab = 'fiche'; S.stack = [{ v: 'eleve', id: ELEVES[0].id }]; render(); return ELEVES[0].id; });
+  // création : un objectif et trois compétences, par la feuille
+  await page.locator('#main [data-a="u2ObjEdit"]').first().click();
+  await page.fill('#u2o-nom', 'Maîtriser la bandeja');
+  await page.fill('#u2o-cs .objer input', 'Placement');
+  for (const nom of ['Frappe plate', 'Retombée']) { await page.click('[data-a="u2CompAdd"]'); await page.locator('#u2o-cs .objer input').last().fill(nom); }
+  // réordonner (la dernière monte d'un cran), puis enregistrer
+  await page.locator('#u2o-cs .objer').last().locator('[data-a="u2CompMv"][data-s="-1"]').click();
+  await page.click('#u2-obj .btn:not(.ghost)');
+  assert.deepEqual(await page.evaluate(() => OBJECTIFS[0].comps.map(c => c.nom)), ['Placement', 'Retombée', 'Frappe plate'], 'ordre des compétences');
+  assert.equal(await page.locator('#main .objp').first().textContent(), '0/3', 'progression 0/3');
+  // un toucher valide, un second dévalide, avec retour visuel
+  const comp = page.locator('#main .objc').first();
+  await comp.click();
+  assert.equal(await page.locator('#main .objc.on').count(), 1, 'compétence validée');
+  assert.equal(await page.locator('#main .objp').first().textContent(), '1/3', 'progression 1/3');
+  assert.equal(await page.evaluate(([o, k]) => REGLES.objProgres(OBJECTIFS[0], [k]).ok, [0, k]), 1);
+  // objectif de groupe : validation élève par élève
+  await page.evaluate(() => { S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: window.__g }]; render(); });
+  await page.locator('#main [data-a="u2ObjEdit"][data-g]').click();
+  await page.fill('#u2o-nom', 'Jeu de vitres');
+  await page.fill('#u2o-cs .objer input', 'Sortie de vitre');
+  await page.click('#u2-obj .btn:not(.ghost)');
+  const chips = await page.locator('#main .objs').count();
+  assert.ok(chips >= 1, 'une pastille par élève');
+  await page.locator('#main .objs').first().click();
+  assert.equal(await page.locator('#main .objs.on').count(), 1, 'un seul élève validé');
+  assert.equal(await page.evaluate(() => { const o = OBJECTIFS.find(x => x.g); return REGLES.objProgres(o, coStu(grp(window.__g))).ok; }), 1, 'les autres élèves ne sont pas validés');
+  // /Buvette : l'élève les voit en lecture seule
+  const bv = await ctx.newPage();
+  await bv.goto(JA + '/club/index.html');
+  await bv.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  const html = await bv.evaluate(() => { OBJECTIFS.push({ id: 'oT', to: ME(), nom: 'Servir plus fort', ord: 0, comps: [{ id: 'c1', nom: 'Lancer de balle' }, { id: 'c2', nom: 'Jeu de jambes' }], ok: { c1: { [ME()]: TODAY } } }); return objMes(ME()); });
+  assert.ok(html.includes('Servir plus fort') && html.includes('1/2'), 'objectif et progression visibles');
+  assert.ok(!html.includes('data-a='), 'lecture seule : aucune action');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
 /* ---------- Dojo : supprimer un groupe (le groupe seul) ---------- */
 test('Dojo : « Supprimer le groupe » demande confirmation, retire le groupe seul et garde formules, séances effectuées et historique', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } }), page = await ctx.newPage(), errs = [];

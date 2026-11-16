@@ -28,6 +28,8 @@ const I = {
   ball: '<circle cx="12" cy="12" r="9"/><path d="M5.500 5.500c3 3 3 10 0 13M18.500 5.500c-3 3-3 10 0 13"/>',
   check: '<path d="M5 12l5 5 9-10"/>',
   chevD: '<path d="M6 9l6 6 6-6"/>',
+  up: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  down: '<path d="M12 5v14M5 12l7 7 7-7"/>',
   pin: '<path d="M12 21s7-6.500 7-11.500a7 7 0 10-14 0C5 14.500 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.500"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
@@ -1647,7 +1649,8 @@ const TABBAR = [
 const ELEVES = [],
   SEANCES = [],
   SUIVI = [],
-  BROUILLONS = []; // bilans de séance préparés (par Claude, via le connecteur /RAM), publiés par l'enseignant
+  BROUILLONS = [],
+  OBJECTIFS = []; // objectifs et compétences (objectif d'un élève ou d'un groupe, regles.js objDe) ; bilans de séance préparés : bilans de séance préparés (par Claude, via le connecteur /RAM), publiés par l'enseignant
 /* la séance d'un groupe à une date (enregistrée dans le club du groupe), ou rien */
 const sesDu = (g, iso) =>
   g ? SEANCES.find(s => s.id === g.id + '.' + iso && (s._club || '') === (g._club || '')) : null;

@@ -605,7 +605,34 @@
     '0'
   ];
 
+  /* ---------- Objectifs et compétences (collection « objectif ») ----------
+     un objectif : { nom, ord, comps: [{ id, nom }], ok: { idCompétence: { clé de l'élève: date de validation } }, to | g } ;
+     « to » : objectif d'un élève ; « g » : objectif d'un groupe, appliqué à chaque élève du groupe, validé élève par élève. */
+  const objDe = (liste, k, groupes) =>
+    (liste || []).filter(o => o && (o.to === k || (o.g && (groupes || []).includes(o.g)))).sort((a, b) => (a.ord || 0) - (b.ord || 0));
+  /* avancement d'un objectif pour une ou plusieurs clés d'élèves : compétences validées / compétences à valider */
+  function objProgres(o, cles) {
+    const comps = (o && o.comps) || [], ks = [].concat(cles || []);
+    let ok = 0;
+    comps.forEach(c => ks.forEach(k => { if (o.ok && o.ok[c.id] && o.ok[c.id][k]) ok++; }));
+    return { ok, total: comps.length * ks.length, comps: comps.length };
+  }
+  /* valide ou dévalide une compétence pour un élève ; renvoie vrai si elle est validée après coup */
+  function objBascule(o, compId, k, date) {
+    o.ok = o.ok || {};
+    const m = (o.ok[compId] = o.ok[compId] || {});
+    if (m[k]) delete m[k];
+    else m[k] = date;
+    const vu = !!m[k];
+    if (!Object.keys(m).length) delete o.ok[compId];
+    if (!Object.keys(o.ok).length) delete o.ok;
+    return vu;
+  }
+
   return {
+    objDe,
+    objProgres,
+    objBascule,
     seancesAbo,
     etatAchat,
     ETATS,

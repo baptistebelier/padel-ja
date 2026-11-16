@@ -295,6 +295,7 @@
     ELEVES.forEach(x => !x._club && add('eleve', x.id, x));
     SEANCES.forEach(x => !x._club && add('seance', x.id, x));
     if (typeof BROUILLONS !== 'undefined') BROUILLONS.forEach(x => !x._club && add('brouillon', x.id, x));
+    OBJECTIFS.forEach(x => !x._club && add('objectif', x.id, x));
     SUIVI.forEach(x => {
       if (x._club) return;
       at(x, 'suivi');
@@ -533,7 +534,8 @@
     eleve: () => ELEVES,
     seance: () => SEANCES,
     brouillon: () => (typeof BROUILLONS !== 'undefined' ? BROUILLONS : []),
-    suivi: () => SUIVI
+    suivi: () => SUIVI,
+    objectif: () => OBJECTIFS
   };
   function place(list, obj, desc) {
     const i = list.findIndex(x => x.id === obj.id);
@@ -900,6 +902,7 @@
       case 'eleve':
       case 'seance':
       case 'brouillon':
+      case 'objectif':
         return staff;
       case 'suivi':
         return staff || (d.by === k && myKeys().includes(d.to) && (d.k === 'msg' || d.k === 'video'));
@@ -1924,6 +1927,7 @@
     SEANCES.length = 0;
     if (typeof BROUILLONS !== 'undefined') BROUILLONS.length = 0;
     SUIVI.length = 0;
+    OBJECTIFS.length = 0;
     ['tel', 'mail'].forEach(k => {
       MYCT[k][2] = '';
     });
@@ -2076,6 +2080,7 @@
       'seance',
       'brouillon',
       'suivi',
+      'objectif',
       'form',
       'rep',
       'msg',
