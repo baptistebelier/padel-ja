@@ -230,12 +230,6 @@ html, body { background: var(--c-bg); }
   :is(#main, #subnav) > .seg button:hover { color: #FFFFFF; background: color-mix(in srgb, #FFFFFF 5.88%, transparent); }
   :is(#main, #subnav) > .seg button[aria-selected='true'] { transform: none; }
 }
-@media (max-width: 1023px) {
-  :is(#main, #subnav) > .seg { max-width: none; margin-left: 0; margin-right: 0; -webkit-mask-image: none; mask-image: none; background: var(--co-side); border: 0; padding: 6px; }
-  :is(#main, #subnav) > .seg button[aria-selected='true'] { color: #FFFFFF; background: var(--co-side-on); border-color: color-mix(in srgb, #FFFFFF 14.9%, transparent); box-shadow: inset 0 -3px 0 var(--co-lime); }
-  :is(#main, #subnav) > .seg button[aria-selected='true']::before { display: none; }
-  :is(#main, #subnav) > .seg button[aria-selected='true'] svg { color: var(--c-on-menu-act, var(--c-dark)); }
-}
 :root[data-style='street'] .coey { display: inline-block; width: fit-content; max-width: 100%; background: var(--accent2); padding: 2px 8px; transform: rotate(-1.5deg); margin-bottom: 6px; }
 :root[data-style='street'] .cohero .coey { background: var(--co-lime); }
 :root[data-style='street'] .cohd span { flex: none; display: inline-block; max-width: 100%; background: var(--accent); color: var(--on-accent); padding: 2px 8px; transform: rotate(-1.5deg); }
@@ -280,10 +274,6 @@ button.copp:hover span:last-child { text-decoration: underline; }
   #phone .tabs > button[aria-current="page"] { background: var(--c-lime); color: var(--c-dark); border-color: #000000; box-shadow: 2px 2px 0 #000000; }
   #phone .tabs > button[aria-current="page"] svg { color: var(--c-dark); }
   #main, .phone.withfoot #main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
-  #main > .seg:not(.haut) { position: sticky; top: 0; z-index: 4; margin: 0 0 14px; padding: 10px 12px; background: var(--dj-sub); border: 0; border-top: var(--bw, 2px) solid #000000; border-bottom: var(--bw, 2px) solid #000000; box-shadow: none; gap: 6px; overflow-x: auto; border-radius: 0; -webkit-mask-image: none; mask-image: none; }
-  #main > .seg:not(.haut) button { flex: 0 0 auto; flex-direction: column; gap: 4px; min-height: 52px; padding: 6px 10px; border: var(--bw, 2px) solid transparent; background: transparent; color: var(--b-creme); box-shadow: none; font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; position: relative; }
-  #main > .seg:not(.haut) button .lb { display: block; }
-  #main > .seg:not(.haut) button[aria-selected="true"] { background: var(--c-lime); color: var(--c-dark); border-color: #000000; box-shadow: 2px 2px 0 #000000; }
 }
 @media (min-width: 1024px) {
   :root { --side: 92px; --sub: 224px; }

@@ -229,11 +229,6 @@ html, body { background: var(--c-bg); }
   #phone .tabs button svg { color: var(--c-on-menu); width: 22px; height: 22px; }
   #phone .tabs button[aria-current="page"] { background: var(--c-menu-act); color: var(--c-on-menu-act); border: var(--bw) solid var(--c-ink); box-shadow: var(--sh-sm); }
   #phone .tabs button[aria-current="page"] svg { color: var(--c-on-menu-act); }
-  #main > .seg:not(.haut) { position: sticky; top: var(--segt, 0px); z-index: 4; margin: 0 0 14px; padding: 10px 12px; background: var(--c-menu-2); border: 0; border-top: var(--bw) solid var(--c-ink); border-bottom: var(--bw) solid var(--c-ink); box-shadow: none; gap: 6px; overflow-x: auto; -webkit-mask-image: none; mask-image: none; border-radius: 0; }
-  #main > .seg:not(.haut) button { flex: 0 0 auto; flex-direction: column; gap: 4px; min-width: 64px; min-height: 52px; padding: 6px 10px; border: var(--bw) solid transparent; border-left: var(--bw) solid transparent; background: transparent; color: var(--c-on-menu); box-shadow: none; font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; position: relative; }
-  #main > .seg:not(.haut) button .lb { display: block; }
-  #main > .seg:not(.haut) button svg { width: 20px; height: 20px; color: currentColor; }
-  #main > .seg:not(.haut) button[aria-selected="true"] { background: var(--c-menu-act); color: var(--c-on-menu-act); border-color: var(--c-ink); box-shadow: var(--sh-sm); }
 }
 @media (min-width: 1024px) {
   :root { --side: 92px; --sub: 224px; }

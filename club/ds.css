@@ -312,3 +312,32 @@
 .tg[aria-checked='true']::before { background: var(--c-green); }
 .tg[aria-checked='true']::after { transform: translateX(22px); }
 .tg:focus-visible { outline: 3px solid var(--c-pink); outline-offset: 2px; }
+
+/* ---------- Téléphone : gouttière commune et intercalaires de classeur (toutes les bandes d'onglets des trois applis) ----------
+   --gut : l'écart entre le bord de l'écran et les cartes, l'en-tête et les intercalaires (10 px sur téléphone, inchangé ailleurs).
+   Toute bande d'onglets sous l'en-tête (#main > .seg) prend le dessin des intercalaires de l'ordinateur : onglet actif à liseré citron,
+   compteur dans l'onglet, collé au haut de la carte qui suit (aucun espace ni liseré), défilement horizontal avec fondu (segHint). */
+:root { --gut: 16px; }
+@media (max-width: 700px) {
+  :root { --gut: 10px; }
+  :root:root #main > .pad { padding-left: var(--gut); padding-right: var(--gut); }
+  :root:root #phone .top { padding-left: max(var(--gut), env(safe-area-inset-left, 0px)) !important; padding-right: max(var(--gut), env(safe-area-inset-right, 0px)) !important; }
+}
+@media (max-width: 1023px) {
+  :root:root #main > .seg.seg { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: flex-end; gap: 6px; width: auto; max-width: none; min-width: 0; margin: 0 var(--gut) -2px; padding: 0; background: transparent; border: 0; box-shadow: none; border-radius: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; position: relative; top: auto; z-index: 2; }
+  :root:root #main > .seg.seg::-webkit-scrollbar { display: none; }
+  :root:root #main > .seg.seg > button { flex: none; width: auto; min-width: 0; min-height: 44px; padding: 0 16px; display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px; background: var(--c-bg); color: var(--c-text); border: var(--bw) solid var(--c-ink); border-bottom: 0; border-radius: 0; box-shadow: none; transform: none; font: 700 16px/1.1 var(--f-label); letter-spacing: .02em; text-transform: none; }
+  :root:root #main > .seg.seg > button::before { display: none; }
+  :root:root #main > .seg.seg > button .lb { display: inline; font: inherit; }
+  :root:root #main > .seg.seg > button svg { width: 20px; height: 20px; flex: none; color: var(--c-muted); }
+  :root:root #main > .seg.seg > button[aria-selected='true'] { background: var(--card, var(--c-surface)); color: var(--c-text); box-shadow: inset 0 4px 0 var(--c-lime); padding-bottom: 2px; }
+  :root:root #main > .seg.seg > button[aria-selected='true'] svg { color: var(--c-ico, var(--c-text)); }
+  :root:root #main > .seg.seg > button .cnt { position: static; margin: 0 0 0 2px; min-width: 0; height: auto; padding: 1px 6px; border: var(--bw) solid var(--c-ink); border-radius: 0; background: var(--c-pink); color: var(--c-dark); font: 700 13px/1.2 var(--f-label); }
+  /* la carte qui suit : collée à la bande (plus de marge ni de remplissage au-dessus) */
+  :root:root #main > .seg.seg + * { margin-top: 0; }
+  :root:root #main > .seg.seg + .pad, :root:root #main > .seg.seg + .pad.pad { padding-top: 0; margin: 0; }
+  :root:root #main > .seg.seg + .pad > :first-child { margin-top: 0; }
+  :root:root #phone #main > .seg.seg + .lis { margin: 0 var(--gut) 12px; }
+  /* page qui commence par des chiffres, des filtres ou un bouton (pas par une carte) : un peu d'air sous l'onglet */
+  :root:root #main > .seg.seg + .pad > :first-child:not(.card):not(.cobento):not(.u2fiche) { margin-top: 12px; }
+}

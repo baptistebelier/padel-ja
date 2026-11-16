@@ -2993,6 +2993,39 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- intercalaires : sur tous les écrans, collés au haut du contenu qui suit, jamais sur une bande rouge ; gouttière commune ---------- */
+test('Intercalaires : collés au contenu (écart nul) à 390 et 1280 px, aucune bande rouge ou bordeaux, gouttière de 10 px sur téléphone', async () => {
+  const ECRANS = [['/club/coach.html', ['today', 'dash', 'eleves', 'clubs', 'msgs', 'asuivi']], ['/club/index.html', ['agenda', 'jouer', 'chans']]];
+  for (const largeur of [390, 1280]) {
+    const ctx = await browser.newContext(largeur < 700 ? { viewport: { width: largeur, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: largeur, height: 860 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    for (const [url, tabs] of ECRANS) {
+      await page.goto(JA + url);
+      await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+      await page.waitForFunction(() => typeof S !== 'undefined' && typeof render === 'function', null, { timeout: 8000 }).catch(() => { throw new Error(`${url} à ${largeur} px : l’appli ne démarre pas (${page.url()})`); });
+      await page.waitForTimeout(1200);
+      await page.evaluate(() => document.querySelector('.ram-splash')?.remove());
+      for (const t of tabs) {
+        await page.evaluate(t => { S.tab = t; S.stack = []; render(true); }, t);
+        await page.waitForTimeout(350);
+        const l = await page.evaluate(() => [...document.querySelectorAll('#main > .seg')].filter(s => s.getBoundingClientRect().height).map(s => {
+          const b = s.querySelector('button[aria-selected="true"]') || s.querySelector('button'), r = b.getBoundingClientRect(), cs = getComputedStyle(s);
+          let nx = s.nextElementSibling; while (nx && !nx.getBoundingClientRect().height) nx = nx.nextElementSibling;
+          const m = cs.backgroundColor.match(/[\d.]+/g).map(Number), rouge = (m[3] === undefined || m[3] > 0.5) && m[0] > m[1] + 25 && m[0] > m[2] + 15;
+          return { ecart: nx ? nx.getBoundingClientRect().top - r.bottom : null, rouge, segL: s.getBoundingClientRect().left, cardL: nx ? nx.getBoundingClientRect().left + parseFloat(getComputedStyle(nx).paddingLeft) : null };
+        }));
+        for (const s of l) {
+          assert.ok(s.ecart !== null && Math.abs(s.ecart) <= 2, `${url} ${t} à ${largeur} px : l’intercalaire touche le contenu (écart ${s.ecart})`);
+          assert.equal(s.rouge, false, `${url} ${t} à ${largeur} px : plus de bande rouge ou bordeaux`);
+          if (largeur < 700) assert.ok(Math.abs(s.segL - 10) <= 1 && Math.abs(s.cardL - 10) <= 1, `${url} ${t} : gouttière de 10 px (onglets ${s.segL}, cartes ${s.cardL})`);
+        }
+      }
+    }
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
 /* ---------- interrupteurs (ds.css, .tg) : bouton entièrement dans la piste, mêmes marges des deux côtés, dans les deux positions ---------- */
 test('Interrupteur : le bouton reste dans la piste, marges égales à gauche (éteint) et à droite (allumé), centré, jour et nuit', async () => {
   for (const mode of ['jour', 'nuit']) {
