@@ -187,7 +187,7 @@ body.pointer { cursor: default; }
 .ti-run { display: inline-flex; align-items: center; }
 .ti-msg, .ti-sp { display: inline-flex; align-items: center; gap: 14px; padding: 0 34px; }
 .ti-sp img { height: 46px; max-width: 220px; object-fit: contain; }
-.ti-sep { font-style: normal; opacity: .6; }
+.ti-sep { font-style: normal; opacity: .6; display: inline-flex; align-items: center; vertical-align: middle; }
 @keyframes tick { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .waiting { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; background: var(--ink); font-family: var(--label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; font-size: 32px; color: var(--mut); z-index: 9; }
 .waiting img { height: 200px; }

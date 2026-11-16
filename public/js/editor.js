@@ -282,7 +282,7 @@
     $('#closedBar').hidden = !t.closed;
     if (t.closed) $('#closedAt').textContent = 'le ' + new Date(t.closedAt).toLocaleDateString('fr-FR');
     document.body.classList.toggle('is-closed', !!t.closed);
-    const ann = [`${t.name}`, `${t.category} ${t.gender}`, t.club, t.balls && 'Balles : ' + t.balls, t.prize].concat((t.sponsors || []).map(s => s.name)).concat('/RAM — Rise And Move').filter(Boolean).join('   ✦   ');
+    const ann = [`${t.name}`, `${t.category} ${t.gender}`, t.club, t.balls && 'Balles : ' + t.balls, t.prize].concat((t.sponsors || []).map(s => s.name)).concat('/RAM — Rise And Move').filter(Boolean).join('   ·   ');
     A.marquee($('#annonce'), `<span>${esc(ann)}</span>`, 60);
     ({ tournoi: renderTournoi, inscriptions: renderInscriptions, tirage: renderTirage, tableaux: renderTableaux, programmation: renderSched,
        direct: renderDirect, diffusion: renderDiffusion })[tab]();
@@ -396,7 +396,7 @@
       <label class="sp-logo">${s.logo ? `<img src="${s.logo}" alt="">` : '<em>+ Logo</em>'}<input type="file" accept="image/*" hidden></label>
       <input class="spn-name" placeholder="Nom (facultatif)" value="${esc(s.name)}">
       ${s.logo ? '<button class="ghost sm" data-rmlogo title="Retirer le logo">Sans logo</button>' : '<span></span>'}
-      <button class="ghost sm danger" data-rm title="Supprimer ce partenaire">✕</button></div>`).join('') || '<p class="muted small">Aucun partenaire pour l\'instant.</p>';
+      <button class="ghost sm danger" data-rm title="Supprimer ce partenaire" aria-label="Supprimer ce partenaire"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join('') || '<p class="muted small">Aucun partenaire pour l\'instant.</p>';
     $$('.sp-row', box).forEach(row => {
       const i = +row.dataset.i;
       $('.spn-name', row).onchange = e => { const l = sponsors(); l[i].name = e.target.value; saveSponsors(l); };
@@ -483,7 +483,7 @@
     });
     const keys = Object.keys(by).sort(), cur = S.tournament.durations || {};
     const avgOf = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
-    $('#realDurs').innerHTML = `<h4>Durées réelles de ce tournoi <small class="muted">du lancement ▶ à la fin du match, mise à jour en continu</small></h4>` + (keys.length
+    $('#realDurs').innerHTML = `<h4>Durées réelles de ce tournoi <small class="muted">du lancement (bouton lecture) à la fin du match, mise à jour en continu</small></h4>` + (keys.length
       ? `<div class="rd-list">${keys.map(k => {
         const x = by[k], g = k[0], est = cur[g] || E.DEFAULT_DUR[g], avg = x.done.length ? avgOf(x.done) : null;
         return `<div class="rd"><b>${k}</b>
@@ -492,7 +492,7 @@
           ${x.quick ? `<small class="muted">${x.quick} score${x.quick > 1 ? 's' : ''} saisi${x.quick > 1 ? 's' : ''} en moins d'une minute, non compté${x.quick > 1 ? 's' : ''}</small>` : ''}
           <small class="muted">Prévu : ${est} min (format ${g})</small>${avg != null && avg !== est ? `<button class="ghost sm" data-rd="${g}" data-v="${avg}">Prévoir ${avg} min</button>` : ''}</div>`;
       }).join('')}</div>`
-      : '<p class="muted small">Lancez un match avec ▶ : sa durée s\'affiche ici en direct, puis la moyenne par format dès qu\'il est terminé.</p>');
+      : '<p class="muted small">Lancez un match avec le bouton lecture : sa durée s\'affiche ici en direct, puis la moyenne par format dès qu\'il est terminé.</p>');
     $$('[data-rd]').forEach(b => b.onclick = () => send('tournament/update', { durations: Object.assign({}, S.tournament.durations, { [b.dataset.rd]: +b.dataset.v }) }));
   }
   setInterval(() => { if (tab === 'tournoi') renderRealDurs(); }, 30000);   // les chronos des matchs en cours avancent
@@ -535,9 +535,9 @@
 
     $('#courts').innerHTML = S.courts.map(c => `
       <div class="court-row" data-id="${c.id}">
-        <span class="c-logo"><label class="c-logo-pick" title="Logo du partenaire du terrain (naming)">${c.logo ? `<img src="${esc(c.logo)}" alt="">` : '<em>+ Logo</em>'}<input type="file" accept="image/*" hidden data-clogo></label>${c.logo ? '<button class="c-logo-rm" data-clogorm title="Retirer le logo" aria-label="Retirer le logo">✕</button>' : ''}</span>
+        <span class="c-logo"><label class="c-logo-pick" title="Logo du partenaire du terrain (naming)">${c.logo ? `<img src="${esc(c.logo)}" alt="">` : '<em>+ Logo</em>'}<input type="file" accept="image/*" hidden data-clogo></label>${c.logo ? '<button class="c-logo-rm" data-clogorm title="Retirer le logo" aria-label="Retirer le logo"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' : ''}</span>
         <input value="${esc(c.name)}" data-k="name"><input type="time" value="${esc(c.start)}" data-k="start">
-        <button class="ghost sm danger" data-rm>✕</button>
+        <button class="ghost sm danger" data-rm aria-label="Supprimer"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>`).join('');
     $$('#courts .court-row').forEach(row => {
       $$('input[data-k]', row).forEach(inp => inp.onchange = () => send('court/update', { id: row.dataset.id, fields: { [inp.dataset.k]: inp.value } }));
@@ -672,7 +672,7 @@
   }
 
   const fmtDate = s => s ? new Date(s).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
-  const plCell = (pl, k) => `<span class="pl-link" data-pl="${k}" title="Fiche joueur"><b>${esc((pl.last || '').toUpperCase())}</b> ${esc(pl.first || '')}</span> <span class="rk">${pl.rank ? esc(pl.rank) : 'NC'}</span>${pl.playerId ? ' <span class="known-dot" title="Joueur connu de la base">●</span>' : ''}`;
+  const plCell = (pl, k) => `<span class="pl-link" data-pl="${k}" title="Fiche joueur"><b>${esc((pl.last || '').toUpperCase())}</b> ${esc(pl.first || '')}</span> <span class="rk">${pl.rank ? esc(pl.rank) : 'NC'}</span>${pl.playerId ? ' <span class="known-dot" title="Joueur connu de la base"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><circle cx="4" cy="4" r="4"/></svg></span>' : ''}`;
 
   function pairRows(list, kind) {
     if (!list.length) return `<tr><td class="muted empty">Aucune paire</td></tr>`;
@@ -1163,7 +1163,7 @@
       card.insertBefore(head, card.firstChild);
       title.append(card.querySelector('.eyebrow'), card.querySelector('h3'));
       head.append(title);
-      head.insertAdjacentHTML('beforeend', '<button class="ghost sq fold-tg" type="button" aria-label="Afficher / masquer">▾</button>');
+      head.insertAdjacentHTML('beforeend', '<button class="ghost sq fold-tg" type="button" aria-label="Afficher / masquer"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>');
       while (head.nextSibling) body.append(head.nextSibling);
       card.append(body);
       if (id === 'formule') {  // deux colonnes sur grand écran : réglages à gauche, formats et durées à droite
@@ -1251,7 +1251,7 @@
       const who = real && r.A && r.B ? `${esc(A.pairName(r.A, 'last'))} – ${esc(A.pairName(r.B, 'last'))}` : `${esc(src(m.srcA))} – ${esc(src(m.srcB))}`;
       return `<div class="ord ph-${m.phase} ${m.a === 1 && m.phase === 'TF' ? 'main' : ''} ${bad.has(m.id) ? 'bad' : ''} st-${r.state}" draggable="true" data-k="${E.matchKey(m)}">
         <b>M${m.num}</b><div><span class="ord-l">${esc(E.matchLabel(m))}</span><span class="ord-w">${who}</span></div>
-        <span class="ord-btn"><button class="sm ghost" data-mv="-1" title="Avancer">▲</button><button class="sm ghost" data-mv="1" title="Reculer">▼</button></span></div>`;
+        <span class="ord-btn"><button class="sm ghost" data-mv="-1" title="Avancer" aria-label="Avancer"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button><button class="sm ghost" data-mv="1" title="Reculer" aria-label="Reculer"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></span></div>`;
     }).join('');
     const keysNow = () => $$('.ord', box).map(el => el.dataset.k);
     const commit = keys => send('order/set', { keys });
@@ -1406,7 +1406,7 @@
         <button class="pt big" data-spt="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ Point</button>
         <div class="games-row"><button class="ghost" data-sgm="${s}" ${r.state === 'live' || r.state === 'ready' ? '' : 'disabled'}>+ Jeu</button><button class="ghost" data-sugm="${s}">− Jeu</button></div></div>`;
       $('#streamPad').innerHTML = `<div class="sp">${side('A')}${side('B')}</div>
-        <div class="btns"><button class="ghost" id="spUndo">↶ Annuler (Retour arrière)</button><button class="ghost" id="spSrv">Changer 1er serveur (S)</button></div>
+        <div class="btns"><button class="ghost" id="spUndo"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg> Annuler (Retour arrière)</button><button class="ghost" id="spSrv">Changer 1er serveur (S)</button></div>
         <p class="muted small">Raccourcis : <b>←</b> ou <b>1</b> point équipe 1 · <b>→</b> ou <b>2</b> point équipe 2 · <b>Retour arrière</b> annuler · <b>S</b> serveur.</p>`;
       $$('[data-spt]').forEach(b => b.onclick = () => send('match/point', { id: m.id, team: b.dataset.spt }));
       $$('[data-sgm]').forEach(b => b.onclick = () => send('match/game', { id: m.id, team: b.dataset.sgm }));

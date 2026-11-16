@@ -54,7 +54,8 @@
       items.push(`<span class="ti-sp">${sp.logo ? `<img src="${sp.logo}" alt="">` : ''}${sp.name ? `<b>${esc(sp.name)}</b>` : ''}</span>`);
     });
     if (t.name) items.push(`<span class="ti-msg">${esc(t.name)} · ${esc(t.category)} ${esc(t.gender)}</span>`);
-    const run = items.join('<i class="ti-sep">✦</i>') + '<i class="ti-sep">✦</i>';
+    const star = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg>';
+    const run = items.join(`<i class="ti-sep">${star}</i>`) + `<i class="ti-sep">${star}</i>`;
     const tk = $('#tickIn');
     A.marquee(tk, `<div class="ti-run">${run}</div>`, 90);
     setupRotation();

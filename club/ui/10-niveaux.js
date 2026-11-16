@@ -84,7 +84,7 @@ function nvBody(p) {
   const meta = `<div class="meta"><span>${ic('cal')}${dates.length > 1 ? 'Chaque ' + DAYS[new Date(dates[0] + 'T12:00').getDay()].toLowerCase() + ' · ' + nv.time : fmtD(iso) + ' · ' + nv.time}</span><span>${ic('clock')}${esc(nv.dur || '')}</span>${nv.price ? `<span class="nv-price">${esc(nv.price)}</span>` : ''}${nv.place ? `<span>${ic('pin')}${esc(nv.place)}</span>` : ''}</div>`;
   const pick =
     dates.length > 1
-      ? `<div class="chips nv-dates">${dates.map(d => `<button class="chip" data-a="nvDay" data-id="${p.id}" data-d="${d}" aria-pressed="${d === iso}">${fmtD(d)}${nvState(nv, d).win ? ' ✓' : ''}</button>`).join('')}</div>`
+      ? `<div class="chips nv-dates">${dates.map(d => `<button class="chip" data-a="nvDay" data-id="${p.id}" data-d="${d}" aria-pressed="${d === iso}">${fmtD(d)}${nvState(nv, d).win ? ' ' + ic('check') : ''}</button>`).join('')}</div>`
       : '';
   const dots = (n, places) =>
     `<span class="dots" aria-hidden="true">${Array.from({ length: places }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;

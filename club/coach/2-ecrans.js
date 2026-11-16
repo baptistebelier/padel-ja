@@ -1037,7 +1037,7 @@ const CO_AUTRES = () =>
   ].concat(coQuarters().slice(1));
 function coAutrePer(per) {
   const on = CO_AUTRES().find(x => x[0] === per);
-  return `<button class="chip${on ? ' on' : ''}" data-a="coDashAutre" aria-pressed="${!!on}">${on ? esc(on[1]) : 'Autre période'} ▾</button>`;
+  return `<button class="chip${on ? ' on' : ''}" data-a="coDashAutre" aria-pressed="${!!on}">${on ? esc(on[1]) : 'Autre période'} ${ic('chevD')}</button>`;
 }
 /* les quatre derniers trimestres */
 function coQuarters() {
