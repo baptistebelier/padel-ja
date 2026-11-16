@@ -21,7 +21,10 @@
     '.rl button[disabled]{opacity:.45;cursor:default}.rl button[disabled]:hover{background:transparent;color:inherit}' +
     '.rl .rl-g{padding:8px 12px 4px;font-size:.78em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.65;border-top:1px solid rgba(128,128,128,.28)}' +
     '.rl .rl-g:first-child{border-top:0}' +
-    '.rl svg{flex:none;width:16px;height:16px}';
+    '.rl svg{flex:none;width:16px;height:16px}' +
+    // écran tactile : le <select> ne reçoit plus ni le toucher ni le focus (sinon iOS ouvre sa liste en verre dépoli, parfois par-dessus la nôtre) ;
+    // le toucher tombe sur ce qui est dessous et on le reconnaît par sa position (sousLeDoigt)
+    '@media (pointer:coarse){select:not([data-natif]):not([multiple]):not([size]){pointer-events:none}}';
   document.head.appendChild(css);
 
   const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
@@ -29,12 +32,24 @@
   let box = null, sel = null, act = -1, rows = [], typed = '', typedAt = 0, touch = null;
 
   const geree = s => s && s.tagName === 'SELECT' && !s.multiple && !(s.size > 1) && !s.disabled && s.dataset.natif == null;
+  const tactile = matchMedia('(pointer: coarse)');
+  let ferme0 = { s: null, t: 0 };   // la liste vient d'être fermée par un toucher à côté : le clic qui suit sur la même boîte ne la rouvre pas
+  /* le select géré dont la boîte contient le point touché (il est sous le doigt mais n'est plus la cible du toucher) */
+  function sousLeDoigt(e) {
+    const t = e.target, x = e.clientX, y = e.clientY;
+    if (!t || !(x >= 0)) return null;
+    return [...document.querySelectorAll('select')].find(s => {
+      if (!geree(s) || !s.getClientRects().length || !(t === s.parentElement || s.parentElement.contains(t) || t.contains(s))) return false;
+      const r = s.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    }) || null;
+  }
 
   function ouverte() { return !!(box && !box.hidden); }
   function ferme(rend) {
     if (!box || box.hidden) return;
     box.hidden = true;
-    if (sel) { sel.setAttribute('aria-expanded', 'false'); if (rend) try { sel.focus({ preventScroll: true }); } catch (e) { /* champ retiré de la page */ } }
+    if (sel) { sel.setAttribute('aria-expanded', 'false'); if (rend && !tactile.matches) try { sel.focus({ preventScroll: true }); } catch (e) { /* champ retiré de la page */ } }
     sel = null; act = -1; rows = [];
   }
   function surligne(i, voir) {
@@ -68,6 +83,7 @@
     else { box.style.bottom = 'auto'; box.style.top = r.bottom + 'px'; box.style.maxHeight = Math.min(320, Math.max(120, dessous - 8)) + 'px'; }
   }
   function ouvre(s) {
+    if (ferme0.s === s && Date.now() - ferme0.t < 500) return;
     if (ouverte() && sel === s) return ferme(true);
     ferme(false);
     sel = s;
@@ -103,15 +119,22 @@
   document.addEventListener('mousedown', e => {
     const s = e.target.closest && e.target.closest('select');
     if (geree(s) && e.button === 0) { e.preventDefault(); try { s.focus({ preventScroll: true }); } catch (x) { /* rien */ } }
-    else if (ouverte() && !(box.contains(e.target))) ferme(false);
+    else if (ouverte() && !(box.contains(e.target))) { ferme0 = { s: sousLeDoigt(e) || sel, t: Date.now() }; ferme(false); }
   }, true);
   document.addEventListener('click', e => {
-    const s = e.target.closest && e.target.closest('select');
+    let s = e.target.closest && e.target.closest('select');
+    if (!geree(s)) {
+      // l'activation d'une étiquette donnerait le focus au select (liste native sur iOS) : on ouvre la nôtre à la place
+      const lab = e.target.closest && e.target.closest('label');
+      s = lab && geree(lab.control) ? lab.control : tactile.matches ? sousLeDoigt(e) : null;
+    }
     if (!geree(s)) return;
-    e.preventDefault(); ouvre(s);
+    e.preventDefault(); e.stopPropagation(); ouvre(s);
   }, true);
+  // jamais de focus sur un select au toucher : on le rend aussitôt (le clavier d'un ordinateur garde le sien)
+  document.addEventListener('focusin', e => { if (tactile.matches && geree(e.target) && !e.target.matches(':focus-visible')) e.target.blur(); }, true);
   // téléphone et iPad : un appui net ouvre la liste maison ; un glissement (défilement de la page) ne fait rien
-  document.addEventListener('touchstart', e => { const s = e.target.closest && e.target.closest('select'); touch = geree(s) ? { y: e.touches[0].clientY, x: e.touches[0].clientX, s } : null; if (!touch && ouverte() && !box.contains(e.target)) ferme(false); }, { capture: true, passive: true });
+  document.addEventListener('touchstart', e => { const s = e.target.closest && e.target.closest('select'); touch = geree(s) ? { y: e.touches[0].clientY, x: e.touches[0].clientX, s } : null; if (!touch && ouverte() && !box.contains(e.target)) { ferme0 = { s: sel, t: Date.now() }; ferme(false); } }, { capture: true, passive: true });
   document.addEventListener('touchend', e => {
     const t = touch; touch = null;
     if (!t || !e.cancelable) return;

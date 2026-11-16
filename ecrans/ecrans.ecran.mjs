@@ -2999,6 +2999,43 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- liste déroulante au toucher (iPhone) : toujours la nôtre, jamais la liste native, jamais de focus sur le select ---------- */
+test('Liste déroulante tactile : un toucher ouvre notre panneau, le select natif ne reçoit ni toucher ni focus, valeur synchronisée', async () => {
+  const desk = await browser.newContext({ viewport: { width: 1366, height: 860 } }), dp = await desk.newPage();
+  await dp.goto(JA + '/demo');
+  await dp.waitForTimeout(800);
+  const url = dp.url();
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await desk.storageState() }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(url);
+  await page.waitForTimeout(900);
+  assert.equal(await page.evaluate(() => matchMedia('(pointer: coarse)').matches), true, 'émulation tactile');
+  // le select natif ne reçoit plus le toucher
+  const n = await page.evaluate(() => [...document.querySelectorAll('select')].filter(s => s.offsetParent && !s.dataset.natif).length);
+  assert.ok(n > 0, 'des listes à tester');
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('select')].filter(s => s.offsetParent && !s.dataset.natif && getComputedStyle(s).pointerEvents !== 'none').length), 0, 'pointer-events: none sur chaque select géré');
+  for (let i = 0; i < Math.min(n, 3); i++) {
+    const s = page.locator('select:visible:not([data-natif])').nth(i);
+    await s.scrollIntoViewIfNeeded();
+    const b = await s.boundingBox();
+    await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+    await page.waitForTimeout(250);
+    assert.equal(await page.locator('.rl:visible').count(), 1, `liste ${i} : notre panneau s’ouvre`);
+    assert.notEqual(await page.evaluate(() => document.activeElement && document.activeElement.tagName), 'SELECT', `liste ${i} : le select natif n’a pas le focus`);
+    const avant = await s.inputValue();
+    const choix = page.locator('.rl button[data-i]:not([aria-selected="true"]):not([disabled])').first();
+    if (await choix.count()) {
+      const cb = await choix.boundingBox();
+      await page.touchscreen.tap(cb.x + cb.width / 2, cb.y + cb.height / 2);
+      await page.waitForTimeout(250);
+      assert.notEqual(await s.inputValue(), avant, `liste ${i} : la valeur du select suit le choix`);
+    } else await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.rl:visible').count(), 0, `liste ${i} : refermée`);
+  }
+  assert.deepEqual(errs, []);
+  await ctx.close(); await desk.close();
+});
+
 /* ---------- intercalaires : sur tous les écrans, collés au haut du contenu qui suit, jamais sur une bande rouge ; gouttière commune ---------- */
 test('Intercalaires : collés au contenu (écart nul) à 390 et 1280 px, aucune bande rouge ou bordeaux, gouttière de 10 px sur téléphone', async () => {
   const ECRANS = [['/club/coach.html', ['today', 'dash', 'eleves', 'clubs', 'msgs', 'asuivi']], ['/club/index.html', ['agenda', 'jouer', 'chans']]];
