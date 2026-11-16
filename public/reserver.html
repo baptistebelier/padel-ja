@@ -60,7 +60,10 @@
   .fo .du{color:var(--mut);font-size:15px}
   .fo .pr{font-size:28px;line-height:1.2}
   .fo[aria-pressed=true]{background:var(--lem);color:var(--on);box-shadow:3px 3px 0 var(--sh)}
-  .fo[aria-pressed=true] .du{color:var(--on)}
+  .fo .sb{color:var(--mut);font-size:13px}
+  .fo .pr small{font-size:14px;letter-spacing:.3px}
+  .fo[aria-pressed=true] .du,.fo[aria-pressed=true] .sb{color:var(--on)}
+  img.ava{object-fit:cover;background:var(--lem)}
   .dg{margin:10px 0 0;color:var(--mut);font-size:13px}
 
   /* calendrier du mois (ordinateur) et bande de jours (téléphone) */
@@ -218,8 +221,14 @@
   var ic = function (n, s, c) { return '<svg class="ic ' + (c || '') + '" width="' + s + '" height="' + s + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
   var initiales = function (n) { return String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x[0]; }).join('') || '·'; };
   var band = function (nom, sous) {
-    return '<header class="band"><div class="coach"><span class="ava ant" aria-hidden="true">' + e(initiales(nom)) + '</span><div><p class="cn ant">' + e(nom) + '</p><p class="cs">' + e(sous) + '</p></div></div><p class="ens cond">/Dojo · réservation en ligne</p></header>';
+    var ph = S.data && S.data.photo && nom === S.data.coach ? '/api/public/resa/photo?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) : '';
+    return '<header class="band"><div class="coach">' + (ph ? '<img class="ava" src="' + e(ph) + '" alt="" data-i="' + e(initiales(nom)) + '">' : '<span class="ava ant" aria-hidden="true">' + e(initiales(nom)) + '</span>') + '<div><p class="cn ant">' + e(nom) + '</p><p class="cs">' + e(sous) + '</p></div></div><p class="ens cond">/Dojo · réservation en ligne</p></header>';
   };
+  /* photo introuvable ou illisible : retour aux initiales */
+  root.addEventListener('error', function (ev) {
+    var i = ev.target;
+    if (i && i.tagName === 'IMG' && i.classList.contains('ava')) { var s = document.createElement('span'); s.className = 'ava ant'; s.setAttribute('aria-hidden', 'true'); s.textContent = i.dataset.i || ''; i.replaceWith(s); }
+  }, true);
   var page = function (nom, sous, corps) { root.innerHTML = band(nom, sous) + '<main>' + corps + '</main>'; };
 
   if (parts[1] === 'annuler') {
@@ -232,18 +241,29 @@
     return;
   }
   var c = parts[1], k = parts[2];
-  var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, v: { p: '', n: '', t: '', em: '', o: '', niv: '' } };
+  var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, v: { p: '', n: '', t: '', em: '', o: '', niv: '', cv: '', pa: '' } };
   var moisDe = function (w) { var d = new Date(); return iso(new Date(d.getFullYear(), d.getMonth() + w, 1)); };
   var nb = function (de) { var p = de.split('-').map(Number); return new Date(p[0], p[1], 0).getDate(); };
   function charge() {
     fetch('/api/public/resa/creneaux?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) + '&de=' + moisDe(S.w) + '&n=' + nb(moisDe(S.w)))
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
-      .then(function (d) { S.data = d; S.f = S.f || (d.formules[0] && d.formules[0].id); S.pick = null; S.jour = null; dessine(); })
+      .then(function (d) { S.data = d; var l = offres(); if (!l.some(function (x) { return x.k === S.f; })) S.f = (l.filter(function (x) { return x.t === 'f' && x.joueurs === 1; })[0] || l[0] || {}).k; S.pick = null; S.jour = null; dessine(); })
       .catch(function (x) { page('Réserver un cours', '/Dojo · réservation en ligne', '<div class="card"><p>' + e(x.message || 'Page indisponible') + '</p></div>'); });
   }
-  var formule = function () { return S.data.formules.filter(function (x) { return x.id === S.f; })[0]; };
+  /* tout ce que l'enseignant propose : ses formules (individuel, duo, collectif), ses packs, ses abonnements. La durée de séance vient de la formule. */
+  var eur = function (n) { return (Math.round(n * 100) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €'; };
+  var PER = { mois: 'par mois', trimestre: 'par trimestre', '6 mois': 'tous les 6 mois', an: 'par an' };
+  var genre = function (n) { return n === 1 ? 'Individuel' : n === 2 ? 'Duo' : 'Collectif à ' + n; };
+  function offres() {
+    var d = S.data, fo = d.formules || [], joueursDe = function (id) { return ((fo.filter(function (f) { return f.id === id; })[0]) || {}).joueurs || 1; };
+    return fo.map(function (f) { return { k: 'f:' + f.id, t: 'f', id: f.id, nom: f.nom, duree: f.duree, joueurs: +f.joueurs, prix: f.prix, pn: eur(f.prix), un: f.par === 'personne' && f.joueurs > 1 ? '/ pers.' : '', sub: genre(+f.joueurs) }; })
+      .concat((d.packs || []).map(function (p) { return { k: 'p:' + p.id, t: 'p', id: p.id, nom: p.nom, duree: p.duree, joueurs: +joueursDe(p.formule), prix: p.prix, pn: eur(p.prix), un: '', sub: p.seances + ' séances' }; }))
+      .concat((d.abos || []).map(function (a) { return { k: 'a:' + a.id, t: 'a', id: a.id, nom: a.nom, duree: a.duree, joueurs: +joueursDe(a.formule), prix: a.prix, pn: eur(a.prix), un: PER[a.periode] || '', sub: 'Abonnement' + (a.parSemaine ? ' · ' + a.parSemaine + ' séance' + (a.parSemaine > 1 ? 's' : '') + ' par semaine' : '') }; }));
+  }
+  var formule = function () { return offres().filter(function (x) { return x.k === S.f; })[0]; };
+  var prixTxt = function (f) { return S.v.cv ? 'Inclus' : f.pn + (f.un ? ' ' + f.un : ''); };
   var heures = function (j, f) { var l = []; j.libres.forEach(function (p) { for (var t = p.du; t + f.duree <= p.au; t += 30) l.push(t); }); return l; };
-  function garde() { [['p', 'p'], ['n', 'n'], ['t', 't'], ['em', 'em'], ['o', 'o']].forEach(function (i) { var x = document.getElementById(i[0]); if (x) S.v[i[1]] = x.value; }); }
+  function garde() { [['p', 'p'], ['n', 'n'], ['t', 't'], ['em', 'em'], ['o', 'o'], ['pa', 'pa']].forEach(function (i) { var x = document.getElementById(i[0]); if (x) S.v[i[1]] = x.value; }); }
 
   function entete(kick, titre, etape) {
     var l = ['Formule', 'Jour', 'Horaire', 'Vos infos'], cur = S.etape === 'infos' ? 3 : (S.jour ? 2 : 1);
@@ -260,7 +280,7 @@
       '<p class="rc1 cond">' + e(f.nom) + ' · ' + DUR(f.duree) + '</p>' +
       (p ? '<p class="rc2">' + e(court(p.d)) + ' · ' + H(p.t) + ' – ' + H(p.t + f.duree) + '</p>' : '<p class="rc2 mut" style="color:var(--mut)">Choisissez un jour et un horaire.</p>') +
       '<p class="rc3">' + ic('pin', 16, 'i-mut') + '<span>' + e(d.club) + '</span></p><hr class="hr">' +
-      '<p class="tot"><b class="cond">Total</b><b class="ant">' + e(f.prix) + ' €</b></p>' +
+      '<p class="tot"><b class="cond">' + 'Total' + '</b><b class="ant">' + e(prixTxt(f)) + '</b></p>' +
       (avecBtn === 'continuer' ? '<button type="button" class="btn cond" data-a="suite"' + (p ? '' : ' disabled') + '>' + ic('chev', 18, 'i-on') + 'Continuer</button>' +
         '<p class="note">' + ic('shield', 16, 'i-mut') + '<span>Annulation gratuite jusqu’à 24 h avant.</span></p>' :
         '<button type="button" class="chg cond" data-a="change" style="width:100%">' + ic('edit', 18) + 'Changer de créneau</button>') + '</section>';
@@ -302,11 +322,17 @@
     var nav = '<div class="nav"><button type="button" id="pv" aria-label="Mois précédent"' + (S.w ? '' : ' disabled') + '>' + ic('left', 18) + '</button><button type="button" id="nx" aria-label="Mois suivant"' + (S.w < 3 ? '' : ' disabled') + '>' + ic('chev', 18) + '</button></div>';
     var cal = '<div class="cal">' + ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'].map(function (x) { return '<span class="dow cond">' + x + '</span>'; }).join('') + cases + '</div>' +
       '<p class="leg"><span><i></i>créneaux libres</span><span><i class="p"></i>passé ou complet</span></p>';
-    var bas = S.pick ? '<b class="cond">' + e(court(S.pick.d)) + ' · ' + H(S.pick.t) + '</b><small>' + DUR(f.duree) + ' · ' + e(f.prix) + ' €</small>' : '<b class="cond">Choisissez un horaire</b><small>' + DUR(f.duree) + ' · ' + e(f.prix) + ' €</small>';
+    var bas = (S.pick ? '<b class="cond">' + e(court(S.pick.d)) + ' · ' + H(S.pick.t) + '</b>' : '<b class="cond">Choisissez un horaire</b>') + '<small>' + DUR(f.duree) + ' · ' + e(prixTxt(f)) + '</small>';
+    var groupes = [['f', 'Cours'], ['p', 'Packs'], ['a', 'Abonnements']].map(function (g) { return [g[1], offres().filter(function (x) { return x.t === g[0]; })]; }).filter(function (g) { return g[1].length; });
+    var cartes = groupes.map(function (g) {
+      return (groupes.length > 1 ? '<p class="gl lab cond">' + g[0] + '</p>' : '') + '<div class="fos">' + g[1].map(function (x) {
+        return '<button type="button" class="fo" data-f="' + e(x.k) + '" aria-pressed="' + (x.k === S.f) + '"><span class="nm cond">' + e(x.nom) + '</span><span class="sb">' + e(x.sub) + '</span><span class="l2"><span class="du">' + DUR(x.duree) + '</span><span class="pr ant">' + e(x.pn) + (x.un ? '<small class="cond"> ' + e(x.un) + '</small>' : '') + '</span></span></button>';
+      }).join('') + '</div>';
+    }).join('');
     var html = entete('Réserver un cours', 'Choisissez votre créneau') +
       '<div class="grille"><div class="col">' +
       '<section class="card plain"><div class="ct dk"><h2 class="cond">Formule</h2></div><p class="sec mb"><span class="lab cond">1 · Formule</span></p>' +
-      '<div class="fos">' + d.formules.map(function (x) { return '<button type="button" class="fo" data-f="' + e(x.id) + '" aria-pressed="' + (x.id === S.f) + '"><span class="nm cond">' + e(x.nom) + '</span><span class="l2"><span class="du">' + DUR(x.duree) + '</span><span class="pr ant">' + e(x.prix) + ' €</span></span></button>'; }).join('') + '</div></section>' +
+      cartes + '</section>' +
       '<section class="card plain"><div class="ct dk"><h2 class="cond">' + ic('cal', 22, 'i-red') + '<span>' + e(cap(moisTxt)) + '</span></h2>' + nav + '</div>' +
       '<p class="sec mb"><span class="lab cond">2 · Jour · ' + e(moisCourt) + '</span><button type="button" class="lien" id="tm">' + (S.mois ? 'Prochains jours' : 'Tout le mois') + '</button></p>' +
       '<div class="mb">' + (S.mois ? '<div class="ct">' + '<h2 class="cond">' + e(cap(moisTxt)) + '</h2>' + nav.replace('id="pv"', 'id="pv2"').replace('id="nx"', 'id="nx2"') + '</div>' + cal : (strip ? '<div class="bande" role="group" aria-label="Jours disponibles">' + strip + '</div>' : '<p class="vide-m">Aucun jour libre ce mois-ci.</p>')) + '</div>' +
@@ -329,7 +355,7 @@
   function infos(f, sous) {
     var d = S.data, p = S.pick, v = S.v;
     var champ = function (id, lib, att, w) { return '<div class="fd' + (w ? ' w' : '') + '"><label class="lab cond" for="' + id + '">' + lib + '</label><input id="' + id + '" ' + att + ' value="' + e(v[id]) + '"></div>'; };
-    var rm = '<div class="card rcm mb"><div><b class="cond">' + e(court(p.d)) + ' · ' + H(p.t) + '</b><small>' + e(f.nom) + ' · ' + DUR(f.duree) + ' · ' + e(f.prix) + ' €</small></div><button type="button" class="chg cond" data-a="change">' + ic('edit', 18) + 'Changer</button></div>';
+    var rm = '<div class="card rcm mb"><div><b class="cond">' + e(court(p.d)) + ' · ' + H(p.t) + '</b><small>' + e(f.nom) + ' · ' + DUR(f.duree) + ' · ' + e(prixTxt(f)) + '</small></div><button type="button" class="chg cond" data-a="change">' + ic('edit', 18) + 'Changer</button></div>';
     var form = '<form class="card plain" id="f" novalidate><div class="ct dk"><h2 class="cond">Vos informations</h2></div><div class="fm">' +
       '<div class="fd"><label class="lab cond" for="p">Prénom</label><input id="p" required autocomplete="given-name" value="' + e(v.p) + '"></div>' +
       '<div class="fd"><label class="lab cond" for="n">Nom</label><input id="n" required autocomplete="family-name" value="' + e(v.n) + '"></div>' +
@@ -337,6 +363,8 @@
       '<div class="fd w"><label class="lab cond" for="em">E-mail</label><input id="em" required type="email" autocomplete="email" value="' + e(v.em) + '"></div>' +
       '<div class="fd w"><label class="lab cond" for="o">Objectif de la séance</label><textarea id="o" required rows="2" placeholder="Ce que tu veux travailler">' + e(v.o) + '</textarea></div>' +
       '<div class="fd w"><span class="lab cond" id="nvl">Niveau<small>facultatif</small></span><div class="seg cond" role="group" aria-labelledby="nvl">' + ['Débutant', 'Loisir', 'Compétition'].map(function (x) { return '<button type="button" data-niv="' + x + '" aria-pressed="' + (v.niv === x) + '">' + x + '</button>'; }).join('') + '</div></div>' +
+      (f.joueurs > 1 ? '<div class="fd w"><label class="lab cond" for="pa">Partenaire' + (f.joueurs > 2 ? 's' : '') + '<small>facultatif</small></label><input id="pa" autocomplete="off" placeholder="' + (f.joueurs > 2 ? 'Prénoms des autres joueurs' : 'Prénom de ton partenaire') + '" value="' + e(v.pa) + '"></div>' : '') +
+      '<div class="fd w"><span class="lab cond" id="cvl">Déjà client ?<small>facultatif</small></span><div class="seg cond" role="group" aria-labelledby="cvl">' + [['abo', 'Je suis abonné(e)'], ['pack', 'J’ai un pack en cours']].map(function (x) { return '<button type="button" data-cv="' + x[0] + '" aria-pressed="' + (v.cv === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' + (v.cv ? '<p class="dg">' + (v.cv === 'abo' ? 'La séance est rattachée à ton abonnement : rien à régler en plus.' : 'La séance est décomptée de ton pack : rien à régler en plus.') + ' ' + e(S.data.coach) + ' le vérifie.</p>' : '<p class="dg">Si tu as déjà un compte client, ton abonnement est reconnu avec ton e-mail.</p>') + '</div>' +
       '<div class="pot" aria-hidden="true"><label for="site">Site</label><input id="site" tabindex="-1" autocomplete="off"></div>' +
       '<label class="chk w"><input type="checkbox" id="ac" required><span class="bx">' + ic('check', 16) + '</span><span>J’accepte que ' + e(d.coach) + ' conserve ces informations pour organiser mes cours. Je peux demander leur suppression à tout moment.</span></label>' +
       '<div class="w"><button class="btn cond" id="go" type="submit">' + ic('check', 18, 'i-on') + 'Réserver mon cours</button></div><p class="err w" id="er" role="alert"></p></div></form>';
@@ -344,6 +372,7 @@
       '<div class="grille"><div class="col">' + rm + form + '</div><div class="col dk">' + recap(f, 'infos') + '</div></div>';
     root.innerHTML = band(d.coach, sous) + '<main>' + corps + '</main>';
     root.querySelectorAll('[data-a=change]').forEach(function (b) { b.onclick = function () { garde(); S.etape = 'choisir'; dessine(); window.scrollTo(0, 0); }; });
+    root.querySelectorAll('[data-cv]').forEach(function (b) { b.onclick = function () { garde(); S.v.cv = S.v.cv === b.dataset.cv ? '' : b.dataset.cv; infos(f, sous); }; });
     root.querySelectorAll('[data-niv]').forEach(function (b) { b.onclick = function () { garde(); S.v.niv = S.v.niv === b.dataset.niv ? '' : b.dataset.niv; infos(f, sous); }; });
     var fm = document.getElementById('f');
     fm.onsubmit = function (x) {
@@ -352,7 +381,7 @@
       if (!fm.checkValidity()) { fm.reportValidity(); return; }
       var bt = document.getElementById('go'), val = function (i) { return document.getElementById(i).value; };
       bt.disabled = true;
-      post('/api/public/resa/reserver', { c: c, k: k, d: p.d, t: p.t, formule: S.f, prenom: val('p'), nom: val('n'), tel: val('t'), email: val('em'), objectif: val('o'), niveau: S.v.niv, site: val('site'), accord: document.getElementById('ac').checked })
+      post('/api/public/resa/reserver', { c: c, k: k, d: p.d, t: p.t, formule: f.id, type: f.t, couvert: S.v.cv, partenaires: S.v.pa, prenom: val('p'), nom: val('n'), tel: val('t'), email: val('em'), objectif: val('o'), niveau: S.v.niv, site: val('site'), accord: document.getElementById('ac').checked })
         .then(function (r) { S.conf = { r: r, f: f, p: p }; S.etape = 'fait'; dessine(); window.scrollTo(0, 0); })
         .catch(function (z) { bt.disabled = false; document.getElementById('er').textContent = z.message; });
     };
@@ -374,7 +403,7 @@
       '<section class="card cc"><p class="lab cond">Votre cours</p><p class="jr ant">' + e(jour(r.d)) + '</p>' +
       '<p class="li">' + ic('clock', 18, 'i-red') + '<span>' + H(p.t) + ' – ' + H(p.t + f.duree) + ' · ' + e(String(f.nom).toLowerCase()) + '</span></p>' +
       '<p class="li">' + ic('pin', 18, 'i-mut') + '<span>' + e(d.club) + '</span></p><hr class="hr" style="margin:4px 0">' +
-      '<p class="tot"><span>À régler sur place</span><b class="ant">' + e(f.prix) + ' €</b></p></section>' +
+      '<p class="tot"><span>' + (r.couvert ? (r.couvert === 'abo' ? 'Rattaché à ton abonnement' : 'Décompté de ton pack') : 'À régler sur place') + '</span><b class="ant">' + e(r.couvert ? 'Inclus' : f.pn + (f.un ? ' ' + f.un : '')) + '</b></p></section>' +
       '<a class="btn cond" id="ag" download="cours.ics" href="#">' + ic('cal', 18, 'i-on') + 'Ajouter à mon agenda</a>' +
       '<button type="button" class="btn b2 cond" id="enc">' + ic('plus', 18) + 'Réserver un autre cours</button>' +
       '<div><a class="btn b3 cond" href="' + e(r.annuler) + '">' + ic('x', 18) + 'Annuler mon cours</a><p class="ann">Annulation gratuite jusqu’au ' + e(limTxt) + '.</p></div>' +

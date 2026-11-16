@@ -1091,7 +1091,7 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await coachP.click('[data-a="coResaPage"]');
   await coachP.waitForSelector('[data-a="coResaBloc"]', { timeout: 8000 });
   await coachP.waitForFunction(() => OFFRES.page === RAM.club);
-  // créer un stage depuis /RAM Coach
+  assert.match(await coachP.locator('a:has-text("Page de réservation")').first().getAttribute('href'), /\/r\/[^/]+\/[^/]+$/, 'Dojo : bouton vers sa page publique, dans les réglages');  // créer un stage depuis /RAM Coach
   await coachP.evaluate(() => A.newPost({ k: 'stage' }));
   await coachP.waitForSelector('#adm-form[data-k="stage"]', { timeout: 8000 });
   await coachP.evaluate(() => { const v = (i, x) => { const e = document.getElementById(i); if (e) e.value = x; }; v('a-title', 'Stage de Noël'); v('a-d1', isoIn(10)); v('a-h1', '9 h'); v('a-h2', '12 h'); v('a-place', 'Club'); v('a-body', 'Pour tous'); document.getElementById('a-same') && (document.getElementById('a-same').checked = true); document.querySelector('#adm-form').requestSubmit(); });
@@ -1113,6 +1113,7 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   const pro2 = await page.evaluate(k => proBody(k), club.key);
   assert.ok(!/calendly/i.test(pro2), 'plus de Calendly dans la carte');
   assert.match(pro2, /boutique\.exemple\.test\/pack/, 'acheter le pack');
+  assert.match(pro2, /href="[^"]*\/r\/[^"/]+\/[^"/]+"[^>]*>[\s\S]{0,1500}Page de réservation/, 'Buvette : bouton vers la page publique de l’enseignant');
   // la carte repliée : le raccourci est là ; dépliée : contacts avant les groupes, tarifs repliés
   await page.evaluate(k => { const d = document.createElement('div'); d.id = 'zcarte'; d.innerHTML = profCard(k); document.querySelector('#app, main, body').append(d); d.scrollIntoView(); }, club.key);
   assert.ok(await page.locator('#zcarte .prof > summary .pres').isVisible(), 'réserver sans déplier');

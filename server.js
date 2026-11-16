@@ -1657,7 +1657,7 @@ const server = http.createServer(async (req, res) => {
     // les tarifs d'un enseignant d'un club, pour sa fiche dans /RAM Club (des prix publics : ni nom ni coordonnées)
     if (p === '/api/coach/formules/public') {
       const m = await ram.memberByKey(url.searchParams.get('c') || '', url.searchParams.get('k') || '').catch(() => null);
-      return json(res, 200, { formules: m && m.user_id ? Formules.publicOf(await Formules.get(store, m.user_id)) : null });
+      return json(res, 200, { formules: m && m.user_id ? Formules.publicOf(await Formules.get(store, m.user_id), url.searchParams.get('c') || '') : null });
     }
     /* ---------- /RAM Réservation : la page publique, sans compte ---------- */
     if (p.startsWith('/api/public/resa/')) {
@@ -1668,7 +1668,13 @@ const server = http.createServer(async (req, res) => {
           if (Auth.tooManyAttempts('resa-pub|' + clientIp(req))) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
           const b = await readBody(req), r = await reservation.pubReserver(String(b.c || ''), String(b.k || ''), b), lien = appUrl(req) + r.annuler;
           taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, coach: r.coach, lien })));
-          return json(res, 200, { d: r.d, h: r.h, dur: r.dur, nom: r.nom, coach: r.coach, annuler: r.annuler });
+          return json(res, 200, { id: r.id, d: r.d, h: r.h, dur: r.dur, nom: r.nom, mail: r.mail, coach: r.coach, couvert: r.couvert, prix: r.prix, annuler: r.annuler });
+        }
+        if (p === '/api/public/resa/photo' && req.method === 'GET') {   // la photo de profil de l'enseignant (compte /RAM), si sa page est ouverte
+          const ph = await reservation.pubPhoto(q('c'), q('k'));
+          if (!ph) { res.writeHead(404); return res.end(); }
+          res.writeHead(200, { 'Content-Type': ph.mime, 'Cache-Control': 'public, max-age=300' });
+          return res.end(ph.buf);
         }
         if (p === '/api/public/resa/annuler' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.pubAnnuler(String(b.c || ''), String(b.id || ''), String(b.t || ''))); }
       } catch (e) { return refus(e); }

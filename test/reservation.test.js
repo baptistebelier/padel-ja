@@ -286,7 +286,9 @@ test('page publique : fermée par défaut, questionnaire, cours confirmé, annul
   await assert.rejects(resa.pubCreneaux(club.id, key, d), /pas ouverte/);
   await Formules.save(store, coach, Object.assign(await Formules.get(store, coach), { page: club.id }));
   const c = await resa.pubCreneaux(club.id, key, d);
-  assert.deepEqual(c.formules.map(f => f.id), ['f1']);
+  assert.deepEqual(c.formules.map(f => f.id), ['f1', 'f3'], 'toutes ses formules : individuel et duo');
+  assert.equal(c.photo, false, 'pas de photo : la page garde les initiales');
+  assert.equal(await resa.pubPhoto(club.id, key), null);
   assert.equal(JSON.stringify(c).includes('pris'), false);
   const b = { d, t: 540, formule: 'f1', prenom: 'Léa', nom: 'Roy', email: 'lea22@exemple.test', tel: '06 00 00 00 00', objectif: 'Volée', accord: true };
   await assert.rejects(resa.pubReserver(club.id, key, Object.assign({}, b, { site: 'x' })), /refusée/);
@@ -301,6 +303,42 @@ test('page publique : fermée par défaut, questionnaire, cours confirmé, annul
   await assert.rejects(resa.pubAnnuler(club.id, r.id, 'faux'), /valable/);
   await resa.pubAnnuler(q.get('c'), q.get('id'), q.get('t'));
   assert.equal((await coachTables.planning(coach, d, d)).seances[0].annule, true);
+});
+
+test('page publique : toutes ses formules, packs et abonnements ; photo du compte ; séance rattachée à l’abonnement ou au pack', async () => {
+  const { coach, club, key, d } = await monte(23), d2 = REGLES.addDays(d, 7);
+  await Formules.save(store, coach, {
+    formules: [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35 }, { id: 'f3', nom: 'Duo', sport: 'Padel', joueurs: 2, duree: 90, prix: 30, par: 'personne' }],
+    packs: [{ id: 'p1', formule: 'f1', nom: 'Pack 5', seances: 5, prix: 150 }], abos: [{ id: 'a1', nom: 'Academy', formule: 'f1', periode: 'mois', duree: 1, prix: 120, parSemaine: 1 }],
+    dispos: [{ jour: REGLES.dowOf(d), du: '09:00', au: '12:00', lieu: 'Club' }], page: club.id
+  });
+  store.getIdentity = async () => ({ avatar: 'data:image/png;base64,iVBORw0KGgo=' });
+  const c = await resa.pubCreneaux(club.id, key, d);
+  assert.deepEqual(c.formules.map(f => [f.id, f.duree]), [['f1', 60], ['f3', 90]]);
+  assert.deepEqual([c.packs[0].duree, c.abos[0].duree], [60, 60], 'la durée suit la formule du pack et de l’abonnement');
+  assert.equal(c.photo, true);
+  const ph = await resa.pubPhoto(club.id, key);
+  assert.equal(ph.mime, 'image/png');
+  assert.ok(ph.buf.length > 4);
+  const base = { d, formule: 'f3', prenom: 'Léa', nom: 'Roy', email: 'duo23@exemple.test', tel: '06 00 00 00 00', objectif: 'Volée', accord: true };
+  const duo = await resa.pubReserver(club.id, key, Object.assign({}, base, { t: 540, partenaires: 'Marc' }));
+  assert.equal(duo.dur, '1 h 30');
+  const cours = async id => (await ram.itemsOf(club.id, 'cours')).find(x => x.id === id).data;
+  assert.equal((await cours(duo.id)).tarif.mode, 'eleve');
+  assert.match((await cours(duo.id)).goal, /avec : Marc/);
+  await assert.rejects(resa.pubReserver(club.id, key, Object.assign({}, base, { t: 600, email: 'autre23@exemple.test' })), /pris/, 'la durée de 1 h 30 est comptée dans le créneau');
+  const pack = await resa.pubReserver(club.id, key, Object.assign({}, base, { t: 660, type: 'p', formule: 'p1', email: 'pack23@exemple.test' }));
+  assert.equal(pack.nom, 'Pack 5');
+  assert.equal(pack.prix, 30, 'un cinquième du pack');
+  const dec = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: d2, t: 540, formule: 'f1', email: 'dec23@exemple.test', couvert: 'pack' }));
+  assert.deepEqual([dec.couvert, dec.prix], ['pack', 0], 'pack en cours déclaré : rien à régler');
+  assert.match((await cours(dec.id)).goal, /à vérifier/);
+  const fiche = (await ram.itemsOf(club.id, 'eleve')).find(x => x.data.mail === 'dec23@exemple.test');
+  await ram.ops(coach, club.id, [{ coll: 'eleve', id: fiche.id, op: 'put', data: Object.assign({}, fiche.data, { mail: 'abo23@exemple.test', achats: [{ id: 'h1', t: 'abo', ref: 'a1', d: '2020-01-01', fin: '2099-01-01', nom: 'Academy', prix: 120 }] }) }]);
+  const abo = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: d2, t: 600, formule: 'f1', email: 'abo23@exemple.test' }));
+  assert.deepEqual([abo.couvert, abo.prix], ['abo', 0], 'abonnement reconnu dans la fiche, sans rien déclarer');
+  assert.equal((await cours(abo.id)).couvertVerifie, true);
+  delete store.getIdentity;
 });
 
 test('agenda : les cours confirmés vers Google, et ce qui est posé chez Google n’est plus réservable', async () => {

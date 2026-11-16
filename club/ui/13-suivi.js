@@ -198,6 +198,11 @@ function proBody(k) {
     yrs = p.since ? +TODAY.slice(0, 4) - +p.since : 0,
     tile = (i, v, l) => (v ? `<div class="ptile">${ic(i)}<b>${v}</b><span>${l}</span></div>` : ''),
     web = svLink(toUrlP(p.web)),
+    /* sa page publique de réservation, quand elle est ouverte dans ce club */
+    resaUrl =
+      window.RAM && RAM.live && off && (off.page === true || off.page === RAM.club)
+        ? location.origin + '/r/' + encodeURIComponent(RAM.club) + '/' + encodeURIComponent(k)
+        : '',
     tel = String(p.tel || '').replace(/[^+\d]/g, ''),
     bouton = (cl, href, i, t, v, ext) =>
       `<a class="pbtn ${cl}" href="${esc(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}><span class="pbi">${ic(i)}</span><span class="pbt"><b>${t}</b><span class="small">${esc(v)}</span></span></a>`,
@@ -229,7 +234,7 @@ function proBody(k) {
     tarifs
       ? `<details class="ptarifs"><summary><span class="tile">${ic('euro')}</span><span class="grow nm">Tarifs</span><span class="chev" aria-hidden="true">${ic('back')}</span></summary>${tarifs}</details>`
       : ''
-  }${k !== ME() ? `<div class="ctl"><button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button></div>` : ''}</div>`;
+  }${resaUrl ? `<a class="btn sm ghost full" href="${esc(resaUrl)}" target="_blank" rel="noopener" style="margin-bottom:8px">${ic('globe')}Page de réservation</a>` : ''}${k !== ME() ? `<div class="ctl"><button class="btn grow ghost" data-a="member" data-id="${k}">${ic('user')}Profil</button></div>` : ''}</div>`;
 }
 /* le raccourci en haut de la carte, même repliée : la réservation de l'appli dès que l'enseignant a des disponibilités ;
    sinon son outil (Calendly…), pour qu'on puisse toujours réserver */
