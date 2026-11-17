@@ -2903,7 +2903,7 @@ test('Dojo ?ui=2 : groupe sans tarif affiché, formule demandée groupe par grou
   page.on('pageerror', x => errs.push(x.message));
   await page.goto(JA + '/club/coach.html?ui=2');
   await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
-  const id = await page.evaluate(() => { const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)); if (!g) return null; delete g.offre; (g.cycles || []).forEach(c => delete c.offre); S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: g.id }]; render(); return g.id; });
+  const id = await page.evaluate(() => { const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)); if (!g) return null; delete g.offre; (g.cycles || []).forEach(c => delete c.offre); S.tab = 'clubs'; S.grTab = 'formule'; S.stack = [{ v: 'cgroupe', id: g.id }]; render(); return g.id; });
   if (id) {
     assert.equal(await page.locator('#main .u2fo [data-a="coGrpOf"]').count(), 1, 'formule à choisir');
     assert.ok(!(await page.textContent('#main')).includes('Tarif à renseigner'), 'plus de tarif du groupe');
@@ -3381,7 +3381,7 @@ test('Objectifs et compétences : créés dans /Dojo (élève, groupe), validés
   assert.equal(await page.locator('#main .objp').first().textContent(), '1/3', 'progression 1/3');
   assert.equal(await page.evaluate(([o, k]) => REGLES.objProgres(OBJECTIFS[0], [k]).ok, [0, k]), 1);
   // objectif de groupe : validation élève par élève
-  await page.evaluate(() => { S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: window.__g }]; render(); });
+  await page.evaluate(() => { S.tab = 'clubs'; S.grTab = 'eleves'; S.stack = [{ v: 'cgroupe', id: window.__g }]; render(); });
   await page.locator('#main [data-a="u2ObjEdit"][data-g]').click();
   await page.fill('#u2o-nom', 'Jeu de vitres');
   await page.fill('#u2o-cs .objer input', 'Sortie de vitre');
@@ -3414,7 +3414,7 @@ test('Dojo : « Supprimer le groupe » demande confirmation, retire le groupe se
     const passee = isoIn(-3), future = isoIn(5);
     sesGet(g.id + '.' + passee).pres = { [k]: 'P' };
     sesGet(g.id + '.' + future).theme = 'À venir';
-    S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: g.id }]; render();
+    S.tab = 'clubs'; S.grTab = 'reglages'; S.stack = [{ v: 'cgroupe', id: g.id }]; render();
     return { id: g.id, name: g.name, k, passee, future, nGroupes: GROUPS.length };
   });
   await page.locator('#main [data-a="coGrpDel"]').click();
@@ -3594,11 +3594,53 @@ test('Dojo : planning en Semaine, intercalaire collé à sa carte, fiche élève
   await page.evaluate(() => { const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)); S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: g.id }]; render(); });
   assert.ok(await page.locator('#main .u2gh [data-a="coPlan"]').isVisible(), 'programmer un cycle');
   assert.ok(await page.locator('#main .u2gh [data-a="coOffAdd"]').isVisible(), 'périodes sans cours');
-  const y = await page.evaluate(() => { const e = [...document.querySelectorAll('#main .u2gl .calh b')].find(b => /Élèves/.test(b.textContent)); return e ? e.getBoundingClientRect().top : 99999; });
+  await page.evaluate(() => { S.grTab = 'eleves'; render(); });
+  const y = await page.evaluate(() => { const e = [...document.querySelectorAll('#main .u2gb .calh b')].find(b => /Élèves/.test(b.textContent)); return e ? e.getBoundingClientRect().top : 99999; });
   assert.ok(y < 800, 'la liste des élèves est visible sans défiler : ' + y);
   assert.ok(await page.locator('#main [data-a="coAdd"]').count() > 0 && await page.locator('#main [data-a="coRm"]').count() > 0, 'ajout et retrait d’élève');
   assert.deepEqual(errs, []);
   await ctx.close();
+});
+
+test('Dojo : fiche de groupe en deux boîtes (identité + intercalaires collés), chaque onglet s’ouvre, l’onglet reste en mémoire, à 390 et 1280 px', async () => {
+  const ONG = ['seances', 'eleves', 'formule', 'discussion', 'reglages'];
+  for (const w of [390, 1280]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    await page.evaluate(() => { try { localStorage.removeItem('coach-groupe-onglet'); } catch (e) {} const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)); window.__gid = g.id; delete S.grTab; S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: g.id }]; render(); });
+    assert.equal(await page.locator('#main .pad.u2g > *').count(), 2, w + ' : deux boîtes seulement');
+    assert.equal(await page.locator('#main .u2gh [data-a="coPlan"], #main .u2gh [data-a="coOffAdd"], #main .u2gh [data-a="coGrpEdit"]').count(), 3, w + ' : actions principales dans l’identité');
+    assert.equal(await page.locator('#main .u2boite .u2itabs button').count(), 5, w + ' : cinq onglets');
+    for (const k of ONG) {
+      await page.locator('#main .u2itabs [data-k="' + k + '"]').click();
+      const m = await page.evaluate(k => {
+        const t = document.querySelector('#main .u2itabs [aria-selected="true"]'), b = document.querySelector('#main .u2gb'), cs = getComputedStyle(b);
+        const tabs = document.querySelector('#main .u2itabs');
+        return { sel: t && t.dataset.k, ecart: Math.round((b.getBoundingClientRect().top + parseFloat(cs.borderTopWidth) - t.getBoundingClientRect().bottom) * 10) / 10, txt: b.textContent.trim().length, mask: getComputedStyle(tabs).maskImage, debord: document.documentElement.scrollWidth - innerWidth, cut: tabs.scrollWidth - tabs.clientWidth };
+      }, k);
+      assert.equal(m.sel, k, w + ' : onglet ' + k + ' choisi');
+      assert.ok(Math.abs(m.ecart) <= 1, w + ' : intercalaires collés à 0 px (' + k + ') : ' + m.ecart);
+      assert.ok(m.txt > 0, w + ' : contenu de ' + k);
+      assert.equal(m.mask, 'none', w + ' : pas de fondu');
+      assert.ok(m.debord <= 0, w + ' : pas de débordement horizontal (' + k + ') : ' + m.debord);
+      assert.ok(m.cut <= 0, w + ' : intercalaires entièrement visibles : ' + m.cut);
+    }
+    // contenu retrouvé dans l'onglet qui le porte
+    const contenu = { seances: '[data-a="coPlan"]', eleves: '[data-a="coAdd"]', formule: '[data-a="coGrpOf"]', discussion: '[data-a="coChanNew"], [data-a="coChanDel"], [data-a="open"][data-v="chan"]', reglages: '[data-a="coGrpDel"]' };
+    for (const k of ONG) {
+      await page.locator('#main .u2itabs [data-k="' + k + '"]').click();
+      assert.ok(await page.locator('#main .u2gb ' + contenu[k].split(', ').join(', #main .u2gb ')).count() > 0, w + ' : ' + k + ' porte ' + contenu[k]);
+    }
+    // mémoire : on quitte la page puis on y revient, l'onglet choisi est resté
+    await page.locator('#main .u2itabs [data-k="formule"]').click();
+    await page.evaluate(() => { S.stack = []; S.tab = 'today'; render(); S.tab = 'clubs'; S.stack = [{ v: 'cgroupe', id: window.__gid }]; render(); });
+    assert.equal(await page.locator('#main .u2itabs [aria-selected="true"]').getAttribute('data-k'), 'formule', w + ' : onglet gardé en mémoire');
+    assert.equal(await page.evaluate(() => localStorage.getItem('coach-groupe-onglet')), 'formule', w + ' : mémorisé sur l’appareil');
+    assert.deepEqual(errs, [], w + ' : aucune erreur');
+    await ctx.close();
+  }
 });
 
 test('Abonnés : compteur « 2/4 ce mois-ci » sur la fiche élève, dans l’onglet Abonnés (alerte au-delà) et dans les achats de /Buvette', async () => {

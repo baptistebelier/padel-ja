@@ -210,3 +210,22 @@
   :root[data-ui="2"] .u2meseg, :root[data-ui="2"] .u2vue { max-width: calc(100% - 2 * var(--gut)); }
   :root[data-ui="2"] .u2meseg > button { padding: 0 10px; }
 }
+
+/* ---------- fiche de groupe : une boîte d'identité, une boîte à intercalaires ---------- */
+:root[data-ui="2"] .u2g { display: flex; flex-direction: column; gap: 18px; }
+:root[data-ui="2"] .u2gm { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+:root[data-ui="2"] .u2gm .cotile { width: auto; min-width: 0; }
+:root[data-ui="2"] .u2gfo { cursor: pointer; min-height: 34px; padding: 4px 12px; background: var(--hot, #E0284A); color: var(--on-hot, #FFFFFF); border: var(--bw, 2px) solid var(--c-ink); font: 700 13px var(--f-sub); letter-spacing: .04em; text-transform: uppercase; }
+:root[data-ui="2"] .u2gb { gap: 18px; }
+:root[data-ui="2"] .u2gb .u2gs { margin: 0; }
+@media (min-width: 1024px) {
+  :root[data-ui="2"] .u2gh { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 440px); grid-template-areas: "t m" "c m" "a a"; column-gap: 24px; align-items: start; }
+  :root[data-ui="2"] .u2gh .u2gt { grid-area: t; }
+  :root[data-ui="2"] .u2gh .u2gm { grid-area: m; }
+  :root[data-ui="2"] .u2gh .u2gc { grid-area: c; }
+  :root[data-ui="2"] .u2gh .u2ga { grid-area: a; }
+}
+@media (max-width: 700px) {
+  :root[data-ui="2"] .u2gm { grid-template-columns: 1fr 1fr; }
+  :root[data-ui="2"] .u2ga .btn { flex: 1 1 auto; }
+}

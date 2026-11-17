@@ -850,6 +850,22 @@ if (UI2) {
 
   /* Fiche de groupe : le cycle en cours et sa progression en haut, les élèves tout de suite (ajout et retrait), puis les
      séances à venir et effectuées en petites cartes, et les actions (cycle à l'avance, périodes sans cours) à portée de main */
+  const U2_GR = [
+    ['seances', 'Séances'],
+    ['eleves', 'Élèves'],
+    ['formule', 'Formule'],
+    ['discussion', 'Discussion'],
+    ['reglages', 'Réglages']
+  ];
+  const u2GrOnglet = () => {
+    let k = S.grTab;
+    if (!k)
+      try {
+        k = localStorage.getItem('coach-groupe-onglet');
+      } catch (e) {}
+    if (!U2_GR.some(t => t[0] === k)) k = 'seances';
+    return (S.grTab = k);
+  };
   const u2GroupeF = V.cgroupe;
   V.cgroupe = id => {
     const g = grp(id);
@@ -881,12 +897,15 @@ if (UI2) {
       next = up.slice(0, 5),
       box = (icn, title, extra, inner) =>
         `<div class="card u2c u2gs"><div class="calh">${ic(icn)}<b>${title}</b>${extra || ''}</div>${inner}</div>`;
-    const head = `<div class="card u2gh"><div class="u2gt"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span></div><div class="u2gc"><div class="u2gcl"><span class="u2gct">${ic('ladder')}${
+    const tab = u2GrOnglet(),
+      enseignant = coTile('user', g.coach && M[g.coach] ? first(g.coach) : 'À choisir', 'Enseignant', 1),
+      places = `<div class="cotile">${ic('users')}<b>${st.length}${g.max ? '<small>/' + g.max + '</small>' : ''}</b><span>${g.max ? 'Places occupées' : plural(st.length, 'élève')}</span>${g.max ? `<span class="cobarre" aria-hidden="true"><i style="width:${Math.min(100, Math.round((st.length * 100) / g.max))}%"></i></span>` : ''}</div>`;
+    /* boîte 1 : l'identité du groupe, fermée sur elle-même */
+    const head = `<div class="card u2gh"><div class="u2gt"><span class="kicker">${coSlot(g)} · ${g.dur} · ${g.defLoc || 'En salle'}</span><span class="h3">${esc(g.name)}</span></div><div class="cotiles u2gm">${enseignant}${places}</div><div class="u2gc"><div class="u2gcl"><span class="u2gct">${ic('ladder')}${
       E
         ? `<b>${esc(c.nom || 'Cycle en cours')}</b><span class="muted">${E.faites}/${E.prevues} séances</span>`
         : `<b>${coOver(g) ? 'Cycle terminé le ' + fmtD(g.to) : 'Pas de cycle en cours'}</b><span class="muted">${g.to ? 'jusqu’au ' + fmtD(g.to) : 'séances chaque semaine'}</span>`
-    }</span>${etat}</div>${E ? `<span class="gbt u2gj" role="img" aria-label="${E.faites} séances sur ${E.prevues}"><i style="width:${pct}%"></i></span>` : ''}</div><div class="u2ga"><button class="btn" data-a="coPlan" data-id="${g.id}" title="Programmer un cycle à l’avance">${ic('plus')}Nouveau cycle</button><button class="btn ghost" data-a="coOffAdd" data-id="${g.id}">${ic('ban')}Périodes sans cours</button><button class="btn ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Modifier</button></div></div>`;
-    const tiles = `<div class="cotiles">${coTile('user', g.coach && M[g.coach] ? first(g.coach) : 'À choisir', 'Enseignant', 1)}<div class="cotile">${ic('users')}<b>${st.length}${g.max ? '<small>/' + g.max + '</small>' : ''}</b><span>${g.max ? 'Places occupées' : plural(st.length, 'élève')}</span>${g.max ? `<span class="cobarre" aria-hidden="true"><i style="width:${Math.min(100, Math.round((st.length * 100) / g.max))}%"></i></span>` : ''}</div>${coGrpOffer(g)}</div>`;
+    }</span>${etat}${u2SansFormule(g) ? `<button class="tag hot u2gfo" data-a="coGrpOf" data-id="${g.id}">Formule à choisir</button>` : ''}</div>${E ? `<span class="gbt u2gj" role="img" aria-label="${E.faites} séances sur ${E.prevues}"><i style="width:${pct}%"></i></span>` : ''}</div><div class="u2ga"><button class="btn" data-a="coPlan" data-id="${g.id}" title="Programmer un cycle à l’avance">${ic('plus')}Nouveau cycle</button><button class="btn ghost" data-a="coOffAdd" data-id="${g.id}">${ic('ban')}Périodes sans cours</button><button class="btn ghost" data-a="coGrpEdit" data-id="${g.id}">${ic('edit')}Modifier</button></div></div>`;
     const formule = u2SansFormule(g)
       ? `<div class="card u2c u2fo"><div class="calh">${ic('ball')}<b>Formule à choisir</b></div><p class="muted small">Ce groupe n’a pas encore de formule. Choisis-la : c’est elle qui donne le prix des séances et, pour un pack, leur nombre.</p><button class="btn" data-a="coGrpOf" data-id="${g.id}">${ic('ball')}Choisir la formule</button></div>`
       : '';
@@ -960,7 +979,23 @@ if (UI2) {
             .join('')
         )
       : '';
-    return `<div class="pad u2g">${head}${formule}${tiles}<div class="u2g2"><div class="u2gl">${eleves}${u2ObjGroupe(g)}${discussion}${cycles}<div class="u2gdel"><button class="u2dng" data-a="coGrpDel" data-id="${g.id}">${ic('trash')}Supprimer le groupe</button></div></div><div class="u2gr">${avenir}${faites}${coOffHtml(g)}${themes}${bilans}</div></div></div>`;
+    /* boîte 2 : les intercalaires collés à son bord supérieur, puis le contenu de l'onglet choisi */
+    const corps = {
+      seances: `<div class="u2g2"><div class="u2gl">${avenir}${coOffHtml(g)}${themes}</div><div class="u2gr">${faites}${bilans}</div></div>`,
+      eleves: `${eleves}${u2ObjGroupe(g)}`,
+      formule: `${formule}<div class="cotiles">${coGrpOffer(g)}</div>${cycles}`,
+      discussion: discussion,
+      reglages: `${box('home', 'Lieu des séances', '', coLocTg(g))}<div class="u2gdel"><button class="u2dng" data-a="coGrpDel" data-id="${g.id}">${ic('trash')}Supprimer le groupe</button></div>`
+    }[tab];
+    const tabs = `<div class="r-itabs u2itabs" role="tablist" aria-label="Rubriques du groupe">${U2_GR.map(([v, l]) => `<button role="tab" aria-selected="${tab === v}" data-a="u2GrTab" data-k="${v}"><span class="lb">${l}</span></button>`).join('')}</div>`;
+    return `<div class="pad u2f u2g">${head}<div class="u2boite">${tabs}<div class="card u2fb u2gb u2gb-${tab}">${corps}</div></div></div>`;
+  };
+  A.u2GrTab = d => {
+    S.grTab = d.k;
+    try {
+      localStorage.setItem('coach-groupe-onglet', d.k);
+    } catch (e) {}
+    render(true);
   };
 
   /* Supprimer un groupe : le groupe seul. Gardés : formules, achats, paiements, séances effectuées (présences, bilans), historique des élèves,
