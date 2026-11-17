@@ -134,7 +134,7 @@ const coVenues = id => {
       sport: g.sport,
       gid: g.id,
       cy: (REGLES.cycleDe(g, d) || {}).id,
-      ac: g.achat
+      ac: REGLES.achatDe(g, id)
     });
   };
   SEANCES.forEach(s => {
@@ -206,7 +206,7 @@ function coAchatsCard(id) {
     `<div class="card">${
       l
         .map(a => {
-          const pct = a.t === 'pack' && a.n ? Math.round((a.used * 100) / a.n) : 0,
+          const pct = a.t === 'pack' && a.n ? Math.min(100, Math.round((a.used * 100) / a.n)) : 0,
             fin = a.t === 'abo' && a.fin,
             et = REGLES.etatAchat(a, TODAY),
             g = a.groupe || a.cycle ? grp(a.groupe || String(a.cycle).split(':')[0]) : null,

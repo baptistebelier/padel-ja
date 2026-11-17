@@ -530,3 +530,26 @@ test('appel : la dernière séance d’un cycle prévient l’enseignant, une se
   l = await ops(coach, club, [{ coll: 'seance', id: 'g1.2026-01-12', op: 'patch', patch: [{ p: ['theme'], t: 'set', v: 'Bilan' }] }]);
   assert.equal(l.filter(x => /terminé son cycle/.test(x[1].body)).length, 0, 'pas de répétition');
 });
+
+test('rattachement d’une séance faite à un autre achat : c’est lui qui peut compléter l’achat, une seule notification', async () => {
+  const { coach, club, key, ek } = await clubDeux(34);
+  const c = (id, d) => ({ coll: 'cours', id, op: 'put', data: { type: 'train', name: 'Cours individuel', once: d, day: 1, h: '9 h', dur: '1 h', sport: 'Padel', coach: key, mem: [ek] } });
+  const s = (id, d) => ({ coll: 'seance', id: id + '.' + d, op: 'put', data: { g: id, d, pres: { [ek]: 'P' } } });
+  await ops(coach, club, [
+    c('c1', '2026-01-05'), c('c2', '2026-01-12'),
+    { coll: 'eleve', id: ek, op: 'put', data: { n: 'Nina Anglade', achats: [
+      { id: 'A', t: 'pack', ref: 'p3', d: '2026-01-01', nom: 'Pack A', n: 3 },
+      { id: 'B', t: 'pack', ref: 'p3', d: '2026-01-02', nom: 'Pack B', n: 1 }
+    ] } }
+  ]);
+  await ops(coach, club, [s('c1', '2026-01-05')]);
+  let l = await ops(coach, club, [s('c2', '2026-01-12')]);
+  assert.equal(l.length, 0, 'A : 2 séances sur 3');
+  // la 2e séance est rattachée au pack B (1 séance) : il est complet grâce à ce rattachement
+  l = await ops(coach, club, [{ coll: 'cours', id: 'c2', op: 'patch', patch: [{ p: ['achat'], t: 'set', v: 'B' }, { p: ['couvert'], t: 'set', v: 'pack' }] }]);
+  assert.equal(l.length, 1);
+  assert.match(corps(l), /Nina a utilisé toutes ses séances : Pack B/);
+  // le même rattachement répété, ou un autre champ modifié : aucun doublon
+  l = await ops(coach, club, [{ coll: 'cours', id: 'c2', op: 'patch', patch: [{ p: ['couvert'], t: 'set', v: 'pack' }, { p: ['theme'], t: 'set', v: 'Volée' }] }]);
+  assert.equal(l.length, 0);
+});

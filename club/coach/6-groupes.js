@@ -231,9 +231,32 @@ function coCycleUsed(a, k) {
 function coSesCycle(g, d) {
   if (g.once) {
     const l = coGroups('', true).filter(x => !x.once && coClubOf(x) === coClubOf(g) && (x.cycles || []).length);
-    return l.length
-      ? `<form class="card" id="co-s-att" data-id="${g.id}" data-d="${d}"><div class="fld"><label for="co-s-ac">Rattacher ce cours à un cycle</label><select id="co-s-ac" required><option value="">Choisir un cycle</option>${l.flatMap(x => x.cycles.map(k => `<option value="${x.id}|${k.id}">${esc(x.name)} · ${esc(k.nom)}</option>`)).join('')}</select></div><button class="btn sm ghost full">Rattacher</button><p class="muted small">Le cours devient une séance du groupe, à l’horaire du groupe, avec ses élèves et son appel.</p></form>`
-      : '';
+    // un cours d'un seul élève : ses achats (pack, abonnement, séance à l'unité) avec leur décompte, puis les cycles des groupes
+    const st = coStu(g),
+      parEl = st.map(k => [k, coPacks(k).slice().reverse()]).filter(x => x[1].length),
+      n0 = st.filter(k => REGLES.achatDe(g, k) && coPacks(k).some(a => a.id === REGLES.achatDe(g, k)));
+    if (!l.length && !parEl.length) return '';
+    const mois = d.slice(0, 7),
+      lib = a => {
+        const m = a.t === 'abo' ? REGLES.moisAbo(a, d) : null,
+          plein = a.t === 'pack' ? a.used >= a.n : a.t === 'seance' ? a.used >= 1 : false;
+        return (
+          (a.nom || ofLabel(a.t, a.ref)) +
+          ' · ' +
+          (a.t === 'pack'
+            ? a.used + '/' + a.n
+            : a.t === 'abo'
+              ? m.quota
+                ? (a.parMois || {})[mois] || 0
+                : 'abonnement'
+              : a.used >= 1
+                ? 'utilisée'
+                : 'à l’unité') +
+          (a.t === 'abo' && m.quota ? '/' + m.quota + ' ce mois-ci' : '') +
+          (plein ? ' · complet' : '')
+        );
+      };
+    return `<form class="card" id="co-s-att" data-id="${g.id}" data-d="${d}"><div class="fld"><label for="co-s-ac">Rattacher cette séance</label><select id="co-s-ac"><option value="">${n0.length ? 'Aucun achat (règle par défaut)' : 'Choisir un achat ou un cycle'}</option>${parEl.map(([k, ach]) => `<optgroup label="${st.length > 1 ? 'Achats de ' + esc(svFirst(k)) : 'Ses achats'}">${ach.map(a => `<option value="a|${k}|${a.id}" ${REGLES.achatDe(g, k) === a.id ? 'selected' : ''}>${esc(lib(a))}</option>`).join('')}</optgroup>`).join('')}${l.length ? `<optgroup label="Groupes">${l.flatMap(x => x.cycles.map(c => `<option value="${x.id}|${c.id}">${esc(x.name)} · ${esc(c.nom)}</option>`)).join('')}</optgroup>` : ''}</select></div><button class="btn sm ghost full">Rattacher</button><p class="muted small">À un achat : la séance compte dans son décompte (même complet : 11/10), elle garde son nom, son heure et sa durée. À un groupe : elle devient une séance du groupe, à son horaire, avec ses élèves et son appel.</p></form>`;
   }
   if (!(g.cycles || []).length) return '';
   const c = REGLES.cycleDe(g, d),
@@ -245,9 +268,29 @@ document.addEventListener('submit', e => {
   e.preventDefault();
   const o = grp(e.target.dataset.id),
     d = e.target.dataset.d,
-    [gid, cid] = $('co-s-ac').value.split('|'),
+    val = $('co-s-ac').value,
+    [gid, kA, cid0] = val.split('|'),
+    cid = gid === 'a' ? cid0 : kA,
     g = grp(gid),
     c = g && (g.cycles || []).find(x => x.id === cid);
+  // un achat de l'élève (ou plus aucun) : le lien séance → achat (g.achat), que REGLES.couverture lit
+  if (o && (gid === 'a' || val === '')) {
+    const a = gid === 'a' ? coPacks(kA).find(x => x.id === cid) : null,
+      st = coStu(o);
+    if (gid === 'a' && !a) return;
+    // un seul élève : le lien est g.achat ; un cours de plusieurs élèves : un achat par élève (g.achatPar)
+    if (a && st.length === 1) {
+      o.achat = a.id;
+      o.couvert = a.t;
+    } else if (a) o.achatPar = Object.assign({}, o.achatPar, { [kA]: a.id });
+    else {
+      delete o.achat;
+      delete o.couvert;
+      delete o.achatPar;
+    }
+    coSave(a ? 'Séance rattachée à ' + (a.nom || ofLabel(a.t, a.ref)) : 'Séance détachée de son achat');
+    return;
+  }
   if (!o || !c) return;
   const v = sesFind(o, d),
     t = sesGet(g.id + '.' + d),

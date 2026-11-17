@@ -166,7 +166,7 @@
         ok = v => {
           // une séance ponctuelle rattachée à un achat (v.ac) ne se décompte que de cet achat, quel que soit son format,
           // tant que cet achat existe ; sinon la règle de la formule s'applique
-          if (v.ac != null && !L) {
+          if (v.ac != null) {
             if (v.ac === a.id) return true;
             if (all.some(x => x.id === v.ac)) return false;
           }
@@ -179,7 +179,8 @@
         // par mois civil (o.parMois : { 'AAAA-MM': séances })
         o.parMois = {};
         vs.forEach(v => {
-          if (!couvre.has(v) && v.d >= (a.du || a.d) && (!a.fin || v.d <= a.fin) && ok(v)) {
+          // une séance rattachée à cet abonnement (v.ac) y compte dans le mois de sa date, même hors de ses dates
+          if (!couvre.has(v) && (v.ac === a.id || (v.d >= (a.du || a.d) && (!a.fin || v.d <= a.fin))) && ok(v)) {
             couvre.set(v, o);
             o.used++;
             const m = String(v.d).slice(0, 7);
@@ -190,6 +191,13 @@
       }
       const max = a.t === 'pack' ? +a.n || 0 : 1,
         from = L ? '' : addDays(String(a.d), -14);
+      // les séances rattachées à cet achat d'abord, sans limite : un achat complet rattaché à une séance de plus donne 11/10, rien ne bloque
+      for (const v of vs) {
+        if (v.ac === a.id && !couvre.has(v)) {
+          couvre.set(v, o);
+          o.used++;
+        }
+      }
       for (const v of vs) {
         if (o.used >= max) break;
         if (couvre.has(v) || (v.d < from && v.ac !== a.id) || !ok(v)) continue;
@@ -229,6 +237,9 @@
     );
   }
 
+  /* l'achat auquel une séance (cours particulier) est rattachée pour l'élève k : g.achatPar[k] (cours de plusieurs élèves), sinon g.achat ;
+     un achat qui n'est pas à l'élève est simplement ignoré (couverture) */
+  const achatDe = (g, k) => ((g && g.achatPar) || {})[k] || (g && g.achat) || undefined;
   /* les séances faites par un élève (présent à l'appel de /RAM Coach ou de /RAM Club), pour la couverture ;
      seances : [{ g, d, pres }], groupes : groupes et cours du club (avec leur id). Même calcul que /RAM Coach (coVenues). */
   function venuesDe(k, seances, groupes, today) {
@@ -248,7 +259,7 @@
         sport: g.sport,
         gid: g.id,
         cy: (cycleDe(g, d) || {}).id,
-        ac: g.achat
+        ac: achatDe(g, k)
       });
     };
     ses.forEach(s => {
@@ -451,7 +462,7 @@
       const gid = x.gid != null ? x.gid : x.g && x.g.id,
         cy = x.cy != null ? x.cy : x.g && gid != null ? (cycleDe(x.g, x.d) || {}).id : undefined;
       (x.presents || []).forEach(k =>
-        (venues[k] = venues[k] || []).push({ d: x.d, min, n, sport, gid: gid == null ? undefined : gid, cy, ac: x.g && x.g.achat })
+        (venues[k] = venues[k] || []).push({ d: x.d, min, n, sport, gid: gid == null ? undefined : gid, cy, ac: x.g && achatDe(x.g, k) })
       );
     });
     const keys = new Set(Object.keys(eleves || {}).concat(Object.keys(venues)));
@@ -664,7 +675,7 @@
   /* séances à venir déjà rattachées à chaque achat : { idAchat: nombre } (séances ponctuelles « achat », dates de cycle exclues) */
   function progParAchat(groupes, today) {
     const m = {};
-    (groupes || []).forEach(g => { if (g && g.achat && g.once && g.once > today && !(g.cancel || []).includes(g.once)) m[g.achat] = (m[g.achat] || 0) + 1; });
+    (groupes || []).forEach(g => { if (g && g.once && g.once > today && !(g.cancel || []).includes(g.once)) new Set([g.achat].concat(Object.values(g.achatPar || {})).filter(Boolean)).forEach(id => { m[id] = (m[id] || 0) + 1; }); });
     return m;
   }
   /* les achats qu'une séance peut décompter : pack ou abonnement non terminé (état « En cours »), avec ce qu'il en reste.
@@ -709,6 +720,7 @@
     objProgres,
     objBascule,
     seancesAbo,
+    achatDe,
     moisAbo,
     quotaMois,
     parMoisDef,

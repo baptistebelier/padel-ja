@@ -3620,3 +3620,49 @@ test('Abonnés : compteur « 2/4 ce mois-ci » sur la fiche élève, dans l’on
   assert.deepEqual(errors, []);
   await c2.close();
 });
+
+test('Dojo : séance de l’historique d’un élève, « Rattacher » à un de ses achats (Ses achats / Groupes), décompte mis à jour, détachement', async () => {
+  for (const w of [1280, 360]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 820 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html?ui=2');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    const r = await page.evaluate(() => {
+      const e = ELEVES.find(x => coInClub(x));
+      if (!e) return null;
+      const d = isoIn(-4), gid = 'grat1';
+      e.achats = [{ id: 'ra1', t: 'pack', ref: 'zz', d: isoIn(-30), n: 10, nom: 'Pack 10 séances' }, { id: 'ra2', t: 'pack', ref: 'zz', d: isoIn(-30), n: 1, nom: 'Pack 1 séance' }];
+      GROUPS.push({ id: gid, type: 'train', name: 'Cours individuel', once: d, day: 1, h: '18 h', dur: '1 h 30', sport: 'Padel', coach: ME(), mem: M[e.id] ? [e.id] : [], ext: M[e.id] ? [] : [e.id], at: Date.now() });
+      SEANCES.push({ id: gid + '.' + d, g: gid, d, pres: { [e.id]: 'P' } });
+      S.tab = 'eleves'; S.stack = [{ v: 'seance', id: gid + '.' + d }]; render();
+      return { k: e.id, gid };
+    });
+    if (r) {
+      await page.waitForSelector('#co-s-att #co-s-ac');
+      const opts = await page.evaluate(() => [...document.querySelectorAll('#co-s-ac optgroup')].map(g => [g.label, [...g.children].map(o => o.textContent)]));
+      assert.equal(opts[0][0], 'Ses achats', 'première famille : ses achats');
+      assert.ok(opts[0][1].some(t => /Pack 10 séances · \d+\/10/.test(t)), 'avec leur décompte');
+      await page.selectOption('#co-s-ac', 'a|' + r.k + '|ra2');
+      await page.click('#co-s-att .btn');
+      assert.equal(await page.evaluate(g => grp(g).achat, r.gid), 'ra2', 'lien séance → achat posé');
+      assert.equal(await page.evaluate(k => coPacks(k).find(a => a.id === 'ra2').used, r.k), 1, 'la séance compte dans ce pack');
+      // le pack 1 séance est complet : toujours proposé, marqué « complet »
+      await page.evaluate(() => render());
+      assert.ok((await page.locator('#co-s-ac option:checked').textContent()).includes('complet'), 'achat complet marqué');
+      // un autre rattachement la fait passer à 11/10 sans rien bloquer ; changement d'achat
+      await page.selectOption('#co-s-ac', 'a|' + r.k + '|ra1');
+      await page.click('#co-s-att .btn');
+      assert.equal(await page.evaluate(r => coVenues(r.k).find(v => v.gid === r.gid).ac, r), 'ra1', 'la séance porte le lien vers ce pack');
+      assert.ok(await page.evaluate(k => coPacks(k).find(a => a.id === 'ra1').used, r.k) >= 1);
+      assert.equal(await page.evaluate(k => coPacks(k).find(a => a.id === 'ra2').used, r.k), 0, 'plus décomptée de l’ancien');
+      // détacher : retour à la règle par défaut
+      await page.evaluate(() => render());
+      await page.selectOption('#co-s-ac', '');
+      await page.click('#co-s-att .btn');
+      assert.equal(await page.evaluate(g => grp(g).achat, r.gid), undefined);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'pas de débordement');
+    }
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
