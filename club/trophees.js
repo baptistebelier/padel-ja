@@ -263,8 +263,10 @@ function progPath(etapes, v, L, o) {
     pos = N ? L + Math.max(0, Math.min(1, (v - etapes[L].min) / (N.min - etapes[L].min))) : n - 1,
     pc = ((pos / (n - 1)) * 100).toFixed(1);
   const etape = (f, i) => {
-    const st = i <= L ? 'got' : i === L + 1 ? 'now' : 'lock';
-    return `<div class="fp-st ${st}" role="listitem" style="--c:${o.coul[i]}" aria-label="${o.nom} ${f.n}, ${f.min} ${o.unite}${st === 'got' ? ', débloqué' : ', à débloquer'}"><span class="fp-card">${st === 'got' ? '' : `<span class="fp-lock">${CADENAS}</span>`}${o.carte(i, st)}<b>${f.n}</b></span><span class="fp-dia"></span><small>${f.min} ${o.court}</small></div>`;
+    // l'étape en surbrillance (et centrée au chargement) est le dernier palier atteint ; le suivant reste verrouillé, avec ce qu'il reste à faire
+    const st = i < L ? 'got' : i === L ? 'got now' : i === L + 1 ? 'lock nxt' : 'lock',
+      reste = i === L + 1 ? Math.max(0, f.min - v) : 0;
+    return `<div class="fp-st ${st}" role="listitem" style="--c:${o.coul[i]}" aria-label="${o.nom} ${f.n}, ${f.min} ${o.unite}${st.startsWith('got') ? ', débloqué' : ', à débloquer'}"><span class="fp-card">${st.startsWith('got') ? '' : `<span class="fp-lock">${CADENAS}</span>`}${o.carte(i, st)}<b>${f.n}</b></span><span class="fp-dia"></span><small>${f.min} ${o.court}</small>${reste ? `<small class="fp-reste">encore ${reste} ${o.court || o.unite}</small>` : ''}</div>`;
   };
   return `<div class="fpath tsec" role="list" aria-label="${o.titre}"><div class="fp-in" style="--n:${n}"><div class="fp-rail"><i style="width:${pc}%"></i><span class="fp-me" style="left:${pc}%">${o.bulle}</span></div>${etapes.map(etape).join('')}</div></div>`;
 }
@@ -615,7 +617,7 @@ function trophiesView(id) {
   return `<div class="pad">${self && staff() && nc ? `<button class="note" data-a="open" data-v="claims" style="width:100%;text-align:left"><b>${nc} demande${nc > 1 ? 's' : ''} de trophée</b> à examiner</button>` : ''}<div class="thero tsec">${av(id, 'xl')}<div class="grow"><span class="kicker">Score d'investissement${pron(id)}</span><span class="tscore">${sc}<small> pts</small></span><span class="muted small">${ptsOf(id)} pts de trophées · ${ST(id).c.ap || 0} pts d'activité${XP[id] ? ` · ${XP[id]} pts des saisons passées` : ''}</span><span class="muted small">${got} trophées sur ${TROPHIES.length + RARES.length} · cadre ${FRAMES[L].n.toLowerCase()}</span>${nx ? `<span class="bar"><i style="width:${nx.pc}%"></i></span><span class="muted small">Encore ${nx.need} pts pour le cadre ${nx.n.toLowerCase()}</span>` : '<span class="muted small">Le plus beau cadre du club.</span>'}</div></div>
  ${!self && staff() ? `<div class="note">Touche un trophée pour le décerner à ${first(id)}.</div>` : self ? '<p class="muted small">Chaque action rapporte 1 point d\'activité : like, commentaire, message, réaction, inscription, vote, présence, bénévolat, rencontre jouée, tournoi terminé. Annuler l\'action retire le point. Par jour, comptent au plus ' + CAPS.msg + ' messages, ' + CAPS.com + ' commentaires et ' + CAPS.like + ' likes. Les trophées rapportent beaucoup plus : touche-en un pour voir ses paliers, ou le réclamer au club.</p>' : ''}
  ${self ? `<span class="kicker">Les cadres d'avatar</span>${framePath(id)}` : ''}
- <span class="kicker">Trophées à paliers</span><div class="tsec">${tiered}</div>
+ <div class="card tbox"><span class="kicker">Trophées à paliers</span><div class="tsec">${tiered}</div></div>
  <span class="kicker">Trophées rares</span><div class="tsec">${rares}</div>
  ${self ? boardSection(mode, board, hidden) : ''}</div>`;
 }

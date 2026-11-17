@@ -1319,3 +1319,8 @@ select option{background:var(--card);color:var(--fg)}
 :nth-child(3n+2)>.av:not(.club):not([style*="url("]),:nth-child(3n+2)>*>.av:not(.club):not([style*="url("]){background:var(--pink)!important}
 :nth-child(3n)>.av:not(.club):not([style*="url("]),:nth-child(3n)>*>.av:not(.club):not([style*="url("]){background:var(--green)!important}
 .ptile svg,.pbtn svg{color:var(--fg)!important}
+
+/* paliers verrouillés : le vrai cadre autour de la photo, tuile légèrement effacée */
+.fp-st.lock .fp-card .av{filter:none}
+.fp-st.lock .fp-card{opacity:.8}
+.fp-st .fp-reste{margin-top:0;font-weight:700}

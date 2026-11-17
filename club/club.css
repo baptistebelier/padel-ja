@@ -2004,3 +2004,26 @@ select option { background: var(--c-surface); color: var(--c-text); }
   #phone .tabs > button { min-height: calc(62px + env(safe-area-inset-bottom, 0px)); padding: 10px 2px calc(10px + env(safe-area-inset-bottom, 0px)); justify-content: center; }
   #phone .tabs > button, #phone .tabs > button[aria-current="page"] { border: 0; border-radius: 0; box-shadow: none; outline: 0; }
 }
+
+/* paliers verrouillés : le vrai cadre autour de la photo (plus de noir et blanc), reconnaissables au cadenas et à un léger effacement de la tuile */
+.fp-st.lock .fp-card .av { filter: none; }
+.fp-st.lock .fp-card { opacity: .8; }
+.fp-st .fp-reste { margin-top: 0; font-weight: 700; color: var(--c-muted, var(--muted)); }
+
+/* ---------- une seule boîte par page à intercalaires (Agenda, Jouer, Messages) : intercalaires collés à son bord supérieur ---------- */
+:root #main > .card.bvbox { margin: 0 var(--gut, 16px) 24px !important; padding: 14px; gap: 14px; min-width: 0; }
+:root #main .bvbox .pad, :root #main .bvbox .stack { padding: 0 !important; margin: 0 !important; gap: 14px; background: transparent; }
+:root #main .bvbox .lis, :root #main .bvbox .feed { margin: 0 !important; box-shadow: none !important; border: 0 !important; background: transparent !important; border-radius: 0 !important; }
+:root #main .bvbox .card, :root #main .bvbox .post, :root #main .bvbox .note:not(.bvaide) { box-shadow: none !important; background: transparent !important; border-radius: 0 !important; border-width: 0 0 var(--bw, 2px) 0 !important; padding-left: 0 !important; padding-right: 0 !important; }
+:root #main .bvbox .bvaide { font-size: 13px; color: var(--c-muted, var(--muted)); border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
+:root #main .bvbox > :last-child { margin-bottom: 0; }
+/* page Trophées : les trophées à paliers dans une seule boîte */
+.tbox { margin-top: 4px; }
+:root .tbox .tcard { box-shadow: none !important; background: transparent !important; border-width: 0 0 var(--bw, 2px) 0 !important; border-radius: 0 !important; padding-left: 0 !important; padding-right: 0 !important; }
+/* intercalaires serrés : tous tiennent dans la largeur d'un téléphone (390 px), sans défilement ni fondu */
+@media (max-width: 700px) {
+  :root:root #main > .seg.seg { overflow: hidden; gap: 4px; }
+  :root:root #main > .seg.seg > button { flex: 1 1 auto; min-width: 0; padding: 0 8px; gap: 5px; font-size: 15px; justify-content: center; }
+  :root:root #main > .seg.seg > button svg { width: 18px; height: 18px; }
+  :root:root #main > .seg.seg > button .cnt { padding: 0 4px; margin: 0; font-size: 12px; }
+}

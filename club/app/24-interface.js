@@ -194,7 +194,32 @@ const bvRail = ramRail;
 ramRail = function (t, sub) {
   bvRail(t, sub);
   bvNav();
+  bvBoite();
 };
+
+/* Une seule grande boîte par page à intercalaires (Agenda, Jouer, Messages) : tout le contenu de l'intercalaire choisi
+   y entre, les intercalaires sont collés à son bord supérieur. Dans l'ordre : les actions, les filtres de second niveau
+   (pastilles), les listes ; les textes d'aide, en petit, à la fin. Les cartes internes deviennent des lignes de la boîte. */
+function bvBoite() {
+  const main = $('main');
+  if (!main || S.stack.length || !['agenda', 'jouer', 'chans'].includes(S.tab)) return;
+  const seg = main.querySelector(':scope > .seg');
+  if (!seg || main.querySelector(':scope > .bvbox')) return;
+  const box = document.createElement('div');
+  box.className = 'card bvbox';
+  const suite = [];
+  for (let n = seg.nextElementSibling; n; n = n.nextElementSibling) if (!n.classList.contains('seg-out')) suite.push(n);
+  if (!suite.length) return;
+  suite[0].before(box);
+  box.append(...suite);
+  // Messages : « Créer un groupe de discussion » passe en tête (les actions d'abord)
+  box.querySelectorAll(':scope > .pad > .btn.full').forEach(b => box.prepend(b));
+  // textes d'aide : petit texte en bas de la boîte
+  box.querySelectorAll('.note, .swipehint, .lphelp').forEach(n => {
+    n.classList.add('bvaide');
+    box.append(n);
+  });
+}
 
 /* =========================================================================
    Étape 2 — Accueil : « Pour moi » (direct, convocation, prochain cours et présence, repas réservé),

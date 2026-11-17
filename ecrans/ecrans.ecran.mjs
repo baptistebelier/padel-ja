@@ -3477,7 +3477,7 @@ test('Intercalaires : collés au contenu (écart nul) à 390 et 1280 px, aucune 
           const b = s.querySelector('button[aria-selected="true"]') || s.querySelector('button'), r = b.getBoundingClientRect(), cs = getComputedStyle(s);
           let nx = s.nextElementSibling; while (nx && !nx.getBoundingClientRect().height) nx = nx.nextElementSibling;
           const m = cs.backgroundColor.match(/[\d.]+/g).map(Number), rouge = (m[3] === undefined || m[3] > 0.5) && m[0] > m[1] + 25 && m[0] > m[2] + 15;
-          return { ecart: nx ? nx.getBoundingClientRect().top - r.bottom : null, rouge, segL: s.getBoundingClientRect().left, cardL: nx ? nx.getBoundingClientRect().left + parseFloat(getComputedStyle(nx).paddingLeft) : null };
+          return { ecart: nx ? nx.getBoundingClientRect().top - r.bottom : null, rouge, segL: s.getBoundingClientRect().left, cardL: nx ? nx.getBoundingClientRect().left + (nx.classList.contains('bvbox') ? 0 : parseFloat(getComputedStyle(nx).paddingLeft)) : null };
         }));
         for (const s of l) {
           assert.ok(s.ecart !== null && Math.abs(s.ecart) <= 2, `${url} ${t} à ${largeur} px : l’intercalaire touche le contenu (écart ${s.ecart})`);
@@ -3829,4 +3829,68 @@ test('Dojo : Messages (intercalaire collé aux deux onglets, « + » d’en-têt
     assert.deepEqual(errs, []);
     await ctx.close();
   }
+});
+
+test('Buvette : une seule boîte sous les intercalaires (Agenda, Jouer, Messages), écart 0 à 390 et 1280 px, intercalaires entiers sans fondu', async () => {
+  for (const [w, mobile] of [[390, true], [1280, false]]) {
+    const ctx = await browser.newContext(mobile ? { viewport: { width: w, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/index.html');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => document.querySelector('.ram-splash')?.remove());
+    const ETATS = [['agenda', "S.tab='agenda'; S.plan.scope='me'"], ['agenda du club', "S.tab='agenda'; S.plan.scope='club'"], ['parties', "S.tab='jouer'; S.jouTab='parties'"], ['équipes', "S.tab='jouer'; S.jouTab='equipes'"], ['résultats', "S.tab='jouer'; S.jouTab='resultats'"], ['messages club', "S.tab='chans'; S.chanTab='club'"], ['messages entraînements', "S.tab='chans'; S.chanTab='train'"], ['messages équipes', "S.tab='chans'; S.chanTab='team'"]];
+    for (const [nom, code] of ETATS) {
+      await page.evaluate(c => { S.stack = []; eval(c); render(true); }, code);
+      await page.waitForSelector('#main > .card.bvbox', { timeout: 5000 });
+      const m = await page.evaluate(() => {
+        const r = e => e.getBoundingClientRect(), main = document.getElementById('main'), seg = document.querySelector('#main > .seg, #subnav > .seg'), box = main.querySelector(':scope > .card.bvbox'), on = seg.querySelector('[aria-selected="true"]'), c = getComputedStyle(seg);
+        return { colonne: r(seg).height > 90, e: r(box).top + parseFloat(getComputedStyle(box).borderTopWidth) - r(on).bottom, mask: c.maskImage || c.webkitMaskImage || 'none',
+          deborde: seg.scrollWidth > seg.clientWidth + 1, coupes: [...seg.querySelectorAll(':scope > button')].filter(b => r(b).right > r(seg).right + 1).length,
+          autres: [...main.children].filter(x => !x.matches('.seg, .bvbox, .seg-out') && r(x).height > 0 && !x.matches('.segt')).length,
+          cartes: box.querySelectorAll('.card:not(.bvbox)').length > -1, gauche: r(box).left, debord: document.documentElement.scrollWidth > innerWidth + 1 };
+      });
+      assert.equal(m.autres, 0, w + ' ' + nom + ' : tout le contenu est dans la boîte');
+      assert.equal(m.debord, false, w + ' ' + nom + ' : pas de débordement');
+      assert.ok(m.mask === 'none', w + ' ' + nom + ' : aucun fondu (' + m.mask + ')');
+      if (!m.colonne) {
+        assert.ok(Math.abs(m.e) < 0.5, w + ' ' + nom + ' : écart nul entre l’intercalaire et la boîte (' + m.e + ')');
+        assert.equal(m.deborde, false, w + ' ' + nom + ' : intercalaires sans défilement'); assert.equal(m.coupes, 0, w + ' ' + nom + ' : aucun intercalaire coupé');
+      }
+      if (w === 390) assert.ok(Math.abs(m.gauche - 10) <= 1, nom + ' : gouttière de 10 px (' + m.gauche + ')');
+    }
+    // Messages : « Créer un groupe de discussion » en tête de boîte, l'aide en petit texte à la fin
+    await page.evaluate(() => { S.stack = []; S.tab = 'chans'; S.chanTab = 'club'; render(true); });
+    await page.waitForSelector('#main > .card.bvbox');
+    const ordre = await page.evaluate(() => [...document.querySelector('#main > .card.bvbox').children].map(x => x.matches('.btn') ? 'action' : x.matches('.lis') ? 'liste' : x.matches('.bvaide') ? 'aide' : 'autre').filter(x => x !== 'autre').join(','));
+    if (w === 390) assert.match(ordre, /^action,liste,aide$|^liste,aide$/, w + ' : ordre action, liste, aide (' + ordre + ')');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
+test('Buvette, Trophées : la tuile active est le dernier palier atteint, les paliers verrouillés gardent leur cadre, le prochain dit ce qu’il reste, trophées à paliers dans une seule boîte', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/index.html');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => document.querySelector('.ram-splash')?.remove());
+  for (const [pts, actif, suivant] of [[796, 'Argent', 'Or'], [0, 'Sans cadre', 'Bronze'], [20000, 'Légende', null]]) {
+    await page.evaluate(p => { const me = ME(); XP[me] = 0; XP[me] = p - score(me); S.stack = [{ v: 'trophies', id: me }]; render(true); }, pts);
+    await page.waitForSelector('.fpath .fp-st');
+    const r = await page.evaluate(() => {
+      const p = document.querySelector('.fpath'), st = [...p.querySelectorAll('.fp-st')], nom = e => e.querySelector('.fp-card b').textContent;
+      return { now: st.filter(e => e.classList.contains('now')).map(nom), nxt: st.filter(e => e.classList.contains('nxt')).map(nom), reste: st.map(e => (e.querySelector('.fp-reste') || {}).textContent || ''),
+        plat: (() => { const e = st.find(x => nom(x) === 'Platine'); return { lock: e.classList.contains('lock'), cadenas: !!e.querySelector('.fp-lock'), cadre: !!e.querySelector('.av.fr4'), filtre: getComputedStyle(e.querySelector('.av')).filter }; })(),
+        box: document.querySelectorAll('.tbox').length, kick: (document.querySelector('.tbox .kicker') || {}).textContent };
+    });
+    assert.deepEqual(r.now, [actif], pts + ' pts : tuile active = ' + actif);
+    if (suivant) { assert.deepEqual(r.nxt, [suivant]); assert.ok(r.reste.some(t => /^encore \d+ pts$/.test(t)), 'encore N pts sous le prochain palier'); } else assert.deepEqual(r.nxt, []);
+    assert.ok(r.plat.cadre, 'le cadre Platine est dessiné');
+    if (pts < 2500) { assert.ok(r.plat.lock && r.plat.cadenas, 'Platine : verrouillé, avec cadenas'); assert.equal(r.plat.filtre, 'none', 'Platine : photo en couleurs, pas de noir et blanc'); }
+    assert.equal(r.box, 1, 'une seule boîte pour les trophées à paliers'); assert.match(r.kick, /Trophées à paliers/);
+  }
+  assert.deepEqual(errs, []);
+  await ctx.close();
 });
