@@ -488,3 +488,45 @@ test('appel fait depuis /RAM Club : il compte pour les paiements comme celui de 
   assert.match(corps(l), /Nina : paiement attendu de 100 €, Cycle/, 'les deux séances comptent');
 });
 
+
+test('appel : « pack terminé » seulement quand la séance validée fait atteindre le total, jamais pour un ancien pack ni pour un abonné', async () => {
+  const { coach, club, key, ek } = await clubDeux(32);
+  const g = { type: 'train', name: 'Cours', day: 1, h: '9 h', dur: '1 h', sport: 'Padel', coach: key, mem: [ek] };
+  const s = d => ({ coll: 'seance', id: 'g1.' + d, op: 'put', data: { g: 'g1', d, pres: { [ek]: 'P' } } });
+  await ops(coach, club, [
+    { coll: 'group', id: 'g1', op: 'put', data: g },
+    { coll: 'eleve', id: ek, op: 'put', data: { n: 'Nina Anglade', achats: [
+      { id: 'vieux', t: 'pack', ref: 'p2', d: '2025-01-01', nom: 'Ancien pack', n: 2 },
+      { id: 'neuf', t: 'pack', ref: 'p3', d: '2025-12-01', nom: 'Pack en cours', n: 3 },
+      { id: 'abo', t: 'abo', ref: 'a1', d: '2025-12-01', fin: '2027-12-01', nom: 'Abonnement', n: 0 }
+    ] } }
+  ]);
+  let l = await ops(coach, club, [s('2025-02-03')]);
+  l = await ops(coach, club, [s('2025-02-10')]);
+  assert.match(corps(l), /Ancien pack/, 'l’ancien pack finit avec sa 2e séance : une seule fois');
+  l = await ops(coach, club, [s('2025-12-08')]);
+  assert.equal(l.length, 0, 'un ancien pack déjà fini ne repart pas à chaque présence');
+  l = await ops(coach, club, [s('2025-12-15')]);
+  assert.equal(l.length, 0);
+  l = await ops(coach, club, [s('2025-12-22')]);
+  assert.equal(l.length, 1);
+  assert.match(corps(l), /Nina a utilisé toutes ses séances : Pack en cours/);
+  assert.doesNotMatch(corps(l), /Abonnement/, 'rien pour un abonné');
+  l = await ops(coach, club, [s('2026-01-05')]);
+  assert.equal(l.length, 0, 'au-delà : plus rien');
+});
+
+test('appel : la dernière séance d’un cycle prévient l’enseignant, une seule fois', async () => {
+  const { coach, club, key, ek } = await clubDeux(33);
+  await ops(coach, club, [
+    { coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Cours', day: 1, h: '9 h', dur: '1 h', sport: 'Padel', coach: key, mem: [ek], cycles: [{ id: 'c1', n: 2, dates: ['2026-01-05', '2026-01-12'] }] } },
+    { coll: 'eleve', id: ek, op: 'put', data: { n: 'Nina Anglade', achats: [{ id: 'hc', t: 'pack', ref: 'p3', d: '2026-01-01', nom: 'Cycle d’hiver', n: 2, cycle: 'g1:c1' }] } }
+  ]);
+  let l = await ops(coach, club, [{ coll: 'seance', id: 'g1.2026-01-05', op: 'put', data: { g: 'g1', d: '2026-01-05', pres: { [ek]: 'P' } } }]);
+  assert.equal(l.length, 0);
+  l = await ops(coach, club, [{ coll: 'seance', id: 'g1.2026-01-12', op: 'put', data: { g: 'g1', d: '2026-01-12', pres: { [ek]: 'P' } } }]);
+  assert.equal(l.length, 1);
+  assert.match(corps(l), /Nina a terminé son cycle : Cycle d’hiver/);
+  l = await ops(coach, club, [{ coll: 'seance', id: 'g1.2026-01-12', op: 'patch', patch: [{ p: ['theme'], t: 'set', v: 'Bilan' }] }]);
+  assert.equal(l.filter(x => /terminé son cycle/.test(x[1].body)).length, 0, 'pas de répétition');
+});

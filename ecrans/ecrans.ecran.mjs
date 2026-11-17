@@ -2495,12 +2495,14 @@ test('Coach : réglages d’un cycle, remplaçant, séances à planifier, Abonn�
     return k;
   }, r);
   await page.waitForSelector('.coabocard .tag.coabo');
-  assert.match(await page.textContent('.coabocard'), /1 séance par semaine/);
+  assert.match(await page.textContent('.coabocard'), /4 séances par mois/, 'ancienne fréquence par semaine convertie');
+  assert.ok(await page.locator('.coabocard .coabm .cobarre').count() === 1, 'jauge du mois');
+  assert.match(await page.textContent('.coabocard .coabm'), /\d\/4 ce mois-ci/);
   assert.ok(await page.locator('.tag.coetat').count() >= 2, 'états affichés');
   await page.click('.coabocard [data-a="coFreq"]');
   await page.fill('#co-fq', '2');
   await page.click('#co-freq .btn.full');
-  assert.equal(await page.evaluate(k => coEl(k).achats.find(a => a.id === 'hab').freq, ab), 2);
+  assert.equal(await page.evaluate(k => coEl(k).achats.find(a => a.id === 'hab').pm, ab), 2);
   // attribution du groupe : un élève qui arrive la reçoit, un élève qui part la garde arrêtée
   const att = await page.evaluate(x => {
     const g = grp(x.id), c = g.cycles[0];
@@ -2600,8 +2602,8 @@ test('Coach : un abonnement et ses variantes, dans une seule fenêtre', async ()
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'la fenêtre tient à 360 px');
   await page.click('#co-ab .cotools .btn:not(.ghost)');
   await page.waitForSelector('.coens');
-  const l = await page.evaluate(() => OFFRES.abos.map(a => [a.id === 'a1', a.nom, a.ens, a.prix, a.parSemaine]));
-  assert.deepEqual(l, [[true, '1 séance par semaine', 'Academy', 120, 1], [false, '2 fois par semaine', 'Academy', 200, 2]], 'la première garde son identifiant (achats des élèves), libellé tout fait');
+  const l = await page.evaluate(() => OFFRES.abos.map(a => [a.id === 'a1', a.nom, a.ens, a.prix, a.parMois]));
+  assert.deepEqual(l, [[true, '4 séances par mois', 'Academy', 120, 4], [false, '2 fois par semaine', 'Academy', 200, 2]], 'la première garde son identifiant (achats des élèves), libellé tout fait');
   // l'ensemble s'ouvre en entier, une variante se retire : il redevient un abonnement simple
   await page.evaluate(() => A.coAbEdit({ id: OFFRES.abos[1].id }));
   await page.waitForSelector('#co-avl .coabv');
@@ -3579,4 +3581,42 @@ test('Dojo : planning en Semaine, intercalaire collé à sa carte, fiche élève
   assert.ok(await page.locator('#main [data-a="coAdd"]').count() > 0 && await page.locator('#main [data-a="coRm"]').count() > 0, 'ajout et retrait d’élève');
   assert.deepEqual(errs, []);
   await ctx.close();
+});
+
+test('Abonnés : compteur « 2/4 ce mois-ci » sur la fiche élève, dans l’onglet Abonnés (alerte au-delà) et dans les achats de /Buvette', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 820 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html?ui=2');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  const k = await page.evaluate(() => {
+    const e = ELEVES.find(x => coInClub(x));
+    if (!e) return null;
+    const mois = isoIn(0).slice(0, 7), g = GROUPS.find(x => coStu(x).includes(e.id)) || GROUPS[0];
+    // 5 séances ce mois-ci (dates fixes dans le mois courant, passées ou non : la couverture ne compte que les séances faites)
+    e.achats = [{ id: 'hmois', t: 'abo', ref: 'a1', d: mois + '-01', fin: isoIn(60), nom: 'Abo mensuel', pm: 4 }];
+    S.tab = 'eleves'; S.elF = 'abo'; S.stack = []; render();
+    return e.id;
+  });
+  if (k) {
+    assert.ok(await page.locator('#main .item .coabm').count() >= 1, 'compteur dans l’onglet Abonnés');
+    assert.match(await page.textContent('#main .item .coabm'), /\d+\/4 ce mois-ci/);
+    await page.evaluate(id => A.open({ v: 'eleve', id }), k);
+    await page.waitForSelector('.coabocard .coabm');
+    assert.match(await page.textContent('.coabocard'), /4 séances par mois/);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement à 360 px');
+  }
+  assert.deepEqual(errs, []);
+  await ctx.close();
+  // /Buvette : « 5/4 ce mois-ci », jauge en couleur d'alerte au-delà du quota
+  const c2 = await phone();
+  const { page: p2, errors } = await openPage(c2, DEMO + '/index.html');
+  await p2.waitForSelector('#tabs button[data-t]');
+  const h = await p2.evaluate(() => ({
+    ok: mesAchatLigne({ t: 'abo', nom: 'Abo', used: 3, n: 0, etat: 'encours', fin: '2030-12-31', mois: { fait: 2, quota: 4, depasse: false } }),
+    over: mesAchatLigne({ t: 'abo', nom: 'Abo', used: 6, n: 0, etat: 'encours', fin: '2030-12-31', mois: { fait: 5, quota: 4, depasse: true } })
+  }));
+  assert.match(h.ok, /2\/4 ce mois-ci/); assert.doesNotMatch(h.ok, /depasse/);
+  assert.match(h.over, /5\/4 ce mois-ci/); assert.match(h.over, /mesach-bar depasse/);
+  assert.deepEqual(errors, []);
+  await c2.close();
 });

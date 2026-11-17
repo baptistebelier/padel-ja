@@ -94,7 +94,7 @@
      il passe avant les achats individuels. Les autres achats se décomptent dans l'ordre, du plus ancien au plus récent :
      un pack ou une séance à l'unité couvre une séance de sa formule (même format, même durée), faite au plus tôt
      14 jours avant l'achat (« payé au mois ») ; un abonnement couvre les séances faites pendant sa durée, et au plus
-     son nombre de séances quand sa fréquence est notée (a.freq séances par semaine).
+     son quota mensuel (a.pm séances par mois civil, ou l'ancienne a.freq par semaine) se compte à part (moisAbo) et ne bloque rien.
      Une venue sans groupe connu (gid) se décompte comme avant, par sa formule.
      Renvoie { achats: [achat + { used }], couvre: Map(venue → achat) }. */
   const lienDe = a => {
@@ -106,6 +106,25 @@
   };
   const gidOf = v => (v.gid != null ? v.gid : v.g && typeof v.g === 'object' ? v.g.id : v.g);
   /* nombre de séances d'un abonnement à fréquence notée : sa durée en semaines × sa fréquence ; sinon sans limite */
+  /* séances par mois d'un abonnement : celles de sa définition (parMois, 4 par défaut ; l'ancien « par semaine » s'y convertit :
+     parSemaine × 52 / 12, arrondi). 0 : sans limite. */
+  const parMoisDef = def =>
+    def && def.parMois != null && def.parMois !== ''
+      ? Math.max(0, Math.round(+def.parMois) || 0)
+      : def && +def.parSemaine > 0
+        ? Math.round((+def.parSemaine * 52) / 12)
+        : 4;
+  /* le quota mensuel d'un achat d'abonnement : pm (noté à l'attribution), sinon l'ancienne fréquence par semaine convertie ;
+     0 : aucun quota noté (comme avant : sans limite, rien à afficher) */
+  const quotaMois = a => (+a.pm > 0 ? Math.round(+a.pm) : +a.freq > 0 ? Math.round((+a.freq * 52) / 12) : 0);
+  /* le compteur du mois civil : séances de cet abonnement faites ce mois-ci (o.parMois, calculé par couverture) sur son quota ;
+     remis à zéro le 1er, sans report, jamais bloquant : 5 sur 4 reste possible (depasse) */
+  function moisAbo(a, today) {
+    const fait = ((a && a.parMois) || {})[String(today).slice(0, 7)] || 0,
+      quota = quotaMois(a || {});
+    return { fait, quota, depasse: quota > 0 && fait > quota };
+  }
+  /* ancien calcul (séances par semaine sur la durée) : gardé pour lire d'anciennes données, plus utilisé pour décompter */
   function seancesAbo(a) {
     if (!(+a.freq > 0) || !a.fin || !a.d) return Infinity;
     const j = Math.round((Date.parse(a.fin) - Date.parse(a.d)) / 864e5) + 1;
@@ -156,11 +175,15 @@
         };
       out.set(a, o);
       if (a.t === 'abo') {
-        const max = seancesAbo(a);
+        // un abonnement couvre toutes les séances faites pendant sa durée : le quota mensuel (quotaMois) ne bloque rien, il se compte
+        // par mois civil (o.parMois : { 'AAAA-MM': séances })
+        o.parMois = {};
         vs.forEach(v => {
-          if (o.used < max && !couvre.has(v) && v.d >= (a.du || a.d) && (!a.fin || v.d <= a.fin) && ok(v)) {
+          if (!couvre.has(v) && v.d >= (a.du || a.d) && (!a.fin || v.d <= a.fin) && ok(v)) {
             couvre.set(v, o);
             o.used++;
+            const m = String(v.d).slice(0, 7);
+            o.parMois[m] = (o.parMois[m] || 0) + 1;
           }
         });
         return;
@@ -188,7 +211,7 @@
   function etatAchat(a, today) {
     const used = +a.used || 0;
     if (a.t === 'abo' && a.fin && a.fin < today) return 'termine';
-    const total = a.sortie ? used : a.t === 'pack' ? +a.n || 0 : a.t === 'abo' ? seancesAbo(a) : 1;
+    const total = a.sortie ? used : a.t === 'pack' ? +a.n || 0 : a.t === 'abo' ? Infinity : 1;
     if (used < total) return 'encours';
     const ech = a.pay && Array.isArray(a.pay.ech) && !a.pay.off ? a.pay.ech : [],
       solde = ech.filter(x => (+x.s || 0) <= total).every(x => x.ok);
@@ -279,7 +302,7 @@
       if (etat === 'termine') return termines++;
       const ech = a.pay && Array.isArray(a.pay.ech) && !a.pay.off ? a.pay.ech : [],
         f = faites(a),
-        max = a.t === 'pack' ? +a.n || 0 : a.t === 'abo' ? seancesAbo(a) : 1;
+        max = a.t === 'pack' ? +a.n || 0 : a.t === 'abo' ? Infinity : 1;
       out.push({
         id: a.id,
         t: a.t,
@@ -291,7 +314,8 @@
         freq: +a.freq || 0,
         etat,
         aPayer: somme(ech.filter(x => !x.ok && f >= (+x.s || 0))),
-        reste: somme(ech.filter(x => !x.ok))
+        reste: somme(ech.filter(x => !x.ok)),
+        ...(a.t === 'abo' ? { mois: moisAbo(a, today) } : {})
       });
     });
     out.sort((x, y) => String(y.d).localeCompare(String(x.d)));
@@ -650,7 +674,7 @@
     return (achats || [])
       .filter(a => (a.t === 'pack' || a.t === 'abo') && etatAchat(a, today) === 'encours')
       .map(a => {
-        const total = a.t === 'pack' ? +a.n || 0 : seancesAbo(a),
+        const total = a.t === 'pack' ? +a.n || 0 : Infinity,
           fini = Number.isFinite(total),
           restantes = fini ? Math.max(0, total - (+a.used || 0)) : null,
           prog = (programmees && programmees[a.id]) || 0,
@@ -685,6 +709,9 @@
     objProgres,
     objBascule,
     seancesAbo,
+    moisAbo,
+    quotaMois,
+    parMoisDef,
     etatAchat,
     ETATS,
     aboEnCours,

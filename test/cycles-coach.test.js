@@ -100,11 +100,28 @@ test('états d’une attribution : en cours, utilisé, terminé ; abonnement à 
   assert.equal(R.seancesAbo(ab), 4);
   assert.equal(R.seancesAbo({ t: 'abo', d: '2030-05-01', fin: '2030-05-28' }), Infinity, 'sans fréquence notée : comme avant');
   assert.equal(R.etatAchat(Object.assign({ used: 2 }, ab), '2030-05-15'), 'encours');
-  assert.equal(R.etatAchat(Object.assign({ used: 4 }, ab), '2030-05-20'), 'utilise', 'au bout de ses séances avant la fin');
+  assert.equal(R.etatAchat(Object.assign({ used: 4 }, ab), '2030-05-20'), 'encours', 'le quota mensuel ne finit pas l’abonnement : seule sa date de fin');
   assert.equal(R.etatAchat(Object.assign({ used: 1 }, ab), '2030-06-01'), 'termine', 'date de fin dépassée');
   const vs = ['2030-05-02', '2030-05-09', '2030-05-16', '2030-05-23', '2030-05-25'].map(d => ({ d, min: 90, n: 4 }));
-  assert.equal(R.couverture([Object.assign({ id: 'z', ref: 'ab' }, ab)], vs, OFFRES).achats[0].used, 4, 'au plus 4 séances');
+  const cv = R.couverture([Object.assign({ id: 'z', ref: 'ab' }, ab)], vs, OFFRES).achats[0];
+  assert.equal(cv.used, 5, 'rien n’est bloqué au-delà du quota');
+  assert.deepEqual(cv.parMois, { '2030-05': 5 });
   assert.equal(R.couverture([{ id: 'z', t: 'abo', ref: 'ab', d: '2030-05-01', fin: '2030-05-28' }], vs, OFFRES).achats[0].used, 5);
+  // séances par mois : mois civil, remise à zéro le 1er, dépassement, ancien format (par semaine)
+  assert.equal(R.parMoisDef({}), 4, '4 par défaut');
+  assert.equal(R.parMoisDef({ parMois: 8 }), 8);
+  assert.equal(R.parMoisDef({ parMois: 0 }), 0, '0 : sans limite');
+  assert.equal(R.parMoisDef({ parSemaine: 2 }), 9, 'ancien format converti : 2 par semaine ≈ 9 par mois');
+  assert.equal(R.quotaMois({ pm: 6, freq: 1 }), 6);
+  assert.equal(R.quotaMois({ freq: 1 }), 4, 'ancien achat : par semaine converti');
+  assert.equal(R.quotaMois({}), 0, 'aucun quota noté : sans compteur');
+  const ab2 = { id: 'z', t: 'abo', ref: 'ab', d: '2030-05-01', fin: '2030-09-30', pm: 4 };
+  const vm = ['2030-05-28', '2030-05-30', '2030-06-03', '2030-06-10', '2030-06-17', '2030-06-24', '2030-06-25'].map(d => ({ d, min: 90, n: 4 }));
+  const c2 = R.couverture([ab2], vm, OFFRES).achats[0];
+  assert.deepEqual(R.moisAbo(c2, '2030-05-31'), { fait: 2, quota: 4, depasse: false });
+  assert.deepEqual(R.moisAbo(c2, '2030-06-26'), { fait: 5, quota: 4, depasse: true }, '5 sur 4 : possible, en alerte');
+  assert.deepEqual(R.moisAbo(c2, '2030-07-01'), { fait: 0, quota: 4, depasse: false }, 'remis à zéro le 1er, sans report');
+  assert.equal(R.resumeAchats('k', [ab2], [], [], OFFRES, '2030-06-26').achats[0].mois.quota, 4);
   // étiquette « Abonné »
   assert.equal(R.aboEnCours([ab, pk({})], '2030-05-10'), ab);
   assert.equal(R.aboEnCours([ab], '2030-06-10'), null);

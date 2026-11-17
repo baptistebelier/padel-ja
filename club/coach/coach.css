@@ -1,4 +1,20 @@
 /* /RAM Coach — coach/coach.css : ce qui s'ajoute aux styles du Club (app.css, ram.css) pour les pages de l'enseignant */
+/* abonné : compteur du mois civil (jauge comme un pack) ; au-delà du quota, couleur d'alerte */
+.coabm {
+  display: block;
+  margin: 4px 0 0;
+}
+.coabm .cobarre {
+  margin: 4px 0 2px;
+  max-width: 320px;
+}
+.coabm.depasse .cobarre i {
+  background: #ff3d6b;
+}
+.coabm.depasse .small {
+  color: #ff3d6b;
+  font-weight: 700;
+}
 .cotheme {
   display: flex;
   gap: 6px;

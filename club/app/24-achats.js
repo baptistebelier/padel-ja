@@ -43,7 +43,11 @@ function mesAchatLigne(a) {
     cpt =
       a.t === 'abo'
         ? (a.fin ? 'Jusqu’au ' + fmtD(a.fin, true) + ' · ' : '') +
-          (a.n ? a.used + ' sur ' + maS(a.n) : maS(a.used) + ' faite' + (a.used > 1 ? 's' : ''))
+          (a.mois && a.mois.quota
+            ? a.mois.fait + '/' + a.mois.quota + ' ce mois-ci'
+            : a.n
+              ? a.used + ' sur ' + maS(a.n)
+              : maS(a.used) + ' faite' + (a.used > 1 ? 's' : ''))
         : a.n > 1
           ? a.etat === 'encours'
             ? a.used + ' sur ' + a.n + ' séances faites · encore ' + (a.n - a.used)
@@ -51,13 +55,14 @@ function mesAchatLigne(a) {
           : a.used
             ? 'Faite'
             : 'À venir',
-    pct = a.n ? Math.min(100, Math.round((a.used / a.n) * 100)) : 0,
+    mq = a.t === 'abo' && a.mois && a.mois.quota ? a.mois : null,
+    pct = mq ? Math.min(100, Math.round((mq.fait / mq.quota) * 100)) : a.n ? Math.min(100, Math.round((a.used / a.n) * 100)) : 0,
     pay = a.aPayer
       ? `<span class="tag mesach-due">À payer : ${maEur(a.aPayer)}</span>`
       : a.reste
         ? `<span class="muted small">Reste à régler plus tard : ${maEur(a.reste)}</span>`
         : '';
-  return `<div class="mesach-l"><div class="mesach-t"><b>${titre}</b>${a.t === 'abo' ? ' <span class="tag">Abonné</span>' : ''}</div><span class="muted small">${cpt}</span>${a.n > 1 ? `<span class="mesach-bar" role="img" aria-label="${a.used} sur ${a.n}"><i style="width:${pct}%"></i></span>` : ''}${pay ? '<div class="mesach-p">' + pay + '</div>' : ''}</div>`;
+  return `<div class="mesach-l"><div class="mesach-t"><b>${titre}</b>${a.t === 'abo' ? ' <span class="tag">Abonné</span>' : ''}</div><span class="muted small">${cpt}</span>${mq ? `<span class="mesach-bar${mq.depasse ? ' depasse' : ''}" role="img" aria-label="${mq.fait} sur ${mq.quota} ce mois-ci"><i style="width:${pct}%"></i></span>` : a.n > 1 ? `<span class="mesach-bar" role="img" aria-label="${a.used} sur ${a.n}"><i style="width:${pct}%"></i></span>` : ''}${pay ? '<div class="mesach-p">' + pay + '</div>' : ''}</div>`;
 }
 function mesAchatsCarte() {
   const l = mesAchatsListe();
@@ -80,6 +85,7 @@ function mesAchatsStyle() {
     '.mesach .mesach-t{display:flex;flex-wrap:wrap;align-items:center;gap:6px;overflow-wrap:anywhere}' +
     '.mesach .mesach-bar{display:block;height:8px;border:1.5px solid currentColor;border-radius:4px;overflow:hidden;max-width:320px}' +
     '.mesach .mesach-bar i{display:block;height:100%;background:currentColor}' +
+    '.mesach .mesach-bar.depasse{border-color:#FF3D6B}.mesach .mesach-bar.depasse i{background:#FF3D6B}' +
     '.mesach .mesach-p{margin-top:2px}.mesach .mesach-tot{margin:4px 0 6px;font-size:16px}' +
     '.mesach .tag.mesach-due{font-size:13px}.mesach .small{font-size:13px}';
   document.head.appendChild(s);

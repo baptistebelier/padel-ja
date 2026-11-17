@@ -175,7 +175,7 @@ function coAttribAchat(g, c, o, d0, du, i) {
   if (t === 'pack') a.n = du ? reste : o.seances;
   if (t === 'abo') {
     a.fin = coAboFin(o, a.d);
-    if (+o.parSemaine > 0) a.freq = +o.parSemaine;
+    if (REGLES.parMoisDef(o) > 0) a.pm = REGLES.parMoisDef(o);
   }
   return a;
 }

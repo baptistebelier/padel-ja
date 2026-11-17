@@ -340,7 +340,7 @@ function proOffersHtml(o) {
       const f = o.formules.find(x => x.id === a.formule),
         eng = abEng(a),
         det = [
-          a.parSemaine ? `${a.parSemaine} séance${a.parSemaine > 1 ? 's' : ''} par semaine` : '',
+          REGLES.parMoisDef(a) ? `${REGLES.parMoisDef(a)} séance${REGLES.parMoisDef(a) > 1 ? 's' : ''} par mois` : '',
           f ? `cours ${kind(f)} de ${mn(f.duree)}` : '',
           /* le nom dit souvent déjà l'engagement : « Academy Training (6 mois) » */
           eng && !new RegExp('\\b' + (+a.duree || 0) + '\\s*(mois|ans?)\\b', 'i').test(a.nom) ? eng : ''
