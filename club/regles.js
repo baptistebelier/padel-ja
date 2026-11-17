@@ -117,11 +117,15 @@
   /* le quota mensuel d'un achat d'abonnement : pm (noté à l'attribution), sinon l'ancienne fréquence par semaine convertie ;
      0 : aucun quota noté (comme avant : sans limite, rien à afficher) */
   const quotaMois = a => (+a.pm > 0 ? Math.round(+a.pm) : +a.freq > 0 ? Math.round((+a.freq * 52) / 12) : 0);
+  /* le quota affiché : celui noté sur l'achat, sinon celui de sa définition (parMois), 4 par défaut : la jauge apparaît toujours
+     (rien n'est réécrit sur l'achat) */
+  const quotaAffiche = (a, offres) =>
+    quotaMois(a) || parMoisDef(((offres || {}).abos || []).find(x => x.id === a.ref));
   /* le compteur du mois civil : séances de cet abonnement faites ce mois-ci (o.parMois, calculé par couverture) sur son quota ;
      remis à zéro le 1er, sans report, jamais bloquant : 5 sur 4 reste possible (depasse) */
-  function moisAbo(a, today) {
+  function moisAbo(a, today, offres) {
     const fait = ((a && a.parMois) || {})[String(today).slice(0, 7)] || 0,
-      quota = quotaMois(a || {});
+      quota = quotaAffiche(a || {}, offres);
     return { fait, quota, depasse: quota > 0 && fait > quota };
   }
   /* ancien calcul (séances par semaine sur la durée) : gardé pour lire d'anciennes données, plus utilisé pour décompter */
@@ -326,7 +330,7 @@
         etat,
         aPayer: somme(ech.filter(x => !x.ok && f >= (+x.s || 0))),
         reste: somme(ech.filter(x => !x.ok)),
-        ...(a.t === 'abo' ? { mois: moisAbo(a, today) } : {})
+        ...(a.t === 'abo' ? { mois: moisAbo(a, today, offres) } : {})
       });
     });
     out.sort((x, y) => String(y.d).localeCompare(String(x.d)));
@@ -723,6 +727,7 @@
     achatDe,
     moisAbo,
     quotaMois,
+    quotaAffiche,
     parMoisDef,
     etatAchat,
     ETATS,

@@ -2496,8 +2496,8 @@ test('Coach : réglages d’un cycle, remplaçant, séances à planifier, Abonn�
   }, r);
   await page.waitForSelector('.coabocard .tag.coabo');
   assert.match(await page.textContent('.coabocard'), /4 séances par mois/, 'ancienne fréquence par semaine convertie');
-  assert.ok(await page.locator('.coabocard .coabm .cobarre').count() === 1, 'jauge du mois');
-  assert.match(await page.textContent('.coabocard .coabm'), /\d\/4 ce mois-ci/);
+  assert.ok(await page.locator('.coabocard .coabsg .coabs i').count() === 4, 'jauge du mois sectionnée en 4');
+  assert.match(await page.textContent('.coabocard .coabsg'), /\d\/4 ce mois-ci/);
   assert.ok(await page.locator('.tag.coetat').count() >= 2, 'états affichés');
   await page.click('.coabocard [data-a="coFreq"]');
   await page.fill('#co-fq', '2');
@@ -3564,12 +3564,13 @@ test('Dojo : planning en Semaine, intercalaire collé à sa carte, fiche élève
   await p2.goto(JA + '/club/coach.html');
   await p2.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
   await p2.evaluate(() => { S.tab = 'planning'; S.stack = []; render(); });
-  assert.equal(await p2.locator('.covue [aria-pressed="true"]').textContent(), 'Semaine', 'Semaine par défaut sur téléphone');
+  assert.equal(await p2.locator('.u2vue [aria-selected="true"]').textContent(), 'Semaine', 'Semaine par défaut sur téléphone');
   await tel.close();
   // fiche élève : une carte, onglets dedans ; l'historique en cartes empilées avec date et heure
   await page.evaluate(() => { S.tab = 'eleves'; S.stack = [{ v: 'eleve', id: ELEVES[0].id }]; S.elTab = 'fiche'; render(); });
-  assert.equal(await page.locator('#main .u2fiche .u2itabs button').count(), 4, 'quatre onglets dans la carte');
-  assert.ok(await page.locator('#main .u2fiche .u2fb .cohd, #main .u2fiche .u2fb .card').count() > 0, 'des sous-cartes sous les onglets');
+  assert.equal(await page.locator('#main .u2boite .u2itabs button').count(), 4, 'quatre onglets sur la boîte 2');
+  assert.equal(await page.locator('#main .u2fiche .u2itabs').count(), 0, 'les intercalaires ne sont plus dans la carte d’identité');
+  assert.ok(await page.locator('#main .u2fb .cohd, #main .u2fb .card').count() > 0, 'des sous-cartes sous les onglets');
   await page.evaluate(() => { S.elTab = 'histo'; render(); });
   if (await page.locator('.u2hs').count()) assert.ok((await page.locator('.u2hs .u2hd').first().textContent()).match(/\d/), 'date et heure dans l’encart');
   // fiche de groupe : cycle et élèves visibles dès l'ouverture, actions de programmation
@@ -3601,7 +3602,7 @@ test('Abonnés : compteur « 2/4 ce mois-ci » sur la fiche élève, dans l’on
     assert.ok(await page.locator('#main .item .coabm').count() >= 1, 'compteur dans l’onglet Abonnés');
     assert.match(await page.textContent('#main .item .coabm'), /\d+\/4 ce mois-ci/);
     await page.evaluate(id => A.open({ v: 'eleve', id }), k);
-    await page.waitForSelector('.coabocard .coabm');
+    await page.waitForSelector('.coabocard .coabsg');
     assert.match(await page.textContent('.coabocard'), /4 séances par mois/);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement à 360 px');
   }
@@ -3661,6 +3662,169 @@ test('Dojo : séance de l’historique d’un élève, « Rattacher » à un de 
       await page.click('#co-s-att .btn');
       assert.equal(await page.evaluate(g => grp(g).achat, r.gid), undefined);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'pas de débordement');
+    }
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
+test('Dojo : fiche élève en deux boîtes (identité / intercalaires collés au haut de la boîte 2), cadre Abonné à jauge sectionnée, à 390, 820 et 1280 px', async () => {
+  for (const [w, mobile] of [[390, true], [820, false], [1280, false]]) {
+    const ctx = await browser.newContext(mobile ? { viewport: { width: w, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html?ui=2');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    await page.evaluate(() => { const e = ELEVES.find(x => coInClub(x)); e.achats = [{ id: 'hab2', t: 'abo', ref: 'a1', d: isoIn(-5), fin: isoIn(60), nom: 'Abo mensuel', pm: 4 }]; S.tab = 'eleves'; S.elTab = 'fiche'; S.stack = [{ v: 'eleve', id: e.id }]; render(true); });
+    await page.waitForSelector('#main .u2boite .u2fb');
+    for (const t of ['fiche', 'histo', 'prog', 'suivi']) {
+      await page.evaluate(t => { S.elTab = t; render(true); }, t);
+      const m = await page.evaluate(() => {
+        const r = e => e.getBoundingClientRect(), pad = document.querySelector('#main > .pad'), c1 = document.querySelector('#main .u2fiche'), box = document.querySelector('#main .u2boite'), b2 = box.querySelector('.u2fb'), tabs = box.querySelector('.u2itabs'), on = tabs.querySelector('[aria-selected="true"]');
+        return {
+          deuxCartes: c1 !== b2 && !c1.contains(b2) && !c1.contains(tabs) && c1.matches('.card') && b2.matches('.card'),
+          tabsDansCarte: !!tabs.closest('.u2fiche'),
+          ecartOnglet: r(b2).top + parseFloat(getComputedStyle(b2).borderTopWidth) - r(on).bottom,
+          ecartBoites: r(box).top - r(c1).bottom, gap: parseFloat(getComputedStyle(pad).rowGap),
+          g1: r(c1).left, g2: r(b2).left, d1: innerWidth - r(c1).right, d2: innerWidth - r(b2).right,
+          debord: document.documentElement.scrollWidth > innerWidth + 1,
+          identite: !!c1.querySelector('.u2fp') && !!c1.querySelector('.u2fa [data-a="u2Prog"]')
+        };
+      });
+      assert.equal(m.deuxCartes, true, w + ' ' + t + ' : deux cartes distinctes');
+      assert.equal(m.tabsDansCarte, false, w + ' ' + t + ' : intercalaires hors de la boîte 1');
+      assert.ok(Math.abs(m.ecartOnglet) < 0.5, w + ' ' + t + ' : écart nul entre l’intercalaire et la boîte 2 (' + m.ecartOnglet + ')');
+      assert.ok(Math.abs(m.ecartBoites - m.gap) <= 1, w + ' ' + t + ' : espacement normal entre cartes (' + m.ecartBoites + ' pour ' + m.gap + ')');
+      assert.equal(m.identite, true, w + ' : identité et boutons dans la boîte 1');
+      assert.equal(m.debord, false, w + ' ' + t + ' : pas de débordement');
+      if (w === 390) for (const v of [m.g1, m.g2, m.d1, m.d2]) assert.ok(Math.abs(v - 10) <= 1, 'marge mobile de 10 px (' + v + ')');
+    }
+    // cadre Abonné : dans la boîte 2, jauge à 4 segments, texte avec le mois, alerte au-delà
+    await page.evaluate(() => { S.elTab = 'fiche'; render(true); });
+    assert.equal(await page.locator('#main .u2fb .coabocard .coabs i').count(), 4, w + ' : 4 segments');
+    assert.match(await page.textContent('#main .u2fb .coabocard .coabsg'), /\d\/4 ce mois-ci/);
+    assert.equal(await page.locator('#main .u2fiche .coabocard').count(), 0, 'le cadre est dans la boîte 2');
+    if (w === 390) {
+      const h = await page.evaluate(() => ({ ok: coAboSegs({ fait: 2, quota: 4, depasse: false }), over: coAboSegs({ fait: 5, quota: 4, depasse: true }), none: coAboSegs(null) }));
+      assert.equal((h.ok.match(/<i class="on">/g) || []).length, 2); assert.match(h.ok, /2\/4 ce mois-ci/); assert.doesNotMatch(h.ok, /depasse/);
+      assert.equal((h.over.match(/<i class="on">/g) || []).length, 4); assert.match(h.over, /5\/4 ce mois-ci/); assert.match(h.over, /coabsg depasse/);
+      assert.match(h.ok, /(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)/); assert.equal(h.none, '');
+      // sans abonnement en cours : aucun cadre
+      await page.evaluate(() => { coEl(S.stack[0].id).achats = []; render(true); });
+      assert.equal(await page.locator('#main .coabocard').count(), 0, 'pas de cadre sans abonnement');
+    }
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
+test('Dojo : page Élèves en une seule boîte sous ses intercalaires (écart 0, tous les intercalaires dans la largeur), fiche : intercalaires entiers, Élèves allumé dans la barre du bas, jauge sans quota noté', async () => {
+  for (const [w, mobile] of [[390, true], [820, false], [1280, false]]) {
+    const ctx = await browser.newContext(mobile ? { viewport: { width: w, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html?ui=2');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    await page.evaluate(() => document.querySelector('.ram-splash')?.remove());
+    await page.evaluate(() => { S.tab = 'eleves'; S.elF = 'all'; S.stack = []; render(true); });
+    await page.waitForSelector('#main .u2elbox');
+    const m = await page.evaluate(() => {
+      const r = e => e.getBoundingClientRect(), main = document.getElementById('main'), box = main.querySelector('.u2elbox'), seg = document.querySelector('#main > .seg, #subnav > .seg'),
+        on = seg.querySelector('[aria-selected="true"]'), kids = [...box.children].map(c => c.className);
+      const tabs = [...seg.querySelectorAll(':scope > button')].filter(b => r(b).width > 0);
+      return {
+        cartes: main.querySelectorAll('.card:not(.u2elbox):not(.coprev)').length, kids, deborde: seg.scrollWidth > seg.clientWidth + 1,
+        coupes: tabs.filter(b => r(b).right > r(seg).right + 1 || r(b).left < r(seg).left - 1).length, nTabs: tabs.length,
+        abo: !!seg.querySelector('[data-v="abo"]'), ecart: r(box).top + parseFloat(getComputedStyle(box).borderTopWidth) - r(on).bottom,
+        recherche: r(box.querySelector('.cosearch')).top < r(box.querySelector('.cohd')).top && r(box.querySelector('.cohd')).top < r(box.querySelector('.item')).top,
+        debord: document.documentElement.scrollWidth > innerWidth + 1, hautSeg: r(seg).width
+      };
+    });
+    assert.equal(m.cartes, 0, w + ' : aucune autre carte que la boîte (recherche et liste dedans)');
+    assert.equal(m.recherche, true, w + ' : recherche, puis titre, puis liste dans la boîte');
+    assert.equal(m.abo, true, w + ' : onglet Abonnés présent');
+    assert.equal(m.debord, false, w + ' : pas de débordement');
+    if (w < 1000) {
+      assert.equal(m.deborde, false, w + ' : intercalaires sans défilement (' + m.nTabs + ')');
+      assert.equal(m.coupes, 0, w + ' : aucun intercalaire coupé');
+      assert.ok(Math.abs(m.ecart) < 0.5, w + ' : écart nul entre l’intercalaire et la boîte (' + m.ecart + ')');
+    }
+    // la boîte suit l'intercalaire choisi
+    await page.click('#main > .seg [data-v="abo"], #subnav > .seg [data-v="abo"]');
+    assert.ok(await page.locator('#main .u2elbox .cosearch').count() === 1, w + ' : Abonnés : même boîte, recherche en tête');
+    // fiche ouverte depuis le Planning : intercalaires entiers, Élèves allumé, jauge d'un abonnement sans quota noté
+    await page.evaluate(() => { const e = ELEVES.find(x => coInClub(x)); e.achats = [{ id: 'hsq', t: 'abo', ref: 'a1', d: isoIn(-5), fin: isoIn(60), nom: 'Academy Performance individuel (6 mois)' }]; S.tab = 'planning'; S.elTab = 'fiche'; S.stack = [{ v: 'eleve', id: e.id }]; render(true); });
+    await page.waitForSelector('#main .u2boite .u2itabs');
+    const f = await page.evaluate(() => {
+      const r = e => e.getBoundingClientRect(), t = document.querySelector('#main .u2itabs'), bs = [...t.querySelectorAll('button')];
+      return { coupes: bs.filter(b => r(b).right > r(t).right + 1 || r(b).left < r(t).left - 1).length, deborde: t.scrollWidth > t.clientWidth + 1,
+        courant: [...document.querySelectorAll('#tabs button[data-t][aria-current]')].map(b => b.dataset.t), segs: document.querySelectorAll('#main .coabocard .coabs i').length, txt: document.querySelector('#main .coabocard .coabsg').textContent };
+    });
+    if (w < 1000) { assert.equal(f.coupes, 0, w + ' : intercalaires de la fiche entiers'); assert.equal(f.deborde, false); assert.deepEqual(f.courant, ['eleves'], 'barre du bas : Élèves allumé sur une fiche'); }
+    assert.equal(f.segs, 4, w + ' : abonnement sans quota noté : 4 segments (défaut)');
+    assert.match(f.txt, /0\/4 ce mois-ci/);
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
+test('Dojo : Messages (intercalaire collé aux deux onglets, « + » d’en-tête à deux choix), Planning (plus de « … », vues en intercalaires), Réglages (quatre intercalaires, Historique), aucun fondu sur les intercalaires', async () => {
+  for (const [w, mobile] of [[390, true], [1280, false]]) {
+    const ctx = await browser.newContext(mobile ? { viewport: { width: w, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html?ui=2');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    await page.evaluate(() => document.querySelector('.ram-splash')?.remove());
+    // l'écart entre le bas de l'intercalaire choisi et le haut de la boîte qui suit (bordure comprise), quand les intercalaires sont en rangée
+    const ecart = () => page.evaluate(() => {
+      const seg = document.querySelector('#main > .seg'); if (!seg) return { aucun: true };
+      const r = e => e.getBoundingClientRect(), sr = r(seg), on = seg.querySelector('[aria-selected="true"]');
+      if (sr.height > 90) return { colonne: true };
+      let nx = seg.nextElementSibling; while (nx && !r(nx).height) nx = nx.nextElementSibling;
+      const box = nx && (nx.matches('.card') ? nx : nx.querySelector(':scope > .card, :scope > .cobento .card'));
+      return { e: box ? r(box).top + parseFloat(getComputedStyle(box).borderTopWidth) - r(on).bottom : null, mask: getComputedStyle(seg).maskImage || getComputedStyle(seg).webkitMaskImage, nb: seg.querySelectorAll(':scope > button').length };
+    });
+    // Messages : les deux onglets, « + » dans l'en-tête
+    for (const t of ['eleves', 'groupes']) {
+      await page.evaluate(t => { S.tab = 'msgs'; S.msTab = t; S.stack = []; render(true); }, t);
+      const e = await ecart();
+      if (!e.colonne && !e.aucun) { assert.ok(e.e !== null && Math.abs(e.e) < 0.5, w + ' Messages ' + t + ' : écart nul (' + e.e + ')'); assert.ok(!e.mask || e.mask === 'none', 'aucun fondu'); }
+      assert.equal(await page.locator('#main [data-a="coNewMsg"]').count(), 0, w + ' : plus de grand bouton « Nouveau message » dans la page');
+      assert.equal(await page.locator('#top .u2msgnew').count(), 1, w + ' : « + » dans l’en-tête');
+    }
+    assert.equal(await page.locator('#top .u2msgnew').getAttribute('aria-label'), 'Nouveau message');
+    await page.click('#top .u2msgnew');
+    assert.equal(await page.locator('#layer .menu button').count(), 2, w + ' : deux choix');
+    assert.match(await page.textContent('#layer .menu'), /Écrire à un élève[\s\S]*Écrire à un groupe/);
+    await page.click('#layer [data-a="coNewMsg"]');
+    assert.ok(await page.locator('#layer [data-a="coOpenDm"]').count() > 0, w + ' : « Écrire à un élève » mène à la liste des élèves');
+    await page.evaluate(() => closeSheet());
+    // Planning : pas de « … », Jour / Semaine / Mois en intercalaires collés à la boîte
+    for (const v of ['jour', 'semaine', 'mois']) {
+      await page.evaluate(v => { S.tab = 'planning'; S.stack = []; S.pl.v = v; render(true); }, v);
+      assert.equal(await page.locator('#top [data-a="coPlMore"], #main [data-a="coPlMore"]').count(), 0, w + ' : plus de « … » au Planning');
+      assert.equal(await page.locator('#main .covue').count(), 0, 'plus de pastilles Jour / Semaine / Mois séparées');
+      const e = await ecart();
+      assert.equal(e.nb, 3, w + ' Planning ' + v + ' : trois intercalaires');
+      assert.ok(e.e !== null && Math.abs(e.e) < 0.5, w + ' Planning ' + v + ' : écart nul (' + e.e + ')');
+      assert.ok(!e.mask || e.mask === 'none');
+    }
+    // Réglages : quatre intercalaires, historique des séances dedans
+    await page.evaluate(() => { S.tab = 'me'; S.stack = []; S.meTab = 'profil'; render(true); });
+    let e = await ecart();
+    assert.equal(e.nb, 4, w + ' Réglages : quatre intercalaires'); assert.ok(Math.abs(e.e) < 0.5, w + ' Réglages : écart nul (' + e.e + ')');
+    assert.equal(await page.locator('#main .u2regl').count(), 0, 'la petite boîte « Réglages » a disparu');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, w + ' : pas de débordement');
+    await page.click('#main [data-a="u2MeTab"][data-k="histo"]');
+    assert.ok(await page.locator('#main .u2mebox').count() === 1 && /séance/i.test(await page.textContent('#main .u2mebox')), w + ' : Réglages > Historique');
+    assert.equal(await page.evaluate(() => { try { return localStorage.getItem('coach-reglages-onglet'); } catch (x) { return 'histo'; } }), 'histo', 'dernier intercalaire retenu');
+    await page.click('#main [data-a="u2MeTab"][data-k="offres"]');
+    assert.match(await page.textContent('#main .u2mebox'), /Formules et tarifs[\s\S]*Échelles techniques/);
+    await page.click('#main [data-a="u2MeTab"][data-k="agenda"]');
+    assert.match(await page.textContent('#main .u2mebox'), /Calendly/);
+    // aucun fondu : Aujourd'hui, Élèves (390 px)
+    if (w === 390) for (const t of ['today', 'eleves']) {
+      await page.evaluate(t => { S.tab = t; S.stack = []; render(true); }, t);
+      const m = await page.evaluate(() => { const s = document.querySelector('#main > .seg'); const c = getComputedStyle(s); return c.maskImage || c.webkitMaskImage || 'none'; });
+      assert.ok(m === 'none', t + ' : mask-image calculé « none » (' + m + ')');
     }
     assert.deepEqual(errs, []);
     await ctx.close();

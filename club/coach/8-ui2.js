@@ -529,12 +529,89 @@ if (UI2) {
   };
 
   /* ---------- Réglages : en tête, les réglages qui quittent le sous-menu Élèves ---------- */
+  /* Réglages : une seule boîte, quatre intercalaires collés à son bord supérieur (Profil, Offres, Agenda, Historique).
+     Chaque bloc du profil va dans la famille de son titre ; ce qui ne colle à aucune famille reste dans Profil. */
   const u2Me = V.me;
-  V.me = id =>
-    (id
-      ? ''
-      : `<div class="pad"><div class="card u2c u2regl"><div class="calh">${ic('gear')}<b>Réglages</b></div><div class="menu"><button data-a="open" data-v="formules">${ic('euro')}Formules et tarifs</button><button data-a="open" data-v="niveaux">${ic('ladder')}Échelles techniques</button></div></div></div>`) +
-    u2Me(id);
+  const U2_ME = [
+    ['profil', 'Profil'],
+    ['offres', 'Offres'],
+    ['agenda', 'Agenda'],
+    ['histo', 'Historique']
+  ];
+  const u2MeLu = () => {
+    try {
+      return localStorage.getItem('coach-reglages-onglet');
+    } catch (e) {
+      return null;
+    }
+  };
+  V.me = id => {
+    if (id) return u2Me(id);
+    let k = S.meTab || u2MeLu();
+    if (!U2_ME.some(t => t[0] === k)) k = 'profil';
+    S.meTab = k;
+    const seg = `<div class="seg haut u2sous u2meseg" role="tablist" aria-label="Réglages">${U2_ME.map(([v, l]) => `<button role="tab" aria-selected="${k === v}" data-a="u2MeTab" data-k="${v}"><span class="lb">${l}</span></button>`).join('')}</div>`;
+    const tpl = document.createElement('template');
+    tpl.innerHTML = u2Me(id);
+    const base = tpl.content.querySelector('.coprof') || tpl.content,
+      fam = el => {
+        const h = el.querySelector && el.querySelector('.coh2') ? el.querySelector('.coh2').textContent : '';
+        if (/^Formules et tarifs$/.test(h)) return 'offres';
+        if (/^(Mes disponibilités|Mes outils de réservation|Mes vacances)$/.test(h)) return 'agenda';
+        return 'profil';
+      },
+      bloc = { profil: [], offres: [], agenda: [] };
+    [...base.children].forEach(el => bloc[fam(el)].push(el.outerHTML));
+    bloc.offres.push(
+      `<section class="card copc"><span class="coey">Techniques</span><h2 class="coh2">Échelles techniques</h2><button class="btn full" data-a="open" data-v="niveaux">${ic('ladder')}Mes échelles techniques</button></section>`
+    );
+    const body =
+      k === 'histo'
+        ? V.histo()
+            .replace(/^<div class="pad[^"]*">/, '')
+            .replace(/<\/div>$/, '')
+        : bloc[k].join('');
+    return seg + `<div class="pad u2f"><div class="card u2mebox u2me-${k}">${body}</div></div>`;
+  };
+  A.u2MeTab = d => {
+    S.meTab = d.k;
+    try {
+      localStorage.setItem('coach-reglages-onglet', d.k);
+    } catch (e) {}
+    render(true);
+  };
+
+  /* ---------- Planning : Jour / Semaine / Mois en intercalaires collés à la boîte (sélecteur de période + grille) ---------- */
+  const u2Plan = V.planning;
+  V.planning = () => {
+    const h = u2Plan().replace(/<div class="chips covue"[\s\S]*?<\/div>/, '');
+    if (!/class="pad covue/.test(h)) return h;
+    return (
+      `<div class="seg haut u2sous u2vue" role="tablist" aria-label="Vue du planning">${COVUES.map(([v, l]) => `<button role="tab" aria-selected="${(S.pl.v || 'semaine') === v}" data-a="coVue" data-k="${v}"><span class="lb">${l}</span></button>`).join('')}</div>` + h
+    );
+  };
+  function u2BoitePlanning() {
+    const pad = $('main') && $('main').querySelector(':scope > .pad.covues, :scope > .pad.covuej, :scope > .pad.covuem');
+    if (!pad || S.tab !== 'planning' || S.stack.length) return;
+    const week = pad.querySelector(':scope > .card.coweek'),
+      grille = pad.querySelector(':scope > .cogrid, :scope > .cowg, :scope > .cogm');
+    if (!grille || pad.querySelector(':scope > .u2plbox')) return;
+    if (!week) {
+      // grand écran : le sélecteur de période est dans l'en-tête ; la grille seule forme la boîte
+      if (grille.classList.contains('card')) return;
+      const b = document.createElement('div');
+      b.className = 'card u2plbox';
+      pad.insertBefore(b, grille);
+      b.append(grille);
+      return;
+    }
+    const box = document.createElement('div');
+    box.className = 'card u2plbox';
+    pad.insertBefore(box, week);
+    week.classList.remove('card');
+    grille.classList.remove('card');
+    box.append(week, grille);
+  }
 
   /* ---------- après chaque affichage : menu, Réglages, lien vers le suivi ---------- */
   function u2Nav() {
@@ -544,6 +621,15 @@ if (UI2) {
         if (u2Hors(b.dataset.t)) b.remove();
       });
       tabs.querySelectorAll('.coplus').forEach(b => b.remove());
+      // une fiche élève ouverte depuis une autre page (Planning, Groupes…) : l'entrée Élèves reste allumée
+      if (view().v === 'eleve' && S.tab !== 'eleves') {
+        tabs.querySelectorAll('button[data-t]').forEach(b => b.removeAttribute('aria-current'));
+        const b = tabs.querySelector('button[data-t="eleves"]');
+        if (b) {
+          b.setAttribute('aria-current', 'page');
+          if (typeof pillTo === 'function') pillTo(b, true);
+        }
+      }
       // Statistiques est un sous-onglet d'Aujourd'hui : l'entrée Aujourd'hui reste allumée
       if (S.tab === 'dash' && !S.stack.length) {
         const b = tabs.querySelector('button[data-t="today"]');
@@ -565,6 +651,15 @@ if (UI2) {
       const bell = top.querySelector('[data-a="notifs"]'),
         h = `<button class="ib u2gear" data-a="tab" data-t="me" aria-label="Réglages" ${S.tab === 'me' ? 'aria-current="page"' : ''}>${ic('gear')}</button>`;
       if (bell) bell.insertAdjacentHTML('beforebegin', h);
+      else top.insertAdjacentHTML('beforeend', h);
+    }
+    // Planning : plus de « … » (l'historique des séances est dans Réglages > Historique, le reste dans « + »)
+    if (top) top.querySelectorAll('[data-a="coPlMore"]').forEach(b => b.remove());
+    // Messages : « + » carré (Nouveau message) à côté des réglages et de la cloche, sur téléphone comme sur ordinateur
+    if (top && !S.stack.length && S.tab === 'msgs' && !top.querySelector('.u2msgnew')) {
+      const anchor = top.querySelector('.u2gear') || top.querySelector('[data-a="notifs"]');
+      const h = `<button class="ib acc coplt u2msgnew" data-a="u2MsgNew" aria-label="Nouveau message">${ic('plus')}</button>`;
+      if (anchor) anchor.insertAdjacentHTML('beforebegin', h);
       else top.insertAdjacentHTML('beforeend', h);
     }
     // « Nouveau » à la place de « Nouvelle séance » (Aujourd'hui et Planning) ; « + » au téléphone
@@ -605,11 +700,44 @@ if (UI2) {
         );
     }
   }
+  /* Élèves : une seule boîte sous les intercalaires (recherche et filtre, puis le titre et la liste, puis l'ajout d'un élève) */
+  function u2BoiteEleves() {
+    const main = $('main');
+    if (!main || view().v !== 'eleves' || S.elF === 'pay') return;
+    const seg = document.querySelector('#main > .seg, #subnav > .seg');
+    if (seg) seg.classList.add('u2elseg');
+    let box = main.querySelector('.card.colist');
+    const search = main.querySelector('.card:has(> .cosearch)'),
+      add = main.querySelector('.card:has(> [data-a="coNewEl"])');
+    if (!search || search.classList.contains('u2elbox') || (box && box.classList.contains('u2elbox'))) return;
+    if (box) {
+      box.classList.add('u2elbox');
+      [...search.children].reverse().forEach(c => box.prepend(c));
+      search.remove();
+    } else {
+      // liste vide (aucun abonné, par exemple) : la carte de recherche devient la boîte et reprend le titre et le message
+      box = search;
+      box.classList.add('u2elbox');
+      for (let n = box.nextElementSibling; n && n !== add; n = box.nextElementSibling) box.append(n);
+    }
+    if (add) {
+      box.append(...add.children);
+      add.remove();
+    }
+  }
+  /* « + » de Messages : une fenêtre à deux choix, chacun menant au parcours d'envoi existant */
+  A.u2MsgNew = () =>
+    sheet(
+      'Nouveau message',
+      `<div class="body"><div class="menu"><button data-a="coNewMsg">${ic('user')}Écrire à un élève</button><button data-a="coNewGrpMsg">${ic('users')}Écrire à un groupe</button></div></div>`
+    );
   const u2Rail = ramRail;
   ramRail = function (t, sub) {
     u2Rail(t, sub);
     u2Nav();
     u2Pastilles();
+    u2BoiteEleves();
+    u2BoitePlanning();
   };
 
   /* ---------- Fiche élève en une seule carte, fiche de groupe, historique en petites cartes empilées ---------- */
@@ -665,8 +793,9 @@ if (UI2) {
     });
   };
 
-  /* Fiche élève : une grande carte (identité, coordonnées, boutons, puis les onglets en intercalaires du contenu), et dessous
-     les sous-cartes de l'onglet, chacune avec son picto */
+  /* Fiche élève : deux boîtes séparées. La première, fermée sur elle-même : identité, coordonnées, boutons. La seconde, à
+     l'écart normal d'une carte : les intercalaires collés à son bord supérieur, puis le contenu de l'onglet choisi
+     (sous-cartes avec leur picto, cadre « Abonné » en tête de l'onglet Fiche) */
   const u2EleveF = V.eleve;
   V.eleve = id => {
     const h = u2EleveF(id),
@@ -708,7 +837,7 @@ if (UI2) {
               .join('')}</div>`
           : none('cal', 'Aucune séance', ''));
     }
-    return `<div class="pad"><div class="card u2fiche"><div class="u2fh">${coAv(id, 'lg')}<div class="u2fn"><span class="u2fp">${esc(fn)}</span><b class="u2fl">${esc(ln)}</b><span class="tag">${M[id] ? 'Compte /RAM Club' : 'Sans compte'}</span></div><div class="u2fc">${cell('phone', 'Téléphone', tel, 'tel:' + esc(String(tel).replace(/[^+\d]/g, '')))}${cell('mail', 'E-mail', mail, 'mailto:' + esc(mail))}</div><div class="u2fa"><button class="btn" data-a="u2Prog" data-id="${id}">${ic('cal')}Programmer une séance</button><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte /RAM</button>`}</div></div>${tabs}<div class="u2fb">${body}</div></div></div>`;
+    return `<div class="pad u2f"><div class="card u2fiche"><div class="u2fh">${coAv(id, 'lg')}<div class="u2fn"><span class="u2fp">${esc(fn)}</span><b class="u2fl">${esc(ln)}</b><span class="tag">${M[id] ? 'Compte /RAM Club' : 'Sans compte'}</span></div><div class="u2fc">${cell('phone', 'Téléphone', tel, 'tel:' + esc(String(tel).replace(/[^+\d]/g, '')))}${cell('mail', 'E-mail', mail, 'mailto:' + esc(mail))}</div><div class="u2fa"><button class="btn" data-a="u2Prog" data-id="${id}">${ic('cal')}Programmer une séance</button><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte /RAM</button>`}</div></div></div><div class="u2boite">${tabs}<div class="card u2fb">${body}</div></div></div>`;
   };
 
   /* Fiche de groupe : le cycle en cours et sa progression en haut, les élèves tout de suite (ajout et retrait), puis les

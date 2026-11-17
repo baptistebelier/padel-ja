@@ -163,18 +163,24 @@ const coEtatTag = (et, plus) =>
 /* le compteur du mois civil d'un abonné (regles.js moisAbo) : { a, fait, quota, depasse }, ou null sans abonnement en cours */
 function coAboMois(id) {
   const a = coPacks(id).find(x => x.t === 'abo' && REGLES.aboEnCours([x], TODAY));
-  return a ? Object.assign({ a }, REGLES.moisAbo(a, TODAY)) : null;
+  return a ? Object.assign({ a }, REGLES.moisAbo(a, TODAY, OFFRES)) : null;
 }
 /* sa jauge « 2/4 ce mois-ci », comme celle d'un pack ; en couleur d'alerte au-delà du quota (la séance reste possible) */
 const coAboJauge = m =>
   m && m.quota
     ? `<span class="coabm${m.depasse ? ' depasse' : ''}"><span class="cobarre" role="img" aria-label="${m.fait} séances sur ${m.quota} ce mois-ci"><i style="width:${Math.min(100, Math.round((m.fait * 100) / m.quota))}%"></i></span><span class="small">${m.fait}/${m.quota} ce mois-ci</span></span>`
     : '';
+/* jauge sectionnée du mois : un segment par séance du quota, les séances faites remplies ; au-delà du quota tout est rempli et passe en alerte */
+const coMoisNom = d => ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'][+String(d).slice(5, 7) - 1] || '';
+const coAboSegs = m =>
+  m && m.quota
+    ? `<div class="coabsg${m.depasse ? ' depasse' : ''}"><div class="coabs" role="img" aria-label="${m.fait} séances sur ${m.quota} en ${coMoisNom(TODAY)}">${Array.from({ length: Math.min(m.quota, 31) }, (_, i) => `<i${i < m.fait ? ' class="on"' : ''}></i>`).join('')}</div><b class="coabt">${m.fait}/${m.quota} ce mois-ci</b> <span class="muted small">${coMoisNom(TODAY)}</span></div>`
+    : '';
 /* l'abonnement en cours : l'étiquette « Abonné », avec ses séances par mois */
 function coAboCard(id) {
   const a = REGLES.aboEnCours((coEl(id) || {}).achats, TODAY);
   if (!a) return '';
-  return `<div class="card coabocard"><span class="tag coabo">Abonné</span> <b>${esc(a.nom || ofLabel('abo', a.ref))}</b><br><span class="muted small">${REGLES.quotaMois(a) ? plural(REGLES.quotaMois(a), 'séance') + ' par mois' : 'Séances par mois à régler'}${a.fin ? ' · jusqu’au ' + fmtD(a.fin) : ''}</span>${coAboJauge(coAboMois(id))} <button class="colk" data-a="coFreq" data-id="${id}" data-x="${a.id}">Modifier les séances par mois</button></div>`;
+  return `<div class="card coabocard"><div class="coabh"><span class="tag coabo">Abonné</span><b>${esc(a.nom || ofLabel('abo', a.ref))}</b></div><span class="muted small">${REGLES.quotaAffiche(a, OFFRES) ? plural(REGLES.quotaAffiche(a, OFFRES), 'séance') + ' par mois' : 'Séances par mois sans limite'}${a.fin ? ' · jusqu’au ' + fmtD(a.fin) : ''}</span>${coAboSegs(coAboMois(id))}<button class="colk" data-a="coFreq" data-id="${id}" data-x="${a.id}">Modifier les séances par mois</button></div>`;
 }
 Object.assign(A, {
   /* séances par mois d'un abonnement, enregistrées sur l'achat de l'élève (a.pm) */
@@ -183,7 +189,7 @@ Object.assign(A, {
     if (!a) return;
     sheet(
       'Séances par mois · ' + (a.nom || 'Abonnement'),
-      `<form class="body" id="co-freq" data-id="${d.id}" data-x="${d.x}"><div class="fld"><label for="co-fq">Séances par mois</label><input id="co-fq" type="number" min="0" max="31" step="1" inputmode="numeric" value="${REGLES.quotaMois(a) || ''}"></div><p class="muted small">L’abonnement couvre au plus ce nombre de séances par semaine sur sa durée ; quand elles sont faites avant la date de fin, il passe à « Utilisé ». Vide : sans limite.</p><button class="btn full">Enregistrer</button></form>`
+      `<form class="body" id="co-freq" data-id="${d.id}" data-x="${d.x}"><div class="fld"><label for="co-fq">Séances par mois</label><input id="co-fq" type="number" min="0" max="31" step="1" inputmode="numeric" value="${REGLES.quotaAffiche(a, OFFRES) || ''}"></div><p class="muted small">L’abonnement couvre au plus ce nombre de séances par semaine sur sa durée ; quand elles sont faites avant la date de fin, il passe à « Utilisé ». Vide : sans limite.</p><button class="btn full">Enregistrer</button></form>`
     );
   }
 });

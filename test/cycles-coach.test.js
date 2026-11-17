@@ -122,6 +122,14 @@ test('états d’une attribution : en cours, utilisé, terminé ; abonnement à 
   assert.deepEqual(R.moisAbo(c2, '2030-06-26'), { fait: 5, quota: 4, depasse: true }, '5 sur 4 : possible, en alerte');
   assert.deepEqual(R.moisAbo(c2, '2030-07-01'), { fait: 0, quota: 4, depasse: false }, 'remis à zéro le 1er, sans report');
   assert.equal(R.resumeAchats('k', [ab2], [], [], OFFRES, '2030-06-26').achats[0].mois.quota, 4);
+  // ancien achat sans quota noté : celui de sa définition, 4 par défaut (la jauge apparaît toujours, rien n'est réécrit)
+  const sans = { id: 'y', t: 'abo', ref: 'ab', d: '2030-05-01', fin: '2030-09-30' };
+  assert.equal(R.moisAbo(sans, '2030-05-31', OFFRES).quota, 4, 'définition sans parMois : 4');
+  assert.equal(R.moisAbo(sans, '2030-05-31', { abos: [{ id: 'ab', parMois: 8 }] }).quota, 8, 'quota de la définition');
+  assert.equal(R.moisAbo(sans, '2030-05-31').quota, 4, 'sans définition : 4');
+  assert.equal(R.moisAbo({ ...sans, pm: 6 }, '2030-05-31', OFFRES).quota, 6, 'le quota noté l’emporte');
+  assert.equal(R.quotaMois(sans), 0, 'rien n’est réécrit sur l’achat');
+  assert.equal(R.resumeAchats('k', [sans], [], [], OFFRES, '2030-06-26').achats[0].mois.quota, 4);
   // étiquette « Abonné »
   assert.equal(R.aboEnCours([ab, pk({})], '2030-05-10'), ab);
   assert.equal(R.aboEnCours([ab], '2030-06-10'), null);

@@ -77,9 +77,9 @@
 :root[data-ui="2"] .u2hb { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 0; }
 :root[data-ui="2"] .u2ht { flex: none; display: flex; align-items: center; padding-right: 10px; }
 
-/* ---------- fiche élève : une seule grande carte (identité, coordonnées, boutons, onglets en intercalaires) ---------- */
+/* ---------- fiche élève : deux boîtes. 1 : identité, coordonnées, boutons. 2 : intercalaires collés à son bord supérieur, puis l'onglet ---------- */
 :root[data-ui="2"] .u2fiche { padding: 0; }
-:root[data-ui="2"] .u2fh { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "av nm ac" "ct ct ct"; gap: 14px 18px; align-items: center; padding: 20px 20px 0; }
+:root[data-ui="2"] .u2fh { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "av nm ac" "ct ct ct"; gap: 14px 18px; align-items: center; padding: 20px; }
 :root[data-ui="2"] .u2fh > :first-child { grid-area: av; }
 :root[data-ui="2"] .u2fn { grid-area: nm; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 :root[data-ui="2"] .u2fp { font: 700 19px/1.1 var(--f-sub); }
@@ -93,15 +93,19 @@
 :root[data-ui="2"] .u2ctt small { font: 700 11px/1.2 var(--f-sub); letter-spacing: .1em; text-transform: uppercase; color: var(--c-muted); }
 :root[data-ui="2"] .u2ctt b { font-size: 15px; overflow-wrap: anywhere; }
 :root[data-ui="2"] .u2ctadd .u2ctt b { color: var(--c-muted); font-weight: 600; }
-:root[data-ui="2"] .u2itabs { padding: 0 20px; margin-top: 18px; }
-:root[data-ui="2"] .u2fb { border-top: var(--bw, 2px) solid var(--c-ink); padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+/* les intercalaires ne sont plus dans une carte : ils reposent sur le haut de la boîte 2 (leur trait passe sous l'onglet actif) */
+:root[data-ui="2"] .u2boite { display: block; min-width: 0; }
+:root[data-ui="2"] .u2itabs { padding: 0 var(--s3, 12px); margin: 0 0 calc(-1 * var(--bw, 2px)); position: relative; z-index: 2; }
+:root[data-ui="2"] .u2fb { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 :root[data-ui="2"] .u2fb .cobento { margin: 0; }
 @media (max-width: 700px) {
-  :root[data-ui="2"] .u2fh { grid-template-areas: "av nm" "ac ac" "ct ct"; padding: 16px 14px 0; }
+  :root[data-ui="2"] .u2fh { grid-template-areas: "av nm" "ac ac" "ct ct"; padding: 16px 14px; }
   :root[data-ui="2"] .u2fa { justify-content: flex-start; }
   :root[data-ui="2"] .u2fa .btn { flex: 1 1 auto; }
   :root[data-ui="2"] .u2fc { flex-direction: column; }
-  :root[data-ui="2"] .u2itabs { padding: 0 14px; margin-top: 14px; }
+  :root[data-ui="2"] .u2itabs { padding: 0 10px; gap: 4px; overflow: hidden; }
+  :root[data-ui="2"] .u2itabs > button { flex: 1 1 auto; justify-content: center; padding: 0 6px; font-size: 13px; gap: 4px; }
+  :root[data-ui="2"] .u2itabs > button svg { display: none; }
   :root[data-ui="2"] .u2fb { padding: 14px; }
   :root[data-ui="2"] .u2fl { font-size: 28px; }
 }
@@ -179,3 +183,30 @@
 .u2undo { position: fixed; z-index: 90; left: var(--gut, 16px); right: var(--gut, 16px); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; background: var(--c-dark, #1A0509); color: #FFFFFF; border: var(--bw, 2px) solid var(--c-ink); box-shadow: var(--sh, 4px 4px 0 #000); font: 600 15px var(--f-body); }
 .u2undo button { min-height: 40px; padding: 0 14px; border: var(--bw, 2px) solid #000; background: var(--c-lime, #E0F50A); color: var(--c-dark, #1A0509); font: 700 15px var(--f-sub); cursor: pointer; }
 @media (min-width: 1024px) { .u2undo { left: auto; right: 28px; bottom: 28px; width: min(420px, 90vw); } }
+
+/* ---------- page Élèves : une seule boîte sous les intercalaires ---------- */
+:root[data-ui="2"] .u2elbox { gap: 12px; }
+/* la carte de recherche n'est plus seule (dojo.css la rend sans cadre) : la boîte reprend le cadre d'une carte */
+#phone #main .card.u2elbox:has(> .cosearch) { background: var(--c-surface); border: var(--bw, 2px) solid var(--c-ink); box-shadow: var(--sh); padding: 14px; }
+:root[data-ui="2"] .u2elbox > .btn.full { margin-top: 6px; }
+@media (max-width: 700px) {
+  /* les cinq intercalaires tiennent dans la largeur : pas de pictogramme, libellés serrés */
+  :root:root[data-ui="2"] #main > .seg.u2elseg { gap: 3px; overflow: hidden; padding-right: 0; -webkit-mask-image: none; mask-image: none; }
+  :root:root[data-ui="2"] #main > .seg.u2elseg > button { flex: 1 1 auto; min-width: 0; padding: 0 3px; gap: 2px; font-size: 12px; letter-spacing: 0; justify-content: center; }
+  :root:root[data-ui="2"] #main > .seg.u2elseg > button svg { display: none; }
+  :root:root[data-ui="2"] #main > .seg.u2elseg > button .cnt { padding: 0 4px; font-size: 11px; margin: 0; }
+  :root:root[data-ui="2"] #main > .seg.u2elseg > button[data-v="all"] .lb { font-size: 0; }
+  :root:root[data-ui="2"] #main > .seg.u2elseg > button[data-v="all"] .lb::before { content: "Tous"; font-size: 12px; }
+}
+
+/* ---------- Réglages : une seule boîte sous ses intercalaires ; Planning : sélecteur de période et grille réunis ---------- */
+:root[data-ui="2"] .u2mebox { gap: 18px; }
+:root[data-ui="2"] #main .u2mebox > .copc, :root[data-ui="2"] #main .u2mebox > .card:not(.cohero) { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 0 18px !important; border-bottom: var(--bw, 2px) solid var(--c-ink) !important; border-radius: 0 !important; }
+:root[data-ui="2"] #main .u2mebox > :last-child { border-bottom: 0 !important; padding-bottom: 0 !important; }
+:root[data-ui="2"] .u2plbox { gap: 12px; }
+:root[data-ui="2"] #main .u2plbox > .coweek { background: transparent; border: 0; box-shadow: none; padding: 0; }
+:root[data-ui="2"] #main .u2plbox > .cogm, :root[data-ui="2"] #main .u2plbox > .cogrid, :root[data-ui="2"] #main .u2plbox > .cowg { border: 0; box-shadow: none; background: transparent; padding: 0; }
+@media (max-width: 700px) {
+  :root[data-ui="2"] .u2meseg, :root[data-ui="2"] .u2vue { max-width: calc(100% - 2 * var(--gut)); }
+  :root[data-ui="2"] .u2meseg > button { padding: 0 10px; }
+}

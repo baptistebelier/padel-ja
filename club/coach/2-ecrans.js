@@ -890,7 +890,9 @@ function coMsgs() {
       .sort((a, b) => (svOf(b).slice(-1)[0].at || 0) - (svOf(a).slice(-1)[0].at || 0))
       .sort((a, b) => coIsFav('e:' + b) - coIsFav('e:' + a)); // favoris en haut
     b =
-      `<div class="card"><button class="btn full" data-a="coNewMsg">${ic('plus')}Nouveau message</button></div>` +
+      (document.documentElement.dataset.ui === '2'
+        ? ''
+        : `<div class="card"><button class="btn full" data-a="coNewMsg">${ic('plus')}Nouveau message</button></div>`) +
       (l.length
         ? list(
             l
@@ -906,7 +908,7 @@ function coMsgs() {
               })
               .join('')
           )
-        : none('chat', 'Aucune conversation', 'Toi seul peux commencer une conversation avec un élève.'));
+        : `<div class="card"><p class="muted small">Aucune conversation</p></div>`);
   } else {
     const gs = coGroups('', true)
         .filter(coIsGrp)

@@ -383,3 +383,8 @@
 :root :is(.poster, .promo-w, .card.setup) :is(.kicker, .coey) { color: var(--c-on-accent) !important; }
 :root :is(.cohd > span, .evl.cotheme, .evl.cotheme svg) { color: inherit !important; }
 :root :is(.kicker, .coey, .cohd > span) svg { color: currentColor !important; }
+
+/* intercalaires : jamais de fondu ni de voile sur le bord (même quand une rangée défile : elle est alors coupée net) ;
+   les pastilles de filtre (.chips) gardent leur comportement */
+.seg, .seg.plus-d, .seg.plus-g, .seg.plus-g.plus-d, #main > .seg:not(.haut), #main > .seg:not(.haut).plus-d, #main > .seg:not(.haut).plus-g, #main > .seg:not(.haut).plus-g.plus-d,
+.r-itabs, .r-itabs.plus-d, .r-itabs.plus-g, .r-itabs.plus-g.plus-d { -webkit-mask-image: none !important; mask-image: none !important; }
