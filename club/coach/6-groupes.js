@@ -905,7 +905,7 @@ function coPlanDetect(g, start, n, step) {
     d => !isCx(g, d) && !REGLES.cycleDe(g, d)
   );
   const out = deja.slice(0, n);
-  if (out.length >= n) return out;
+  if (out.length >= n || g.libre) return out; // groupe sans créneau : seulement les dates déjà posées, jamais de dates inventées
   const suite = out.length ? isoIn(step || 7, out[out.length - 1]) : start;
   return out.concat(coPlanDates(suite, n - out.length, step || 7, coVacOff(g)));
 }
@@ -1170,22 +1170,25 @@ Object.assign(A, {
         )
         .concat(OFFRES.formules.map(f => ['f:' + f.id, 'À la séance · ' + ofLabel('f', f.id)]))
         .concat(OFFRES.abos.map(a => ['abo:' + a.id, 'Abonnement · ' + a.nom])),
-      cyc = !!g.to || !!d.c || !!courant || (g.offre || '').startsWith('pack:');
+      cyc = g.libre ? !!g.to : !!g.to || !!d.c || !!courant || (g.offre || '').startsWith('pack:');
     sheet(
       'Séances de ' + g.name,
-      `<form class="body" id="co-plan" data-id="${g.id}" data-c="${courant ? courant.id : d.c === 'new' ? 'new' : ''}"><p class="muted small">Choisis une formule : un pack donne le nombre de séances et le tarif. Les séances déjà faites à partir de cette date sont reprises dans le cycle.</p>${O('co-pl-nom', 'Nom du cycle', 'Cycle automne, Pack 10 séances…', courant ? courant.nom : '')}${ofSel('co-pl-o', 'Formule suivie par le groupe', opts, (courant && courant.offre) || g.offre || '')}${O('co-pl-pay', 'Paiement demandé aux séances n° (facultatif)', '4  ou 1, 4, 8', ((courant && courant.pay) || []).join(', '))}<div class="fld"><label class="chk" for="co-pl-att"><input type="checkbox" id="co-pl-att">Noter ce pack ou cet abonnement pour les élèves du groupe</label></div><div class="row" style="gap:8px"><div class="fld grow"><label for="co-pl-s">À partir du</label><input id="co-pl-s" type="date" value="${cur[0] || coPlanStart(g)}"></div><div class="fld" style="width:96px"><label for="co-pl-n">Séances</label><input id="co-pl-n" type="number" inputmode="numeric" min="1" max="60" value="${cur.length || 10}"></div></div>${ofSel(
+      `<form class="body" id="co-plan" data-id="${g.id}" data-c="${courant ? courant.id : d.c === 'new' ? 'new' : ''}"><p class="muted small">Choisis une formule : un pack donne le nombre de séances et le tarif. Les séances déjà faites à partir de cette date sont reprises dans le cycle.</p>${O('co-pl-nom', 'Nom du cycle', 'Cycle automne, Pack 10 séances…', courant ? courant.nom : '')}${ofSel('co-pl-o', 'Formule suivie par le groupe', opts, (courant && courant.offre) || g.offre || '')}${O('co-pl-pay', 'Paiement demandé aux séances n° (facultatif)', '4  ou 1, 4, 8', ((courant && courant.pay) || []).join(', '))}<div class="fld"><label class="chk" for="co-pl-att"><input type="checkbox" id="co-pl-att">Noter ce pack ou cet abonnement pour les élèves du groupe</label></div><div class="row" style="gap:8px"><div class="fld grow"><label for="co-pl-s">À partir du</label><input id="co-pl-s" type="date" value="${cur[0] || coPlanStart(g)}"></div><div class="fld" style="width:96px"><label for="co-pl-n">Séances</label><input id="co-pl-n" type="number" inputmode="numeric" min="1" max="60" value="${(courant && courant.n) || cur.length || 10}"></div></div>${ofSel(
         'co-pl-r',
         'Rythme',
         [
           ['7', 'Chaque semaine'],
-          ['14', 'Une semaine sur deux']
+          ['14', 'Une semaine sur deux'],
+          ['0', 'Sans récurrence · dates libres']
         ],
-        g.every > 1 ? '14' : '7'
+        g.libre ? '0' : g.every > 1 ? '14' : '7'
       )}<button type="button" class="btn sm ghost full" data-a="coPlanGen">${ic('cal')}Proposer les dates</button><span class="kicker" style="margin-top:12px">Dates · <span id="co-pl-cnt">${plural(cur.length, 'séance')}</span></span><div id="co-pl-dates" class="copl"></div><button type="button" class="btn sm ghost full" data-a="coPlanAdd">${ic('plus')}Ajouter une date</button><div class="fld"><label class="chk" for="co-pl-c"><input type="checkbox" id="co-pl-c" ${cyc ? 'checked' : ''}>Le groupe s'arrête après la dernière date (pack ou cycle)</label></div><button class="btn full">Enregistrer les séances</button><p class="muted small">Les séances apparaissent dans ton planning et dans l'Agenda et l'École de /RAM Club.</p></form>`
     );
     coPlanPaint(cur);
   },
   coPlanGen() {
+    // sans récurrence : pas de dates proposées, seulement celles posées une à une
+    if ($('co-pl-r').value === '0') return coPlanPaint(coPlanRead());
     const o = coPlanOf($('co-pl-o').value),
       n = parseInt($('co-pl-n').value, 10) || o.n || 10,
       s = $('co-pl-s').value || TODAY;
@@ -1343,7 +1346,7 @@ document.addEventListener('submit', e => {
     garder = $('co-pl-c').checked || !!cid,
     // les séances des autres cycles restent
     autres = (g.cycles || []).filter(x => x.id !== cid).flatMap(x => x.dates || []);
-  coPlanApply(g, [...new Set(list.concat(autres))].sort(), $('co-pl-c').checked);
+  coPlanApply(g, [...new Set(list.concat(autres))].sort(), $('co-pl-c').checked && !g.libre);
   let note = '';
   if (garder) {
     g.cycles = g.cycles || [];

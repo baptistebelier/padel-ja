@@ -491,3 +491,14 @@ test('Calendly et /RAM Club : une réservation Calendly bloque le créneau, son 
   assert.equal(await libre(club, key, a, d, 540), true, 'annulée : le créneau revient');
 });
 
+
+test('date passée : refusée à l’élève (réservation) et à la page publique ; seul l’enseignant peut programmer dans le passé', async () => {
+  const { coach, club, key, d, a } = await monte(91);
+  await Formules.save(store, coach, Object.assign(await Formules.get(store, coach), { page: club.id }));
+  const passe = REGLES.addDays(d, -14);   // même jour de la semaine que les disponibilités, deux semaines plus tôt
+  await assert.rejects(resa.reserver(a, club.id, key, { d: passe, t: 540, formule: 'f1', objectif: 'Volée' }), /pris|invalide/, 'élève : date passée refusée');
+  const b = { d: passe, t: 540, formule: 'f1', prenom: 'Léa', nom: 'Roy', email: 'lea91@exemple.test', tel: '06 00 00 00 00', objectif: 'Volée', accord: true };
+  await assert.rejects(resa.pubReserver(club.id, key, b), /pris|invalide/, 'page publique : date passée refusée');
+  const c = await resa.pubCreneaux(club.id, key, passe);
+  assert.deepEqual(c.jours[0].libres, [], 'aucun créneau offert dans le passé');
+});

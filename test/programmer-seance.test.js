@@ -94,3 +94,51 @@ test('coach_programmer_seance : séance créée, rattachée au pack, séances re
   // un achat inexistant est refusé
   await assert.rejects(use('coach_programmer_seance', { eleve: 'm1', date: iso(9), heure: '18 h', achat_id: 'zzz' }), /n’est pas en cours/);
 });
+
+/* connexion OAuth d'un enseignant déjà créé (comme plus haut), renvoie l'appel d'outil */
+async function connecte(club) {
+  const redirect_uri = 'https://claude.ai/api/mcp/auth_callback';
+  const reg = await (await call('/oauth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_name: 'Claude', redirect_uris: [redirect_uri] }) })).json();
+  const verifier = crypto.randomBytes(32).toString('base64url'), challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+  const q = new URLSearchParams({ response_type: 'code', client_id: reg.client_id, redirect_uri, code_challenge: challenge, code_challenge_method: 'S256', state: 'x', scope: 'ram.lecture' });
+  const page = await (await call('/oauth/authorize?' + q, { headers: { 'x-test': '1' } })).text();
+  const tx = page.match(/name="tx" value="([^"]+)"/)[1];
+  const a1 = await call('/oauth/authorize', { method: 'POST', headers: { 'x-test': '1', 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ tx, decision: 'ok' }) });
+  const code = new URL(a1.headers.get('location')).searchParams.get('code');
+  const t = await (await call('/oauth/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code, client_id: reg.client_id, redirect_uri, code_verifier: verifier }) })).json();
+  const use = async (name, args) => { const r = (await (await call('/mcp', { method: 'POST', headers: { Authorization: 'Bearer ' + t.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: Object.assign({ club: club.id }, args) } }) })).json()).result; if (r.isError) throw new Error(r.content[0].text); return JSON.parse(r.content[0].text); };
+  const rows = () => JSON.parse(fs.readFileSync(path.join(DIR, 'ramclub', 'items-' + club.id.replace(/[^\w-]/g, '') + '.json'), 'utf8')).filter(x => !x.deleted);
+  const get = (coll, id) => (rows().find(x => x.coll === coll && x.id === id) || {}).data;
+  return { use, rows, get };
+}
+
+test('coach_programmer_seance : une séance passée est permise à l’enseignant, notée présente et décomptée du pack, sans rappel', async () => {
+  me = { id: 'U9', email: 'coach9@test.fr', first: 'Sarah', last: 'Benali', pass_hash: 'h9' };
+  await store.saveUser(me);
+  await Formules.save(store, 'U9', { formules: [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35 }], packs: [{ id: 'p1', formule: 'f1', nom: 'Pack 10 séances', seances: 10, prix: 300 }], abos: [] });
+  const club = await ram.create({ id: 'U9', name: 'Sarah Benali' }, { name: 'TC Passé', short: 'tcq' });
+  const achat = { id: 'a1', t: 'pack', ref: 'p1', d: iso(-60), n: 10, nom: 'Pack 10 séances', prix: 300, pay: { ech: [{ s: 0, m: 300, ok: iso(-60) }] } };
+  await ram.ops('U9', club.id, [{ coll: 'eleve', id: 'm1', op: 'put', data: { n: 'Mathieu Roux', sport: 'Padel', achats: [achat] } }]);
+  const { use, get } = await connecte(club);
+  // le pack n'a encore servi à rien : dix séances restantes
+  const r1 = await use('coach_programmer_seance', { eleve: 'm1', date: iso(-4), heure: '18 h 30', theme: 'Service' });
+  assert.equal(r1.cree, true);
+  assert.equal(r1.achat.id, 'a1');
+  assert.equal(r1.achat.restantes, 10, 'avant la séance : dix restantes');
+  await new Promise(r => setTimeout(r, 500));
+  const seance = get('seance', r1.groupe_id + '.' + iso(-4));
+  assert.ok(seance, 'la séance passée est enregistrée avec son appel');
+  assert.deepEqual(seance.pres, { m1: 'P' }, 'l’élève y est noté présent');
+  assert.equal(get('cours', r1.groupe_id).once, iso(-4));
+  // elle compte : le pack passe à neuf séances restantes
+  const apres = await use('coach_eleve', { eleve_id: 'm1' });
+  const pack = JSON.stringify(apres);
+  assert.ok(pack.includes(r1.groupe_id), 'visible dans l’historique de l’élève');
+  const r2 = await use('coach_programmer_seance', { eleve: 'm1', date: iso(-2), heure: '10 h', achat_id: 'a1', present: false });
+  assert.equal(r2.achat.restantes, 9, 'la première séance a été décomptée');
+  await new Promise(r => setTimeout(r, 300));
+  assert.equal(get('seance', r2.groupe_id + '.' + iso(-2)), undefined, 'present:false : pas d’appel, donc pas décomptée');
+  // le planning de la semaine passée la montre
+  const plan = await use('coach_planning', { du: iso(-6), au: iso(0) });
+  assert.ok(JSON.stringify(plan).includes(iso(-4)) && JSON.stringify(plan).includes('Cours individuel'), 'le planning d’une semaine passée montre la séance');
+});

@@ -76,7 +76,10 @@ if (UI2) {
         const v = pr[k] || '',
           fn = svFirst(k),
           ln = svName(k).slice(fn.length).trim();
-        return `<div class="u2apr">${coAv(k, 'sm')}<span class="u2apn"><b>${esc(fn)}</b> ${esc(ln)}${v === 'E' ? ' <span class="tag">Excusé</span>' : ''}</span><span class="u2apb" role="group" aria-label="Présence de ${esc(svName(k))}">${['P', 'A']
+        return `<div class="u2apr">${coAv(k, 'sm')}<span class="u2apn"><b>${esc(fn)}</b> ${esc(ln)}${v === 'E' ? ' <span class="tag">Excusé</span>' : ''}</span><span class="u2apb" role="group" aria-label="Présence de ${esc(svName(k))}">${[
+          'P',
+          'A'
+        ]
           .map(
             z =>
               `<button class="${v === z ? 'on ' + z : ''}" data-a="coPres" data-id="${id}" data-k="${k}" data-s="${z}" aria-pressed="${v === z}" aria-label="${presLbl[z]} : ${esc(svName(k))}">${ic(PRES_IC[z])}<span>${presLbl[z]}</span></button>`
@@ -764,13 +767,17 @@ if (UI2) {
         ? `<div class="u2hl">${up
             .slice(0, 6)
             .map(d => u2Ses(g, d))
-            .join('')}</div>${up.length > 6 ? `<p class="muted small">Et ${plural(up.length - 6, 'autre séance', 'autres séances')}.</p>` : ''}`
+            .join(
+              ''
+            )}</div>${up.length > 6 ? `<p class="muted small">Et ${plural(up.length - 6, 'autre séance', 'autres séances')}.</p>` : ''}`
         : empty('cal', 'Aucune séance à venir', 'Programme un cycle, un pack ou des dates une par une.')
     );
     const faites = box(
       'check',
       'Séances effectuées · ' + past.length,
-      todo && coOf().rappelBilans ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>` : '',
+      todo && coOf().rappelBilans
+        ? `<span class="tag cost todo">${plural(todo, 'bilan à écrire', 'bilans à écrire')}</span>`
+        : '',
       past.length
         ? `<div class="u2hl">${past
             .slice(0, 6)
@@ -857,7 +864,8 @@ if (UI2) {
      Collection « objectif » (OBJECTIFS, regles.js objDe / objProgres / objBascule) ; l'élève les lit dans /Buvette, École, Mon espace (objMes). */
   const objId = () => 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     objCid = () => 'c' + Math.random().toString(36).slice(2, 7),
-    objListe = sc => OBJECTIFS.filter(o => (sc.g ? o.g === sc.g : o.to === sc.k)).sort((a, b) => (a.ord || 0) - (b.ord || 0)),
+    objListe = sc =>
+      OBJECTIFS.filter(o => (sc.g ? o.g === sc.g : o.to === sc.k)).sort((a, b) => (a.ord || 0) - (b.ord || 0)),
     objAjout = sc =>
       `<button class="btn ghost sm full" data-a="u2ObjEdit" ${sc.g ? `data-g="${sc.g}"` : `data-to="${sc.k}"`}>${ic('plus')}Ajouter un objectif</button>`,
     objEntete = (o, p) => {
@@ -867,7 +875,11 @@ if (UI2) {
     };
   /* la fiche d'un élève : ses objectifs et ceux de ses groupes ; chaque compétence se valide d'un toucher */
   function u2ObjEleve(k) {
-    const L = REGLES.objDe(OBJECTIFS, k, coGroupsOf(k).map(g => g.id)),
+    const L = REGLES.objDe(
+        OBJECTIFS,
+        k,
+        coGroupsOf(k).map(g => g.id)
+      ),
       libre = ((coEl(k) || {}).goals || '').trim();
     return `<div class="card obj-card">${libre ? `<p class="objlibre">${esc(libre)}</p>` : ''}${
       L.length
@@ -964,7 +976,9 @@ if (UI2) {
     e.preventDefault();
     const f = e.target,
       nom = $('u2o-nom').value.trim(),
-      comps = [...f.querySelectorAll('.objer')].map(r => ({ id: r.dataset.c, nom: r.querySelector('input').value.trim() })).filter(c => c.nom);
+      comps = [...f.querySelectorAll('.objer')]
+        .map(r => ({ id: r.dataset.c, nom: r.querySelector('input').value.trim() }))
+        .filter(c => c.nom);
     if (!nom) return;
     let o = f.dataset.id ? OBJECTIFS.find(x => x.id === f.dataset.id) : null;
     if (!o) {
@@ -990,7 +1004,10 @@ if (UI2) {
   const u2EleveObj = V.eleve;
   V.eleve = id => {
     const h = u2EleveObj(id);
-    return h.replace(/(Objectifs<\/span><\/h2>)<div class="card"><p>[\s\S]*?<\/p><\/div>/, (m, t) => t + u2ObjEleve(id));
+    return h.replace(
+      /(Objectifs<\/span><\/h2>)<div class="card"><p>[\s\S]*?<\/p><\/div>/,
+      (m, t) => t + u2ObjEleve(id)
+    );
   };
 
   /* ---------- Programmer une séance depuis la fiche d'un élève ----------
@@ -1001,16 +1018,38 @@ if (UI2) {
     const O = typeof OFFRES !== 'undefined' ? OFFRES : { formules: [], packs: [], abos: [] },
       f = x => (O.formules || []).find(y => y.id === x);
     return [
-      ...(O.formules || []).map(x => ({ v: 'f:' + x.id, l: `${x.nom} · ${x.duree} min · ${x.prix} €`, dur: x.duree, sport: x.sport, prix: x.prix })),
-      ...(O.packs || []).map(x => ({ v: 'p:' + x.id, l: `${x.nom || 'Pack ' + x.seances + ' séances'} · ${x.prix} €`, dur: (f(x.formule) || {}).duree, sport: (f(x.formule) || {}).sport, prix: x.seances ? Math.round((x.prix / x.seances) * 100) / 100 : x.prix, pack: x })),
-      ...(O.abos || []).map(x => ({ v: 'a:' + x.id, l: `${x.nom} · abonnement`, dur: null, sport: null, prix: 0, abo: x }))
+      ...(O.formules || []).map(x => ({
+        v: 'f:' + x.id,
+        l: `${x.nom} · ${x.duree} min · ${x.prix} €`,
+        dur: x.duree,
+        sport: x.sport,
+        prix: x.prix
+      })),
+      ...(O.packs || []).map(x => ({
+        v: 'p:' + x.id,
+        l: `${x.nom || 'Pack ' + x.seances + ' séances'} · ${x.prix} €`,
+        dur: (f(x.formule) || {}).duree,
+        sport: (f(x.formule) || {}).sport,
+        prix: x.seances ? Math.round((x.prix / x.seances) * 100) / 100 : x.prix,
+        pack: x
+      })),
+      ...(O.abos || []).map(x => ({
+        v: 'a:' + x.id,
+        l: `${x.nom} · abonnement`,
+        dur: null,
+        sport: null,
+        prix: 0,
+        abo: x
+      }))
     ];
   };
   const pgDispos = k => REGLES.achatsDecomptables(coPacks(k), TODAY, REGLES.progParAchat(GROUPS, TODAY));
   const pgLibres = d => {
     const l = typeof coLibre === 'function' ? coLibre(d) : [],
       h = m => Math.floor(m / 60) + ' h' + (m % 60 ? String(m % 60).padStart(2, '0') : '');
-    return l.length ? 'Libre ce jour : ' + l.map(p => h(p.du) + '–' + h(p.au)).join(' · ') : 'Aucun créneau libre indiqué ce jour.';
+    return l.length
+      ? 'Libre ce jour : ' + l.map(p => h(p.du) + '–' + h(p.au)).join(' · ')
+      : 'Aucun créneau libre indiqué ce jour.';
   };
   A.u2Prog = d => {
     const k = d.id,
@@ -1022,7 +1061,7 @@ if (UI2) {
       sel0 = dispos.length === 1 ? dispos[0].id : '';
     sheet(
       'Programmer une séance',
-      `<form class="body" id="u2-prog" data-id="${k}"><p class="muted small">Pour <b>${esc(svName(k))}</b>.</p><div class="fld"><label for="co-pf">Formule</label><select id="co-pf"><option value="">Séance libre</option>${of.map(o => `<option value="${o.v}">${esc(o.l)}</option>`).join('')}</select></div>${Dt('co-pd', 'Date', false, TODAY)}<p class="muted small" id="co-plib">${esc(pgLibres(TODAY))}</p>${Sel('co-ph', 'Heure', HOURS, '18 h')}${Sel('co-pdu', 'Durée', ['45 min', '1 h', '1 h 15', '1 h 30', '2 h'], '1 h')}${Sel('co-ps', 'Sport', ['Padel', 'Tennis'], fiche.sport || 'Padel')}${Sel('co-pl', 'Lieu', ['En salle', 'Extérieur'], 'En salle')}${cl.length > 1 ? `<div class="fld"><label for="co-pc">Club</label><select id="co-pc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}<div class="fld"><label for="co-pt">Thème ou objectif (facultatif)</label><input id="co-pt" autocomplete="off" placeholder="Ex. Travailler la bandeja"></div><div class="fld"><label for="co-pa">Décompter de l’achat</label><select id="co-pa"><option value="">Aucun, à payer à l’unité</option>${dispos.map(a => `<option value="${a.id}" ${a.id === sel0 ? 'selected' : ''}>${esc(a.libelle)}</option>`).join('')}</select></div><div class="fld" id="co-ppw">${O('co-pp', 'Prix de la séance en euros (à l’unité)', '35')}</div><p class="muted small" id="co-pnote"></p><button class="btn full">${ic('cal')}Programmer la séance</button></form>`
+      `<form class="body" id="u2-prog" data-id="${k}"><p class="muted small">Pour <b>${esc(svName(k))}</b>.</p><div class="fld"><label for="co-pf">Formule</label><select id="co-pf"><option value="">Séance libre</option>${of.map(o => `<option value="${o.v}">${esc(o.l)}</option>`).join('')}</select></div>${Dt('co-pd', 'Date', false, TODAY)}<p class="muted small" id="co-plib">${esc(pgLibres(TODAY))}</p>${Sel('co-ph', 'Heure', HOURS, '18 h')}${Sel('co-pdu', 'Durée', ['45 min', '1 h', '1 h 15', '1 h 30', '2 h'], '1 h')}${Sel('co-ps', 'Sport', ['Padel', 'Tennis'], fiche.sport || 'Padel')}${Sel('co-pl', 'Lieu', ['En salle', 'Extérieur'], 'En salle')}${cl.length > 1 ? `<div class="fld"><label for="co-pc">Club</label><select id="co-pc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}<div class="fld"><label for="co-pt">Thème ou objectif (facultatif)</label><input id="co-pt" autocomplete="off" placeholder="Ex. Travailler la bandeja"></div><div class="fld"><label for="co-pa">Décompter de l’achat</label><select id="co-pa"><option value="">Aucun, à payer à l’unité</option>${dispos.map(a => `<option value="${a.id}" ${a.id === sel0 ? 'selected' : ''}>${esc(a.libelle)}</option>`).join('')}</select></div><div class="fld" id="co-ppw">${O('co-pp', 'Prix de la séance en euros (à l’unité)', '35')}</div><p class="muted small" id="co-pnote"></p><div class="fld" id="co-pfw" hidden><label class="chk" for="co-pfait"><input type="checkbox" id="co-pfait" checked>Séance déjà faite : noter l’élève présent</label><p class="muted small">La séance est alors décomptée de l’achat choisi, comme une séance terminée.</p></div><button class="btn full">${ic('cal')}Programmer la séance</button></form>`
     );
     $('co-pp').inputMode = 'decimal';
     u2ProgMaj();
@@ -1046,10 +1085,20 @@ if (UI2) {
       if (o.prix != null && !o.abo) $('co-pp').value = String(o.prix).replace('.', ',');
     }
     // « Attribuer … » : un pack ou un abonnement choisi dans la formule, que l'élève n'a pas encore en cours
-    const choisi = a.value;   // le choix de l'achat survit au recalcul (changer la date ne doit pas le défaire)
+    const choisi = a.value; // le choix de l'achat survit au recalcul (changer la date ne doit pas le défaire)
     [...a.options].filter(x => x.dataset.nouveau).forEach(x => x.remove());
-    if (o && (o.pack || o.abo) && !dispos.some(x => x.t === (o.pack ? 'pack' : 'abo') && (coPacks(k).find(y => y.id === x.id) || {}).ref === (o.pack || o.abo).id)) {
-      const n = new Option('Attribuer « ' + (o.pack ? o.pack.nom || 'Pack ' + o.pack.seances + ' séances' : o.abo.nom) + ' » et décompter', 'new:' + o.v);
+    if (
+      o &&
+      (o.pack || o.abo) &&
+      !dispos.some(
+        x =>
+          x.t === (o.pack ? 'pack' : 'abo') && (coPacks(k).find(y => y.id === x.id) || {}).ref === (o.pack || o.abo).id
+      )
+    ) {
+      const n = new Option(
+        'Attribuer « ' + (o.pack ? o.pack.nom || 'Pack ' + o.pack.seances + ' séances' : o.abo.nom) + ' » et décompter',
+        'new:' + o.v
+      );
       n.dataset.nouveau = '1';
       a.add(n);
       if (quoi === 'formule' && !dispos.length) a.value = n.value;
@@ -1059,13 +1108,38 @@ if (UI2) {
     $('co-ppw').hidden = couvert;
     $('co-pnote').textContent = couvert ? 'Séance couverte par l’achat : pas de paiement à l’unité.' : '';
     if (quoi === 'date') $('co-plib').textContent = pgLibres($('co-pd').value);
+    // une date passée (ou l'heure du jour déjà passée) : proposer de noter l'élève présent tout de suite
+    const p = u2ProgPassee();
+    $('co-pfw').hidden = !p;
+    if (p && (quoi === 'date' || quoi === 'heure') && !$('co-pfw').dataset.vu) $('co-pfait').checked = true;
+    if (p) $('co-pfw').dataset.vu = '1';
+    else delete $('co-pfw').dataset.vu;
+  }
+  /* la séance choisie est-elle déjà passée ? (date avant aujourd'hui, ou aujourd'hui à une heure déjà écoulée) */
+  function u2ProgPassee() {
+    const d = $('co-pd') ? $('co-pd').value : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+    if (d !== TODAY) return d < TODAY;
+    const m = /^(\d{1,2})\s*h\s*(\d{2})?/.exec($('co-ph') ? $('co-ph').value : ''),
+      n = new Date();
+    return !!m && +m[1] * 60 + (+m[2] || 0) < n.getHours() * 60 + n.getMinutes();
   }
   document.addEventListener('change', e => {
     if (!$('u2-prog')) return;
     if (e.target.id === 'co-pf') u2ProgMaj('formule');
     else if (e.target.id === 'co-pd') u2ProgMaj('date');
     else if (e.target.id === 'co-pa') u2ProgMaj('achat');
+    else if (e.target.id === 'co-ph') u2ProgMaj('heure');
   });
+  /* séance passée : l'élève est noté présent (appel recopié dans le groupe, comme un appel fait en direct) */
+  function u2ProgFait(g, d, k) {
+    const s = sesGet(g.id + '.' + d);
+    s.pres = Object.assign({}, s.pres, { [k]: 'P' });
+    s.gnom = g.name;
+    s.gh = g.h || '';
+    s.gdur = g.dur || '';
+    coAtt(s, k, 'P');
+  }
   document.addEventListener('submit', e => {
     if (e.target.id !== 'u2-prog') return;
     e.preventDefault();
@@ -1077,13 +1151,21 @@ if (UI2) {
       ext = CO_EXT[cid] ? cid : null,
       fiche = coElGet(k),
       choix = v('co-pa');
+    const fait = u2ProgPassee() && !!($('co-pfait') && $('co-pfait').checked);
     let achat = null;
     if (choix.startsWith('new:')) {
       // l'élève n'a pas d'achat : on lui attribue le pack ou l'abonnement choisi (à régler), puis la séance
       const o = pgOffres().find(x => x.v === choix.slice(4)),
         p = o && (o.pack || o.abo);
       if (!p) return;
-      const a = { id: 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4), t: o.pack ? 'pack' : 'abo', ref: p.id, d: TODAY, nom: o.pack ? p.nom || 'Pack ' + p.seances + ' séances' : p.nom, prix: p.prix || 0 };
+      const a = {
+        id: 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
+        t: o.pack ? 'pack' : 'abo',
+        ref: p.id,
+        d: TODAY,
+        nom: o.pack ? p.nom || 'Pack ' + p.seances + ' séances' : p.nom,
+        prix: p.prix || 0
+      };
       if (o.pack) a.n = p.seances;
       else {
         const mois = ({ mois: 1, trimestre: 3, '6 mois': 6, an: 12 }[p.periode] || 1) * (p.duree || 1),
@@ -1102,8 +1184,9 @@ if (UI2) {
       if (g && c) {
         coCycleSet(g, c, (c.dates || []).concat(d));
         g.hr = Object.assign({}, g.hr, { [d]: v('co-ph') });
+        if (fait) u2ProgFait(g, d, k);
         closeSheet();
-        return coSave('Séance ajoutée au cycle le ' + fmtD(d));
+        return coSave('Séance ajoutée au cycle le ' + fmtD(d) + (fait ? ' · élève noté présent' : ''));
       }
     }
     const g = REGLES.seanceElevePlan({
@@ -1122,8 +1205,14 @@ if (UI2) {
     g.id = 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     if (ext) g._club = ext;
     GROUPS.push(g);
+    if (fait) u2ProgFait(g, d, k);
     closeSheet();
-    coSave('Séance programmée le ' + fmtD(d) + (achat ? ' · décomptée de l’achat' : ''));
+    coSave(
+      'Séance programmée le ' +
+        fmtD(d) +
+        (fait ? ' · élève noté présent' : '') +
+        (achat ? ' · décomptée de l’achat' : '')
+    );
   });
 
   /* ---------- Supprimer une séance de l'historique : glissement vers la gauche (téléphone), survol et clavier (ordinateur) ----------
@@ -1150,12 +1239,17 @@ if (UI2) {
       meme = s => s.id === sid && (s._club || '') === (g._club || ''),
       sRec = SEANCES.find(meme),
       tous = (g.mem || []).concat(g.ext || []),
-      avant = { g: u2Copie(g), s: sRec ? u2Copie(sRec) : null, tout: g.once ? SEANCES.filter(x => x.g === gid && (x._club || '') === (g._club || '')).map(u2Copie) : [] },
+      avant = {
+        g: u2Copie(g),
+        s: sRec ? u2Copie(sRec) : null,
+        tout: g.once ? SEANCES.filter(x => x.g === gid && (x._club || '') === (g._club || '')).map(u2Copie) : []
+      },
       partiel = !!k && !(g.once && tous.length <= 1);
     if (!partiel) {
       if (g.once) {
         GROUPS.splice(GROUPS.indexOf(g), 1);
-        for (let i = SEANCES.length - 1; i >= 0; i--) if (SEANCES[i].g === gid && (SEANCES[i]._club || '') === (g._club || '')) SEANCES.splice(i, 1);
+        for (let i = SEANCES.length - 1; i >= 0; i--)
+          if (SEANCES[i].g === gid && (SEANCES[i]._club || '') === (g._club || '')) SEANCES.splice(i, 1);
       } else {
         (g.cycles || []).forEach(c => (c.dates = (c.dates || []).filter(x => x !== d)));
         g.extra = (g.extra || []).filter(x => x !== d);
@@ -1205,7 +1299,13 @@ if (UI2) {
     b.setAttribute('role', 'status');
     b.innerHTML = `<span>${esc(msg)}</span><button type="button" data-a="u2Annule">Annuler</button>`;
     $('phone').appendChild(b);
-    u2Rappel = { restaure, t: setTimeout(() => { b.remove(); u2Rappel = null; }, 7000) };
+    u2Rappel = {
+      restaure,
+      t: setTimeout(() => {
+        b.remove();
+        u2Rappel = null;
+      }, 7000)
+    };
   }
   A.u2Annule = () => {
     if (!u2Rappel) return;
@@ -1237,32 +1337,40 @@ if (UI2) {
       const c = w.querySelector('.u2hs');
       if (c) c.style.transform = '';
     };
-    document.addEventListener('touchstart', e => {
-      const w = e.target.closest && e.target.closest('.u2sw');
-      if (ouvert && w !== ouvert && !(e.target.closest && e.target.closest('.u2swd'))) {
-        ferme(ouvert);
-        ouvert = null;
-      }
-      if (!w || e.touches.length !== 1 || e.target.closest('.u2swd')) return (st = null);
-      const t = e.touches[0];
-      st = { w, x: t.clientX, y: t.clientY, dx: 0, lock: false, base: w.classList.contains('open') ? -L : 0 };
-    }, { passive: true });
-    document.addEventListener('touchmove', e => {
-      if (!st) return;
-      const t = e.touches[0],
-        dx = t.clientX - st.x,
-        dy = t.clientY - st.y;
-      if (!st.lock) {
-        if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx) * 0.6) return (st = null);   // défilement vertical : on laisse faire
-        if (Math.abs(dx) > 10 && Math.abs(dx) > 1.6 * Math.abs(dy)) st.lock = true;
-        else return;
-      }
-      if (e.cancelable) e.preventDefault();
-      st.dx = dx;
-      const c = st.w.querySelector('.u2hs');
-      c.style.transition = 'none';
-      c.style.transform = 'translateX(' + Math.max(-st.w.offsetWidth, Math.min(0, st.base + dx)) + 'px)';
-    }, { passive: false });
+    document.addEventListener(
+      'touchstart',
+      e => {
+        const w = e.target.closest && e.target.closest('.u2sw');
+        if (ouvert && w !== ouvert && !(e.target.closest && e.target.closest('.u2swd'))) {
+          ferme(ouvert);
+          ouvert = null;
+        }
+        if (!w || e.touches.length !== 1 || e.target.closest('.u2swd')) return (st = null);
+        const t = e.touches[0];
+        st = { w, x: t.clientX, y: t.clientY, dx: 0, lock: false, base: w.classList.contains('open') ? -L : 0 };
+      },
+      { passive: true }
+    );
+    document.addEventListener(
+      'touchmove',
+      e => {
+        if (!st) return;
+        const t = e.touches[0],
+          dx = t.clientX - st.x,
+          dy = t.clientY - st.y;
+        if (!st.lock) {
+          if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx) * 0.6) return (st = null); // défilement vertical : on laisse faire
+          if (Math.abs(dx) > 10 && Math.abs(dx) > 1.6 * Math.abs(dy)) st.lock = true;
+          else return;
+        }
+        if (e.cancelable) e.preventDefault();
+        st.dx = dx;
+        const c = st.w.querySelector('.u2hs');
+        c.style.transition = 'none';
+        c.style.transform = 'translateX(' + Math.max(-st.w.offsetWidth, Math.min(0, st.base + dx)) + 'px)';
+      },
+      { passive: false }
+    );
     document.addEventListener('touchend', () => {
       if (!st || !st.lock) return (st = null);
       const w = st.w,
@@ -1275,7 +1383,7 @@ if (UI2) {
         w.classList.remove('open');
         ouvert = null;
         vu = 0;
-        w.querySelector('.u2swd').click();   // glissement long et complet : suppression directe
+        w.querySelector('.u2swd').click(); // glissement long et complet : suppression directe
         vu = Date.now();
       } else if (-total > L / 2) {
         if (ouvert && ouvert !== w) ferme(ouvert);
@@ -1288,17 +1396,21 @@ if (UI2) {
       st = null;
     });
     // un toucher sur une carte ouverte la referme (il n'ouvre pas la séance) ; juste après un glissement, aucun clic ne passe
-    document.addEventListener('click', e => {
-      const carte = e.target.closest && e.target.closest('.u2sw > .u2hs');
-      if (Date.now() - vu < 350 || (carte && carte.parentNode.classList.contains('open'))) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (carte) {
-          ferme(carte.parentNode);
-          if (ouvert === carte.parentNode) ouvert = null;
+    document.addEventListener(
+      'click',
+      e => {
+        const carte = e.target.closest && e.target.closest('.u2sw > .u2hs');
+        if (Date.now() - vu < 350 || (carte && carte.parentNode.classList.contains('open'))) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (carte) {
+            ferme(carte.parentNode);
+            if (ouvert === carte.parentNode) ouvert = null;
+          }
         }
-      }
-    }, true);
+      },
+      true
+    );
     // clavier : Suppr ou Retour arrière sur une carte la supprime
     document.addEventListener('keydown', e => {
       const carte = e.target.closest && e.target.closest('.u2sw > .u2hs');

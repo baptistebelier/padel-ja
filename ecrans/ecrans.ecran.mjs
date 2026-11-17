@@ -3171,6 +3171,86 @@ test('Dojo : « Programmer une séance » sur la fiche élève, achat présélec
   }
 });
 
+/* ---------- Dojo : programmer une séance dans le passé (enseignant) : appel noté présent, décompté du pack, visible au planning d'une semaine passée ---------- */
+test('Dojo : « Programmer une séance » accepte une date passée, propose de noter l’élève présent, décompte le pack et apparaît dans la semaine passée (390 et 1280 px)', async () => {
+  for (const largeur of [390, 1280]) {
+    const ctx = await browser.newContext(largeur < 700 ? { viewport: { width: largeur, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: largeur, height: 860 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
+    await page.waitForTimeout(1200);
+    const a = await page.evaluate(() => {
+      document.querySelector('.ram-splash')?.remove();
+      const a = ELEVES[0].id;
+      OFFRES.formules.push({ id: 'ftest', nom: 'Cours individuel test', sport: 'Padel', joueurs: 1, duree: 60, prix: 40, par: 'seance' });
+      OFFRES.packs.push({ id: 'ptest', formule: 'ftest', nom: 'Pack test 10 séances', seances: 10, prix: 350 });
+      coEl(a).achats = [{ id: 'a-pas', t: 'pack', ref: 'ptest', d: isoIn(-30), n: 10, nom: 'Pack test 10 séances', prix: 350, pay: { ech: [{ s: 0, m: 350, ok: isoIn(-30) }] } }];
+      S.tab = 'eleves'; S.elTab = 'fiche'; S.stack = [{ v: 'eleve', id: a }]; render();
+      return a;
+    });
+    const restantes = () => page.evaluate(a => { const l = REGLES.achatsDecomptables(coPacks(a), TODAY, REGLES.progParAchat(GROUPS, TODAY)); return l[0] ? l[0].restantes : null; }, a);
+    const avant = await restantes();
+    await page.locator('#main [data-a="u2Prog"]').click();
+    await page.waitForSelector('#u2-prog');
+    assert.equal(await page.locator('#co-pfw').isVisible(), false, 'date du jour à venir : pas de case « déjà faite »');
+    const passe = await page.evaluate(() => isoIn(-5));
+    await page.fill('#co-pd', passe);
+    await page.locator('#co-pd').dispatchEvent('change');
+    assert.equal(await page.locator('#co-pfw').isVisible(), true, 'date passée : la case apparaît');
+    assert.equal(await page.isChecked('#co-pfait'), true, 'cochée par défaut : élève noté présent');
+    await page.fill('#co-pt', 'Service', { timeout: 5000 });
+    await page.locator('#u2-prog .btn').click({ timeout: 5000 });
+    await page.waitForSelector('#u2-prog', { state: 'detached', timeout: 4000 });
+    const r = await page.evaluate(({ a, passe }) => { const g = GROUPS.find(x => x.once === passe && x.achat === 'a-pas'); const s = g && SEANCES.find(x => x.id === g.id + '.' + passe); return { g: !!g, pres: s && s.pres && s.pres[a] }; }, { a, passe });
+    assert.ok(r.g, 'séance passée créée'); assert.equal(r.pres, 'P', 'élève noté présent');
+    assert.equal(await restantes(), avant - 1, 'décomptée du pack comme une séance faite');
+    await page.evaluate(passe => { S.tab = 'planning'; S.stack = []; S.pl = Object.assign({}, S.pl, { v: '', w: Math.floor((Date.parse(passe) - Date.parse(monday(0))) / (7 * 864e5)) }); render(); }, passe);
+    await page.waitForTimeout(300);
+    assert.ok(await page.locator('#main .cowb').filter({ hasText: 'Cours individuel' }).count() >= 1, 'un bloc de séance est affiché dans la semaine passée');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
+/* ---------- Dojo : cycle sans récurrence (dates libres) : rythme proposé par défaut pour un groupe sans créneau, N séances prévues, dates posées une à une ---------- */
+test('Dojo : « Séances » d’un groupe sans créneau propose « Sans récurrence », aucune date inventée, le nombre prévu est gardé et la jauge compte les séances faites (390 et 1280 px)', async () => {
+  for (const largeur of [390, 1280]) {
+    const ctx = await browser.newContext(largeur < 700 ? { viewport: { width: largeur, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: largeur, height: 860 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/coach.html');
+    await page.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
+    await page.waitForTimeout(1200);
+    const gid = await page.evaluate(() => {
+      document.querySelector('.ram-splash')?.remove();
+      const k = ELEVES[0].id;
+      GROUPS.push({ id: 'glibre1', type: 'train', libre: 1, name: 'Cycle libre test', sport: 'Padel', day: 1, h: '18 h', dur: '1 h', coach: ME(), mem: M[k] ? [k] : [], ext: M[k] ? [] : [k], sub: 'Séances à planifier · 1 h', at: Date.now() });
+      S.tab = 'groupes'; S.stack = [{ v: 'cgroupe', id: 'glibre1' }]; render();
+      A.coPlan({ id: 'glibre1', c: 'new' });
+      return 'glibre1';
+    });
+    await page.waitForSelector('#co-plan');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, largeur + ' px : le panneau ne déborde pas');
+    assert.equal(await page.inputValue('#co-pl-r'), '0', 'rythme « sans récurrence » par défaut pour un groupe sans créneau');
+    assert.equal(await page.locator('#co-pl-dates .co-pd').count(), 0, 'aucune date inventée');
+    assert.equal(await page.isChecked('#co-pl-c'), false, 'le groupe ne s’arrête pas à sa dernière date');
+    // dix séances prévues, deux dates posées une à une
+    await page.fill('#co-pl-n', '10');
+    await page.locator('#co-plan [data-a="coPlanAdd"]').click();
+    await page.locator('#co-plan [data-a="coPlanAdd"]').click();
+    assert.equal(await page.locator('#co-pl-dates .co-pd').count(), 2, 'deux dates posées');
+    await page.locator('#co-plan .btn:not(.ghost):not(.sm)').last().click();
+    await page.waitForSelector('#co-plan', { state: 'detached', timeout: 4000 });
+    const r = await page.evaluate(gid => { const g = grp(gid), c = g.cycles[0], E = REGLES.cycleEtat(g, c, d => sesFind(g, d), TODAY); return { n: c.n, dates: c.dates.length, prevues: E.prevues, faites: E.faites, to: g.to, libre: g.libre }; }, gid);
+    assert.deepEqual([r.n, r.dates, r.prevues, r.faites, r.to, r.libre], [10, 2, 10, 0, undefined, 1], 'dix séances prévues, deux dates, groupe jamais clos');
+    // rouvrir le cycle : le nombre prévu (10) est repris, pas le nombre de dates (2)
+    await page.evaluate(gid => A.coPlan({ id: gid, c: grp(gid).cycles[0].id }), gid);
+    await page.waitForSelector('#co-plan');
+    assert.equal(await page.inputValue('#co-pl-n'), '10', 'nombre prévu repris à la modification');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
 /* ---------- Dojo : pas de logo de club dans l'en-tête ; sélecteur de club en bouton picto sur téléphone ---------- */
 test('Dojo : plus de logo de club dans l’en-tête (gardé dans /Buvette), sélecteur de club en bouton carré à picto sur téléphone qui ouvre la liste maison', async () => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
