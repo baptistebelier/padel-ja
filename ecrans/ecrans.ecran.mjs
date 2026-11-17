@@ -3189,6 +3189,9 @@ test('Dojo : « Programmer une séance » accepte une date passée, propose de n
   for (const largeur of [390, 1280]) {
     const ctx = await browser.newContext(largeur < 700 ? { viewport: { width: largeur, height: 844 }, isMobile: true, hasTouch: true } : { viewport: { width: largeur, height: 860 } }), page = await ctx.newPage(), errs = [];
     page.on('pageerror', x => errs.push(x.message));
+    // horloge fixée à 10 h : la séance proposée par défaut (18 h) est toujours à venir, quelle que soit l'heure du test
+    const h10 = new Date(); h10.setHours(10, 0, 0, 0);
+    await page.clock.setFixedTime(h10);
     await page.goto(JA + '/club/coach.html');
     await page.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
     await page.waitForTimeout(1200);
