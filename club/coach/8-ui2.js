@@ -491,10 +491,10 @@ if (UI2) {
           'Collectif, stage ou animation : les adhérents s’inscrivent depuis /Buvette, selon leur niveau.'
         ],
         [
-          'nvNew" data-m="partie',
+          'coPdPick',
           'racket',
           'Partie dirigée',
-          'Une partie que vous encadrez : les joueurs de chaque niveau s’inscrivent depuis /Buvette.'
+          'Avec recherche de joueurs par niveau, ou déjà complète et placée dans ton agenda.'
         ]
       ]
         .map(

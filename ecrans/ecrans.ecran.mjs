@@ -2815,7 +2815,7 @@ test('Dojo ?ui=2 : 5 rubriques partout, Statistiques en sous-onglet, Réglages h
   }
 });
 
-test('Dojo ?ui=2 : Aujourd’hui (prochaine séance et appel, semaine, À faire, mois) et « Nouveau » à trois choix', async () => {
+test('Dojo ?ui=2 : Aujourd’hui (prochaine séance et appel, semaine, À faire, mois) et « Nouveau » à quatre choix', async () => {
   for (const w of [1440, 360]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 820 } }), page = await ctx.newPage(), errs = [];
     page.on('pageerror', x => errs.push(x.message));
@@ -2827,9 +2827,22 @@ test('Dojo ?ui=2 : Aujourd’hui (prochaine séance et appel, semaine, À faire,
     if (await page.locator('#main .u2next').count()) assert.ok(await page.locator('.u2next [data-v="seance"]').isVisible(), 'Faire l’appel en un clic');
     await page.click('#top [data-a="u2New"]');
     await page.waitForSelector('.u2new');
-    assert.deepEqual(await page.$$eval('.u2new > button', l => l.map(b => b.dataset.a)), ['coNewSes', 'coNewGrp', 'nvNew', 'nvNew'], 'quatre choix, dont la partie dirigée');
-    assert.deepEqual(await page.$$eval('.u2new > [data-a="nvNew"]', l => l.map(b => b.dataset.m)), ['cours', 'partie'], 'collectif et partie dirigée');
+    assert.deepEqual(await page.$$eval('.u2new > button', l => l.map(b => b.dataset.a)), ['coNewSes', 'coNewGrp', 'nvNew', 'coPdPick'], 'quatre choix, dont la partie dirigée');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
+    // partie dirigée déjà complète : placée dans l'agenda sans joueur, sans recherche
+    await page.click('.u2new > [data-a="coPdPick"]');
+    await page.waitForSelector('.u2new [data-a="coNewSes"][data-pd="1"]');
+    assert.equal(await page.locator('.u2new [data-a="nvNew"][data-m="partie"]').count(), 1, 'chercher des joueurs reste possible');
+    await page.click('.u2new [data-a="coNewSes"][data-pd="1"]');
+    await page.waitForSelector('#co-sesnew[data-pd="1"]');
+    const n0 = await page.evaluate(() => GROUPS.length);
+    await page.click('#co-sesnew button.btn.full');
+    await page.waitForFunction(n => GROUPS.length === n + 1, n0);
+    const g = await page.evaluate(() => GROUPS[GROUPS.length - 1]);
+    assert.equal(g.name, 'Partie dirigée');
+    assert.equal(g.pd, 1);
+    assert.ok(g.once && !g.mem.length, 'une date, aucun joueur obligatoire');
+    assert.equal(g.tarif.mode, 'eleve', 'prix par joueur');
     assert.deepEqual(errs, []);
     await ctx.close();
   }

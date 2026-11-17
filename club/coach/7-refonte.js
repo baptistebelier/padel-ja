@@ -411,7 +411,7 @@ coTopActions = function () {
 A.coPlMore = () =>
   sheet(
     'Planning',
-    `<div class="body"><div class="menu"><button data-a="coNewGrp">${ic('users')}Créer un groupe</button><button data-a="nvNew" data-m="cours">${ic('school')}Ouvrir un collectif</button><button data-a="nvNew" data-m="partie">${ic('racket')}Créer une partie dirigée</button><button data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div></div>`
+    `<div class="body"><div class="menu"><button data-a="coNewGrp">${ic('users')}Créer un groupe</button><button data-a="nvNew" data-m="cours">${ic('school')}Ouvrir un collectif</button><button data-a="coPdPick">${ic('racket')}Créer une partie dirigée</button><button data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div></div>`
   );
 /* le planning s'ouvre sur la semaine, au téléphone comme sur grand écran (S.pl.v vide = semaine, voir coVueTabs) */
 /* Statistiques : 4 périodes (mois en cours, mois dernier, trimestre en cours, saison), le reste dans « Autre période »

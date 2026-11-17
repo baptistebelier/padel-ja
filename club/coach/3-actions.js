@@ -764,14 +764,22 @@ Object.assign(A, {
   coNewSes(d) {
     const cl = coClubList(),
       cur = (d && d.c) || (S.coClub !== 'all' && S.coClub) || coMainId(),
+      pd = !!(d && d.pd),
       st = coStudents().sort((a, b) => svName(a).localeCompare(svName(b))),
       pick = i =>
-        `<div class="fld"><label for="co-se${i}">Élève ${i}${i > 1 ? ' (facultatif)' : ''}</label><select id="co-se${i}"><option value="">${i > 1 ? '–' : 'Choisir'}</option>${st.map(k => `<option value="${k}" ${d && d.k === k && i === 1 ? 'selected' : ''}>${esc(svName(k))}</option>`).join('')}</select></div>`;
+        `<div class="fld"><label for="co-se${i}">${pd ? 'Joueur' : 'Élève'} ${i}${i > 1 || pd ? ' (facultatif)' : ''}</label><select id="co-se${i}"><option value="">${i > 1 || pd ? '–' : 'Choisir'}</option>${st.map(k => `<option value="${k}" ${d && d.k === k && i === 1 ? 'selected' : ''}>${esc(svName(k))}</option>`).join('')}</select></div>`;
     sheet(
-      'Ajouter une séance',
-      `<form class="body" id="co-sesnew">${cl.length > 1 ? `<div class="fld"><label for="co-sc">Club</label><select id="co-sc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}${Dt('co-sd', 'Date', false, TODAY)}${Sel('co-sh', 'Heure', HOURS, '18 h')}${Sel('co-sdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h'], '1 h')}${[1, 2, 3, 4].map(pick).join('')}${Sel('co-ss', 'Sport', ['Padel', 'Tennis'], 'Padel')}${O('co-sp', 'Prix de la séance en euros', '35')}<button class="btn full">Ajouter la séance</button></form>`
+      pd ? 'Partie dirigée' : 'Ajouter une séance',
+      `<form class="body" id="co-sesnew"${pd ? ' data-pd="1"' : ''}>${pd ? '<p class="muted small">La partie est déjà complète : elle va directement dans ton agenda, sans recherche de joueurs. Les joueurs sont facultatifs, tu pourras les ajouter plus tard.</p>' : ''}${cl.length > 1 ? `<div class="fld"><label for="co-sc">Club</label><select id="co-sc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}${Dt('co-sd', 'Date', false, TODAY)}${Sel('co-sh', 'Heure', HOURS, '18 h')}${Sel('co-sdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h'], pd ? '1 h 30' : '1 h')}${[1, 2, 3, 4].map(pick).join('')}${Sel('co-ss', 'Sport', ['Padel', 'Tennis'], 'Padel')}${O('co-sp', pd ? 'Prix par joueur en euros' : 'Prix de la séance en euros', pd ? '10' : '35')}<button class="btn full">${pd ? 'Placer la partie' : 'Ajouter la séance'}</button></form>`
     );
     $('co-sp').inputMode = 'decimal';
+  },
+  /* partie dirigée : chercher des joueurs (publication par niveaux) ou placer une partie déjà complète */
+  coPdPick() {
+    sheet(
+      'Partie dirigée',
+      `<div class="body"><div class="menu u2new"><button data-a="nvNew" data-m="partie">${ic('users')}<span class="grow"><b>Chercher des joueurs</b><br><span class="muted small">Publiée dans /Buvette par niveaux : elle arrive au planning quand une fourchette est complète.</span></span></button><button data-a="coNewSes" data-pd="1">${ic('cal')}<span class="grow"><b>Partie déjà complète</b><br><span class="muted small">Directement dans ton agenda, avec les joueurs si tu veux les indiquer.</span></span></button></div></div>`
+    );
   },
   coHiF(d) {
     S.hiF = d.v;
@@ -797,12 +805,19 @@ document.addEventListener('submit', e => {
     ext = CO_EXT[cid] ? cid : null,
     key = coKeyIn(ext),
     d = v('co-sd'),
+    pd = e.target.dataset.pd === '1',
     ks = [1, 2, 3, 4].map(i => v('co-se' + i)).filter((k, i, a) => k && a.indexOf(k) === i);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !ks.length) return toast('Choisis la date et au moins un élève');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || (!ks.length && !pd)) return toast('Choisis la date et au moins un élève');
   const g = {
     id: 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     type: 'train',
-    name: ks.length === 1 ? 'Cours individuel' : ks.length === 2 ? 'Cours duo' : 'Cours collectif',
+    name: pd
+      ? 'Partie dirigée'
+      : ks.length === 1
+        ? 'Cours individuel'
+        : ks.length === 2
+          ? 'Cours duo'
+          : 'Cours collectif',
     sport: v('co-ss'),
     once: d,
     day: new Date(d + 'T12:00:00').getDay(),
@@ -813,12 +828,13 @@ document.addEventListener('submit', e => {
     mem: ks.filter(k => M[k]),
     ext: ks.filter(k => !M[k]),
     sub: `${fmtD(d)} ${v('co-sh')} · ${v('co-sdu')}`,
-    tarif: { mode: 'seance', prix: parseFloat(v('co-sp').replace(',', '.')) || 0 }
+    tarif: { mode: pd ? 'eleve' : 'seance', prix: parseFloat(v('co-sp').replace(',', '.')) || 0 }
   };
+  if (pd) g.pd = 1;
   if (ext) g._club = ext;
   GROUPS.push(g);
   closeSheet();
-  coSave('Séance ajoutée le ' + fmtD(d));
+  coSave((pd ? 'Partie dirigée placée le ' : 'Séance ajoutée le ') + fmtD(d));
 });
 document.addEventListener('submit', e => {
   if (e.target.id !== 'co-grpnew') return;
