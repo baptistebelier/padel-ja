@@ -845,6 +845,7 @@ if (UI2) {
       else {
         x.gnom = g.name;
         x.gh = g.h || '';
+        x.gdur = g.dur || '';
       }
     }
     GROUPS.splice(GROUPS.indexOf(g), 1);
@@ -1132,7 +1133,19 @@ if (UI2) {
   const u2Copie = o => JSON.parse(JSON.stringify(o));
   function u2SesRetire(gid, d, k) {
     const g = grp(gid);
-    if (!g) return null;
+    if (!g) {
+      // séance orpheline (groupe disparu) : elle ne dépend que d'elle-même ; avec un élève, seule sa présence part s'il y en a d'autres
+      const rec = SEANCES.find(x => x.id === gid + '.' + d);
+      if (!rec) return null;
+      const avantRec = u2Copie(rec);
+      if (k && Object.keys(rec.pres || {}).some(e => e !== k)) delete rec.pres[k];
+      else SEANCES.splice(SEANCES.indexOf(rec), 1);
+      return () => {
+        const i = SEANCES.findIndex(x => x.id === avantRec.id);
+        if (i >= 0) SEANCES.splice(i, 1, avantRec);
+        else SEANCES.push(avantRec);
+      };
+    }
     const sid = gid + '.' + d,
       meme = s => s.id === sid && (s._club || '') === (g._club || ''),
       sRec = SEANCES.find(meme),
@@ -1206,6 +1219,9 @@ if (UI2) {
   A.u2SesDel = d => {
     const restaure = u2SesRetire(d.g, d.d, d.k || '');
     if (!restaure) return;
+    // on était sur la page de cette séance : retour à la page d'avant
+    const haut = S.stack[S.stack.length - 1];
+    if (haut && haut.v === 'seance' && haut.id === d.g + '.' + d.d) S.stack.pop();
     coSave();
     u2Banniere(d.k ? 'Séance retirée de la fiche' : 'Séance supprimée', restaure);
   };

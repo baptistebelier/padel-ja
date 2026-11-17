@@ -665,13 +665,20 @@ function coSeancePlan(P) {
       ''
     )}</select></div><button class="btn full">Enregistrer</button><p class="muted small">Sans date, le thème et l’enseignant sont gardés pour cette séance.</p></form></div>`;
 }
+/* une séance dont le groupe n'existe plus (supprimé, ou cours retiré) : lecture seule, avec ce que la séance a gardé (nom, heure, durée, thème, présences) */
+function coSeanceOrpheline(id, d) {
+  const s = SEANCES.find(x => x.id === id);
+  if (!s) return `<div class="pad">${none('cal', 'Séance introuvable', '')}</div>`;
+  const pres = Object.entries(s.pres || {});
+  return `<div class="pad"><div class="card"><span class="kicker">${esc(fmtD(d))}${s.gh ? ' · ' + esc(s.gh) : ''}${s.gdur ? ' · ' + esc(s.gdur) : ''}</span><span class="h3">${esc(s.gnom || 'Séance')}</span><p class="muted small">Le groupe de cette séance n’existe plus : la séance est gardée dans l’historique.</p>${s.theme ? `<p><b>Thème</b> · ${esc(s.theme)}</p>` : ''}${s.recap ? `<p>${esc(s.recap)}</p>` : ''}</div>${pres.length ? `<div class="card">${pres.map(([k, v]) => `<div class="corow">${coAv(k)}<button class="nm grow" data-a="open" data-v="eleve" data-id="${k}" style="text-align:left">${esc(svName(k))}</button><span class="tag">${presLbl[v] || ''}</span></div>`).join('')}</div>` : ''}<button class="btn full hot" data-a="u2SesDel" data-g="${esc(id.slice(0, id.lastIndexOf('.')))}" data-d="${d}">${ic('trash')}Supprimer cette séance</button></div>`;
+}
 function coSeance(id) {
   const P = REGLES.planDe(id);
   if (P) return coSeancePlan(P);
   const i = id.lastIndexOf('.'),
     g = grp(id.slice(0, i)),
     d = id.slice(i + 1);
-  if (!g) return `<div class="pad">${none('cal', 'Séance introuvable', '')}</div>`;
+  if (!g) return coSeanceOrpheline(id, d);
   const s = sesFind(g, d) || {},
     cx = isCx(g, d),
     plus = (s.plus || []).filter(k => !coStu(g).includes(k)), // élèves accueillis sur cette seule séance

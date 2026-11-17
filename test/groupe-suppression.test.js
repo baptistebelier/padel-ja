@@ -85,3 +85,53 @@ test('coach_supprimer_groupe : seul le groupe disparaît ; formules, paiements, 
   // les séances des autres groupes ne sont pas touchées
   assert.deepEqual(get('seance', 'g2.' + passee), { g: 'g2', d: passee, pres: { m1: 'P' }, id: 'g2.' + passee });
 });
+
+test('séance orpheline : après la suppression d’un groupe, elle reste lisible dans l’historique de l’élève et se supprime (même ancienne, sans nom de groupe)', async () => {
+  me = { id: 'U6', email: 'coach6@test.fr', first: 'Sarah', last: 'Benali', pass_hash: 'h6' };
+  await store.saveUser(me);
+  const club = await ram.create({ id: 'U6', name: 'Sarah Benali' }, { name: 'TC Orphelines', short: 'tco' });
+  const d1 = iso(-9), d2 = iso(-20), d3 = iso(-30);
+  await ram.ops('U6', club.id, [
+    { coll: 'eleve', id: 'm1', op: 'put', data: { n: 'Matthieu Dessendier', sport: 'Padel', achats: [] } },
+    { coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Cycle d’entraînement individuel · Matthieu', day: 1, h: '18 h', dur: '1 h 30', sport: 'Padel', coach: club.key, mem: [], ext: ['m1'], libre: true } },
+    { coll: 'seance', id: 'g1.' + d1, op: 'put', data: { g: 'g1', d: d1, pres: { m1: 'P' }, theme: 'Volée / Bandeja' } },
+    // une séance déjà orpheline en production : ni groupe ni nom gardé
+    { coll: 'seance', id: 'zz.' + d3, op: 'put', data: { g: 'zz', d: d3, pres: { m1: 'P' } } }
+  ]);
+  const redirect_uri = 'https://claude.ai/api/mcp/auth_callback';
+  const reg = await (await call('/oauth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_name: 'Claude', redirect_uris: [redirect_uri] }) })).json();
+  const verifier = crypto.randomBytes(32).toString('base64url'), challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+  const q = new URLSearchParams({ response_type: 'code', client_id: reg.client_id, redirect_uri, code_challenge: challenge, code_challenge_method: 'S256', state: 'x', scope: 'ram.lecture' });
+  const page = await (await call('/oauth/authorize?' + q, { headers: { 'x-test': '1' } })).text();
+  const tx = page.match(/name="tx" value="([^"]+)"/)[1];
+  const a1 = await call('/oauth/authorize', { method: 'POST', headers: { 'x-test': '1', 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ tx, decision: 'ok' }) });
+  const code = new URL(a1.headers.get('location')).searchParams.get('code');
+  const t = await (await call('/oauth/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code, client_id: reg.client_id, redirect_uri, code_verifier: verifier }) })).json();
+  const use = async (name, args) => { const r = (await (await call('/mcp', { method: 'POST', headers: { Authorization: 'Bearer ' + t.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: Object.assign({ club: club.id }, args) } }) })).json()).result; if (r.isError) throw new Error(r.content[0].text); return JSON.parse(r.content[0].text); };
+  const rows = () => JSON.parse(fs.readFileSync(path.join(DIR, 'ramclub', 'items-' + club.id.replace(/[^\w-]/g, '') + '.json'), 'utf8')).filter(x => !x.deleted);
+  const get = (coll, id) => (rows().find(x => x.coll === coll && x.id === id) || {}).data;
+  const attendre = () => new Promise(r => setTimeout(r, 400));
+  // 1. on supprime le groupe : la séance passée garde nom, heure et durée
+  await use('coach_supprimer_groupe', { groupe_id: 'g1' });
+  await attendre();
+  assert.equal(get('group', 'g1'), undefined);
+  const s1 = get('seance', 'g1.' + d1);
+  assert.deepEqual([s1.gnom, s1.gh, s1.gdur], ['Cycle d’entraînement individuel · Matthieu', '18 h', '1 h 30'], 'trace autonome : nom, heure, durée');
+  // 2. l'historique de l'élève la montre, avec son nom, et signale qu'elle n'a plus de groupe ; l'ancienne orpheline y figure aussi
+  const fiche = await use('coach_eleve', { eleve_id: 'm1', club: club.id });
+  const h1 = fiche.historique.find(x => x.date === d1), h3 = fiche.historique.find(x => x.date === d3);
+  assert.equal(h1.groupe, 'Cycle d’entraînement individuel · Matthieu'); assert.equal(h1.orpheline, true); assert.equal(h1.theme, 'Volée / Bandeja'); assert.equal(h1.seance_id, 'g1.' + d1);
+  assert.equal(h3.orpheline, true, 'séance déjà orpheline : lisible aussi');
+  // 3. on les supprime sans groupe : par identifiant de séance, ou par élève et date
+  const r1 = await use('coach_supprimer_seance', { seance_id: 'g1.' + d1, meme_avec_appel: true });
+  assert.equal(r1.supprimee, true); assert.equal(r1.orpheline, true);
+  const r2 = await use('coach_supprimer_seance', { eleve_id: 'm1', date: d3, meme_avec_appel: true });
+  assert.equal(r2.supprimee, true);
+  await attendre();
+  assert.equal(get('seance', 'g1.' + d1), undefined); assert.equal(get('seance', 'zz.' + d3), undefined);
+  assert.equal((await use('coach_eleve', { eleve_id: 'm1', club: club.id })).historique.length, 0, 'plus rien dans l’historique');
+  // sans appel confirmé : refusé ; séance inconnue : refusée
+  await ram.ops('U6', club.id, [{ coll: 'seance', id: 'zz.' + d2, op: 'put', data: { g: 'zz', d: d2, pres: { m1: 'P' } } }]);
+  await assert.rejects(use('coach_supprimer_seance', { seance_id: 'zz.' + d2 }), /appel/);
+  await assert.rejects(use('coach_supprimer_seance', { seance_id: 'zz.2000-01-01', meme_avec_appel: true }), /introuvable/);
+});

@@ -2999,6 +2999,48 @@ test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregist
   await ctx.close();
 });
 
+/* ---------- Dojo : séance orpheline (groupe disparu) : lisible, ouvrable, supprimable ---------- */
+test('Dojo : une séance dont le groupe a disparu s’ouvre en lecture (date, heure, thème, présence) et se supprime ; la suppression d’un groupe garde sa trace', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/coach.html');
+  await page.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
+  await page.waitForTimeout(1500);
+  const k = await page.evaluate(() => {
+    document.querySelector('.ram-splash')?.remove();
+    const k = ELEVES[0].id, d = isoIn(-5);
+    SEANCES.push({ id: 'orph.' + d, g: 'orph', d, gnom: 'Cycle d’entraînement individuel', gh: '18 h', gdur: '1 h 30', theme: 'Volée / Bandeja', pres: { [k]: 'P' } });
+    S.tab = 'eleves'; S.elTab = 'histo'; S.stack = [{ v: 'eleve', id: k }]; render();
+    return k;
+  });
+  // la carte de l'historique porte le nom gardé ; un toucher ouvre la séance en lecture
+  assert.ok((await page.locator('#main .u2hs', { hasText: 'Cycle d’entraînement individuel' }).count()) >= 1, 'nom gardé dans l’historique');
+  await page.evaluate(k => { A.open({ v: 'seance', id: 'orph.' + isoIn(-5) }); }, k);
+  await page.waitForTimeout(300);
+  const txt = await page.locator('#main').textContent();
+  assert.ok(!/introuvable/i.test(txt), 'plus de « Séance introuvable »');
+  for (const mot of ['Volée / Bandeja', 'Cycle d’entraînement individuel', '18 h', '1 h 30', 'Présent']) assert.ok(txt.includes(mot), 'la vue montre : ' + mot);
+  // suppression depuis la page : retour à la fiche, bandeau, annulation possible
+  await page.locator('#main [data-a="u2SesDel"]').click();
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => SEANCES.some(s => s.id.startsWith('orph.'))), false, 'séance supprimée');
+  assert.equal(await page.evaluate(() => view().v), 'eleve', 'retour à la fiche de l’élève');
+  await page.locator('#u2undo button').click();
+  assert.equal(await page.evaluate(() => SEANCES.some(s => s.id.startsWith('orph.'))), true, 'annuler la rétablit');
+  // supprimer un groupe laisse une trace autonome complète sur ses séances gardées
+  const r = await page.evaluate(() => {
+    const g = coGroups('', true).find(g => coIsGrp(g) && !coOver(g)), d = isoIn(-4), id = g.id + '.' + d;
+    sesGet(id).pres = { [coStu(g)[0]]: 'P' };
+    A.coGrpDelOk({ id: g.id });
+    const s = SEANCES.find(x => x.id === id);
+    return { nom: g.name, gnom: s.gnom, gh: s.gh, gdur: s.gdur, groupe: !!grp(g.id) };
+  });
+  assert.equal(r.groupe, false);
+  assert.deepEqual([r.gnom, !!r.gh, !!r.gdur], [r.nom, true, true], 'nom, heure et durée gardés sur la séance');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
 /* ---------- Dojo : supprimer une séance de l'historique d'un élève (glissement, corbeille, annulation) ---------- */
 test('Historique d’un élève : glissement vers la gauche pour supprimer, défilement vertical libre, annulation, corbeille au survol et clavier sur ordinateur', async () => {
   const preparer = async page => page.evaluate(() => {
