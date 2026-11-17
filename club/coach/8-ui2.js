@@ -296,7 +296,7 @@ if (UI2) {
     const det = document.createElement('details');
     det.className = 'u2opt';
     det.innerHTML = '<summary>Plus d’options (prix différent, échéances, note)</summary>';
-    ['co-ax', 'co-aps', 'co-an2', 'co-aplf'].forEach(id => {
+    ['co-ax', 'co-aps', 'co-an2'].forEach(id => {
       const x = fld(id);
       if (x) det.append(x);
     });

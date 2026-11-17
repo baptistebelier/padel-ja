@@ -1905,7 +1905,8 @@ server.listen(PORT, '0.0.0.0', () => {
   setTimeout(() => coachTables.verify(new Date().toISOString().slice(0, 10), msg => console.log('  ' + msg)).catch(e => console.error('  Coach, comparaison :', e.message)), 30000).unref();
   // autres migrations des données (lib/migrations.js), une seule fois chacune
   setTimeout(() => Migrations.run(store, [
-    ['cours-hors-des-groupes', () => Migrations.coursHorsDesGroupes(ram, msg => console.log('  ' + msg))]
+    ['cours-hors-des-groupes', () => Migrations.coursHorsDesGroupes(ram, msg => console.log('  ' + msg))],
+    ['cycles-individuels-sans-groupe', () => Migrations.cyclesIndividuelsSansGroupe(ram, msg => console.log('  ' + msg))]
   ], msg => console.error('  ' + msg)).catch(e => console.error('  Migrations :', e.message)), 20000).unref();
 });
 server.on('error', e => {

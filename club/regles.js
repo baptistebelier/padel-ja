@@ -145,6 +145,12 @@
         f = formuleOf(a),
         L = lienDe(a),
         ok = v => {
+          // une séance ponctuelle rattachée à un achat (v.ac) ne se décompte que de cet achat, quel que soit son format,
+          // tant que cet achat existe ; sinon la règle de la formule s'applique
+          if (v.ac != null && !L) {
+            if (v.ac === a.id) return true;
+            if (all.some(x => x.id === v.ac)) return false;
+          }
           const x = L ? dansLien(a, L, v) : null;
           return x === null ? fits(v, f) : x;
         };
@@ -163,7 +169,7 @@
         from = L ? '' : addDays(String(a.d), -14);
       for (const v of vs) {
         if (o.used >= max) break;
-        if (couvre.has(v) || v.d < from || !ok(v)) continue;
+        if (couvre.has(v) || (v.d < from && v.ac !== a.id) || !ok(v)) continue;
         couvre.set(v, o);
         o.used++;
       }
@@ -218,7 +224,8 @@
         n: (g.mem || []).length + (g.ext || []).length,
         sport: g.sport,
         gid: g.id,
-        cy: (cycleDe(g, d) || {}).id
+        cy: (cycleDe(g, d) || {}).id,
+        ac: g.achat
       });
     };
     ses.forEach(s => {
@@ -420,7 +427,7 @@
       const gid = x.gid != null ? x.gid : x.g && x.g.id,
         cy = x.cy != null ? x.cy : x.g && gid != null ? (cycleDe(x.g, x.d) || {}).id : undefined;
       (x.presents || []).forEach(k =>
-        (venues[k] = venues[k] || []).push({ d: x.d, min, n, sport, gid: gid == null ? undefined : gid, cy })
+        (venues[k] = venues[k] || []).push({ d: x.d, min, n, sport, gid: gid == null ? undefined : gid, cy, ac: x.g && x.g.achat })
       );
     });
     const keys = new Set(Object.keys(eleves || {}).concat(Object.keys(venues)));
@@ -633,7 +640,7 @@
   /* séances à venir déjà rattachées à chaque achat : { idAchat: nombre } (séances ponctuelles « achat », dates de cycle exclues) */
   function progParAchat(groupes, today) {
     const m = {};
-    (groupes || []).forEach(g => { if (g && g.achat && g.once && g.once > today) m[g.achat] = (m[g.achat] || 0) + 1; });
+    (groupes || []).forEach(g => { if (g && g.achat && g.once && g.once > today && !(g.cancel || []).includes(g.once)) m[g.achat] = (m[g.achat] || 0) + 1; });
     return m;
   }
   /* les achats qu'une séance peut décompter : pack ou abonnement non terminé (état « En cours »), avec ce qu'il en reste.

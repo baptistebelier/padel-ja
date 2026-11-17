@@ -2864,6 +2864,17 @@ test('Dojo ?ui=2 : À encaisser dans Élèves, pastilles de formule, « Noter un
       await page.evaluate(id => { S.elF = 'all'; render(); A.coAchat({ id }); }, k);
       await page.waitForSelector('#co-ac .u2opt');
       assert.equal(await page.locator('#co-ac .u2opt #co-ax').count(), 1, 'le prix différent est replié');
+      // un pack pour un seul élève ne crée plus de groupe : l'achat porte le cycle, les séances sont des cours rattachés
+      assert.equal(await page.locator('#co-aplf').count(), 0, 'plus de case « séances à planifier »');
+      const apres = await page.evaluate(id => {
+        const avant = GROUPS.length, op = [...document.querySelectorAll('#co-ao option')].find(o => /^pack/.test(o.value));
+        if (!op) return null;
+        $('co-ao').value = op.value;
+        const e = coEl(id), n0 = (e.achats || []).length;
+        $('co-ac').requestSubmit();
+        return { groupes: GROUPS.length - avant, achats: coEl(id).achats.length - n0, lie: coEl(id).achats.slice(n0).some(a => a.cycle || a.groupe) };
+      }, k);
+      if (apres && apres.achats) { assert.equal(apres.groupes, 0, 'aucun groupe créé'); assert.equal(apres.lie, false, 'achat sans lien à un groupe'); }
     }
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
     assert.deepEqual(errs, []);
