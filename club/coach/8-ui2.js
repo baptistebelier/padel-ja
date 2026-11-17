@@ -489,6 +489,12 @@ if (UI2) {
           'school',
           'Cours ouvert aux inscriptions',
           'Collectif, stage ou animation : les adhérents s’inscrivent depuis /Buvette, selon leur niveau.'
+        ],
+        [
+          'nvNew" data-m="partie',
+          'racket',
+          'Partie dirigée',
+          'Une partie que vous encadrez : les joueurs de chaque niveau s’inscrivent depuis /Buvette.'
         ]
       ]
         .map(
@@ -587,11 +593,13 @@ if (UI2) {
     const h = u2Plan().replace(/<div class="chips covue"[\s\S]*?<\/div>/, '');
     if (!/class="pad covue/.test(h)) return h;
     return (
-      `<div class="seg haut u2sous u2vue" role="tablist" aria-label="Vue du planning">${COVUES.map(([v, l]) => `<button role="tab" aria-selected="${(S.pl.v || 'semaine') === v}" data-a="coVue" data-k="${v}"><span class="lb">${l}</span></button>`).join('')}</div>` + h
+      `<div class="seg haut u2sous u2vue" role="tablist" aria-label="Vue du planning">${COVUES.map(([v, l]) => `<button role="tab" aria-selected="${(S.pl.v || 'semaine') === v}" data-a="coVue" data-k="${v}"><span class="lb">${l}</span></button>`).join('')}</div>` +
+      h
     );
   };
   function u2BoitePlanning() {
-    const pad = $('main') && $('main').querySelector(':scope > .pad.covues, :scope > .pad.covuej, :scope > .pad.covuem');
+    const pad =
+      $('main') && $('main').querySelector(':scope > .pad.covues, :scope > .pad.covuej, :scope > .pad.covuem');
     if (!pad || S.tab !== 'planning' || S.stack.length) return;
     const week = pad.querySelector(':scope > .card.coweek'),
       grille = pad.querySelector(':scope > .cogrid, :scope > .cowg, :scope > .cogm');

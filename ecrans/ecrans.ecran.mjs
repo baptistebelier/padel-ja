@@ -2827,7 +2827,8 @@ test('Dojo ?ui=2 : Aujourd’hui (prochaine séance et appel, semaine, À faire,
     if (await page.locator('#main .u2next').count()) assert.ok(await page.locator('.u2next [data-v="seance"]').isVisible(), 'Faire l’appel en un clic');
     await page.click('#top [data-a="u2New"]');
     await page.waitForSelector('.u2new');
-    assert.deepEqual(await page.$$eval('.u2new > button', l => l.map(b => b.dataset.a)), ['coNewSes', 'coNewGrp', 'nvNew'], 'trois choix');
+    assert.deepEqual(await page.$$eval('.u2new > button', l => l.map(b => b.dataset.a)), ['coNewSes', 'coNewGrp', 'nvNew', 'nvNew'], 'quatre choix, dont la partie dirigée');
+    assert.deepEqual(await page.$$eval('.u2new > [data-a="nvNew"]', l => l.map(b => b.dataset.m)), ['cours', 'partie'], 'collectif et partie dirigée');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'pas de débordement');
     assert.deepEqual(errs, []);
     await ctx.close();
