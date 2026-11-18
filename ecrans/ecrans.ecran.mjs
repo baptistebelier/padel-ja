@@ -1077,9 +1077,9 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   const now = new Date(), y = now.getFullYear(), saison = now.getMonth() >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
   await post(cc, '/api/coach/formules', { formules: { formules: [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35 }, { id: 'f3', nom: 'Duo', sport: 'Padel', joueurs: 2, duree: 60, prix: 30, par: 'personne' }], packs: [{ id: 'p1', formule: 'f1', nom: 'Pack 5', seances: 5, prix: 160, url: 'https://boutique.exemple.test/pack' }], dispos: [0, 1, 2, 3, 4, 5, 6].map(jour => ({ jour, du: '09:00', au: '11:00' })) } });
   const code = club.code || (await (await cc.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.id === club.id).code;
-  await post(sc, '/api/auth/signup', { email: `out-e-${t}@exemple.test`, password: 'essai-' + t, first: 'Ines', last: 'Eleve' });
+  const eleveU = (await post(sc, '/api/auth/signup', { email: `out-e-${t}@exemple.test`, password: 'essai-' + t, first: 'Ines', last: 'Eleve' })).user;
   await post(sc, '/api/ram/join', { code });
-  const mine = (await (await sc.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.id === club.id);
+  const mine =(await (await sc.request.get(JA + '/api/ram/clubs')).json()).clubs.find(c => c.id === club.id);
   await post(cc, `/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'member', id: mine.key, op: 'put', data: { n: 'Ines Eleve', valid: saison, pl: 5 } }, { coll: 'member', id: club.key, op: 'put', data: { n: 'Sarah Coach', pro: { book: 'https://calendly.com/sarah/cours' } } }] });
 
   // le coach ouvre sa page publique
@@ -1254,6 +1254,13 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await pp.fill('#ae', `out-e-${t}@exemple.test`); await pp.fill('#ap', 'essai-' + t);
   await pp.click('#al');
   await pp.waitForSelector('[aria-label="Mon compte"]', { timeout: 10000 });
+  // connecté ne veut pas dire adresse prouvée : sans lien reçu dans la boîte, aucune fiche ni achat
+  assert.match(await pp.locator('[aria-label="Mon compte"]').innerText(), /pas encore confirmée/i);
+  assert.ok(!/Ines Eleve|06 22 22 22 22/.test(await pp.locator('main').innerText()), 'aucune donnée de fiche avant la confirmation');
+  const { createRequire } = await import('node:module'), Auth = createRequire(import.meta.url)(join(ROOT, 'lib', 'auth.js'));
+  await pp.goto(JA + '/reservation/' + nom2 + '?v=' + encodeURIComponent(Auth.makeVerifToken({ id: eleveU.id, email: eleveU.email })));   // le lien reçu par e-mail : session ouverte sur ce compte, rien à ressaisir
+  await pp.waitForFunction(() => /Adresse confirmée/.test(document.body.innerText), null, { timeout: 10000 });
+  await pp.waitForSelector('[aria-label="Mon compte"]');
   assert.match(await pp.locator('[aria-label="Mon compte"]').innerText(), /Ines Eleve/);
   await pp.locator('.fo').first().click();
   await pp.locator('button.dj:visible').first().click();
@@ -1274,6 +1281,32 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   offres.page = ouverte;
   await post(cc, '/api/coach/formules', { formules: offres });
   assert.equal((await (await cc.request.get(JA + '/api/coach/formules')).json()).formules.nom, nom2, 'le nom survit aux enregistrements des formules');
+
+  // l'attaque : créer un compte avec l'adresse d'un élève sans la posséder, puis lire sa fiche et consommer son pack
+  const victime = `victime-${t}@exemple.test`, moiUrl = `${JA}/api/public/resa/moi?c=${club.id}&k=${club.key}`, confirmer = JA + '/api/public/resa/confirmer';
+  const jour = new Date(Date.now() + 5 * 864e5), d5 = jour.getFullYear() + '-' + String(jour.getMonth() + 1).padStart(2, '0') + '-' + String(jour.getDate()).padStart(2, '0');
+  await post(cc, `/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'eleve', id: 'ev' + t, op: 'put', data: { n: 'Victor Victime', sport: 'Padel', parents: [], mail: victime, tel: '06 33 33 33 33', achats: [{ id: 'hv' + t, t: 'pack', ref: 'p1', n: 5, d: '2026-01-05', nom: 'Pack 5', prix: 160 }] } }] });
+  const atk = await browser.newContext(), vic = await browser.newContext();
+  const usurpe = (await post(atk, '/api/auth/signup', { email: victime, password: 'pirate-' + t, first: 'Pirate', last: 'X' })).user;
+  assert.equal(usurpe.email, victime, 'l’inscription ne prouve rien : le compte se crée');
+  const moiA = await (await atk.request.get(moiUrl)).json();
+  assert.deepEqual([moiA.connecte, moiA.verifie, moiA.fiches], [true, false, undefined], 'connecté mais adresse non prouvée : aucune fiche');
+  assert.ok(!/Victor|06 33|Pack 5/.test(JSON.stringify(moiA)), 'ni nom, ni téléphone, ni achats');
+  const rr = await (await atk.request.post(JA + '/api/public/resa/reserver', { data: { c: club.id, k: club.key, fiche: 'ev' + t, d: d5, t: 600, formule: 'f1', prenom: 'Pirate', nom: 'X', email: victime, tel: '06 00 00 00 00', objectif: 'Volée', accord: true } })).json();
+  assert.equal(rr.couvert, '', 'aucun pack décompté sans adresse prouvée');
+  // le vrai propriétaire ouvre le lien reçu dans sa boîte, sans être connecté : il doit prouver qui il est
+  const vtok = Auth.makeVerifToken({ id: usurpe.id, email: victime });
+  assert.equal((await (await vic.request.post(confirmer, { data: { t: vtok } })).json()).besoin, true);
+  const faux = await (await vic.request.post(confirmer, { data: { t: vtok, password: 'je-ne-sais-pas' } })).json();
+  assert.deepEqual([faux.besoin, faux.faux], [true, true]);
+  assert.equal((await vic.request.post(confirmer, { data: { t: vtok, nouveau: 'court' } })).status(), 400, 'mot de passe trop court');
+  assert.equal((await vic.request.post(confirmer, { data: { t: vtok, nouveau: 'nouveau-mdp-' + t } })).status(), 200);
+  const moiV = await (await vic.request.get(moiUrl)).json();
+  assert.deepEqual([moiV.verifie, moiV.fiches.map(f => f.nom), moiV.fiches[0].achats[0].restantes], [true, ['Victor Victime'], 5], 'adresse prouvée : sa fiche et son pack');
+  assert.equal((await (await atk.request.get(moiUrl)).json()).connecte, false, 'la session du pirate est tombée avec l’ancien mot de passe');
+  assert.equal((await atk.request.post(JA + '/api/auth/login', { data: { email: victime, password: 'pirate-' + t } })).status(), 401);
+  assert.equal((await vic.request.post(confirmer, { data: { t: vtok, nouveau: 'autre-mdp-' + t } })).status(), 400, 'lien à usage unique');
+  await atk.close(); await vic.close();
   assert.deepEqual(errs, []);
   await cc.close(); await sc.close(); await pub.close();
 });
@@ -1515,6 +1548,37 @@ test('Page de réservation : « Déjà élève ? Se connecter », réponse neutr
     assert.deepEqual(errs, []);
     await ctx.close();
   }
+});
+
+test('Page de réservation : compte connecté non confirmé (aucune fiche), lien de confirmation, ouverture du lien sans session : mot de passe ou nouveau (360 px)', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), p = await ctx.newPage(), errs = [], demandes = [], essais = [];
+  let confirme = false;
+  p.on('pageerror', x => errs.push(x.message));
+  await p.route('**/api/public/resa/creneaux*', r => r.fulfill({ json: { coach: 'Sarah Test', club: 'Club Essai', photo: false, formules: [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35, par: 'seance' }], packs: [], abos: [], jours: [] } }));
+  await p.route('**/api/public/resa/moi*', r => r.fulfill({ json: confirme ? { connecte: true, verifie: true, email: 'lea@exemple.test', fiches: [{ id: 'e1', nom: 'Léa Roy', tel: '06 11 11 11 11', achats: [] }] } : { connecte: true, verifie: false, email: 'lea@exemple.test' } }));
+  await p.route('**/api/public/resa/confirmation', r => { demandes.push(r.request().postDataJSON()); r.fulfill({ json: { ok: true } }); });
+  await p.route('**/api/public/resa/confirmer', r => { const b = r.request().postDataJSON(); essais.push(b); if (b.nouveau) { confirme = true; r.fulfill({ json: { ok: true } }); } else r.fulfill({ json: { besoin: true, faux: !!b.password } }); });
+  await p.goto(JA + '/r/club-essai/cle-essai');
+  await p.waitForSelector('[aria-label="Mon compte"]');
+  const carte = await p.locator('[aria-label="Mon compte"]').innerText();
+  assert.match(carte, /pas encore confirmée/i);
+  assert.ok(!/Pour qui|Léa Roy|06 11/.test(await p.locator('main').innerText()), 'aucune fiche ni téléphone tant que l’adresse n’est pas prouvée');
+  await p.click('[data-a=confirmation]');
+  await p.waitForFunction(() => /Un e-mail de confirmation vient de partir à lea@exemple\.test/.test(document.body.innerText));
+  assert.equal(demandes.length, 1);
+  // le lien reçu par e-mail, ouvert sans session : la page demande une preuve (mot de passe actuel ou nouveau mot de passe)
+  await p.goto(JA + '/r/club-essai/cle-essai?v=jeton-essai');
+  await p.waitForSelector('#fv');
+  assert.equal(essais[0].t, 'jeton-essai');
+  await p.fill('#vp', 'pas-le-bon'); await p.press('#vp', 'Enter');
+  await p.waitForFunction(() => /Mot de passe incorrect/.test(document.getElementById('verr').textContent));
+  await p.fill('#vn', 'nouveau-mot-de-passe-1'); await p.click('[data-v=nouveau]');
+  await p.waitForFunction(() => /Adresse confirmée/.test(document.body.innerText));
+  await p.waitForSelector('[aria-label="Mon compte"]');
+  assert.match(await p.locator('[aria-label="Mon compte"]').innerText(), /Léa Roy/, 'adresse prouvée : sa fiche apparaît');
+  assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  assert.deepEqual(errs, []);
+  await ctx.close();
 });
 
 test('Inscription publique à une séance collective : places, fourchettes, liste d’attente, états clairs, parcours simulé (360 et 1280 px)', async () => {

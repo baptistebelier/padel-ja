@@ -239,7 +239,7 @@
   var ic = function (n, s, c) { return '<svg class="ic ' + (c || '') + '" width="' + s + '" height="' + s + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
   var initiales = function (n) { return String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x[0]; }).join('') || '·'; };
   var c = parts[1], k = parts[2];
-  var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, moi: null, moiLu: false, fiche: '', prefill: '', acces: { ouvert: false, em: '', msg: '', err: '' }, fl: { t: '', j: '', d: '', s: '', sp: '' }, v: { p: '', n: '', t: '', em: '', o: '', niv: '', cv: '', pa: '' } };
+  var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, moi: null, moiLu: false, fiche: '', prefill: '', acces: { ouvert: false, em: '', msg: '', err: '', conf: '' }, verif: null, info: '', fl: { t: '', j: '', d: '', s: '', sp: '' }, v: { p: '', n: '', t: '', em: '', o: '', niv: '', cv: '', pa: '' } };
   var top = function (nom, sous) {
     var ph = S.data && S.data.photo && nom === S.data.coach ? '/api/public/resa/photo?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) : '';
     return '<header class="top"><div class="top-in"><span class="crest">' + (ph ? '<img src="' + e(ph) + '" alt="" data-i="' + e(initiales(nom)) + '">' : e(initiales(nom))) + '</span><div><h1>' + e(nom) + '</h1><p class="sub">' + e(sous) + '</p></div><span class="r-tag r-tag--flat">Réservation en ligne</span></div></header>';
@@ -267,7 +267,7 @@
   function charge() {
     fetch('/api/public/resa/creneaux?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) + '&de=' + moisDe(S.w) + '&n=' + nb(moisDe(S.w)))
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
-      .then(function (d) { S.data = d; /* rien n'est présélectionné : ni formule, ni jour, ni horaire */ if (!offres().some(function (x) { return x.k === S.f; })) S.f = null; S.pick = null; S.jour = null; dessine(); if (!S.moiLu) chargeMoi(); })
+      .then(function (d) { S.data = d; /* rien n'est présélectionné : ni formule, ni jour, ni horaire */ if (!offres().some(function (x) { return x.k === S.f; })) S.f = null; S.pick = null; S.jour = null; dessine(); if (!S.moiLu) chargeMoi(); if (S.verif && S.verif.etat === 'essai') confirmer({}); })
       .catch(function (x) { page('Réserver un cours', '/Dojo · réservation en ligne', '<div class="r-card"><p>' + e(x.message || 'Page indisponible') + '</p></div>'); });
   }
 
@@ -276,11 +276,34 @@
     S.moiLu = true;
     fetch('/api/public/resa/moi?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k), { credentials: 'include' }).then(function (r) { return r.json(); }).then(function (d) {
       S.moi = d && d.connecte ? d : null;
-      if (S.moi && S.moi.fiches.length === 1) S.fiche = S.moi.fiches[0].id;
+      if (S.moi && (S.moi.fiches || []).length === 1) S.fiche = S.moi.fiches[0].id;
       if (S.etape !== 'fait') dessine();
     }).catch(function () {});
   }
-  var fichesMoi = function () { return S.moi ? S.moi.fiches : []; };
+  /* compte connecté dont l'adresse est prouvée (lien reçu dans sa boîte) : seul cas où les fiches, téléphone et achats sont montrés */
+  var moiOk = function () { return !!S.moi && S.moi.verifie !== false; };
+  var fichesMoi = function () { return moiOk() ? S.moi.fiches || [] : []; };
+  /* ouverture du lien de confirmation d'adresse (?v=…) : session ouverte → confirmé ; sinon la page demande le mot de passe ou un nouveau */
+  if (q.get('v')) S.verif = { t: q.get('v'), etat: 'essai', err: '' };
+  function confirmer(body) {
+    S.verif.etat = 'envoi';
+    post('/api/public/resa/confirmer', Object.assign({ t: S.verif.t }, body)).then(function (r) {
+      if (r.besoin) { S.verif.etat = 'besoin'; S.verif.err = r.faux ? 'Mot de passe incorrect.' : ''; dessine(); return; }
+      S.verif = null; S.info = 'Adresse confirmée : tes fiches sont disponibles.';
+      history.replaceState(null, '', location.pathname);
+      S.moi = null; chargeMoi();
+    }).catch(function (z) { S.verif.etat = 'erreur'; S.verif.err = z.message; dessine(); });
+  }
+  function verifCard() {
+    var v = S.verif;
+    if (v.etat === 'erreur') return '<section class="r-card" aria-label="Confirmation">' + head('mail', 'Confirmation de l’adresse') + '<p class="err" role="alert">' + e(v.err) + '</p><p class="dg">Connecte-toi puis demande un nouveau lien de confirmation.</p></section>';
+    return '<form class="r-card" id="fv" novalidate aria-label="Confirmation">' + head('mail', 'Confirme ton adresse') + '<p style="margin-bottom:12px">Pour protéger ton compte, prouve que c’est bien toi.</p><div class="fm">' +
+      '<div class="r-field w"><label for="vp">Mon mot de passe actuel</label><input class="r-input" id="vp" type="password" autocomplete="current-password"></div>' +
+      '<div class="w"><button class="r-btn r-btn--full" type="submit">' + ic('check', 18) + 'Confirmer avec mon mot de passe</button></div>' +
+      '<div class="w"><p class="dg" style="margin:0 0 8px">Pas de mot de passe, ou tu ne le connais pas ? Choisis-en un nouveau : les autres appareils connectés à ce compte seront déconnectés.</p></div>' +
+      '<div class="r-field w"><label for="vn">Nouveau mot de passe (8 caractères au moins)</label><input class="r-input" id="vn" type="password" autocomplete="new-password"></div>' +
+      '<div class="w"><button class="r-btn r-btn--sec r-btn--full" type="button" data-v="nouveau">' + ic('edit', 18) + 'Choisir ce mot de passe et confirmer</button></div><p class="err w" id="verr" role="alert">' + e(v.err) + '</p></div></form>';
+  }
   var ficheChoisie = function () { return fichesMoi().filter(function (f) { return f.id === S.fiche; })[0] || null; };
   /* son pack ou son abonnement en cours, mis en avant sur sa carte (sans rien sélectionner) */
   function miens() {
@@ -294,12 +317,18 @@
   }
   function accesBloc() {
     var m = S.moi, a = S.acces;
+    if (S.verif && S.verif.etat !== 'essai' && S.verif.etat !== 'envoi') return verifCard();
+    var info = S.info ? '<p class="info" role="status">' + e(S.info) + '</p>' : '';
+    /* connecté mais adresse non prouvée : aucune fiche, aucun achat ; un lien de confirmation (usage unique, 1 h) part à l'adresse du compte */
+    if (m && m.verifie === false) return '<section class="r-card" aria-label="Mon compte">' + head('user', 'Connecté', '<button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="logout">' + ic('x', 16) + 'Se déconnecter</button>') + '<p class="dg" style="margin:0 0 10px">' + e(m.email) + '</p>' +
+      '<p>Ton adresse n’est pas encore confirmée : confirme-la pour retrouver tes cours et réserver depuis ton compte. Tu peux aussi réserver sans te connecter.</p><p style="margin-top:12px"><button type="button" class="r-btn r-btn--full" data-a="confirmation">' + ic('mail', 18) + 'Recevoir le lien de confirmation</button></p>' +
+      (a.conf ? '<p class="info" role="status" style="margin-top:10px">' + e(a.conf) + '</p>' : '') + (a.err ? '<p class="err" role="alert">' + e(a.err) + '</p>' : '') + '</section>';
     if (m) {
       var l = fichesMoi(), ch = ficheChoisie(), ach = [];
       (ch ? [ch] : l).forEach(function (f) { (f.achats || []).filter(function (x) { return x.encours; }).forEach(function (x) { ach.push('<li><b>' + e(x.nom) + '</b>' + (x.t === 'pack' ? ' · ' + x.restantes + ' séance' + (x.restantes > 1 ? 's' : '') + ' restante' + (x.restantes > 1 ? 's' : '') + ' sur ' + x.total : x.t === 'abo' ? ' · abonnement' + (x.fin ? ' jusqu’au ' + e(jour(x.fin, { day: 'numeric', month: 'long' })) : '') : '') + '</li>'); }); });
       var qui = l.length > 1 ? '<div class="r-field"><span class="lbl">Pour qui réserves-tu ?</span><div class="r-tabs r-tabs--full" role="group" aria-label="Pour qui">' + l.map(function (f) { return '<button type="button" data-fiche="' + e(f.id) + '" aria-pressed="' + (f.id === S.fiche) + '">' + e(f.nom) + '</button>'; }).join('') + '</div></div>'
         : l.length === 1 ? '<p>Fiche : <b>' + e(l[0].nom) + '</b></p>' : '<p class="dg">Aucune fiche à cette adresse chez ' + e(S.data.coach) + ' : ta réservation créera ta fiche.</p>';
-      return '<section class="r-card" aria-label="Mon compte">' + head('user', 'Connecté', '<button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="logout">' + ic('x', 16) + 'Se déconnecter</button>') + '<p class="dg" style="margin:0 0 10px">' + e(m.email) + '</p>' + qui + (ach.length ? '<ul class="ach" aria-label="Mes formules en cours">' + ach.join('') + '</ul>' : '') + '</section>';
+      return info + '<section class="r-card" aria-label="Mon compte">' + head('user', 'Connecté', '<button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="logout">' + ic('x', 16) + 'Se déconnecter</button>') + '<p class="dg" style="margin:0 0 10px">' + e(m.email) + '</p>' + qui + (ach.length ? '<ul class="ach" aria-label="Mes formules en cours">' + ach.join('') + '</ul>' : '') + '</section>';
     }
     if (!a.ouvert) return '<div class="acc"><button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="acces">' + ic('user', 16) + 'Déjà élève ? Se connecter</button></div>';
     return '<form class="r-card" id="fa" novalidate aria-label="Se connecter">' + head('user', 'Déjà élève ? Se connecter', '<button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="acces">' + ic('x', 16) + 'Fermer</button>') +
@@ -313,6 +342,15 @@
     root.querySelectorAll('[data-a=acces]').forEach(function (b) { b.onclick = function () { S.acces.ouvert = !S.acces.ouvert; S.acces.err = ''; re(); }; });
     root.querySelectorAll('[data-a=logout]').forEach(function (b) { b.onclick = function () { post('/api/auth/logout', {}).catch(function () {}).then(function () { S.moi = null; S.fiche = ''; S.prefill = ''; re(); }); }; });
     root.querySelectorAll('[data-fiche]').forEach(function (b) { b.onclick = function () { S.fiche = b.dataset.fiche; re(); }; });
+    root.querySelectorAll('[data-a=confirmation]').forEach(function (b) { b.onclick = function () {
+      S.acces.err = ''; S.acces.conf = '';
+      post('/api/public/resa/confirmation', { c: c, k: k, chemin: parts[0] === 'reservation' ? location.pathname : '' }).then(function () { S.acces.conf = 'Un e-mail de confirmation vient de partir à ' + S.moi.email + '. Pense à regarder dans les indésirables.'; re(); }).catch(function (z) { S.acces.err = z.message; re(); });
+    }; });
+    var fv = document.getElementById('fv');
+    if (fv) {
+      fv.onsubmit = function (x) { x.preventDefault(); confirmer({ password: document.getElementById('vp').value }); };
+      fv.querySelector('[data-v=nouveau]').onclick = function () { confirmer({ nouveau: document.getElementById('vn').value }); };
+    }
     var fa = document.getElementById('fa');
     if (!fa) return;
     var ae = document.getElementById('ae'), ap = document.getElementById('ap');
@@ -482,14 +520,14 @@
   function infos(f, sous) {
     var d = S.data, p = S.pick, v = S.v, fc = ficheChoisie();
     /* élève connecté : nom, téléphone et e-mail préremplis depuis sa fiche et son compte (adresse vérifiée, non modifiable ici) */
-    if (S.moi) { if (fc && S.prefill !== fc.id) { var np = fc.nom.split(' '); v.p = np[0] || ''; v.n = np.slice(1).join(' '); if (fc.tel) v.t = fc.tel; S.prefill = fc.id; } v.em = S.moi.email; }
+    if (moiOk()) { if (fc && S.prefill !== fc.id) { var np = fc.nom.split(' '); v.p = np[0] || ''; v.n = np.slice(1).join(' '); if (fc.tel) v.t = fc.tel; S.prefill = fc.id; } v.em = S.moi.email; }
     var seg = function (id, lab, data, opts, cur) { return '<div class="r-field w"><span class="lbl" id="' + id + '">' + lab + '<small>facultatif</small></span><div class="r-tabs r-tabs--full" role="group" aria-labelledby="' + id + '">' + opts.map(function (x) { return '<button type="button" data-' + data + '="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>'; };
     var rm = '<div class="r-card rcm mb"><div><b>' + e(court(p.d)) + ' · ' + H(p.t) + '</b><small>' + e(f.nom) + (f.dOk ? ' · ' + DUR(f.duree) : '') + ' · ' + e(prixTxt(f)) + '</small></div><button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="change">' + ic('edit', 18) + 'Changer</button></div>';
     var form = '<form class="r-card" id="f" novalidate>' + head('user', 'Vos informations', '', 'dk') + '<div class="fm">' +
       '<div class="r-field"><label for="p">Prénom</label><input class="r-input" id="p" required autocomplete="given-name" value="' + e(v.p) + '"></div>' +
       '<div class="r-field"><label for="n">Nom</label><input class="r-input" id="n" required autocomplete="family-name" value="' + e(v.n) + '"></div>' +
       '<div class="r-field w"><label for="t">Téléphone</label><input class="r-input" id="t" required type="tel" autocomplete="tel" value="' + e(v.t) + '"></div>' +
-      '<div class="r-field w"><label for="em">E-mail</label><input class="r-input" id="em" required type="email" autocomplete="email"' + (S.moi ? ' readonly' : '') + ' value="' + e(v.em) + '"></div>' +
+      '<div class="r-field w"><label for="em">E-mail</label><input class="r-input" id="em" required type="email" autocomplete="email"' + (moiOk() ? ' readonly' : '') + ' value="' + e(v.em) + '"></div>' +
       '<div class="r-field w"><label for="o">Objectif de la séance</label><textarea class="r-textarea" id="o" required rows="2" placeholder="Ce que tu veux travailler">' + e(v.o) + '</textarea></div>' +
       seg('nvl', 'Niveau', 'niv', [['Débutant', 'Débutant'], ['Loisir', 'Loisir'], ['Compétition', 'Compétition']], v.niv) +
       (f.joueurs > 1 ? '<div class="r-field w"><label for="pa">Partenaire' + (f.joueurs > 2 ? 's' : '') + '<small>facultatif</small></label><input class="r-input" id="pa" autocomplete="off" placeholder="' + (f.joueurs > 2 ? 'Prénoms des autres joueurs' : 'Prénom de ton partenaire') + '" value="' + e(v.pa) + '"></div>' : '') +
@@ -512,7 +550,7 @@
       if (!fm.checkValidity()) { fm.reportValidity(); return; }
       var bt = document.getElementById('go'), val = function (i) { return document.getElementById(i).value; };
       bt.disabled = true;
-      post('/api/public/resa/reserver', { c: c, k: k, fiche: S.moi ? S.fiche : '', d: p.d, t: p.t, formule: f.id, type: f.t, couvert: S.v.cv, partenaires: S.v.pa, prenom: val('p'), nom: val('n'), tel: val('t'), email: val('em'), objectif: val('o'), niveau: S.v.niv, site: val('site'), accord: document.getElementById('ac').checked })
+      post('/api/public/resa/reserver', { c: c, k: k, fiche: moiOk() ? S.fiche : '', d: p.d, t: p.t, formule: f.id, type: f.t, couvert: S.v.cv, partenaires: S.v.pa, prenom: val('p'), nom: val('n'), tel: val('t'), email: val('em'), objectif: val('o'), niveau: S.v.niv, site: val('site'), accord: document.getElementById('ac').checked })
         .then(function (r) { S.conf = { r: r, f: f, p: p }; S.etape = 'fait'; dessine(); window.scrollTo(0, 0); })
         .catch(function (z) { bt.disabled = false; document.getElementById('er').textContent = z.message; });
     };

@@ -44,6 +44,22 @@ test('concurrence : deux validations en même temps, un seul gagnant', async () 
   assert.equal((await N.resoudre('sarah-benali')).u, qui);
 });
 
+test('lecture ratée : l’enregistrement échoue sans rien écrire, le registre n’est jamais effacé', async () => {
+  const st = magasin(), N = createNoms({ store: st });
+  await N.reserver('u1', 'sarah-benali');
+  const avant = JSON.stringify(st.m['resa-noms']), lireOk = st.getSetting, ecrireOk = st.saveSetting;
+  let ecrit = false;
+  st.getSetting = async () => { throw new Error('base indisponible'); };
+  st.saveSetting = async (k, v) => { ecrit = true; return ecrireOk(k, v); };
+  await assert.rejects(N.reserver('u2', 'autre-nom'), /base indisponible/);
+  await assert.rejects(N.disponible('u2', 'autre-nom'), /base indisponible/);
+  assert.equal(ecrit, false, 'rien n’a été écrit');
+  assert.equal(await N.resoudre('sarah-benali'), null, 'en lecture seule : page introuvable plutôt qu’une erreur');
+  st.getSetting = lireOk;
+  assert.equal(JSON.stringify(st.m['resa-noms']), avant, 'le registre est intact');
+  assert.equal((await N.resoudre('sarah-benali')).u, 'u1');
+});
+
 test('ancien nom : il redirige vers le nouveau et reste à son enseignant', async () => {
   const st = magasin(), N = createNoms({ store: st });
   await N.reserver('u1', 'sarah-benali');

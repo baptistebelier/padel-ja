@@ -1098,6 +1098,7 @@ const server = http.createServer(async (req, res) => {
       if (!u || !Auth.resetMatches(u, t)) return json(res, 400, { error: 'Lien expiré ou déjà utilisé : refaites une demande.' });
       if (String(b.password || '').length < 8) return json(res, 400, { error: 'Le mot de passe doit faire au moins 8 caractères.' });
       u.pass_hash = await Auth.hashPasswordAsync(b.password); await store.saveUser(u);
+      await AccesResa.marquerVerifiee(store, u).catch(e => console.error('Adresse confirmée : ' + e.message));   // le lien est parti à l'adresse du compte : la boîte est la sienne ; les sessions antérieures tombent avec l'ancien mot de passe
       return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
     }
     /* ---------- API administration ---------- */
@@ -1760,19 +1761,46 @@ const server = http.createServer(async (req, res) => {
           const b = await readBody(req), email = String(b.email || '').trim().toLowerCase(), c = String(b.c || ''), k = String(b.k || '');
           if (Auth.tooManyAttempts('resa-acces|' + clientIp(req)) || Auth.tooManyAttempts('resa-acces|' + email)) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
           if (!Mail.enabled()) return json(res, 503, { error: 'L’envoi d’e-mails n’est pas encore activé : contacte ton enseignant.' });
-          await AccesResa.demanderAcces({ store, reservation, Auth, Mail, base: appUrl(req), c, k, email, retour: b.chemin }).catch(e => console.error('Accès par e-mail : ' + e.message));
+          // la réponse part sans attendre le traitement : son temps ne dit pas si l'adresse est connue (les erreurs sont journalisées)
+          AccesResa.demanderAcces({ store, reservation, Auth, Mail, base: appUrl(req), c, k, email, retour: b.chemin }).catch(e => console.error('Accès par e-mail : ' + e.message));
           return json(res, 200, { ok: true });
         }
-        if (p === '/api/public/resa/moi' && req.method === 'GET') {   // l'élève connecté : ses fiches chez cet enseignant, à son adresse vérifiée
+        /* l'élève connecté : ses fiches chez cet enseignant, SEULEMENT si l'adresse de son compte est prouvée par un lien reçu dans sa boîte e-mail
+           (être connecté ne le prouve pas : l'inscription ne vérifie pas l'adresse) */
+        if (p === '/api/public/resa/moi' && req.method === 'GET') {
           const cu = await currentUser(req);
           if (!cu || cu.guest || !cu.email) return json(res, 200, { connecte: false });
+          if (!(await AccesResa.adresseVerifiee(store, cu))) return json(res, 200, { connecte: true, verifie: false, email: cu.email });
           const moi = await reservation.pubMoi(q('c'), q('k'), cu.email);
-          return json(res, 200, Object.assign({ connecte: true, email: cu.email }, moi));
+          return json(res, 200, Object.assign({ connecte: true, verifie: true, email: cu.email }, moi));
+        }
+        /* lien de confirmation de l'adresse du compte connecté (usage unique, 1 h, sans changer le mot de passe) : part à l'adresse du compte */
+        if (p === '/api/public/resa/confirmation' && req.method === 'POST') {
+          const cu = await currentUser(req);
+          if (!cu || cu.guest || !cu.email) return json(res, 401, { error: 'Connecte-toi d’abord.' });
+          if (Auth.tooManyAttempts('resa-conf|' + clientIp(req)) || Auth.tooManyAttempts('resa-conf|' + cu.id)) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
+          if (!Mail.enabled()) return json(res, 503, { error: 'L’envoi d’e-mails n’est pas encore activé : contacte ton enseignant.' });
+          const b = await readBody(req);
+          AccesResa.demanderConfirmation({ store, reservation, Auth, Mail, base: appUrl(req), user: cu, c: String(b.c || ''), k: String(b.k || ''), retour: b.chemin }).catch(e => console.error('Confirmation d’adresse : ' + e.message));
+          return json(res, 200, { ok: true });
+        }
+        /* ouverture du lien de confirmation : l'adresse n'est confirmée que par le détenteur du compte (session ouverte ou mot de passe actuel)
+           ou par quelqu'un qui choisit un nouveau mot de passe (les sessions antérieures tombent) */
+        if (p === '/api/public/resa/confirmer' && req.method === 'POST') {
+          if (Auth.tooManyAttempts('resa-confirmer|' + clientIp(req))) return json(res, 429, { error: 'Trop de tentatives : réessaie dans 15 minutes.' });
+          const b = await readBody(req);
+          try {
+            const r = await AccesResa.confirmer({ store, Auth, token: String(b.t || ''), password: b.password ? String(b.password) : '', nouveau: b.nouveau ? String(b.nouveau) : '', sessionUser: await currentUser(req) });
+            if (r.besoin) return json(res, 200, { besoin: true, faux: r.faux });
+            userCache.delete(r.user.id);
+            return json(res, 200, { ok: true }, r.nouvelleSession ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(r.user.id, 0, r.user.pass_hash)) } : undefined);
+          } catch (e) { return json(res, 400, { error: e.message }); }
         }
         if (p === '/api/public/resa/reserver' && req.method === 'POST') {
           if (Auth.tooManyAttempts('resa-pub|' + clientIp(req))) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
           const b = await readBody(req), cu = await currentUser(req);
-          if (cu && !cu.guest && cu.email) b.verifie = String(cu.email).toLowerCase(); else delete b.verifie;   // adresse vérifiée : celle du compte connecté, jamais celle du formulaire
+          // adresse vérifiée : celle du compte connecté seulement si elle est PROUVÉE par un lien reçu dans sa boîte, jamais celle du formulaire
+          if (cu && !cu.guest && cu.email && (await AccesResa.adresseVerifiee(store, cu))) b.verifie = String(cu.email).toLowerCase(); else delete b.verifie;
           const r =await reservation.pubReserver(String(b.c || ''), String(b.k || ''), b), lien = appUrl(req) + r.annuler;
           taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, coach: r.coach, lien })));
           return json(res, 200, { id: r.id, d: r.d, h: r.h, dur: r.dur, nom: r.nom, mail: r.mail, coach: r.coach, couvert: r.couvert, prix: r.prix, annuler: r.annuler });

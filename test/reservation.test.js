@@ -335,7 +335,9 @@ test('page publique : toutes ses formules, packs et abonnements ; photo du compt
   assert.match((await cours(dec.id)).goal, /à vérifier/);
   const fiche = (await ram.itemsOf(club.id, 'eleve')).find(x => x.data.mail === 'dec23@exemple.test');
   await ram.ops(coach, club.id, [{ coll: 'eleve', id: fiche.id, op: 'put', data: Object.assign({}, fiche.data, { mail: 'abo23@exemple.test', achats: [{ id: 'h1', t: 'abo', ref: 'a1', d: '2020-01-01', fin: '2099-01-01', nom: 'Academy', prix: 120 }] }) }]);
-  const abo = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: d2, t: 600, formule: 'f1', email: 'abo23@exemple.test' }));
+  const sansPreuve = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: d2, t: 660, formule: 'f1', email: 'abo23@exemple.test' }));
+  assert.equal(sansPreuve.couvert, '', 'abonnement présent dans la fiche mais adresse non prouvée : non reconnu');
+  const abo = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: d2, t: 600, formule: 'f1', email: 'abo23@exemple.test', verifie: 'abo23@exemple.test' }));
   assert.deepEqual([abo.couvert, abo.prix], ['abo', 0], 'abonnement reconnu dans la fiche, sans rien déclarer');
   assert.equal((await cours(abo.id)).couvertVerifie, true);
   delete store.getIdentity;
@@ -458,6 +460,79 @@ test('« Déjà élève ? » : lien à usage unique, compte sans mot de passe, a
   await assert.rejects(resa.pubReserver(club.id, key, Object.assign({}, base, { t: 660, verifie: 'autre25@exemple.test', fiche: 'e1' })), /pas la tienne/);
   const r0 = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: REGLES.addDays(d, 7), t: 540, fiche: 'e1' }));
   assert.equal(r0.couvert, '', 'sans compte connecté : la fiche demandée est ignorée, le pack n’est pas déduit');
+});
+
+test('adresse prouvée : lien de confirmation (usage unique, 1 h), session ou mot de passe ou nouveau mot de passe, sessions antérieures tombées, changement d’adresse', async () => {
+  const Auth = require('../lib/auth.js'), A = require('../lib/acces-resa.js'), M = require('../lib/mail.js');
+  const users = new Map(), ids = new Map(), mails = [];
+  const st = { getUser: async id => users.get(id) || null, saveUser: async u => { users.set(u.id, u); }, getIdentity: async id => Object.assign({}, ids.get(id)), saveIdentity: async (id, v) => { ids.set(id, v); } };
+  const Mail2 = { send: async m => { mails.push(m); }, confirmationMail: M.confirmationMail }, fake = { pubCreneaux: async () => ({ coach: 'Sarah' }) };
+  const nouveau = async (id, mail, mdp) => { const u = { id, email: mail, name: 'Victime', pass_hash: await Auth.hashPasswordAsync(mdp), plan: 'essai', guest: false }; users.set(id, u); return u; };
+  const demande = u => A.demanderConfirmation({ store: st, reservation: fake, Auth, Mail: Mail2, base: 'https://x.test', user: u, c: 'club1', k: 'cle1' });
+  const lien = () => decodeURIComponent(mails.at(-1).text.match(/\?v=(\S+)/)[1]);
+  const sessionValable = (token, u) => { const cookie = Auth.sessionCookie({ headers: {} }, token, 1), s = Auth.sessionOf({ headers: { cookie: String(cookie).split(';')[0] } }); return Auth.sessionMatches(s, u); };
+  // un pirate crée un compte avec l'adresse d'un élève : connecté, mais l'adresse n'est pas prouvée
+  const u = await nouveau('u1', 'victime@exemple.test', 'mot-du-pirate'), sessionPirate = Auth.makeToken('u1', 0, u.pass_hash);
+  assert.equal(await A.adresseVerifiee(st, u), false);
+  assert.deepEqual(await demande(u), { envoye: true });
+  assert.equal(mails.at(-1).to, 'victime@exemple.test', 'le lien part à l’adresse du compte, jamais ailleurs');
+  const tok = lien();
+  assert.equal(Auth.readVerifToken(tok, Date.now() + 2 * 3600e3), null, 'expiré au bout d’une heure');
+  // le vrai propriétaire ouvre le lien sans être connecté : il doit prouver qui il est
+  assert.deepEqual(await A.confirmer({ store: st, Auth, token: tok }), { besoin: true, faux: false });
+  assert.deepEqual(await A.confirmer({ store: st, Auth, token: tok, password: 'pas-le-bon' }), { besoin: true, faux: true });
+  await assert.rejects(A.confirmer({ store: st, Auth, token: tok, nouveau: 'court' }), /8 caractères/);
+  assert.equal(await A.adresseVerifiee(st, u), false, 'toujours rien de prouvé');
+  assert.equal(sessionValable(sessionPirate, u), true);
+  const r = await A.confirmer({ store: st, Auth, token: tok, nouveau: 'le-vrai-mot-de-passe' });
+  assert.deepEqual([r.ok, r.nouvelleSession], [true, true]);
+  assert.equal(await A.adresseVerifiee(st, u), true);
+  assert.equal(sessionValable(sessionPirate, u), false, 'la session du pirate tombe quand le propriétaire choisit son mot de passe');
+  assert.equal(await Auth.checkPasswordAsync('mot-du-pirate', u.pass_hash), false);
+  assert.equal(sessionValable(Auth.makeToken('u1', 0, u.pass_hash), u), true);
+  await assert.rejects(A.confirmer({ store: st, Auth, token: tok, nouveau: 'encore-un-autre' }), /déjà utilisé/, 'usage unique');
+  assert.deepEqual(await demande(u), { envoye: false }, 'adresse déjà prouvée : rien à confirmer');
+  // quelqu'un qui détient déjà le compte confirme avec sa session, ou avec son mot de passe, sans rien changer
+  const v = await nouveau('u2', 'lea@exemple.test', 'son-mot-de-passe');
+  await demande(v);
+  const r2 = await A.confirmer({ store: st, Auth, token: lien(), sessionUser: { id: 'u2' } }), hash = v.pass_hash;
+  assert.deepEqual([r2.ok, r2.nouvelleSession, v.pass_hash === hash, await A.adresseVerifiee(st, v)], [true, false, true, true]);
+  const w = await nouveau('u3', 'tom@exemple.test', 'mot-de-passe-de-tom');
+  await demande(w);
+  const r3 = await A.confirmer({ store: st, Auth, token: lien(), password: 'mot-de-passe-de-tom' });
+  assert.deepEqual([r3.ok, r3.nouvelleSession, await A.adresseVerifiee(st, w)], [true, true, true], 'mot de passe actuel : confirmé sans changement');
+  // un changement d'adresse annule la preuve (et un lien en cours)
+  const x = await nouveau('u4', 'ines@exemple.test', 'mot-de-passe-ines');
+  await demande(x);
+  const encours = lien();
+  x.email = 'autre-adresse@exemple.test';
+  await assert.rejects(A.confirmer({ store: st, Auth, token: encours, nouveau: 'quelque-chose-8' }), /expiré/, 'lien lié à l’ancienne adresse');
+  await A.marquerVerifiee(st, x);
+  assert.equal(await A.adresseVerifiee(st, x), true);
+  x.email = 'ines.nouvelle@exemple.test';
+  assert.equal(await A.adresseVerifiee(st, x), false, 'adresse changée : plus prouvée');
+  // invités et comptes sans adresse : rien ne part
+  assert.deepEqual(await demande({ id: 'g', guest: true, email: 'g@exemple.test' }), { envoye: false });
+  assert.deepEqual(await demande(null), { envoye: false });
+  // lecture ratée de l'identité : la preuve ne s'écrit pas par-dessus une identité vide
+  const cassee = { getIdentity: async () => { throw new Error('base indisponible'); }, saveIdentity: async () => { throw new Error('ne doit pas écrire'); } };
+  await assert.rejects(A.marquerVerifiee(cassee, u), /base indisponible/);
+  assert.equal(await A.adresseVerifiee(cassee, u), false);
+});
+
+test('sans adresse prouvée, rien d’une fiche ne décompte un abonnement ou un pack (réservation par e-mail saisi)', async () => {
+  const { coach, club, key, d } = await monte(26), il = REGLES.addDays(paris().d, -10);
+  await Formules.save(store, coach, Object.assign(await Formules.get(store, coach), { page: club.id, abos: [{ id: 'a1', nom: 'Academy', formule: 'f1', periode: 'mois', duree: 1, prix: 120, parSemaine: 1 }] }));
+  await ram.ops(coach, club.id, [{ coll: 'eleve', id: 'e1', op: 'put', data: { n: 'Léa Roy', sport: 'Padel', parents: [], mail: 'lea26@exemple.test', tel: '06 11 11 11 11', achats: [{ id: 'h1', t: 'abo', ref: 'a1', d: il, fin: '2099-01-01', nom: 'Academy', prix: 120 }] } }]);
+  const base = { d, formule: 'f1', prenom: 'Pirate', nom: 'X', email: 'lea26@exemple.test', tel: '06 00 00 00 00', objectif: 'Volée', accord: true };
+  const sans = await resa.pubReserver(club.id, key, Object.assign({}, base, { t: 540 }));
+  assert.equal(sans.couvert, '', 'e-mail saisi seulement : l’abonnement n’est pas reconnu');
+  const faux = await resa.pubReserver(club.id, key, Object.assign({}, base, { t: 600, fiche: 'e1' }));
+  assert.equal(faux.couvert, '', 'une fiche demandée sans adresse prouvée est ignorée');
+  const autre = await resa.pubReserver(club.id, key, Object.assign({}, base, { t: 660, verifie: 'quelquun@exemple.test' }));
+  assert.equal(autre.couvert, '', 'adresse prouvée différente de celle du formulaire : pas d’abonnement reconnu');
+  const preuve = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: REGLES.addDays(d, 7), t: 540, verifie: 'lea26@exemple.test' }));
+  assert.deepEqual([preuve.couvert, preuve.prix], ['abo', 0], 'adresse prouvée : abonnement reconnu');
 });
 
 test('agenda : les cours confirmés vers Google, et ce qui est posé chez Google n’est plus réservable', async () => {
