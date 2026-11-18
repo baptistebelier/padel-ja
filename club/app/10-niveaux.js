@@ -313,7 +313,7 @@ const nvTok = () => {
 };
 const nvLienUrl = p => {
   if (!(window.RAM && RAM.live && RAM.club) || !p.nv.lien || !p.nv.lien.t) return '';
-  const h = /riseandmove\.fr$/.test(location.hostname) ? 'https://coach.riseandmove.fr' : location.origin;
+  const h = /riseandmove\.fr$/.test(location.hostname) ? RAM_NOMS.urlDepuis('coach', location.hostname) : location.origin;
   return h + '/i/' + encodeURIComponent(RAM.club) + '/' + encodeURIComponent(p.id) + '/' + p.nv.lien.t;
 };
 const nvLienEnsure = p => {
