@@ -1375,6 +1375,81 @@ test('Page de réservation : rien de présélectionné, puis formule, jour, hora
   }
 });
 
+test('Page de réservation : « Déjà élève ? Se connecter », réponse neutre, connexion, pour qui, pack mis en avant sans présélection, réservation rattachée (360 et 1280 px)', async () => {
+  const FO = [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35, par: 'seance' }];
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  for (const vp of [{ width: 360, height: 780 }, { width: 1280, height: 900 }]) {
+    const ctx = await browser.newContext({ viewport: vp }), p = await ctx.newPage(), errs = [], w = vp.width, envoyes = [], acces = [];
+    let connecte = false;
+    p.on('pageerror', x => errs.push(x.message));
+    await p.route('**/api/public/resa/creneaux*', r => {
+      const u = new URL(r.request().url()), de = u.searchParams.get('de'), n = +u.searchParams.get('n'), t0 = iso(new Date()), jours = [];
+      for (let i = 0; i < n; i++) { const d = iso(new Date(+de.slice(0, 4), +de.slice(5, 7) - 1, +de.slice(8) + i)); jours.push({ d, libres: d > t0 ? [{ du: 540, au: 660 }] : [] }); }
+      r.fulfill({ json: { coach: 'Sarah Test', club: 'Club Essai', photo: false, formules: FO, packs: [{ id: 'p1', nom: 'Pack 5', formule: 'f1', seances: 5, prix: 160, duree: 60 }], abos: [], jours } });
+    });
+    await p.route('**/api/public/resa/moi*', r => r.fulfill({ json: connecte ? { connecte: true, email: 'lea@exemple.test', fiches: [{ id: 'e1', nom: 'Léa Roy', tel: '06 11 11 11 11', achats: [{ id: 'h1', ref: 'p1', t: 'pack', nom: 'Pack 5', d: '2026-01-01', encours: true, restantes: 4, total: 5 }] }, { id: 'e2', nom: 'Tom Roy', tel: '', achats: [] }] } : { connecte: false } }));
+    await p.route('**/api/auth/login', r => { const b = r.request().postDataJSON(); if (b.password === 'bon-mot-de-passe') { connecte = true; r.fulfill({ json: { ok: true } }); } else r.fulfill({ status: 401, json: { error: 'E-mail ou mot de passe incorrect.' } }); });
+    await p.route('**/api/auth/logout', r => { connecte = false; r.fulfill({ json: { ok: true } }); });
+    await p.route('**/api/public/resa/acces', r => { acces.push(r.request().postDataJSON().email); r.fulfill({ json: { ok: true } }); });
+    await p.route('**/api/public/resa/reserver', r => { envoyes.push(r.request().postDataJSON()); r.fulfill({ json: { id: 'r1', d: envoyes.at(-1).d, h: '9 h', dur: '1 h', nom: 'Cours individuel', mail: envoyes.at(-1).email, coach: 'Sarah', couvert: 'pack', prix: 0, annuler: '/r/annuler?c=x&id=r1&t=z' } }); });
+    await p.goto(JA + '/r/club-essai/cle-essai');
+    await p.waitForSelector('.fo');
+    // l'accès est visible mais ne bloque rien : la réservation sans compte reste possible
+    const bouton = p.locator('.acc [data-a=acces]');
+    assert.match(await bouton.innerText(), /Déjà élève \? Se connecter/);
+    assert.equal(await p.locator('#fa').count(), 0, 'le formulaire de connexion ne s’ouvre pas tout seul');
+    await bouton.click();
+    await p.waitForSelector('#fa');
+    // adresse connue ou non : exactement la même réponse, sans rien révéler
+    await p.fill('#ae', 'quelquun@exemple.test'); await p.click('#fa [data-a=lien]');
+    await p.waitForSelector('#fa .info');
+    const neutre = await p.locator('#fa .info').innerText();
+    assert.match(neutre, /Si cette adresse est connue, un e-mail vient de partir/);
+    await p.fill('#ae', 'autre@exemple.test'); await p.click('#fa [data-a=lien]');
+    assert.equal(await p.locator('#fa .info').innerText(), neutre, 'même message pour toute adresse');
+    assert.deepEqual(acces, ['quelquun@exemple.test', 'autre@exemple.test']);
+    // mot de passe faux : message générique
+    await p.fill('#ae', 'lea@exemple.test'); await p.fill('#ap', 'faux');
+    await p.click('#al');
+    await p.waitForFunction(() => /incorrect/.test(document.getElementById('aerr').textContent));
+    // connexion : pour qui, pack en cours mis en avant avec ses séances restantes, rien de présélectionné
+    await p.fill('#ap', 'bon-mot-de-passe');
+    await p.click('#al');
+    await p.waitForSelector('[aria-label="Mon compte"]');
+    assert.match(await p.locator('[aria-label="Mon compte"]').innerText(), /Pour qui réserves-tu/i);
+    assert.equal(await p.locator('[data-fiche]').count(), 2, 'plusieurs fiches pour une adresse : on choisit');
+    assert.match(await p.locator('.fo .mine').first().innerText(), /Ton pack · 4 séances restantes/i);
+    assert.equal(await p.locator('.fo[aria-pressed=true]').count(), 0, 'sa formule est mise en avant, pas choisie');
+    assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'sans débordement à ' + w);
+    // réservation : sans choisir pour qui, refus ; puis rattachée à la fiche choisie, nom, téléphone et e-mail préremplis
+    await p.locator('.fo').first().click();
+    await p.locator('button.dj:visible').first().click();
+    await p.locator('.slot').first().click();
+    await p.locator('[data-a=suite]:visible').first().click();
+    await p.waitForSelector('#f');
+    await p.fill('#o', 'Bandeja'); await p.check('#ac', { force: true });
+    await p.click('#go');
+    assert.match(await p.locator('#er').innerText(), /pour qui/i);
+    await p.locator('[data-fiche="e1"]').first().click();
+    await p.waitForSelector('#f');
+    assert.equal(await p.inputValue('#p'), 'Léa'); assert.equal(await p.inputValue('#n'), 'Roy'); assert.equal(await p.inputValue('#t'), '06 11 11 11 11'); assert.equal(await p.inputValue('#em'), 'lea@exemple.test');
+    assert.equal(await p.locator('#em').getAttribute('readonly') !== null, true, 'adresse vérifiée non modifiable');
+    await p.fill('#o', 'Bandeja'); await p.check('#ac', { force: true });
+    await p.click('#go');
+    await p.waitForFunction(() => /réservé/i.test(document.querySelector('main h2').textContent));
+    assert.equal(envoyes.at(-1).fiche, 'e1');
+    assert.match(await p.locator('main').innerText(), /Rattaché|Décompté|Inclus/i, 'rien à régler : décompté du pack');
+    // déconnexion
+    await p.locator('#enc').click();
+    await p.waitForSelector('[aria-label="Mon compte"]');
+    await p.click('[data-a=logout]');
+    await p.waitForSelector('.acc [data-a=acces]');
+    assert.equal(await p.locator('[aria-label="Mon compte"]').count(), 0);
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+});
+
 test('Inscription publique à une séance collective : places, fourchettes, liste d’attente, états clairs, parcours simulé (360 et 1280 px)', async () => {
   const ya = new Date(Date.now() + 5 * 864e5), iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const tiers = [{ id: 't1', nom: 'Confirmés', lo: 3, hi: 5, min: 2, cap: 3, n: 3, restant: 0, complet: true, valide: false, attente: 1 }, { id: 't2', nom: '', lo: 6, hi: 8, min: 2, cap: 2, n: 1, restant: 1, complet: false, valide: false, attente: 0 }];

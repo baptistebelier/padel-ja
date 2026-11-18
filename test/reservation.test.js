@@ -407,6 +407,59 @@ test('lien d’inscription public : jeton, mêmes places et fourchettes que l’
   await assert.rejects(resa.pubNv(club.id, 'pn7', TOK), /pas valable/);
 });
 
+test('« Déjà élève ? » : lien à usage unique, compte sans mot de passe, adresse inconnue, achats de ses seules fiches, réservation rattachée', async () => {
+  const Auth = require('../lib/auth.js'), { demanderAcces } = require('../lib/acces-resa.js');
+  const { coach, club, key, d } = await monte(25), il = REGLES.addDays(paris().d, -10);
+  await Formules.save(store, coach, Object.assign(await Formules.get(store, coach), { page: club.id, packs: [{ id: 'p1', formule: 'f1', nom: 'Pack 5', seances: 5, prix: 150 }] }));
+  const fiche = (id, n, mail, plus) => ({ coll: 'eleve', id, op: 'put', data: Object.assign({ n, sport: 'Padel', parents: [], mail, tel: '06 11 11 11 11' }, plus) });
+  await ram.ops(coach, club.id, [fiche('e1', 'Léa Roy', 'lea25@exemple.test', { achats: [{ id: 'h1', t: 'pack', ref: 'p1', n: 5, d: il, nom: 'Pack 5', prix: 150 }] }), fiche('e2', 'Tom Roy', 'lea25@exemple.test'), fiche('e3', 'Autre Personne', 'autre25@exemple.test', { achats: [{ id: 'h9', t: 'pack', ref: 'p1', n: 5, d: il, nom: 'Pack secret', prix: 150 }] })]);
+  const users = new Map(), mails = [];
+  const st = { getUserByEmail: async m => [...users.values()].find(u => u.email === m) || null, saveUser: async u => { users.set(u.id, u); }, saveIdentity: async () => {}, saveBilling: async () => {}, getIdentity: async () => null };
+  const Mail2 = { send: async m => { mails.push(m); }, accesResaMail: require('../lib/mail.js').accesResaMail };
+  const go = email => demanderAcces({ store: st, reservation: resa, Auth, Mail: Mail2, base: 'https://x.test', c: club.id, k: key, email });
+  // adresse inconnue ou invalide : rien ne part, rien ne se crée
+  assert.deepEqual([await go('inconnu25@exemple.test'), await go('pas une adresse'), await go('')], [{ envoye: false }, { envoye: false }, { envoye: false }]);
+  assert.deepEqual([mails.length, users.size], [0, 0]);
+  // élève connu de cet enseignant, sans compte : compte créé sans mot de passe, lien à usage unique et de courte durée
+  assert.deepEqual(await go('Lea25@exemple.test'), { envoye: true });
+  assert.equal(users.size, 1);
+  const u = [...users.values()][0];
+  assert.equal(u.pass_hash, null, 'aucun mot de passe tant que le lien n’est pas ouvert');
+  assert.equal(u.plan, 'essai', 'aucun droit en plus');
+  assert.equal(mails.length, 1);
+  assert.equal(mails[0].to, 'lea25@exemple.test');
+  const lien = mails[0].text.match(/reinitialiser\?t=([^&\s]+)&retour=([^\s]+)/), tok = decodeURIComponent(lien[1]);
+  assert.equal(decodeURIComponent(lien[2]), `/r/${club.id}/${key}`, 'le lien ramène sur la page de réservation');
+  const t = Auth.readResetToken(tok);
+  assert.ok(t && Auth.resetMatches(u, t), 'lien valide');
+  assert.equal(Auth.readResetToken(tok, Date.now() + 2 * 3600e3), null, 'expiré au bout d’une heure');
+  u.pass_hash = await Auth.hashPasswordAsync('un-mot-de-passe');   // le mot de passe vient d'être créé par ce lien
+  assert.equal(Auth.resetMatches(u, t), false, 'déjà utilisé : plus valable');
+  // compte existant (avec mot de passe) : même lien, aucun doublon
+  assert.deepEqual(await go('lea25@exemple.test'), { envoye: true });
+  assert.deepEqual([users.size, mails.length], [1, 2]);
+  // ce que la page connaît d'un élève connecté : ses fiches à son adresse, achats et séances restantes, rien d'une autre personne
+  const moi = await resa.pubMoi(club.id, key, 'lea25@exemple.test');
+  assert.deepEqual(moi.fiches.map(f => f.id).sort(), ['e1', 'e2'], 'plusieurs fiches pour une adresse : il choisit pour qui');
+  const pack = moi.fiches.find(f => f.id === 'e1').achats[0];
+  assert.deepEqual([pack.t, pack.restantes, pack.total, pack.encours], ['pack', 5, 5, true]);
+  assert.ok(!/Autre Personne|Pack secret|autre25/.test(JSON.stringify(moi)), 'aucune donnée d’un autre élève');
+  assert.deepEqual((await resa.pubMoi(club.id, key, 'autre25@exemple.test')).fiches.map(f => f.id), ['e3']);
+  assert.deepEqual((await resa.pubMoi(club.id, key, 'inconnu25@exemple.test')).fiches, []);
+  // réservation rattachée à la fiche choisie, décomptée du pack en cours ; l'adresse vérifiée vient du compte, pas du formulaire
+  const base = { d, formule: 'f1', prenom: 'Léa', nom: 'Roy', email: 'lea25@exemple.test', tel: '06 11 11 11 11', objectif: 'Volée', accord: true };
+  const r2 = await resa.pubReserver(club.id, key, Object.assign({}, base, { t: 540, verifie: 'lea25@exemple.test', fiche: 'e2' }));
+  const coursDe = async id => (await ram.itemsOf(club.id, 'cours')).find(x => x.id === id).data;
+  assert.deepEqual((await coursDe(r2.id)).ext, ['e2'], 'pour la fiche choisie');
+  assert.equal(r2.couvert, '', 'cette fiche n’a ni pack ni abonnement');
+  const r1 = await resa.pubReserver(club.id, key, Object.assign({}, base, { t: 600, verifie: 'lea25@exemple.test', fiche: 'e1' }));
+  assert.deepEqual([r1.couvert, r1.prix, (await coursDe(r1.id)).ext], ['pack', 0, ['e1']], 'décomptée du pack en cours, rien à régler');
+  assert.equal((await coursDe(r1.id)).couvertVerifie, true);
+  await assert.rejects(resa.pubReserver(club.id, key, Object.assign({}, base, { t: 660, verifie: 'autre25@exemple.test', fiche: 'e1' })), /pas la tienne/);
+  const r0 = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: REGLES.addDays(d, 7), t: 540, fiche: 'e1' }));
+  assert.equal(r0.couvert, '', 'sans compte connecté : la fiche demandée est ignorée, le pack n’est pas déduit');
+});
+
 test('agenda : les cours confirmés vers Google, et ce qui est posé chez Google n’est plus réservable', async () => {
   const ics = Agenda.toIcs([{ club: 'c', groupe: 'g', date: '2026-07-01', heure: '9 h 30', minutes: 60, nom: 'Cours, duo' }, { club: 'c', groupe: 'g2', date: '2026-07-02', heure: '9 h', minutes: 60, nom: 'Annulé', annule: true }]);
   assert.match(ics, /DTSTART:20260701T073000Z/, 'été : Paris à UTC+2');

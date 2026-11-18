@@ -296,6 +296,7 @@ loadSuper(); setInterval(loadSuper, 600000).unref();
 const PLANS = { essai: 'Essai', actif: 'Abonné', offert: 'Accès offert', admin: 'Administrateur' };
 const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
 const { splitName } = require('./lib/names');
+const AccesResa = require('./lib/acces-resa.js');
 /* titres de juge-arbitre reconnus, par sport */
 const JA_TITLES = { tennis: ['JAT1', 'JAT2', 'JAT3'], padel: ['JAP1', 'JAP2', 'JAP3'] };
 let refDir = null;   // juges-arbitres /RAM JA proposés dans les tournois, recalculés toutes les 2 minutes
@@ -1726,9 +1727,26 @@ const server = http.createServer(async (req, res) => {
       const q = k => url.searchParams.get(k) || '', refus = e => { if (e instanceof reservation.Refus) return json(res, 400, { error: e.message }); throw e; };
       try {
         if (p === '/api/public/resa/creneaux' && req.method === 'GET') return json(res, 200, await reservation.pubCreneaux(q('c'), q('k'), q('de'), q('n')));
+        /* « Déjà élève ? Se connecter » : e-mail → lien à usage unique (1 h) qui ouvre la création du mot de passe, puis ramène sur la page.
+           Réponse toujours la même, adresse connue ou non ; aucun mot de passe ne se crée sur la seule saisie d'une adresse. */
+        if (p === '/api/public/resa/acces' && req.method === 'POST') {
+          const b = await readBody(req), email = String(b.email || '').trim().toLowerCase(), c = String(b.c || ''), k = String(b.k || '');
+          if (Auth.tooManyAttempts('resa-acces|' + clientIp(req)) || Auth.tooManyAttempts('resa-acces|' + email)) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
+          if (!Mail.enabled()) return json(res, 503, { error: 'L’envoi d’e-mails n’est pas encore activé : contacte ton enseignant.' });
+          await AccesResa.demanderAcces({ store, reservation, Auth, Mail, base: appUrl(req), c, k, email }).catch(e => console.error('Accès par e-mail : ' + e.message));
+          return json(res, 200, { ok: true });
+        }
+        if (p === '/api/public/resa/moi' && req.method === 'GET') {   // l'élève connecté : ses fiches chez cet enseignant, à son adresse vérifiée
+          const cu = await currentUser(req);
+          if (!cu || cu.guest || !cu.email) return json(res, 200, { connecte: false });
+          const moi = await reservation.pubMoi(q('c'), q('k'), cu.email);
+          return json(res, 200, Object.assign({ connecte: true, email: cu.email }, moi));
+        }
         if (p === '/api/public/resa/reserver' && req.method === 'POST') {
           if (Auth.tooManyAttempts('resa-pub|' + clientIp(req))) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
-          const b = await readBody(req), r = await reservation.pubReserver(String(b.c || ''), String(b.k || ''), b), lien = appUrl(req) + r.annuler;
+          const b = await readBody(req), cu = await currentUser(req);
+          if (cu && !cu.guest && cu.email) b.verifie = String(cu.email).toLowerCase(); else delete b.verifie;   // adresse vérifiée : celle du compte connecté, jamais celle du formulaire
+          const r =await reservation.pubReserver(String(b.c || ''), String(b.k || ''), b), lien = appUrl(req) + r.annuler;
           taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, coach: r.coach, lien })));
           return json(res, 200, { id: r.id, d: r.d, h: r.h, dur: r.dur, nom: r.nom, mail: r.mail, coach: r.coach, couvert: r.couvert, prix: r.prix, annuler: r.annuler });
         }

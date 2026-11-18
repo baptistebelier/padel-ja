@@ -130,6 +130,11 @@
   .slot{height:48px;padding:0;text-align:center;background:var(--c-surface-2);border:var(--bw) solid var(--c-ink);font:700 18px/1 var(--f-label);color:var(--c-text)}
   .slot[aria-pressed=true]{background:var(--c-lime);color:var(--c-dark);box-shadow:var(--sh-sm)}
   .vide-m{color:var(--c-muted)}
+  .acc{display:flex}
+  .ach{display:grid;gap:6px;margin:10px 0 0;padding:0;list-style:none}
+  .ach li{padding:8px 10px;background:var(--c-surface-2);border:var(--bw) solid var(--c-ink);font-size:14px}
+  .fo .r-tag.mine{align-self:flex-start;background:var(--c-lime);color:var(--c-dark);box-shadow:none}
+  .fo[aria-pressed=true] .r-tag.mine{background:var(--c-dark);color:var(--c-lime);border-color:var(--c-dark)}
 
   /* récapitulatif */
   .rc1{font:700 20px/1.2 var(--f-label)}
@@ -213,6 +218,7 @@
   <symbol id="i-plus" viewBox="0 0 18 18"><path d="M9 3.75V9M9 9V14.25M9 9H3.75M9 9H14.25" stroke-width="1.5" stroke-linecap="square"/></symbol>
   <symbol id="i-x" viewBox="0 0 18 18"><path d="M4.5 4.5L9 9M9 9L13.5 13.5M9 9L13.5 4.5M9 9L4.5 13.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
   <symbol id="i-ball" viewBox="0 0 18 18"><path d="M9 2.25A6.75 6.75 0 1 0 9 15.75A6.75 6.75 0 1 0 9 2.25ZM3.2 6C6 6.2 7.2 8 7.2 9S6 11.8 3.2 12M14.8 6C12 6.2 10.8 8 10.8 9S12 11.8 14.8 12" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 18 18"><path d="M2.25 4.5H15.75V13.5H2.25ZM2.25 4.5L9 10.5L15.75 4.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
   <symbol id="i-user" viewBox="0 0 18 18"><path d="M9 8.25A2.75 2.75 0 1 0 9 2.75A2.75 2.75 0 1 0 9 8.25ZM3.5 15.5C3.5 12.5 6 10.75 9 10.75S14.5 12.5 14.5 15.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
 </svg>
 <div class="motif" aria-hidden="true"></div>
@@ -233,7 +239,7 @@
   var ic = function (n, s, c) { return '<svg class="ic ' + (c || '') + '" width="' + s + '" height="' + s + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
   var initiales = function (n) { return String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x[0]; }).join('') || '·'; };
   var c = parts[1], k = parts[2];
-  var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, fl: { t: '', j: '', d: '', s: '', sp: '' }, v: { p: '', n: '', t: '', em: '', o: '', niv: '', cv: '', pa: '' } };
+  var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, moi: null, moiLu: false, fiche: '', prefill: '', acces: { ouvert: false, em: '', msg: '', err: '' }, fl: { t: '', j: '', d: '', s: '', sp: '' }, v: { p: '', n: '', t: '', em: '', o: '', niv: '', cv: '', pa: '' } };
   var top = function (nom, sous) {
     var ph = S.data && S.data.photo && nom === S.data.coach ? '/api/public/resa/photo?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) : '';
     return '<header class="top"><div class="top-in"><span class="crest">' + (ph ? '<img src="' + e(ph) + '" alt="" data-i="' + e(initiales(nom)) + '">' : e(initiales(nom))) + '</span><div><h1>' + e(nom) + '</h1><p class="sub">' + e(sous) + '</p></div><span class="r-tag r-tag--flat">Réservation en ligne</span></div></header>';
@@ -261,8 +267,64 @@
   function charge() {
     fetch('/api/public/resa/creneaux?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) + '&de=' + moisDe(S.w) + '&n=' + nb(moisDe(S.w)))
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
-      .then(function (d) { S.data = d; /* rien n'est présélectionné : ni formule, ni jour, ni horaire */ if (!offres().some(function (x) { return x.k === S.f; })) S.f = null; S.pick = null; S.jour = null; dessine(); })
+      .then(function (d) { S.data = d; /* rien n'est présélectionné : ni formule, ni jour, ni horaire */ if (!offres().some(function (x) { return x.k === S.f; })) S.f = null; S.pick = null; S.jour = null; dessine(); if (!S.moiLu) chargeMoi(); })
       .catch(function (x) { page('Réserver un cours', '/Dojo · réservation en ligne', '<div class="r-card"><p>' + e(x.message || 'Page indisponible') + '</p></div>'); });
+  }
+
+  /* ---------- « Déjà élève ? » : connexion par e-mail et mot de passe (compte /RAM commun), ou par lien à usage unique ; la réservation sans compte reste possible ---------- */
+  function chargeMoi() {
+    S.moiLu = true;
+    fetch('/api/public/resa/moi?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k), { credentials: 'include' }).then(function (r) { return r.json(); }).then(function (d) {
+      S.moi = d && d.connecte ? d : null;
+      if (S.moi && S.moi.fiches.length === 1) S.fiche = S.moi.fiches[0].id;
+      if (S.etape !== 'fait') dessine();
+    }).catch(function () {});
+  }
+  var fichesMoi = function () { return S.moi ? S.moi.fiches : []; };
+  var ficheChoisie = function () { return fichesMoi().filter(function (f) { return f.id === S.fiche; })[0] || null; };
+  /* son pack ou son abonnement en cours, mis en avant sur sa carte (sans rien sélectionner) */
+  function miens() {
+    var out = {}, ch = ficheChoisie();
+    (ch ? [ch] : fichesMoi()).forEach(function (f) { (f.achats || []).forEach(function (a) {
+      if (!a.encours) return;
+      if (a.t === 'pack') out['p:' + a.ref] = 'Ton pack · ' + a.restantes + ' séance' + (a.restantes > 1 ? 's' : '') + ' restante' + (a.restantes > 1 ? 's' : '');
+      else if (a.t === 'abo') out['a:' + a.ref] = 'Ton abonnement' + (a.fin ? ' · jusqu’au ' + jour(a.fin, { day: 'numeric', month: 'short' }) : '');
+    }); });
+    return out;
+  }
+  function accesBloc() {
+    var m = S.moi, a = S.acces;
+    if (m) {
+      var l = fichesMoi(), ch = ficheChoisie(), ach = [];
+      (ch ? [ch] : l).forEach(function (f) { (f.achats || []).filter(function (x) { return x.encours; }).forEach(function (x) { ach.push('<li><b>' + e(x.nom) + '</b>' + (x.t === 'pack' ? ' · ' + x.restantes + ' séance' + (x.restantes > 1 ? 's' : '') + ' restante' + (x.restantes > 1 ? 's' : '') + ' sur ' + x.total : x.t === 'abo' ? ' · abonnement' + (x.fin ? ' jusqu’au ' + e(jour(x.fin, { day: 'numeric', month: 'long' })) : '') : '') + '</li>'); }); });
+      var qui = l.length > 1 ? '<div class="r-field"><span class="lbl">Pour qui réserves-tu ?</span><div class="r-tabs r-tabs--full" role="group" aria-label="Pour qui">' + l.map(function (f) { return '<button type="button" data-fiche="' + e(f.id) + '" aria-pressed="' + (f.id === S.fiche) + '">' + e(f.nom) + '</button>'; }).join('') + '</div></div>'
+        : l.length === 1 ? '<p>Fiche : <b>' + e(l[0].nom) + '</b></p>' : '<p class="dg">Aucune fiche à cette adresse chez ' + e(S.data.coach) + ' : ta réservation créera ta fiche.</p>';
+      return '<section class="r-card" aria-label="Mon compte">' + head('user', 'Connecté', '<button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="logout">' + ic('x', 16) + 'Se déconnecter</button>') + '<p class="dg" style="margin:0 0 10px">' + e(m.email) + '</p>' + qui + (ach.length ? '<ul class="ach" aria-label="Mes formules en cours">' + ach.join('') + '</ul>' : '') + '</section>';
+    }
+    if (!a.ouvert) return '<div class="acc"><button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="acces">' + ic('user', 16) + 'Déjà élève ? Se connecter</button></div>';
+    return '<form class="r-card" id="fa" novalidate aria-label="Se connecter">' + head('user', 'Déjà élève ? Se connecter', '<button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="acces">' + ic('x', 16) + 'Fermer</button>') +
+      '<p class="dg" style="margin:0 0 12px">Tu peux aussi réserver sans te connecter : rien n’est obligatoire.</p><div class="fm">' +
+      '<div class="r-field w"><label for="ae">E-mail</label><input class="r-input" id="ae" type="email" autocomplete="email" required value="' + e(a.em) + '"></div>' +
+      '<div class="r-field w"><label for="ap">Mot de passe</label><input class="r-input" id="ap" type="password" autocomplete="current-password"></div>' +
+      '<div class="w"><button class="r-btn r-btn--full" id="al" type="submit">' + ic('chev', 18) + 'Me connecter</button></div><p class="err w" id="aerr" role="alert">' + e(a.err) + '</p>' +
+      '<div class="w"><p class="dg" style="margin:0 0 8px">Premier accès, ou mot de passe oublié ? Un lien à usage unique te permet de choisir ton mot de passe, le même pour toutes les applis /RAM.</p><button type="button" class="r-btn r-btn--sec r-btn--full" data-a="lien">' + ic('mail', 18) + 'Recevoir un lien par e-mail</button>' + (a.msg ? '<p class="info" role="status" style="margin-top:10px">' + e(a.msg) + '</p>' : '') + '</div></div></form>';
+  }
+  function branche(re) {
+    root.querySelectorAll('[data-a=acces]').forEach(function (b) { b.onclick = function () { S.acces.ouvert = !S.acces.ouvert; S.acces.err = ''; re(); }; });
+    root.querySelectorAll('[data-a=logout]').forEach(function (b) { b.onclick = function () { post('/api/auth/logout', {}).catch(function () {}).then(function () { S.moi = null; S.fiche = ''; S.prefill = ''; re(); }); }; });
+    root.querySelectorAll('[data-fiche]').forEach(function (b) { b.onclick = function () { S.fiche = b.dataset.fiche; re(); }; });
+    var fa = document.getElementById('fa');
+    if (!fa) return;
+    var ae = document.getElementById('ae'), ap = document.getElementById('ap');
+    ae.oninput = function () { S.acces.em = ae.value; };
+    fa.onsubmit = function (x) {
+      x.preventDefault(); S.acces.em = ae.value; S.acces.err = '';
+      post('/api/auth/login', { email: ae.value, password: ap.value }).then(function () { S.acces = { ouvert: false, em: '', msg: '', err: '' }; chargeMoi(); }).catch(function (z) { S.acces.err = z.message; re(); });
+    };
+    fa.querySelector('[data-a=lien]').onclick = function () {
+      S.acces.em = ae.value; S.acces.err = '';
+      post('/api/public/resa/acces', { c: c, k: k, email: ae.value }).then(function () { S.acces.msg = 'Si cette adresse est connue, un e-mail vient de partir. Pense à regarder dans les indésirables.'; re(); }).catch(function (z) { S.acces.err = z.message; re(); });
+    };
   }
 
   /* ---------- tout ce que l'enseignant propose, tel que l'API le renvoie : formules, packs, abonnements ---------- */
@@ -344,8 +406,10 @@
     }).join('') + '</div>';
     var choix = formule(), masque = choix && !res.some(function (x) { return x.k === choix.k; }) ? '<p class="info" role="status">Choix actuel : ' + e(choix.nom) + ', masqué par les filtres.</p>' : '';
     var lim = S.tout ? 999 : 6, plus = res.length > lim ? '<p style="margin-top:14px"><button type="button" class="r-btn r-btn--sec r-btn--full" data-fl-plus>' + ic('plus', 18) + (res.length - lim > 1 ? 'Voir les ' + (res.length - lim) + ' autres formules' : 'Voir l’autre formule') + '</button></p>' : '';
+    var mien = miens();
     var cartes = res.length ? '<div class="fos">' + res.slice(0, lim).map(function (x) {
       return '<button type="button" class="fo" data-f="' + e(x.k) + '" aria-pressed="' + (x.k === S.f) + '"><span class="fh"><span class="nm">' + e(x.nom) + '</span><span class="r-tag">' + TYPES[x.t] + '</span></span>' +
+        (mien[x.k] ? '<span class="r-tag r-tag--accent mine">' + e(mien[x.k]) + '</span>' : '') +
         '<dl class="mt"><div><dt>Format</dt><dd>' + (x.joueurs ? genre(x.joueurs) : '—') + '</dd></div><div><dt>Personnes</dt><dd>' + (x.joueurs || '—') + '</dd></div><div><dt>Durée</dt><dd>' + (x.dOk ? DUR(x.duree) : '—') + '</dd></div><div><dt>Séances</dt><dd>' + (x.ns || '—') + '</dd></div></dl>' +
         '<span class="pp"><span class="pr">' + e(x.pn) + (x.un ? ' <small>' + e(x.un) + '</small>' : '') + '</span><span class="ps">' + e(x.ps) + '</span></span></button>';
     }).join('') + '</div>' : '<div class="vide" role="status"><b>Aucune formule ne correspond</b><span>Aucune formule n’a ces critères à la fois. Retirez un filtre pour voir les autres.</span><button type="button" class="r-btn r-btn--sec r-btn--sm" data-fl-clear>' + ic('x', 18) + 'Tout effacer</button></div>';
@@ -393,7 +457,7 @@
     var choisirF = '<p class="vide-m" role="status">Choisissez d’abord une formule : les jours libres dépendent de sa durée.</p>';
     var jourCarte = '<section class="r-card" aria-label="Jour">' + head('cal', cap(moisTxt), f ? '<button type="button" class="lien mb" id="tm">' + (S.mois ? 'Prochains jours' : 'Tout le mois') + '</button>' + nav : nav) +
       (!f ? choisirF : '<div class="mb">' + (S.mois ? cal : (strip ? '<div class="bande" role="group" aria-label="Jours disponibles">' + strip + '</div>' : '<p class="vide-m">Aucun jour libre ce mois-ci.</p>')) + '</div><div class="dk">' + cal + '</div>') + '</section>';
-    var html = entete('Réserver un cours', 'Choisissez votre créneau') +
+    var html = entete('Réserver un cours', 'Choisissez votre créneau') + accesBloc() +
       '<div class="grille' + (filtres(offres()).some(function (x) { return x.m.k === 't'; }) ? ' tabs-on' : '') + '"><div class="col">' + blocFormules() + jourCarte + '</div>' +
       '<div class="col"><section class="r-card" aria-label="Horaires">' + head('clock', ouvert ? cap(jour(ouvert.d)) : 'Horaire') + (ouvert ? slots : '<p class="vide-m" role="status">' + (!f ? 'Choisissez d’abord une formule, puis un jour.' : !S.jour ? (dispo.length ? 'Choisissez un jour pour voir les horaires.' : 'Aucun créneau libre ce mois-ci : essayez le mois suivant.') : 'Aucun horaire.') + '</p>') + '</section>' +
       '<div class="dk">' + recap(f, 'continuer') + '</div></div></div>' +
@@ -401,6 +465,7 @@
     page(d.coach, sous, html, true);
     var nvb = root.querySelector('.bande'); if (nvb) nvb.scrollLeft = sx;
     window.scrollTo(0, sy);
+    branche(dessine);
     root.querySelectorAll('.fo').forEach(function (b) { b.onclick = function () { if (S.f !== b.dataset.f) { S.f = b.dataset.f; S.jour = null; S.pick = null; } dessine(); }; });
     root.querySelectorAll('button[data-fl]').forEach(function (b) { b.onclick = function () { S.fl[b.dataset.fl] = b.dataset.v; S.tout = false; dessine(); }; });
     root.querySelectorAll('[data-fl-plus]').forEach(function (b) { b.onclick = function () { S.tout = true; dessine(); }; });
@@ -415,14 +480,16 @@
   }
 
   function infos(f, sous) {
-    var d = S.data, p = S.pick, v = S.v;
+    var d = S.data, p = S.pick, v = S.v, fc = ficheChoisie();
+    /* élève connecté : nom, téléphone et e-mail préremplis depuis sa fiche et son compte (adresse vérifiée, non modifiable ici) */
+    if (S.moi) { if (fc && S.prefill !== fc.id) { var np = fc.nom.split(' '); v.p = np[0] || ''; v.n = np.slice(1).join(' '); if (fc.tel) v.t = fc.tel; S.prefill = fc.id; } v.em = S.moi.email; }
     var seg = function (id, lab, data, opts, cur) { return '<div class="r-field w"><span class="lbl" id="' + id + '">' + lab + '<small>facultatif</small></span><div class="r-tabs r-tabs--full" role="group" aria-labelledby="' + id + '">' + opts.map(function (x) { return '<button type="button" data-' + data + '="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>'; };
     var rm = '<div class="r-card rcm mb"><div><b>' + e(court(p.d)) + ' · ' + H(p.t) + '</b><small>' + e(f.nom) + (f.dOk ? ' · ' + DUR(f.duree) : '') + ' · ' + e(prixTxt(f)) + '</small></div><button type="button" class="r-btn r-btn--sec r-btn--sm" data-a="change">' + ic('edit', 18) + 'Changer</button></div>';
     var form = '<form class="r-card" id="f" novalidate>' + head('user', 'Vos informations', '', 'dk') + '<div class="fm">' +
       '<div class="r-field"><label for="p">Prénom</label><input class="r-input" id="p" required autocomplete="given-name" value="' + e(v.p) + '"></div>' +
       '<div class="r-field"><label for="n">Nom</label><input class="r-input" id="n" required autocomplete="family-name" value="' + e(v.n) + '"></div>' +
       '<div class="r-field w"><label for="t">Téléphone</label><input class="r-input" id="t" required type="tel" autocomplete="tel" value="' + e(v.t) + '"></div>' +
-      '<div class="r-field w"><label for="em">E-mail</label><input class="r-input" id="em" required type="email" autocomplete="email" value="' + e(v.em) + '"></div>' +
+      '<div class="r-field w"><label for="em">E-mail</label><input class="r-input" id="em" required type="email" autocomplete="email"' + (S.moi ? ' readonly' : '') + ' value="' + e(v.em) + '"></div>' +
       '<div class="r-field w"><label for="o">Objectif de la séance</label><textarea class="r-textarea" id="o" required rows="2" placeholder="Ce que tu veux travailler">' + e(v.o) + '</textarea></div>' +
       seg('nvl', 'Niveau', 'niv', [['Débutant', 'Débutant'], ['Loisir', 'Loisir'], ['Compétition', 'Compétition']], v.niv) +
       (f.joueurs > 1 ? '<div class="r-field w"><label for="pa">Partenaire' + (f.joueurs > 2 ? 's' : '') + '<small>facultatif</small></label><input class="r-input" id="pa" autocomplete="off" placeholder="' + (f.joueurs > 2 ? 'Prénoms des autres joueurs' : 'Prénom de ton partenaire') + '" value="' + e(v.pa) + '"></div>' : '') +
@@ -431,8 +498,9 @@
       '<label class="chk w"><input type="checkbox" class="r-check" id="ac" required><span>J’accepte que ' + e(d.coach) + ' conserve ces informations pour organiser mes cours. Je peux demander leur suppression à tout moment.</span></label>' +
       '<div class="w"><button class="r-btn r-btn--full" id="go" type="submit">' + ic('check', 18) + 'Réserver mon cours</button></div><p class="err w" id="er" role="alert"></p></div></form>';
     var corps = titre('Étape 4 sur 4', 'Vos informations') + '<ol class="steps" aria-label="Étapes">' + ['Formule', 'Jour', 'Horaire', 'Vos infos'].map(function (x, i) { return '<li class="' + (i < 3 ? 'ok' : 'on') + '"' + (i === 3 ? ' aria-current="step"' : '') + '>' + (i < 3 ? ic('check', 14) : '4 ·') + ' ' + x + '</li>'; }).join('') + '</ol>' +
-      '<div class="grille"><div class="col">' + rm + form + '</div><div class="col dk">' + recap(f, 'infos') + '</div></div>';
+      '<div class="grille"><div class="col">' + accesBloc() + rm + form + '</div><div class="col dk">' + recap(f, 'infos') + '</div></div>';
     page(d.coach, sous, corps);
+    branche(function () { garde(); infos(f, sous); });
     root.querySelectorAll('[data-a=change]').forEach(function (b) { b.onclick = function () { garde(); S.etape = 'choisir'; dessine(); window.scrollTo(0, 0); }; });
     root.querySelectorAll('[data-cv]').forEach(function (b) { b.onclick = function () { garde(); S.v.cv = S.v.cv === b.dataset.cv ? '' : b.dataset.cv; infos(f, sous); }; });
     root.querySelectorAll('[data-niv]').forEach(function (b) { b.onclick = function () { garde(); S.v.niv = S.v.niv === b.dataset.niv ? '' : b.dataset.niv; infos(f, sous); }; });
@@ -440,10 +508,11 @@
     fm.onsubmit = function (x) {
       x.preventDefault();
       garde();
+      if (S.moi && fichesMoi().length > 1 && !S.fiche) { document.getElementById('er').textContent = 'Choisis pour qui tu réserves.'; return; }
       if (!fm.checkValidity()) { fm.reportValidity(); return; }
       var bt = document.getElementById('go'), val = function (i) { return document.getElementById(i).value; };
       bt.disabled = true;
-      post('/api/public/resa/reserver', { c: c, k: k, d: p.d, t: p.t, formule: f.id, type: f.t, couvert: S.v.cv, partenaires: S.v.pa, prenom: val('p'), nom: val('n'), tel: val('t'), email: val('em'), objectif: val('o'), niveau: S.v.niv, site: val('site'), accord: document.getElementById('ac').checked })
+      post('/api/public/resa/reserver', { c: c, k: k, fiche: S.moi ? S.fiche : '', d: p.d, t: p.t, formule: f.id, type: f.t, couvert: S.v.cv, partenaires: S.v.pa, prenom: val('p'), nom: val('n'), tel: val('t'), email: val('em'), objectif: val('o'), niveau: S.v.niv, site: val('site'), accord: document.getElementById('ac').checked })
         .then(function (r) { S.conf = { r: r, f: f, p: p }; S.etape = 'fait'; dessine(); window.scrollTo(0, 0); })
         .catch(function (z) { bt.disabled = false; document.getElementById('er').textContent = z.message; });
     };

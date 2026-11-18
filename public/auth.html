@@ -79,7 +79,7 @@
     // après connexion : le tableau de bord, sauf si l'on vient de /Buvette (même compte /RAM)
     const back = qs.get('retour') || '';
     // ou si l'on vient de la page d'autorisation du connecteur /RAM pour Claude
-    location.href = /^(https:\/\/club\.riseandmove\.fr\/|\/club\/|\/oauth\/authorize\?)/.test(back) ? back : '/dashboard';
+    location.href = /^(https:\/\/club\.riseandmove\.fr\/|\/club\/|\/oauth\/authorize\?|\/r\/[\w.-]+(\/[\w.-]+)?$)/.test(back) ? back : '/dashboard';
   };
 })();
 </script>
