@@ -518,7 +518,74 @@ function coDispoCard() {
   );
 }
 /* page publique, agendas reliés, Calendly : chacun réserve par l'outil qu'il a, le temps de passer à l'appli */
-const coResaUrl = () => location.origin + '/r/' + encodeURIComponent(RAM.club) + '/' + encodeURIComponent(ME());
+/* l'adresse de sa page : /reservation/<nom> une fois le nom validé, sinon l'adresse d'origine /r/<club>/<clé> (qui marche toujours) */
+const coResaUrl = () =>
+  location.origin +
+  (OFFRES.nom ? '/reservation/' + OFFRES.nom : '/r/' + encodeURIComponent(RAM.club) + '/' + encodeURIComponent(ME()));
+/* nom de l'adresse : proposé d'après son nom, modifiable ; disponibilité vérifiée au fil de la saisie ; unicité garantie par le serveur */
+let CO_NOM = null;
+const coNomPre = () => location.origin + '/reservation/';
+function coNomInit() {
+  if (CO_NOM || !(window.RAM && RAM.live)) return;
+  CO_NOM = { saisie: OFFRES.nom || '', msg: '', propose: '', ok: !!OFFRES.nom };
+  fetch('/api/coach/nom-reservation', { credentials: 'include' })
+    .then(r => r.json())
+    .then(d => {
+      if (!CO_NOM.saisie) CO_NOM.saisie = d.propose || '';
+      render(true);
+    })
+    .catch(() => {});
+}
+function coNomBloc() {
+  coNomInit();
+  const n = CO_NOM || { saisie: OFFRES.nom || '', msg: '', propose: '', ok: !!OFFRES.nom },
+    cur = n.saisie === OFFRES.nom;
+  return `<span class="kicker" style="margin-top:12px">Adresse de ma page</span><div class="fld"><label for="co-nom">Nom dans l’adresse</label><input id="co-nom" value="${esc(n.saisie)}" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="prenom-nom"></div><p class="muted small" id="co-nom-ap" style="word-break:break-all">${esc(coNomPre())}<b>${esc(n.saisie || '…')}</b></p><p class="small" id="co-nom-msg" role="status">${esc(n.msg || (cur ? 'C’est l’adresse actuelle de ta page.' : ''))}</p><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coNomOk"${n.ok && !cur ? '' : ' disabled'}>${ic('check')}Valider cette adresse</button>${n.propose ? `<button class="btn sm ghost grow" data-a="coNomVariante">${ic('edit')}Utiliser ${esc(n.propose)}</button>` : ''}</div><p class="muted small">Les anciennes adresses continuent de marcher et te restent réservées.</p>`;
+}
+let coNomT = 0;
+document.addEventListener('input', e => {
+  if (e.target.id !== 'co-nom' || !CO_NOM) return;
+  const v = e.target.value.trim();
+  CO_NOM.saisie = v;
+  CO_NOM.ok = false;
+  CO_NOM.propose = '';
+  const ap = $('co-nom-ap'),
+    msg = $('co-nom-msg'),
+    ok = document.querySelector('[data-a="coNomOk"]');
+  if (ap) ap.innerHTML = esc(coNomPre()) + '<b>' + esc(v || '…') + '</b>';
+  if (ok) ok.disabled = true;
+  clearTimeout(coNomT);
+  coNomT = setTimeout(() => {
+    fetch('/api/coach/nom-reservation?nom=' + encodeURIComponent(v), { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (CO_NOM.saisie !== v) return;
+        CO_NOM.ok = !!d.libre && d.nom === OFFRES.nom ? false : !!d.libre;
+        CO_NOM.propose = d.propose || '';
+        CO_NOM.msg = d.libre
+          ? d.nom === OFFRES.nom
+            ? 'C’est l’adresse actuelle de ta page.'
+            : 'Libre : ' + coNomPre() + d.nom
+          : d.erreur || '';
+        if (d.nom && d.nom !== v) CO_NOM.msg += ' (écrit : ' + d.nom + ')';
+        CO_NOM.saisie = v;
+        const m = $('co-nom-msg'),
+          b = document.querySelector('[data-a="coNomOk"]'),
+          ap2 = $('co-nom-ap');
+        if (m) m.textContent = CO_NOM.msg;
+        if (ap2 && d.nom) ap2.innerHTML = esc(coNomPre()) + '<b>' + esc(d.nom) + '</b>';
+        if (b) b.disabled = !CO_NOM.ok;
+        const old = document.querySelector('[data-a="coNomVariante"]');
+        if (old) old.remove();
+        if (CO_NOM.propose && b)
+          b.insertAdjacentHTML(
+            'afterend',
+            `<button class="btn sm ghost grow" data-a="coNomVariante">${ic('edit')}Utiliser ${esc(CO_NOM.propose)}</button>`
+          );
+      })
+      .catch(() => {});
+  }, 300);
+});
 const coCopie = (t, msg) =>
   navigator.clipboard
     ? navigator.clipboard.writeText(t).then(
@@ -580,7 +647,7 @@ function coOutilsCard() {
     'Mes outils de réservation',
     `<span class="kicker">Page publique, sans compte</span>${
       ouverte
-        ? `<p class="muted small">Ta page est ouverte. Pour le site ou la boutique Shopify, colle le bloc dans une section « Liquid personnalisé ».</p><a class="btn sm ghost full" href="${esc(coResaUrl())}" target="_blank" rel="noopener" style="margin-bottom:8px">${ic('globe')}Page de réservation</a><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coResaLien">${ic('cal')}Copier le lien</button><button class="btn sm ghost grow" data-a="coResaBloc">${ic('edit')}Copier le bloc</button><button class="btn sm ghost grow" data-a="coResaPage" data-v="0">${ic('x')}Fermer la page</button></div>`
+        ? `<p class="muted small">Ta page est ouverte. Pour le site ou la boutique Shopify, colle le bloc dans une section « Liquid personnalisé ».</p>${coNomBloc()}<a class="btn sm ghost full" href="${esc(coResaUrl())}" target="_blank" rel="noopener" style="margin-bottom:8px">${ic('globe')}Page de réservation</a><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="coResaLien">${ic('cal')}Copier le lien</button><button class="btn sm ghost grow" data-a="coResaBloc">${ic('edit')}Copier le bloc</button><button class="btn sm ghost grow" data-a="coResaPage" data-v="0">${ic('x')}Fermer la page</button></div>`
         : `<p class="muted small">Quelqu’un sans compte réserve un cours individuel sur tes plages libres : questionnaire, confirmation par e-mail, annulation jusqu’à 24 h avant.</p><button class="btn sm ghost full" data-a="coResaPage" data-v="1">${ic('cal')}Ouvrir ma page dans ce club</button>`
     }<span class="kicker" style="margin-top:12px">Google Agenda</span><p class="muted small">Tes séances arrivent dans Google Agenda dès qu’elles sont posées ou réservées, avec le nom de l’élève.</p><button class="btn sm full" data-a="coGoogle">${ic('cal')}Envoyer en temps réel</button><p class="muted small">Pour Outlook ou iCloud, ou sans cet envoi : le lien de tes cours. Google ne le relit qu’environ toutes les 12 h.</p><button class="btn sm ghost full" data-a="coAgendaLien">${ic('cal')}Copier le lien de mes cours</button><p class="muted small">Dans l’autre sens, ce qui est posé dans ton agenda n’est plus réservable dans l’appli : ajoute son adresse secrète au format iCal.</p>${cals.map((u, i) => `<div class="cokv"><span class="muted small">${coCalTxt(i)}</span><button class="ib" data-a="coIcalDel" data-i="${i}" aria-label="Retirer l’agenda ${i + 1}">${ic('x')}</button></div>`).join('')}${cals.length < 5 ? `<button class="btn sm ghost full" data-a="coIcalAdd">${ic('plus')}Relier un agenda</button>` : ''}<span class="kicker" style="margin-top:12px">Calendly</span><p class="muted small">Il reste en service : ton lien (« Lien de réservation » de ta fiche) est proposé à côté de la réservation dans l’appli, et chaque réservation Calendly arrive à ton planning. Par défaut, Calendly la pose lui-même dans son agenda ; sinon, coche la case « Ajouter aussi les cours pris sur Calendly » dans Google Agenda.</p><button class="btn sm ghost full" data-a="coCalendly">${ic('plus')}Relier mon compte Calendly</button>`
   );
@@ -659,6 +726,38 @@ Object.assign(A, {
   },
   coResaLien() {
     coCopie(coResaUrl(), 'Lien copié');
+  },
+  /* valider le nom de l'adresse : le serveur garantit l'unicité (même si deux enseignants valident en même temps) */
+  coNomOk() {
+    if (!CO_NOM || !CO_NOM.ok) return;
+    fetch('/api/coach/nom-reservation', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom: CO_NOM.saisie })
+    })
+      .then(r => r.json().then(d => ({ ok: r.ok, d })))
+      .then(({ ok, d }) => {
+        if (!ok) {
+          CO_NOM.ok = false;
+          CO_NOM.propose = d.propose || '';
+          CO_NOM.msg = d.error || 'Adresse refusée.';
+          return render(true);
+        }
+        OFFRES.nom = d.nom;
+        CO_NOM = null;
+        render(true);
+        toast('Adresse enregistrée : ' + coResaUrl());
+      })
+      .catch(() => toast('Connexion impossible'));
+  },
+  coNomVariante() {
+    if (!CO_NOM || !CO_NOM.propose) return;
+    CO_NOM.saisie = CO_NOM.propose;
+    CO_NOM.propose = '';
+    CO_NOM.ok = true;
+    CO_NOM.msg = 'Libre : ' + coNomPre() + CO_NOM.saisie;
+    render(true);
   },
   coResaBloc() {
     coCopie(

@@ -253,7 +253,7 @@
   var titre = function (kick, t) { return '<div class="ti" style="padding:0"><span class="r-surtitre">' + e(kick) + '</span><h2>' + e(t) + '</h2></div>'; };
   var head = function (i, t, acts, cl) { return '<div class="r-card__head ' + (cl || '') + '">' + (i ? ic(i, 20) : '') + '<b>' + e(t) + '</b>' + (acts ? '<span class="acts">' + acts + '</span>' : '') + '</div>'; };
 
-  if (parts[1] === 'annuler') {
+  if (parts[0] === 'r' && parts[1] === 'annuler') {
     page('Réservation', '/Dojo · réservation en ligne', '<div class="fin">' + titre('Annuler mon cours', 'Annuler ce cours') + '<div class="r-card"><p>Tu peux annuler jusqu’à 24 h avant le cours. L’enseignant est prévenu.</p><p style="margin-top:14px"><button class="r-btn r-btn--full" id="a" type="button">' + ic('x', 18) + 'Annuler ce cours</button></p><p class="err" id="er" role="alert"></p></div></div>');
     document.getElementById('a').onclick = function () {
       post('/api/public/resa/annuler', { c: q.get('c'), id: q.get('id'), t: q.get('t') })
@@ -323,7 +323,7 @@
     };
     fa.querySelector('[data-a=lien]').onclick = function () {
       S.acces.em = ae.value; S.acces.err = '';
-      post('/api/public/resa/acces', { c: c, k: k, email: ae.value }).then(function () { S.acces.msg = 'Si cette adresse est connue, un e-mail vient de partir. Pense à regarder dans les indésirables.'; re(); }).catch(function (z) { S.acces.err = z.message; re(); });
+      post('/api/public/resa/acces', { c: c, k: k, email: ae.value, chemin: parts[0] === 'reservation' ? location.pathname : '' }).then(function () { S.acces.msg = 'Si cette adresse est connue, un e-mail vient de partir. Pense à regarder dans les indésirables.'; re(); }).catch(function (z) { S.acces.err = z.message; re(); });
     };
   }
 
@@ -541,7 +541,24 @@
     document.getElementById('ag').onclick = function () { this.href = URL.createObjectURL(new Blob([ics(co)], { type: 'text/calendar' })); };
     document.getElementById('enc').onclick = function () { S.etape = 'choisir'; S.pick = null; S.conf = null; S.v.o = ''; charge(); window.scrollTo(0, 0); };
   }
-  charge();
+  /* /r/<club>/<clé> : l'adresse d'origine, qui marche toujours. /reservation/<nom>[/<club>] : le nom est résolu par le serveur
+     (un ancien nom renvoie vers le nouveau, une page fermée reste fermée, un nom inconnu donne une page propre) */
+  function sansPage(titre, texte) { page('Réserver un cours', '/Dojo · réservation en ligne', '<div class="fin">' + titre_(titre) + '<div class="r-card"><p>' + e(texte) + '</p></div></div>'); }
+  function titre_(t) { return '<div class="ti"><span class="r-surtitre">Réserver un cours</span><h2>' + e(t) + '</h2></div>'; }
+  function choixClub(clubs) {
+    page('Réserver un cours', '/Dojo · réservation en ligne', '<div class="fin">' + titre_('Choisissez un club') + '<div class="r-card"><p style="margin-bottom:12px">Cet enseignant réserve dans plusieurs clubs.</p><div class="btn-b">' +
+      clubs.map(function (x) { return '<a class="r-btn r-btn--sec r-btn--full" href="/reservation/' + encodeURIComponent(parts[1]) + '/' + encodeURIComponent(x.slug) + '">' + ic('pin', 18) + e(x.nom) + '</a>'; }).join('') + '</div></div></div>');
+  }
+  if (parts[0] === 'reservation') {
+    fetch('/api/public/resa/nom?n=' + encodeURIComponent(parts[1] || '') + '&club=' + encodeURIComponent(parts[2] || '')).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); }).then(function (x) {
+      var d = x.d;
+      if (!x.ok) return sansPage('Page introuvable', 'Cette page de réservation n’existe pas. Vérifie l’adresse que ton enseignant t’a donnée.');
+      if (d.redirect) return location.replace(d.redirect + location.search);
+      if (d.ferme) return sansPage('Réservation fermée', 'Cette page de réservation n’est pas ouverte pour le moment.');
+      if (d.clubs) return choixClub(d.clubs);
+      c = d.c; k = d.k; charge();
+    }).catch(function () { sansPage('Page indisponible', 'Réessaie dans un instant.'); });
+  } else charge();
 })();
 </script>
 </body>

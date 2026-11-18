@@ -1091,7 +1091,19 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await coachP.click('[data-a="coResaPage"]');
   await coachP.waitForSelector('[data-a="coResaBloc"]', { timeout: 8000 });
   await coachP.waitForFunction(() => OFFRES.page === RAM.club);
-  assert.match(await coachP.locator('a:has-text("Page de réservation")').first().getAttribute('href'), /\/r\/[^/]+\/[^/]+$/, 'Dojo : bouton vers sa page publique, dans les réglages');  // créer un stage depuis /RAM Coach
+  assert.match(await coachP.locator('a:has-text("Page de réservation")').first().getAttribute('href'), /\/r\/[^/]+\/[^/]+$/, 'Dojo : bouton vers sa page publique, dans les réglages');
+  // adresse personnalisée : proposée d'après son nom, validée en direct (nom réservé refusé), puis lien affiché et copié
+  await coachP.waitForSelector('#co-nom', { timeout: 8000 });
+  await coachP.waitForFunction(() => document.getElementById('co-nom').value.length > 2, null, { timeout: 8000 });
+  assert.match(await coachP.inputValue('#co-nom'), /^[a-z0-9-]+$/, 'nom proposé : minuscules, sans accent, tirets');
+  await coachP.fill('#co-nom', 'admin');
+  await coachP.waitForFunction(() => /réservé/i.test(document.getElementById('co-nom-msg').textContent), null, { timeout: 8000 });
+  assert.equal(await coachP.locator('[data-a=coNomOk]').isDisabled(), true, 'nom réservé : pas de validation');
+  await coachP.fill('#co-nom', 'sarah-ui-' + t);
+  await coachP.waitForFunction(() => /Libre/.test(document.getElementById('co-nom-msg').textContent), null, { timeout: 8000 });
+  await coachP.click('[data-a=coNomOk]');
+  await coachP.waitForFunction(m => OFFRES.nom === m, 'sarah-ui-' + t, { timeout: 8000 });
+  assert.match(await coachP.evaluate(() => coResaUrl()), new RegExp('/reservation/sarah-ui-' + t + '$'), 'le lien de /Dojo devient la nouvelle adresse');  // créer un stage depuis /RAM Coach
   await coachP.evaluate(() => A.newPost({ k: 'stage' }));
   await coachP.waitForSelector('#adm-form[data-k="stage"]', { timeout: 8000 });
   await coachP.evaluate(() => { const v = (i, x) => { const e = document.getElementById(i); if (e) e.value = x; }; v('a-title', 'Stage de Noël'); v('a-d1', isoIn(10)); v('a-h1', '9 h'); v('a-h2', '12 h'); v('a-place', 'Club'); v('a-body', 'Pour tous'); document.getElementById('a-same') && (document.getElementById('a-same').checked = true); document.querySelector('#adm-form').requestSubmit(); });
@@ -1207,6 +1219,61 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await pp.click('#go');
   await pp.waitForFunction(() => /réservé/i.test(document.querySelector('main h2').textContent), null, { timeout: 8000 });
   assert.ok(await pp.locator('#ag').isVisible() && /annuler/.test(await pp.locator('a[href*="annuler"]').getAttribute('href')), 'agenda et lien d’annulation');
+
+  // adresse personnalisée /reservation/<nom> : nom validé, unique, ancien nom redirigé, page fermée, nom inconnu, parcours depuis la nouvelle adresse
+  const nom1 = `coach-${t}`, nom2 = nom1 + '-b', statut = async (c, url, data) => (await c.request.post(JA + url, { data })).status();
+  assert.equal(await statut(cc, '/api/coach/nom-reservation', { nom: 'admin' }), 400, 'nom réservé refusé');
+  assert.equal(await statut(sc, '/api/coach/nom-reservation', { nom: 'pirate-' + t }), 403, 'seul un enseignant choisit une adresse');
+  assert.equal((await (await cc.request.get(JA + '/api/coach/nom-reservation?nom=' + nom1)).json()).libre, true);
+  assert.equal((await post(cc, '/api/coach/nom-reservation', { nom: nom1 })).nom, nom1);
+  for (const vp of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    await pp.setViewportSize(vp);
+    await pp.goto(JA + '/reservation/' + nom1);
+    await pp.waitForSelector('.fo', { timeout: 10000 });
+    assert.equal(new URL(pp.url()).pathname, '/reservation/' + nom1, 'le chemin reste celui de la nouvelle adresse');
+    assert.ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'sans débordement à ' + vp.width);
+  }
+  assert.equal((await post(cc, '/api/coach/nom-reservation', { nom: nom2 })).ancien, nom1);
+  await pp.goto(JA + '/reservation/' + nom1);
+  await pp.waitForSelector('.fo', { timeout: 10000 });
+  assert.equal(new URL(pp.url()).pathname, '/reservation/' + nom2, 'l’ancien nom redirige vers le nouveau');
+  await pp.goto(JA + '/r/' + club.id + '/' + club.key);
+  await pp.waitForSelector('.fo', { timeout: 10000 });   // l'adresse d'origine marche toujours
+  await pp.goto(JA + '/reservation/' + nom2 + '/' + club.id);
+  await pp.waitForSelector('.fo', { timeout: 10000 });
+  for (const mauvais of ['inconnu-' + t, 'admin']) {
+    await pp.goto(JA + '/reservation/' + mauvais);
+    await pp.waitForSelector('.fin');
+    assert.match(await pp.locator('main').innerText(), /Page introuvable/i);
+  }
+  // un élève de l'enseignant (fiche à son adresse) se connecte depuis la nouvelle adresse et réserve : fiche préremplie, réservation rattachée
+  await post(cc, `/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'eleve', id: 'ez' + t, op: 'put', data: { n: 'Ines Eleve', sport: 'Padel', parents: [], mail: `out-e-${t}@exemple.test`, tel: '06 22 22 22 22' } }] });
+  await pp.goto(JA + '/reservation/' + nom2);
+  await pp.waitForSelector('.fo', { timeout: 10000 });
+  await pp.click('.acc [data-a=acces]');
+  await pp.fill('#ae', `out-e-${t}@exemple.test`); await pp.fill('#ap', 'essai-' + t);
+  await pp.click('#al');
+  await pp.waitForSelector('[aria-label="Mon compte"]', { timeout: 10000 });
+  assert.match(await pp.locator('[aria-label="Mon compte"]').innerText(), /Ines Eleve/);
+  await pp.locator('.fo').first().click();
+  await pp.locator('button.dj:visible').first().click();
+  await pp.locator('.slot').first().click();
+  await pp.locator('[data-a=suite]:visible').first().click();
+  await pp.waitForSelector('#f');
+  assert.equal(await pp.inputValue('#p'), 'Ines'); assert.equal(await pp.inputValue('#t'), '06 22 22 22 22');
+  await pp.fill('#o', 'Volée'); await pp.check('#ac', { force: true });
+  await pp.click('#go');
+  await pp.waitForFunction(() => /réservé/i.test(document.querySelector('main h2').textContent), null, { timeout: 8000 });
+  // page fermée par l'enseignant : fermée aussi sur la nouvelle adresse ; le nom reste à lui
+  const offres = (await (await cc.request.get(JA + '/api/coach/formules')).json()).formules, ouverte = offres.page;
+  delete offres.page;
+  await post(cc, '/api/coach/formules', { formules: offres });
+  await pp.goto(JA + '/reservation/' + nom2);
+  await pp.waitForSelector('.fin');
+  assert.match(await pp.locator('main').innerText(), /Réservation fermée/i);
+  offres.page = ouverte;
+  await post(cc, '/api/coach/formules', { formules: offres });
+  assert.equal((await (await cc.request.get(JA + '/api/coach/formules')).json()).formules.nom, nom2, 'le nom survit aux enregistrements des formules');
   assert.deepEqual(errs, []);
   await cc.close(); await sc.close(); await pub.close();
 });

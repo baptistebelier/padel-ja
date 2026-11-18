@@ -72,6 +72,7 @@ setInterval(() => {
 }, 600000).unref();
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
 const agendaLu = Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) });
+const NomsResa = require('./lib/noms-resa.js').createNoms({ store });   // adresses /reservation/<nom>
 const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
 const agendaAlerte = require('./lib/agenda-alerte.js').createAgendaAlerte({ store, agenda: agendaLu, push, Formules, log: m => console.warn('/RAM Coach : ' + m) });   // agenda relié devenu illisible : alerte dans la cloche
 const googleAgenda = require('./lib/google-agenda.js').createGoogleAgenda({ ram, store, coachTables, taches, log: m => console.warn('/RAM Coach : ' + m) });   // les séances écrites dans Google Agenda, en temps réel
@@ -437,6 +438,10 @@ const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/
 // anti-force brute : au-delà de 10 codes PIN / clés faux en 15 min, l'appareil est bloqué pour ce tournoi
 const accessFails = new Map();
 const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+/* limite de débit simple : plus de `max` appels par fenêtre de `ms` pour une même clé */
+const limites = new Map();
+const limite = (cle, max, ms) => { const now = Date.now(), a = limites.get(cle); if (!a || now - a.t > ms) { limites.set(cle, { n: 1, t: now }); return false; } a.n++; return a.n > max; };
+setInterval(() => { const now = Date.now(); for (const [k, a] of limites) if (now - a.t > 15 * 60000) limites.delete(k); }, 15 * 60000).unref();
 setInterval(() => { const now = Date.now(); for (const [k, f] of accessFails) if (now > f.until) accessFails.delete(k); }, 15 * 60000);
 /* juge-arbitre adjoint : un compte dont l'e-mail est dans la liste du tournoi ; mêmes droits que le propriétaire,
    sauf supprimer le tournoi et choisir les adjoints */
@@ -901,6 +906,7 @@ const server = http.createServer(async (req, res) => {
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
     /* ---------- /RAM Réservation : page publique et lien d'agenda, sur tous les domaines ---------- */
     if (/^\/r\/[^/]+(\/[^/]+)?$/.test(p)) return sendFile(res, '/reserver.html');
+    if (/^\/reservation\/[^/]+(\/[^/]+)?\/?$/.test(p)) return sendFile(res, '/reserver.html');   // adresse personnalisée : le nom est résolu par l'API (jamais redirigé ici, pour que le chemin reste)
     if (/^\/i\/[^/]+(\/[^/]+){0,2}$/.test(p)) return sendFile(res, '/inscrire.html');   // inscription publique à une séance collective ou une partie dirigée
     if (p.startsWith('/agenda/') && req.method === 'GET') {
       const uid = Agenda.lireLien(p.slice(8));
@@ -1712,9 +1718,30 @@ const server = http.createServer(async (req, res) => {
       try { return json(res, 200, await coachTables.tableau(u.id, du, au, [[q('de') || du, au], [du, au]], await Formules.get(store, u.id), q('club'), isAdmin(u))); }
       catch (e) { if (/^Période/.test(e.message)) return json(res, 400, { error: e.message }); throw e; }
     }
+    /* adresse personnalisée de la page de réservation : /reservation/<nom> (lib/noms-resa.js) ; proposition, disponibilité, validation */
+    if (p === '/api/coach/nom-reservation') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      if (!(await ram.myClubs(u.id).catch(() => [])).some(c => c.role === 'coach' || c.role === 'bureau')) return json(res, 403, { error: 'Réservé aux enseignants.' });
+      if (limite('nom|' + u.id, 60, 60000)) return json(res, 429, { error: 'Trop de demandes : réessaie dans une minute.' });
+      const o = await Formules.get(store, u.id);
+      if (req.method === 'GET') {
+        const n = url.searchParams.get('nom');
+        if (!n) { const id = await store.getIdentity(u.id).catch(() => null); return json(res, 200, { courant: o.nom || '', propose: await NomsResa.proposer(u.id, [(id && id.first) || '', (id && id.last) || ''].filter(Boolean).join(' ') || u.name) }); }
+        return json(res, 200, await NomsResa.disponible(u.id, n));
+      }
+      if (req.method === 'POST') {
+        const b = await readBody(req);
+        try { const r = await NomsResa.reserver(u.id, b.nom); o.nom = r.nom; await Formules.save(store, u.id, o); return json(res, 200, { nom: r.nom, ancien: r.ancien }); }
+        catch (e) { if (e.code) return json(res, e.code === 'pris' ? 409 : 400, { error: e.message, propose: e.propose }); throw e; }
+      }
+    }
     if (p === '/api/coach/formules') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
-      if (req.method === 'POST') return json(res, 200, { formules: await Formules.save(store, u.id, (await readBody(req)).formules) });
+      if (req.method === 'POST') {
+        const src = (await readBody(req)).formules || {}, prev = await Formules.get(store, u.id);
+        if (prev.nom) src.nom = prev.nom; else delete src.nom;   // le nom de l'adresse /reservation/ ne se change que par /api/coach/nom-reservation (unicité)
+        return json(res, 200, { formules: await Formules.save(store, u.id, src) });
+      }
       return json(res, 200, { formules: await Formules.get(store, u.id) });
     }
     // les tarifs d'un enseignant d'un club, pour sa fiche dans /RAM Club (des prix publics : ni nom ni coordonnées)
@@ -1733,7 +1760,7 @@ const server = http.createServer(async (req, res) => {
           const b = await readBody(req), email = String(b.email || '').trim().toLowerCase(), c = String(b.c || ''), k = String(b.k || '');
           if (Auth.tooManyAttempts('resa-acces|' + clientIp(req)) || Auth.tooManyAttempts('resa-acces|' + email)) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
           if (!Mail.enabled()) return json(res, 503, { error: 'L’envoi d’e-mails n’est pas encore activé : contacte ton enseignant.' });
-          await AccesResa.demanderAcces({ store, reservation, Auth, Mail, base: appUrl(req), c, k, email }).catch(e => console.error('Accès par e-mail : ' + e.message));
+          await AccesResa.demanderAcces({ store, reservation, Auth, Mail, base: appUrl(req), c, k, email, retour: b.chemin }).catch(e => console.error('Accès par e-mail : ' + e.message));
           return json(res, 200, { ok: true });
         }
         if (p === '/api/public/resa/moi' && req.method === 'GET') {   // l'élève connecté : ses fiches chez cet enseignant, à son adresse vérifiée
@@ -1759,6 +1786,19 @@ const server = http.createServer(async (req, res) => {
           return json(res, 200, { statut: r.statut, d: r.d, h: r.h, titre: r.titre, coach: r.coach, mail: r.mail, annuler: r.annuler });
         }
         if (p === '/api/public/resa/desinscrire' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.pubNvDesinscrire(String(b.c || ''), String(b.p || ''), String(b.k || ''), String(b.d || ''), String(b.t || ''))); }
+        /* /reservation/<nom>[/<club>] : de quel enseignant et de quel club s'agit-il ? Un ancien nom renvoie le nouveau ; une page fermée reste fermée */
+        if (p === '/api/public/resa/nom' && req.method === 'GET') {
+          if (limite('resa-nom|' + clientIp(req), 60, 60000)) return json(res, 429, { error: 'Trop de demandes : réessaie dans une minute.' });
+          const club = q('club'), r = await NomsResa.resoudre(q('n'));
+          if (!r) return json(res, 404, { error: 'Cette page de réservation n’existe pas.' });
+          if (r.nom !== r.courant) return json(res, 200, { redirect: '/reservation/' + r.courant + (club ? '/' + encodeURIComponent(club) : '') });
+          const o = await Formules.get(store, r.u), slug = x => NomsResa.slugify(x.name) || x.id;
+          const rows = o.page ? (await ram.myClubs(r.u)).filter(x => (x.role === 'coach' || x.role === 'bureau') && x.id === o.page) : [];
+          const cands = club ? rows.filter(x => x.id === club || slug(x) === NomsResa.slugify(club)) : rows;
+          if (!cands.length) return json(res, 200, { ferme: true });
+          if (cands.length > 1) return json(res, 200, { clubs: cands.map(x => ({ slug: slug(x), nom: x.name })) });
+          return json(res, 200, { c: cands[0].id, k: cands[0].key });
+        }
         if (p === '/api/public/resa/photo' && req.method === 'GET') {   // la photo de profil de l'enseignant (compte /RAM), si sa page est ouverte
           const ph = await reservation.pubPhoto(q('c'), q('k'));
           if (!ph) { res.writeHead(404); return res.end(); }
