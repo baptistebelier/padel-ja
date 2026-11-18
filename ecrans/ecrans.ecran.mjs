@@ -1168,11 +1168,11 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   // ordinateur : formules (durée visible), calendrier du mois, horaires et récapitulatif côte à côte
   await pp.setViewportSize({ width: 1280, height: 900 });
   await pp.waitForSelector('#nx', { timeout: 8000 });
-  assert.ok(await pp.locator('.fo').count() >= 1 && /\d h/.test(await pp.locator('.fo .du').first().innerText()), 'la durée de chaque formule est visible');
+  assert.ok(await pp.locator('.fo').count() >= 1 && /durée\s*\d+ (h|min)/i.test((await pp.locator('.fo').first().innerText()).replace(/\n/g, ' ')), 'la durée de chaque formule est visible');
   await pp.click('#nx');   // le mois suivant : forcément à venir
   await pp.waitForSelector('.slot', { timeout: 8000 });
   assert.ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'page publique sans débordement (ordinateur)');
-  assert.ok(await pp.evaluate(() => { const a = document.querySelector('section[aria-label="Horaires"]').getBoundingClientRect(), b = document.querySelector('.card[aria-label="Votre cours"]').getBoundingClientRect(); return b.top >= a.bottom - 1 && Math.abs(a.left - b.left) < 4; }), 'récapitulatif sous les horaires, dans la colonne de droite');
+  assert.ok(await pp.evaluate(() => { const a = document.querySelector('section[aria-label="Horaires"]').getBoundingClientRect(), b = document.querySelector('.r-card[aria-label="Votre cours"]').getBoundingClientRect(); return b.top >= a.bottom - 1 && Math.abs(a.left - b.left) < 4; }), 'récapitulatif sous les horaires, dans la colonne de droite');
   await pp.locator('.slot').first().click();
   assert.equal(await pp.locator('.slot[aria-pressed=true]').count(), 1);
   // téléphone : bande de jours, barre du bas fixe, pas de débordement
@@ -1186,10 +1186,104 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await pp.click('[data-niv=Loisir]');
   await pp.check('#ac', { force: true });
   await pp.click('#go');
-  await pp.waitForFunction(() => /réservé/i.test(document.querySelector('h1').textContent), null, { timeout: 8000 });
+  await pp.waitForFunction(() => /réservé/i.test(document.querySelector('main h2').textContent), null, { timeout: 8000 });
   assert.ok(await pp.locator('#ag').isVisible() && /annuler/.test(await pp.locator('a[href*="annuler"]').getAttribute('href')), 'agenda et lien d’annulation');
   assert.deepEqual(errs, []);
   await cc.close(); await sc.close(); await pub.close();
+});
+
+test('Page publique : filtres de formules combinés, compteur, effacement, état vide, intercalaires collés, parcours simulé (360, 390 et 1280 px)', async () => {
+  // l'API publique est simulée : aucune réservation réelle, des formules de tous les types
+  const FO = [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35, par: 'seance' }, { id: 'f2', nom: 'Cours individuel 1 h 30', sport: 'Padel', joueurs: 1, duree: 90, prix: 50, par: 'seance' },
+    { id: 'f3', nom: 'Cours duo', sport: 'Padel', joueurs: 2, duree: 60, prix: 30, par: 'personne' }, { id: 'f4', nom: 'Collectif à 4', sport: 'Padel', joueurs: 4, duree: 90, prix: 25, par: 'personne' },
+    { id: 'f5', nom: 'Cours de tennis', sport: 'Tennis', joueurs: 1, duree: 60, prix: 40, par: 'seance' }, { id: 'f6', nom: 'Partie dirigée', sport: 'Padel', joueurs: 3, duree: 90, prix: 5, par: 'personne' }];
+  const PK = [{ id: 'p1', nom: 'Pack Perfectionnement', formule: 'f1', seances: 5, prix: 160, duree: 60 }, { id: 'p2', nom: 'Cycle duo', formule: 'f3', seances: 10, prix: 270, duree: 60 }];
+  const AB = [{ id: 'a1', nom: 'Academy Training (6 mois)', formule: 'f1', periode: 'mois', engagement: 6, prix: 99, parSemaine: 1, parMois: 4, duree: 60 }];
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const requetes = [];
+  const ouvre = async vp => {
+    const ctx = await browser.newContext({ viewport: vp }), p = await ctx.newPage(), errs = [];
+    p.on('pageerror', x => errs.push(x.message));
+    await p.route('**/api/public/resa/creneaux*', r => {
+      const u = new URL(r.request().url()), de = u.searchParams.get('de'), n = +u.searchParams.get('n'), t0 = iso(new Date()), jours = [];
+      for (let i = 0; i < n; i++) { const d = iso(new Date(+de.slice(0, 4), +de.slice(5, 7) - 1, +de.slice(8) + i)); jours.push({ d, libres: d > t0 ? [{ du: 540, au: 660 }, { du: 930, au: 1080 }] : [] }); }
+      r.fulfill({ json: { coach: 'Sarah Test', club: 'Club Essai', photo: true, formules: FO, packs: PK, abos: AB, jours } });
+    });
+    await p.route('**/api/public/resa/photo*', r => r.fulfill({ status: 404, body: '' }));   // photo illisible : retour aux initiales
+    await p.route('**/api/public/resa/reserver', r => { requetes.push(r.request().postDataJSON()); r.fulfill({ json: { id: 'r1', d: requetes.at(-1).d, h: '9 h', dur: '1 h', nom: 'Cours individuel', mail: requetes.at(-1).email, coach: 'Sarah', couvert: '', prix: 35, annuler: '/r/annuler?c=x&id=r1&t=z' } }); });
+    await p.goto(JA + '/r/club-essai/cle-essai');
+    await p.waitForSelector('.fo', { timeout: 10000 });
+    return { ctx, p, errs };
+  };
+  const sans = p => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
+  const compte = p => p.locator('.cmpt').innerText();
+  for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    const { ctx, p, errs } = await ouvre(vp), w = vp.width;
+    assert.ok(await sans(p), 'pas de débordement à ' + w);
+    assert.equal(await p.locator('.crest').innerText(), 'ST', 'photo illisible : les initiales');
+    // la maquette Dojo : fond à motifs, marges latérales de 10 px sur téléphone
+    assert.ok(await p.evaluate(() => getComputedStyle(document.querySelector('.motif'), '::before').maskImage !== 'none'), 'fond à motifs du Dojo');
+    if (w < 700) assert.equal(await p.evaluate(() => Math.round(document.querySelector('.r-card').getBoundingClientRect().left)), 10, 'marge latérale de 10 px');
+    // intercalaires de type : collés à la carte du dessous (écart 0), un seul actif
+    assert.deepEqual(await p.locator('.seg > button').evaluateAll(l => l.map(x => x.firstChild.textContent)), ['Tout', 'À la séance', 'Pack', 'Abonnement']);
+    const ecart = await p.evaluate(() => document.querySelector('.r-card[aria-label="Formules"]').getBoundingClientRect().top - document.querySelector('.seg').getBoundingClientRect().bottom);
+    assert.ok(ecart <= 0 && ecart >= -3, 'intercalaires collés à la carte : ' + ecart);
+    assert.match(await compte(p), /^6 sur 9 formules$/i);
+    // seuls les filtres utiles (deux valeurs réelles au moins) : personnes, durée, séances, sport
+    assert.deepEqual(await p.locator('select[data-fl]').evaluateAll(l => l.map(x => x.id)), ['fl-j', 'fl-d', 'fl-s', 'fl-sp']);
+    assert.equal(await p.locator('[data-fl-clear]').count(), 1, 'le type choisi se retire avec « Tout effacer »');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+  const { ctx, p, errs } = await ouvre({ width: 390, height: 844 });
+  await p.locator('.seg button[data-v=""]').click();
+  assert.match(await compte(p), /^9 sur 9 formules$/i);
+  assert.equal(await p.locator('[data-fl-clear]').count(), 0);
+  await p.selectOption('#fl-j', '2');
+  assert.match(await compte(p), /^2 sur 9/i);
+  assert.equal(await p.locator('.fo').count(), 2, 'duo : la formule et le pack');
+  assert.equal(await p.locator('#fl-d option[value="90"]').isDisabled(), true, 'une valeur sans résultat est signalée (0) et refusée');
+  assert.match(await p.locator('#fl-d option[value="90"]').innerText(), /\(0\)/);
+  assert.ok(await p.locator('.seg button[data-v=a]').isDisabled(), 'type sans résultat désactivé, son compteur à 0');
+  await p.selectOption('#fl-s', '10');
+  assert.match(await compte(p), /^1 sur 9/i);
+  await p.selectOption('#fl-s', '');
+  await p.selectOption('#fl-j', '');
+  await p.selectOption('#fl-sp', 'Tennis');
+  assert.match(await compte(p), /^1 sur 9/i);
+  await p.click('[data-fl-clear]');
+  assert.match(await compte(p), /^9 sur 9/i);
+  assert.equal(await p.locator('[data-fl-clear]').count(), 0, 'effacé : plus de bouton');
+  // état vide : combinaison sans résultat (forcée, l'appli ne la propose pas)
+  await p.evaluate(() => { const s = document.getElementById('fl-d'), o = new Option('9 h', '540'); s.add(o); s.value = '540'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await p.waitForSelector('.vide');
+  assert.match(await p.locator('.vide').innerText(), /Aucune formule ne correspond/);
+  await p.click('.vide [data-fl-clear]');
+  assert.equal(await p.locator('.vide').count(), 0);
+  assert.match(await compte(p), /^9 sur 9/i);
+  // choix masqué par un filtre : signalé
+  await p.locator('.seg button[data-v=p]').click();
+  assert.match(await p.locator('.info').innerText(), /masqué/);
+  assert.ok(await sans(p), 'sans débordement avec filtres');
+  await ctx.close();
+  // parcours simulé jusqu'au bout, sur téléphone puis à l'ordinateur
+  for (const vp of [{ width: 360, height: 780 }, { width: 1280, height: 900 }]) {
+    const o = await ouvre(vp);
+    await o.p.locator('.fo').first().click();
+    await o.p.locator('.slot').first().click();
+    await o.p.locator('[data-a=suite]:visible').first().click();
+    await o.p.waitForSelector('#f');
+    assert.ok(await sans(o.p), 'formulaire sans débordement à ' + vp.width);
+    await o.p.fill('#p', 'Camille'); await o.p.fill('#n', 'Durand'); await o.p.fill('#t', '0612345678'); await o.p.fill('#em', 'camille@exemple.test'); await o.p.fill('#o', 'Bandeja');
+    await o.p.check('#ac', { force: true });
+    await o.p.click('#go');
+    await o.p.waitForFunction(() => /réservé/i.test(document.querySelector('main h2').textContent), null, { timeout: 8000 });
+    assert.ok(await o.p.locator('#ag').isVisible() && await sans(o.p), 'confirmation à ' + vp.width);
+    assert.equal(requetes.at(-1).formule, 'f1');
+    assert.deepEqual(o.errs, []);
+    await o.ctx.close();
+  }
+  assert.deepEqual(errs, []);
 });
 
 test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et la plage n’est plus libre', async () => {
