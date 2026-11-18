@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>S’inscrire — /Dojo</title>
+<link rel="icon" href="/img/favicon.png">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<script>
+/* Feuilles et scripts communs des trois applis : /club/… sur le domaine principal, racine sur coach. et club. */
+(function () {
+  var B = /^(coach|club)\./.test(location.hostname) ? '' : '/club', s = document.documentElement.style;
+  s.setProperty('--mk', 'url(' + B + '/motifs/w30/padel-base.png)');
+  s.setProperty('--ma', 'url(' + B + '/motifs/w30/padel-accent.png)');
+  document.write('<link rel="stylesheet" href="' + B + '/ds.css"><script src="' + B + '/liste.js"><\/script>');
+})();
+</script>
+<style>
+  /* /Dojo · inscription en ligne : mêmes jetons et mêmes composants que la page de réservation (club/ds.css) */
+  :root{--bg:#F1EDEE;--card:#FDFBFC;--card2:#EAE5E6;--field:#EAE5E6;--ink:#16191E;--fg:#16191E;--muted:#595D66;--off:#D9D1D3;--kick:#B0123F;--hero:#74102A;--accent-bg:#E0F50A;--on-accent-bg:#0B0B0B;--accent:#E0F50A;--accent2:#FF3D6B;--gut:16px}
+  @media (prefers-color-scheme:dark){:root{--bg:#1A181A;--card:#252326;--card2:#2E2B30;--field:#201E20;--ink:#000;--fg:#F4F4F5;--muted:#C8C8CE;--off:#3C393E;--kick:#FF6B8E}}
+  @media (max-width:700px){:root{--gut:10px}}
+  *,*::before,*::after{box-sizing:border-box;border-radius:0}
+  html{-webkit-text-size-adjust:100%;background:var(--c-bg)}
+  body{margin:0;background:var(--c-bg);color:var(--c-text);font:15px/1.45 var(--f-body);position:relative;min-height:100vh}
+  button,input,textarea,select{font:inherit;color:inherit}
+  button{cursor:pointer;background:none;border:0;padding:0;text-align:inherit}
+  button:disabled{cursor:default}
+  p{margin:0}
+  svg{display:block}
+  .motif{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .motif::before,.motif::after{content:'';position:absolute;inset:0;-webkit-mask:var(--mk) 0 0/800px 800px repeat;mask:var(--mk) 0 0/800px 800px repeat;background:color-mix(in srgb,var(--c-text) 9%,transparent)}
+  .motif::after{-webkit-mask-image:var(--ma);mask-image:var(--ma);background:color-mix(in srgb,var(--c-accent) 14%,transparent)}
+  #m{position:relative;z-index:1;max-width:1100px;margin:0 auto}
+  .ic{flex:none;fill:none;stroke:currentColor}
+  :focus-visible{outline:3px solid var(--c-pink);outline-offset:2px}
+  .top{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px var(--gut)}
+  .crest{display:grid;place-items:center;flex:none;width:44px;height:44px;background:var(--c-lime);color:var(--c-dark);border:var(--bw) solid var(--c-ink);font:400 17px/1 var(--f-display);text-transform:uppercase;transform:rotate(-3deg);box-shadow:3px 3px 0 var(--accent2);overflow:hidden}
+  .top h1{margin:0;font:400 24px/1.05 var(--f-display);letter-spacing:.01em;text-transform:uppercase;overflow-wrap:anywhere}
+  .top .sub{margin-top:2px;color:var(--c-muted);font-size:13px}
+  .top .r-tag{display:none;margin-left:auto}
+  .pad{display:flex;flex-direction:column;gap:18px;padding:16px var(--gut) 40px}
+  .ti h2{margin:4px 0 0;font:400 26px/1.05 var(--f-display);letter-spacing:.01em;text-transform:uppercase;overflow-wrap:anywhere}
+  .ti p.lead{margin-top:8px;max-width:62ch}
+  .col{display:flex;flex-direction:column;gap:18px;min-width:0}
+  .r-card__head{flex-wrap:wrap}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px;padding:0;list-style:none}
+  .meta li{display:flex;align-items:center;gap:8px;font-size:15px}
+  .meta svg{color:var(--c-kick)}
+  .meta .px{font:700 17px/1 var(--f-label)}
+  .dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 14px}
+  .dt{display:flex;flex-direction:column;gap:2px;padding:10px 12px;background:var(--c-surface-2);border:var(--bw) solid var(--c-ink);color:var(--c-text)}
+  .dt b{font:700 17px/1.2 var(--f-label)}
+  .dt small{font-size:13px;color:var(--c-muted)}
+  .dt[aria-pressed=true]{background:var(--c-lime);color:var(--c-dark);box-shadow:var(--sh-sm)}
+  .dt[aria-pressed=true] small{color:var(--c-dark)}
+  .dt:disabled{opacity:.55}
+  .tr{display:flex;flex-direction:column;gap:6px;padding:12px;margin:0 0 10px;background:var(--c-surface-2);border:var(--bw) solid var(--c-ink)}
+  .tr.moi{background:var(--c-lime);color:var(--c-dark);box-shadow:var(--sh-sm)}
+  .tr .l1{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .tr b{font:700 17px/1.2 var(--f-label)}
+  .tr small{font-size:13px}
+  .pts{display:flex;gap:4px;flex-wrap:wrap}
+  .pts i{width:14px;height:14px;border:var(--bw) solid var(--c-ink);background:var(--c-surface)}
+  .pts i.on{background:var(--c-ink)}
+  .tr.moi .pts i.on{background:var(--c-dark);border-color:var(--c-dark)}
+  .etat{padding:12px;border:var(--bw) solid var(--c-ink);background:var(--c-surface-2);margin:0 0 12px}
+  .etat.ok{background:var(--c-green);color:var(--c-dark)}
+  .fm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}
+  .fm .w{grid-column:1/-1}
+  .chk{display:flex;align-items:flex-start;gap:12px;font-size:13px;cursor:pointer}
+  .pot{position:absolute;left:-9999px}
+  .err{color:var(--c-pink);font-weight:600}
+  .err:empty{display:none}
+  .dg{margin-top:6px;color:var(--c-muted);font-size:13px}
+  .vide-m{color:var(--c-muted)}
+  .fin{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px;width:100%}
+  .fin .ok{display:grid;place-items:center;width:72px;height:72px;background:var(--c-lime);border:var(--bw) solid var(--c-ink);box-shadow:var(--sh);color:var(--c-dark)}
+  .fin .tx{margin-top:6px;font-size:14px}
+  .hr{height:2px;margin:12px 0;background:var(--c-ink);border:0}
+  @media (min-width:700px){.dates{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (min-width:900px){
+    .top{min-height:76px;padding-top:14px;padding-bottom:14px}
+    .crest{width:52px;height:52px;font-size:20px}
+    .top h1{font-size:30px}
+    .top .r-tag{display:inline-flex}
+    .ti h2{font-size:34px}
+    .grille{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,440px);gap:20px;align-items:start}
+  }
+  @media (max-width:899px){.grille{display:flex;flex-direction:column;gap:18px}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3.33333 8L6.66667 11.3333L13.3333 4.66667" stroke-width="1.33333" stroke-linecap="square"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 22 22"><path d="M7.33333 5.5H3.66667V9.16667M7.33333 5.5H14.6667M7.33333 5.5V2.75M7.33333 5.5V6.41667M14.6667 5.5H18.3333V9.16667M14.6667 5.5V2.75M14.6667 5.5V6.41667M18.3333 9.16667V18.3333H3.66667V9.16667M18.3333 9.16667H3.66667" stroke-width="1.83333" stroke-linecap="square"/></symbol>
+  <symbol id="i-left" viewBox="0 0 18 18"><path d="M11.25 4.5L6.75 9L11.25 13.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 18 18"><path d="M6.75 4.5L11.25 9L6.75 13.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 22 22"><path d="M11 6.41667V11L13.75 12.8333M11 19.25C12.0834 19.25 13.1562 19.0366 14.1571 18.622C15.1581 18.2074 16.0675 17.5997 16.8336 16.8336C17.5997 16.0675 18.2074 15.1581 18.622 14.1571C19.0366 13.1562 19.25 12.0834 19.25 11C19.25 9.91659 19.0366 8.8438 18.622 7.84286C18.2074 6.84193 17.5997 5.93245 16.8336 5.16637C16.0675 4.40029 15.1581 3.7926 14.1571 3.37799C13.1562 2.96339 12.0834 2.75 11 2.75C8.81196 2.75 6.71354 3.61919 5.16637 5.16637C3.61919 6.71354 2.75 8.81196 2.75 11C2.75 13.188 3.61919 15.2865 5.16637 16.8336C6.71354 18.3808 8.81196 19.25 11 19.25Z" stroke-width="1.83333" stroke-linecap="square"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 18 18"><path d="M9 1.5V3M9 15V16.5M1.5 9H3M15 9H16.5M3.75 3.75L4.875 4.875M13.125 13.125L14.25 14.25M3.75 14.25L4.875 13.125M13.125 4.875L14.25 3.75M9 12C9.79565 12 10.5587 11.6839 11.1213 11.1213C11.6839 10.5587 12 9.79565 12 9C12 8.20435 11.6839 7.44129 11.1213 6.87868C10.5587 6.31607 9.79565 6 9 6C8.20435 6 7.44129 6.31607 6.87868 6.87868C6.31607 7.44129 6 8.20435 6 9C6 9.79565 6.31607 10.5587 6.87868 11.1213C7.44129 11.6839 8.20435 12 9 12Z" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 18 18"><path d="M15 11.25C13.851 11.9535 12.4986 12.2497 11.1607 12.0911C9.82277 11.9325 8.57719 11.3282 7.62452 10.3755C6.67184 9.42281 6.06753 8.17723 5.90889 6.83932C5.75026 5.50141 6.04653 4.14904 6.75 3C5.97622 3.47373 5.31995 4.11676 4.83056 4.88074C4.34117 5.64471 4.03141 6.50972 3.92458 7.41068C3.81775 8.31165 3.91664 9.22511 4.2138 10.0823C4.51096 10.9396 4.99866 11.7183 5.6402 12.3598C6.28174 13.0013 7.06042 13.489 7.91766 13.7862C8.77489 14.0834 9.68835 14.1822 10.5893 14.0754C11.4903 13.9686 12.3553 13.6588 13.1193 13.1694C13.8832 12.6801 14.5263 12.0238 15 11.25Z" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 16 16"><path d="M8 14C8 14 3.33333 10 3.33333 6C3.33333 4.76232 3.825 3.57534 4.70017 2.70017C5.57534 1.825 6.76232 1.33333 8 1.33333C9.23768 1.33333 10.4247 1.825 11.2998 2.70017C12.175 3.57534 12.6667 4.76232 12.6667 6C12.6667 10 8 14 8 14ZM8 7.33333C8.35362 7.33333 8.69276 7.19286 8.94281 6.94281C9.19286 6.69276 9.33333 6.35362 9.33333 6C9.33333 5.64638 9.19286 5.30724 8.94281 5.05719C8.69276 4.80714 8.35362 4.66667 8 4.66667C7.64638 4.66667 7.30724 4.80714 7.05719 5.05719C6.80714 5.30724 6.66667 5.64638 6.66667 6C6.66667 6.35362 6.80714 6.69276 7.05719 6.94281C7.30724 7.19286 7.64638 7.33333 8 7.33333Z" stroke-width="1.33333" stroke-linecap="square"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 16 16"><path d="M8 2L13.3333 4V8C13.3333 11.3333 10.6667 13.3333 8 14C5.33333 13.3333 2.66667 11.3333 2.66667 8V4L8 2Z" stroke-width="1.33333" stroke-linecap="square"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 18 18"><path d="M3 15H6L14.25 6.75L11.25 3.75L3 12V15Z" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 18 18"><path d="M9 3.75V9M9 9V14.25M9 9H3.75M9 9H14.25" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-x" viewBox="0 0 18 18"><path d="M4.5 4.5L9 9M9 9L13.5 13.5M9 9L13.5 4.5M9 9L4.5 13.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-ball" viewBox="0 0 18 18"><path d="M9 2.25A6.75 6.75 0 1 0 9 15.75A6.75 6.75 0 1 0 9 2.25ZM3.2 6C6 6.2 7.2 8 7.2 9S6 11.8 3.2 12M14.8 6C12 6.2 10.8 8 10.8 9S12 11.8 14.8 12" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-user" viewBox="0 0 18 18"><path d="M9 8.25A2.75 2.75 0 1 0 9 2.75A2.75 2.75 0 1 0 9 8.25ZM3.5 15.5C3.5 12.5 6 10.75 9 10.75S14.5 12.5 14.5 15.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
+</svg>
+<div class="motif" aria-hidden="true"></div>
+<div id="m"><main class="pad"><p>Chargement…</p></main></div>
+<script>
+/* /Dojo · inscription en ligne à une séance collective ou une partie dirigée, sans compte.
+   Aucun nom ni aucune coordonnée d'autres inscrits n'arrive ici : seulement des nombres de places. Tout texte passe par e(). */
+(function () {
+  var root = document.getElementById('m'), parts = location.pathname.split('/').filter(Boolean), q = new URLSearchParams(location.search);
+  var e = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var post = function (url, b) { return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Action impossible'); return d; }); }); };
+  var cap = function (s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); };
+  var jour = function (s, o) { return cap(new Date(s + 'T12:00:00').toLocaleDateString('fr-FR', o || { weekday: 'long', day: 'numeric', month: 'long' })); };
+  var ic = function (n, s) { return '<svg class="ic" width="' + s + '" height="' + s + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
+  var initiales = function (n) { return String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x[0]; }).join('') || '·'; };
+  var top = function (nom, sous) { return '<header class="top"><span class="crest">' + e(initiales(nom)) + '</span><div><h1>' + e(nom) + '</h1><p class="sub">' + e(sous) + '</p></div><span class="r-tag r-tag--flat">Inscription en ligne</span></header>'; };
+  var page = function (nom, sous, corps) { root.innerHTML = top(nom, sous) + '<main class="pad">' + corps + '</main>'; };
+  var titre = function (kick, t, lead) { return '<div class="ti"><span class="r-surtitre">' + e(kick) + '</span><h2>' + e(t) + '</h2>' + (lead ? '<p class="lead">' + e(lead) + '</p>' : '') + '</div>'; };
+  var head = function (i, t) { return '<div class="r-card__head">' + (i ? ic(i, 20) : '') + '<b>' + e(t) + '</b></div>'; };
+  var carte = function (h, c) { return '<div class="r-card">' + h + c + '</div>'; };
+
+  /* désinscription par le lien personnel reçu par e-mail */
+  if (parts[1] === 'annuler') {
+    var corps = '<div class="fin">' + titre('Inscription', 'Me désinscrire') + carte('', '<p>Tu libères ta place : l’enseignant est prévenu et la liste d’attente avance.</p><p style="margin-top:14px"><button class="r-btn r-btn--full" id="a" type="button">' + ic('x', 18) + 'Me désinscrire</button></p><p class="err" id="er" role="alert"></p>') + '</div>';
+    page('Inscription', '/Dojo · inscription en ligne', corps);
+    document.getElementById('a').onclick = function () {
+      post('/api/public/resa/desinscrire', { c: q.get('c'), p: q.get('p'), k: q.get('k'), d: q.get('d'), t: q.get('t') })
+        .then(function () { page('Inscription', '/Dojo · inscription en ligne', '<div class="fin">' + titre('Inscription', 'Désinscription faite') + carte('', '<p>C’est fait : l’enseignant est prévenu.</p>') + '</div>'); })
+        .catch(function (x) { document.getElementById('er').textContent = x.message; });
+    };
+    return;
+  }
+  var c = parts[1], pid = parts[2], tok = parts[3];
+  var S = { data: null, d: null, niv: '', v: { p: '', n: '', t: '', em: '' }, conf: null };
+  function charge() {
+    fetch('/api/public/resa/collectif?c=' + encodeURIComponent(c) + '&p=' + encodeURIComponent(pid) + '&t=' + encodeURIComponent(tok))
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
+      .then(function (d) { S.data = d; var dd = d.dates || [], ok = dd.filter(function (x) { return x.etat !== 'passe'; })[0]; S.d = (ok || dd[0] || {}).d; dessine(); })
+      .catch(function (x) { page('Inscription', '/Dojo · inscription en ligne', '<div class="fin">' + titre('Inscription', 'Lien introuvable') + carte('', '<p>' + e(x.message || 'Ce lien d’inscription n’est pas valable.') + '</p><p class="dg">Demande un nouveau lien à ton enseignant.</p>') + '</div>'); });
+  }
+  var tierDe = function (dt) {
+    if (S.niv === '') return null;
+    var d = S.data, padel = d.sport === 'Padel', rk = d.niveaux, v = padel ? +S.niv : rk.indexOf(S.niv), b = function (x) { return padel ? +x : rk.indexOf(x); };
+    return dt.tiers.filter(function (t) { return v >= Math.min(b(t.lo), b(t.hi)) && v <= Math.max(b(t.lo), b(t.hi)); })[0] || null;
+  };
+  var rangeTxt = function (t, padel) { return (t.nom ? t.nom + ' · ' : '') + (padel ? 'Niveau ' + t.lo + ' à ' + t.hi : t.lo + ' à ' + t.hi); };
+  var sous = function (d) { return d.coach + (d.club ? ' · ' + d.club : ''); };
+  function dessine() {
+    var d = S.data, kick = d.mode === 'cours' ? 'Séance collective' : 'Partie dirigée';
+    if (S.conf) return fait();
+    if (d.etat === 'coupe') return page(d.coach || 'Inscription', sous(d), '<div class="fin">' + titre(kick, d.titre) + carte(head('x', 'Inscriptions fermées'), '<p>Le lien d’inscription de cette séance est coupé. Contacte ton enseignant.</p>') + '</div>');
+    if (d.etat === 'annule') return page(d.coach || 'Inscription', sous(d), '<div class="fin">' + titre(kick, d.titre) + carte(head('x', 'Séance annulée'), '<p>Cette séance est annulée. Contacte ton enseignant.</p>') + '</div>');
+    var padel = d.sport === 'Padel', dt = (d.dates || []).filter(function (x) { return x.d === S.d; })[0], tous = (d.dates || []), passe = !tous.some(function (x) { return x.etat !== 'passe'; });
+    var tier = dt ? tierDe(dt) : null;
+    var meta = '<ul class="meta"><li>' + ic('cal', 18) + (tous.length > 1 ? 'Chaque ' + jour(tous[0].d, { weekday: 'long' }).toLowerCase() : e(jour(S.d))) + ' · ' + e(d.time) + '</li><li>' + ic('clock', 18) + e(d.dur || '') + '</li>' + (d.place ? '<li>' + ic('pin', 18) + e(d.place) + '</li>' : '') + (d.price ? '<li class="px">' + e(d.price) + '</li>' : '') + '</ul>';
+    var dates = tous.length > 1 ? '<div class="dates" role="group" aria-label="Dates">' + tous.map(function (x) {
+      var lib = x.etat === 'passe' ? 'passée' : x.etat === 'valide' ? 'validée' : 'ouverte';
+      return '<button type="button" class="dt" data-d="' + x.d + '" aria-pressed="' + (x.d === S.d) + '"' + (x.etat === 'passe' ? ' disabled' : '') + '><b>' + e(jour(x.d, { weekday: 'short', day: 'numeric', month: 'short' })) + '</b><small>' + lib + '</small></button>';
+    }).join('') + '</div>' : '';
+    var tiers = dt ? dt.tiers.map(function (t) {
+      var moi = tier && tier.id === t.id;
+      return '<div class="tr' + (moi ? ' moi' : '') + '"><div class="l1"><b>' + e(rangeTxt(t, padel)) + '</b><small>' + (t.valide ? 'Validée' : t.complet ? 'Complet' : t.restant + ' place' + (t.restant > 1 ? 's' : '') + ' restante' + (t.restant > 1 ? 's' : '')) + '</small></div>' +
+        '<div class="pts" aria-hidden="true">' + Array.from({ length: t.cap }, function (_, i) { return '<i class="' + (i < t.n ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+        '<small>' + t.n + ' sur ' + t.cap + (t.cap > t.min ? ' · minimum ' + t.min + ' pour valider' : '') + (t.attente ? ' · ' + t.attente + ' en attente' : '') + '</small></div>';
+    }).join('') : '';
+    var info = carte(head('', kick + (d.sport ? ' · ' + d.sport : '') + (d.fmt ? ' · ' + d.fmt : '')), (d.body ? '<p style="margin-bottom:12px">' + e(d.body) + '</p>' : '') + meta + dates + '<p class="r-etiquette" style="margin:0 0 8px;color:var(--c-muted)">Fourchettes de niveau</p>' + (tiers || '<p class="vide-m">Aucune date à venir.</p>') +
+      '<p class="dg">La première fourchette qui atteint son minimum valide ' + (d.mode === 'cours' ? 'la séance' : 'la partie') + '. Les inscrits des autres passent en liste d’attente. Le tarif est à régler sur place.</p>');
+    var etatNiv = '';
+    if (tier) etatNiv = '<div class="etat' + (tier.complet || tier.valide && tier.restant === 0 ? '' : ' ok') + '" role="status"><b>' + e(rangeTxt(tier, padel)) + '</b> · ' + (dt && dt.tiers.some(function (x) { return x.valide && x.id !== tier.id; }) ? 'une autre fourchette est déjà validée : liste d’attente' : tier.complet ? 'complet : liste d’attente' : tier.restant + ' place' + (tier.restant > 1 ? 's' : '') + ' restante' + (tier.restant > 1 ? 's' : '')) + '</div>';
+    else if (S.niv !== '' && dt) etatNiv = '<div class="etat" role="status">Ton niveau n’entre dans aucune fourchette de cette séance.</div>';
+    var attente = tier && (tier.complet || dt.tiers.some(function (x) { return x.valide && x.id !== tier.id; }));
+    var form = passe ? carte(head('clock', 'Séance passée'), '<p>Les inscriptions sont terminées pour cette séance.</p>') :
+      '<form class="r-card" id="f" novalidate>' + head('user', 'M’inscrire') + '<div class="fm">' +
+      '<div class="r-field"><label for="p">Prénom</label><input class="r-input" id="p" required autocomplete="given-name" value="' + e(S.v.p) + '"></div>' +
+      '<div class="r-field"><label for="n">Nom</label><input class="r-input" id="n" required autocomplete="family-name" value="' + e(S.v.n) + '"></div>' +
+      '<div class="r-field w"><label for="em">E-mail</label><input class="r-input" id="em" required type="email" autocomplete="email" value="' + e(S.v.em) + '"></div>' +
+      '<div class="r-field w"><label for="t">Téléphone</label><input class="r-input" id="t" required type="tel" autocomplete="tel" value="' + e(S.v.t) + '"></div>' +
+      '<div class="r-field w"><label for="niv">Ton niveau</label><span class="r-selectw"><select class="r-select" id="niv" required><option value="">Choisis ton niveau</option>' + d.niveaux.map(function (x) { return '<option value="' + e(x) + '"' + (String(x) === S.niv ? ' selected' : '') + '>' + (padel ? 'Niveau ' + e(x) : e(x)) + '</option>'; }).join('') + '</select></span></div>' +
+      '<div class="w">' + etatNiv + '</div>' +
+      '<div class="pot" aria-hidden="true"><label for="site">Site</label><input id="site" tabindex="-1" autocomplete="off"></div>' +
+      '<label class="chk w"><input type="checkbox" class="r-check" id="ac" required><span>J’accepte que ' + e(d.coach) + ' conserve ces informations pour organiser ses séances. Je peux demander leur suppression à tout moment.</span></label>' +
+      '<div class="w"><button class="r-btn r-btn--full" id="go" type="submit"' + (S.niv !== '' && !tier ? ' disabled' : '') + '>' + ic('check', 18) + (attente ? 'Rejoindre la liste d’attente' : 'Je m’inscris') + '</button></div><p class="err w" id="er" role="alert"></p></div></form>';
+    page(d.coach, sous(d), titre(kick, d.titre) + '<div class="grille"><div class="col">' + info + '</div><div class="col">' + form + '</div></div>');
+    root.querySelectorAll('.dt').forEach(function (b) { b.onclick = function () { garde(); S.d = b.dataset.d; dessine(); }; });
+    var sel = document.getElementById('niv');
+    if (sel) sel.onchange = function () { garde(); S.niv = sel.value; dessine(); };
+    var fm = document.getElementById('f');
+    if (fm) fm.onsubmit = function (x) {
+      x.preventDefault();
+      garde();
+      if (!fm.checkValidity()) { fm.reportValidity(); return; }
+      var bt = document.getElementById('go'), val = function (i) { return document.getElementById(i).value; };
+      bt.disabled = true;
+      post('/api/public/resa/inscrire', { c: c, p: pid, t: tok, d: S.d, niveau: S.niv, prenom: val('p'), nom: val('n'), email: val('em'), tel: val('t'), site: val('site'), accord: document.getElementById('ac').checked })
+        .then(function (r) { S.conf = r; dessine(); window.scrollTo(0, 0); })
+        .catch(function (z) { bt.disabled = false; document.getElementById('er').textContent = z.message; });
+    };
+  }
+  function garde() { [['p', 'p'], ['n', 'n'], ['t', 't'], ['em', 'em']].forEach(function (i) { var x = document.getElementById(i[0]); if (x) S.v[i[1]] = x.value; }); }
+  function fait() {
+    var d = S.data, r = S.conf, wait = r.statut === 'wait';
+    var msg = wait ? 'Tu es sur la liste d’attente : tu seras prévenu si une place se libère.' : r.statut === 'ok' ? 'C’est validé : tu es inscrit.' : 'Tu es inscrit. C’est validé dès que le minimum est atteint.';
+    page(d.coach, sous(d), '<div class="fin"><div class="ok">' + ic('check', 40) + '</div>' +
+      '<div><h2 style="margin:0;font:400 32px/1.05 var(--f-display);text-transform:uppercase">' + (wait ? 'Liste d’attente' : 'C’est noté') + '</h2><p class="tx">' + e(msg) + ' Un e-mail est parti à ' + e(r.mail) + '. ' + e(d.coach) + ' est prévenu.</p></div>' +
+      carte(head('cal', r.titre), '<ul class="meta"><li>' + ic('cal', 18) + e(jour(r.d)) + ' · ' + e(r.h) + '</li>' + (d.dur ? '<li>' + ic('clock', 18) + e(d.dur) + '</li>' : '') + (d.place ? '<li>' + ic('pin', 18) + e(d.place) + '</li>' : '') + '</ul>' + (d.price ? '<p class="dg">Tarif à régler sur place : ' + e(d.price) + '</p>' : '')) +
+      '<a class="r-btn r-btn--sec r-btn--full" href="' + e(r.annuler) + '">' + ic('x', 18) + 'Me désinscrire</a></div>');
+  }
+  charge();
+})();
+</script>
+</body>
+</html>

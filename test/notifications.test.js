@@ -244,6 +244,14 @@ test('collectif : l’enseignant voit arriver et partir les inscrits avant le mi
   await ram.ops(el, club.id, [{ coll: 'post', id: 'pc', op: 'patch', patch: [{ p: ['nv', 'ins', D + '|t1'], t: 'rm', v: ek }] }]);
   await settle();
   assert.match(sent.filter(x => x[1].app === 'coach')[0][1].body, /Nina se désinscrit : Volée/);
+  // inscrit par le lien public : l'écriture vient du serveur, sous le compte de l'enseignant, qui est quand même prévenu (fiche sans compte)
+  sent.length = 0;
+  await ram.ops(coach, club.id, [{ coll: 'eleve', id: 'eweb', op: 'put', data: { n: 'Paul Externe', sport: 'Padel', parents: [], mail: 'paul@exemple.test' } }]);
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pc', op: 'patch', patch: [{ p: ['nv', 'ins', D + '|t1'], t: 'add', v: 'eweb' }] }]);
+  await settle();
+  const w = sent.filter(x => x[1].app === 'coach');
+  assert.equal(w.length, 1);
+  assert.match(w[0][1].body, /Paul s'inscrit par le lien : Volée/);
 });
 
 test('présence confirmée : l’enseignant est prévenu ; événement et collectif modifiés : les inscrits aussi', async () => {

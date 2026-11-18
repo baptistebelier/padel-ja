@@ -1163,6 +1163,23 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await coachP.waitForFunction(k => { if (!document.querySelector('[data-a="ramRole"]') && RAM.roles && RAM.roles[k]) A.member({ id: k }); return document.querySelector('[data-a="ramRole"][data-r="gerant"]')?.getAttribute('aria-pressed') === 'true'; }, mine.key, { timeout: 15000, polling: 300 });
   await roleChange('mem', 'mem', '');
 
+  // séance collective : le lien d'inscription (jeton propre, copier, partager, couper, réactiver), dans l'appli de l'enseignant
+  const lien = await coachP.evaluate(() => {
+    const p = { id: 'ptest-lien', by: ME(), kind: 'niveaux', mur: false, likes: 0, com: [], at: Date.now(), nv: { mode: 'cours', sport: 'Padel', theme: 'Volée', time: '18 h', dur: '1 h', dates: [isoIn(3)], tiers: [{ id: 't1', lo: 3, hi: 5, places: 2 }], ins: {}, at: {} } };
+    posts.unshift(p);
+    const sortie = { avant: nvBody(p) };
+    A.nvLienCopy({ id: p.id });
+    sortie.apres = nvBody(p); sortie.url = nvLienUrl(p);
+    A.nvLienToggle({ id: p.id }); sortie.coupe = nvBody(p); sortie.off = !!p.nv.lien.off;
+    A.nvLienToggle({ id: p.id }); sortie.on = !p.nv.lien.off;
+    posts.splice(posts.indexOf(p), 1);
+    return sortie;
+  });
+  assert.match(lien.avant, /Créer et copier le lien/, 'publication déjà ouverte : le lien se crée au premier clic');
+  assert.match(lien.apres, /Copier le lien/); assert.match(lien.apres, /Ouvert/); assert.match(lien.apres, /Partager/);
+  assert.match(lien.url, new RegExp('/i/' + club.id + '/ptest-lien/[A-Za-z0-9_-]{22}$'), 'lien non devinable, propre à la publication');
+  assert.match(lien.coupe, /Coupé/); assert.match(lien.coupe, /Réactiver/); assert.equal(lien.off, true); assert.equal(lien.on, true);
+
   // sans compte : la page publique
   await pp.goto(JA + '/r/' + club.id + '/' + club.key);
   // ordinateur : formules (durée visible), calendrier du mois, horaires et récapitulatif côte à côte
@@ -1284,6 +1301,70 @@ test('Page publique : filtres de formules combinés, compteur, effacement, état
     await o.ctx.close();
   }
   assert.deepEqual(errs, []);
+});
+
+test('Inscription publique à une séance collective : places, fourchettes, liste d’attente, états clairs, parcours simulé (360 et 1280 px)', async () => {
+  const ya = new Date(Date.now() + 5 * 864e5), iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const tiers = [{ id: 't1', nom: 'Confirmés', lo: 3, hi: 5, min: 2, cap: 3, n: 3, restant: 0, complet: true, valide: false, attente: 1 }, { id: 't2', nom: '', lo: 6, hi: 8, min: 2, cap: 2, n: 1, restant: 1, complet: false, valide: false, attente: 0 }];
+  const base = { titre: 'Volée au filet', mode: 'cours', club: 'Club Essai', coach: 'Sarah Test', sport: 'Padel', fmt: '', body: 'Travail du jeu au filet.', time: '18 h', dur: '1 h 30', place: 'Salle 2', price: '12 € par joueur', niveaux: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] };
+  const ouvert = Object.assign({ etat: 'ouvert', dates: [{ d: iso(ya), etat: 'ouvert', tiers }, { d: iso(new Date(+ya + 7 * 864e5)), etat: 'ouvert', tiers }] }, base);
+  const posts = [];
+  const ouvre = async (vp, info) => {
+    const ctx = await browser.newContext({ viewport: vp }), p = await ctx.newPage(), errs = [];
+    p.on('pageerror', x => errs.push(x.message));
+    await p.route('**/api/public/resa/collectif*', r => r.fulfill({ json: info }));
+    await p.route('**/api/public/resa/inscrire', r => { posts.push(r.request().postDataJSON()); r.fulfill({ json: { statut: posts.at(-1).niveau === '4' ? 'wait' : 'in', d: posts.at(-1).d, h: '18 h', titre: 'Volée au filet', coach: 'Sarah', mail: posts.at(-1).email, annuler: '/i/annuler?c=x&p=y&k=z&d=2030-01-01&t=abc' } }); });
+    await p.goto(JA + '/i/club-essai/pn1/jeton-essai-1234567890');
+    return { ctx, p, errs };
+  };
+  const sans = p => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
+  for (const vp of [{ width: 360, height: 780 }, { width: 1280, height: 900 }]) {
+    const { ctx, p, errs } = await ouvre(vp, ouvert);
+    await p.waitForSelector('.tr');
+    assert.ok(await sans(p), 'sans débordement à ' + vp.width);
+    assert.equal(await p.locator('.tr').count(), 2, 'les deux fourchettes');
+    const texte = await p.locator('main').innerText();
+    assert.match(texte, /Salle 2/); assert.match(texte, /12 € par joueur/); assert.match(texte, /1 h 30/); assert.match(texte, /Sarah Test/);
+    assert.match(texte, /Complet/i); assert.match(texte, /1 place restante/i);
+    assert.ok(!/@|06 /.test(texte), 'aucune coordonnée affichée');
+    assert.ok(await p.evaluate(() => getComputedStyle(document.querySelector('.motif'), '::before').maskImage !== 'none'), 'même fond que la page de réservation');
+    // le niveau choisit la fourchette : complète = liste d'attente, avec place = inscription, hors fourchette = refusé
+    await p.selectOption('#niv', '4');
+    assert.match(await p.locator('#go').innerText(), /liste d’attente/i);
+    await p.selectOption('#niv', '7');
+    assert.match(await p.locator('#go').innerText(), /m’inscris/i);
+    await p.selectOption('#niv', '1');
+    assert.equal(await p.locator('#go').isDisabled(), true);
+    assert.match(await p.locator('.etat').innerText(), /aucune fourchette/i);
+    await p.selectOption('#niv', '4');
+    await p.fill('#p', 'Camille'); await p.fill('#n', 'Durand'); await p.fill('#em', 'camille@exemple.test'); await p.fill('#t', '0612345678');
+    await p.check('#ac', { force: true });
+    await p.click('#go');
+    await p.waitForSelector('.fin .ok');
+    assert.match(await p.locator('main').innerText(), /liste d’attente/i);
+    assert.ok(await sans(p), 'confirmation sans débordement');
+    assert.equal(posts.at(-1).niveau, '4'); assert.equal(posts.at(-1).d, iso(ya)); assert.equal(posts.at(-1).t, 'jeton-essai-1234567890');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+  // états clairs : lien coupé, séance annulée, séance passée
+  for (const [etat, re] of [['coupe', /Inscriptions fermées/], ['annule', /Séance annulée/]]) {
+    const { ctx, p } = await ouvre({ width: 360, height: 780 }, Object.assign({}, base, { etat }));
+    await p.waitForSelector('.fin');
+    assert.match(await p.locator('main').innerText(), re);
+    assert.equal(await p.locator('#f').count(), 0, 'aucun formulaire');
+    await ctx.close();
+  }
+  const o = await ouvre({ width: 360, height: 780 }, Object.assign({}, ouvert, { dates: [{ d: '2020-01-06', etat: 'passe', tiers }] }));
+  await o.p.waitForSelector('.tr');
+  assert.match(await o.p.locator('main').innerText(), /Séance passée/);
+  await o.ctx.close();
+  // un lien inconnu : message clair, rien d'autre
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), p = await ctx.newPage();
+  await p.goto(JA + '/i/nope/nope/nope');
+  await p.waitForSelector('.fin');
+  assert.match(await p.locator('main').innerText(), /Lien introuvable/i);
+  await ctx.close();
 });
 
 test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et la plage n’est plus libre', async () => {

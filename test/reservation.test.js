@@ -341,6 +341,72 @@ test('page publique : toutes ses formules, packs et abonnements ; photo du compt
   delete store.getIdentity;
 });
 
+test('lien d’inscription public : jeton, mêmes places et fourchettes que l’appli, concurrence, lien coupé, aucune donnée personnelle', async () => {
+  const { coach, club, key, d } = await monte(24), TOK = 'jeton-secret-1234567890', passe = REGLES.addDays(paris().d, -3);
+  const nv = (dates, plus) => ({ by: key, kind: 'niveaux', mur: false, likes: 0, com: [], at: Date.now(), nv: Object.assign({ mode: 'cours', sport: 'Padel', theme: 'Volée', body: '', time: '10 h', dur: '1 h', place: 'Salle', price: '10 €', dates, tiers: [{ id: 't1', lo: 3, hi: 5, places: 2, max: 3 }, { id: 't2', lo: 6, hi: 8, places: 2 }], ins: {}, at: {}, lien: { t: TOK } }, plus) });
+  const put = (id, data) => ram.ops(coach, club.id, [{ coll: 'post', id, op: 'put', data }]);
+  const lis = async id => (await ram.itemsOf(club.id, 'post')).find(x => x.id === id).data.nv;
+  await put('pn1', nv([d]));
+  await assert.rejects(resa.pubNv(club.id, 'pn1', 'faux'), /pas valable/);
+  await assert.rejects(resa.pubNv(club.id, 'inconnue', TOK), /pas valable/);
+  const info = await resa.pubNv(club.id, 'pn1', TOK);
+  assert.deepEqual([info.etat, info.titre, info.dates[0].tiers.map(t => [t.id, t.cap, t.restant])], ['ouvert', 'Volée', [['t1', 3, 3], ['t2', 2, 2]]]);
+  const moi = (n, niveau, plus) => Object.assign({ d, niveau, prenom: 'Léa', nom: 'Roy' + n, email: `lea${n}.nv@exemple.test`, tel: '06 00 00 00 00', accord: true }, plus);
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn1', TOK, moi(0, 4, { site: 'x' })), /refusée/);
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn1', TOK, moi(0, 4, { accord: false })), /accepter/);
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn1', TOK, moi(0, 1)), /aucune fourchette/);
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn1', TOK, moi(0, '')), /niveau/);
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn1', 'faux', moi(0, 4)), /pas valable/);
+  const a = await resa.pubNvInscrire(club.id, 'pn1', TOK, moi(1, 4));
+  assert.equal(a.statut, 'in', 'minimum pas atteint : inscrit, pas encore validé');
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn1', TOK, moi(1, 4)), /déjà inscrit/);
+  assert.equal((await resa.pubNvInscrire(club.id, 'pn1', TOK, moi(2, 5))).statut, 'ok', 'la fourchette atteint son minimum : validée');
+  assert.equal((await resa.pubNvInscrire(club.id, 'pn1', TOK, moi(3, 3))).statut, 'ok', 'jusqu’au maximum');
+  assert.equal((await resa.pubNvInscrire(club.id, 'pn1', TOK, moi(4, 4))).statut, 'wait', 'au-delà du maximum : liste d’attente');
+  assert.equal((await resa.pubNvInscrire(club.id, 'pn1', TOK, moi(5, 7))).statut, 'wait', 'l’autre fourchette passe en liste d’attente');
+  // le recalage du collectif met la séance au planning avec ses inscrits
+  await new Promise(r => setTimeout(r, 300));
+  const cours = (await ram.itemsOf(club.id, 'cours')).find(x => x.data.nv === 'pn1');
+  assert.ok(cours && cours.data.once === d && cours.data.mem.length === 3, 'séance au planning, 3 validés');
+  const fiche = (await ram.itemsOf(club.id, 'eleve')).find(x => x.data.mail === 'lea1.nv@exemple.test');
+  assert.match(fiche.data.note, /lien d’inscription/);
+  assert.ok((await lis('pn1')).via[fiche.id], 'marqué comme inscrit par le lien');
+  // rien de personnel ne sort de l'API publique
+  const sortie = JSON.stringify(await resa.pubNv(club.id, 'pn1', TOK));
+  assert.ok(!/exemple\.test|Roy|06 00|"k"|eleve/.test(sortie), 'aucun nom ni coordonnée');
+  assert.deepEqual((await resa.pubNv(club.id, 'pn1', TOK)).dates[0].tiers.map(t => [t.n, t.restant, t.complet]), [[3, 0, true], [1, 1, false]], 'places restantes par fourchette');
+  // désinscription par le lien personnel
+  const q = new URL('http://x' + a.annuler).searchParams;
+  await assert.rejects(resa.pubNvDesinscrire(club.id, 'pn1', q.get('k'), d, 'faux'), /pas valable/);
+  assert.deepEqual(await resa.pubNvDesinscrire(q.get('c'), q.get('p'), q.get('k'), q.get('d'), q.get('t')), { ok: true });
+  assert.equal((await resa.pubNvDesinscrire(q.get('c'), q.get('p'), q.get('k'), q.get('d'), q.get('t'))).deja, true);
+  assert.ok(!(await lis('pn1')).ins[d + '|t1'].includes(q.get('k')));
+  // concurrence : trois personnes en même temps sur une fourchette de 2 places, ni doublon ni dépassement
+  await put('pn2', nv([d]));
+  const sts = await Promise.all([1, 2, 3].map(n => resa.pubNvInscrire(club.id, 'pn2', TOK, moi(10 + n, 7)).then(r => r.statut)));
+  assert.deepEqual(sts.slice().sort(), ['in', 'ok', 'wait'], 'le premier avant le minimum, le deuxième le valide, le troisième dépasse les 2 places');
+  assert.equal((await resa.pubNv(club.id, 'pn2', TOK)).dates[0].tiers[1].complet, true);
+  assert.equal(new Set((await lis('pn2')).ins[d + '|t2']).size, 3);
+  // lien coupé puis réactivé
+  await put('pn3', nv([d], { lien: { t: TOK, off: true } }));
+  assert.equal((await resa.pubNv(club.id, 'pn3', TOK)).etat, 'coupe');
+  assert.equal(JSON.stringify(await resa.pubNv(club.id, 'pn3', TOK)).includes('Salle'), false, 'coupé : aucun détail');
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn3', TOK, moi(20, 4)), /coupé/);
+  await put('pn3', nv([d]));
+  assert.equal((await resa.pubNvInscrire(club.id, 'pn3', TOK, moi(20, 4))).statut, 'in');
+  // passée, annulée, sans lien, demande d'élève
+  await put('pn4', nv([passe]));
+  assert.equal((await resa.pubNv(club.id, 'pn4', TOK)).dates[0].etat, 'passe');
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn4', TOK, moi(30, 4, { d: passe })), /passée/);
+  await put('pn5', Object.assign(nv([d]), { arch: true }));
+  assert.equal((await resa.pubNv(club.id, 'pn5', TOK)).etat, 'annule');
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pn5', TOK, moi(31, 4)), /annulée/);
+  await put('pn6', nv([d], { lien: undefined }));
+  await assert.rejects(resa.pubNv(club.id, 'pn6', TOK), /pas valable/);
+  await put('pn7', nv([d], { demande: { par: 'x', formule: 'f3' } }));
+  await assert.rejects(resa.pubNv(club.id, 'pn7', TOK), /pas valable/);
+});
+
 test('agenda : les cours confirmés vers Google, et ce qui est posé chez Google n’est plus réservable', async () => {
   const ics = Agenda.toIcs([{ club: 'c', groupe: 'g', date: '2026-07-01', heure: '9 h 30', minutes: 60, nom: 'Cours, duo' }, { club: 'c', groupe: 'g2', date: '2026-07-02', heure: '9 h', minutes: 60, nom: 'Annulé', annule: true }]);
   assert.match(ics, /DTSTART:20260701T073000Z/, 'été : Paris à UTC+2');

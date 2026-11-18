@@ -69,6 +69,25 @@ canSee = p => {
 const nvPostBody = postBody;
 postBody = p => (p.kind === 'niveaux' ? promoBtn(p) + nvBody(p) : nvPostBody(p));
 
+/* un inscrit dans la liste de l'enseignant : un adhérent, ou une personne inscrite sans compte par le lien (sa fiche élève) */
+function nvWho(k, nv) {
+  if (M[k]) return `${av(k, 'sm')}${esc(name(k))}`;
+  const n = (typeof svName === 'function' && svName(k)) || 'Inscrit',
+    i = n
+      .split(' ')
+      .map(w => w[0])
+      .join('')
+      .slice(0, 2);
+  return `<span class="av sm" style="--h:${hue(k)}">${esc(i)}</span>${esc(n)}${nv && nv.via && nv.via[k] ? '<span class="tag ghost">par le lien</span>' : ''}`;
+}
+/* le lien public d'inscription : copier, partager, couper ou réactiver (enseignant et bureau, dans /Buvette comme dans /Dojo) */
+function nvLienBloc(p) {
+  if (!(window.RAM && RAM.live) || p.nv.demande) return '';
+  const l = p.nv.lien || {},
+    has = !!l.t,
+    off = !!l.off;
+  return `<div class="nv-lien"><div class="row" style="gap:8px;flex-wrap:wrap">${ic('link')}<b class="grow">Lien d’inscription public</b>${has ? `<span class="tag ${off ? 'ghost' : 'lime'}">${off ? 'Coupé' : 'Ouvert'}</span>` : ''}</div><span class="muted small">Pour les personnes sans compte : elles voient la séance, leur fourchette et les places restantes, jamais les autres inscrits.</span><div class="ctl" style="flex-wrap:wrap"><button class="btn sm grow" data-a="nvLienCopy" data-id="${p.id}">${ic('link')}${has ? 'Copier le lien' : 'Créer et copier le lien'}</button><button class="btn sm ghost grow" data-a="nvLienShare" data-id="${p.id}">${ic('send')}Partager</button>${has ? `<button class="btn sm ghost grow" data-a="nvLienToggle" data-id="${p.id}">${ic(off ? 'check' : 'x')}${off ? 'Réactiver' : 'Couper'}</button>` : ''}</div></div>`;
+}
 function nvBody(p) {
   const nv = p.nv,
     iso = nvDate(p),
@@ -102,10 +121,10 @@ function nvBody(p) {
               : st.win
                 ? '<span class="tag ghost">En attente</span>'
                 : '';
-        return `<div class="nv-tier${st.win === t.id ? ' win' : ''}"><div class="row" style="gap:8px;flex-wrap:wrap"><b class="grow">${nvRange(t, nv.sport)}</b>${tag}</div><div class="row">${dots(Math.min(ok, nvCap(t)), nvCap(t))}<span class="muted small">${Math.min(l.length, nvCap(t))} / ${nvCap(t)}${nvCapTxt(t)}${l.length > nvCap(t) || (st.win && st.win !== t.id && l.length) ? ' · ' + l.filter(k => st.status[t.id + '|' + k] === 'wait').length + ' en attente' : ''}</span></div>${l.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${l.map(k => `<span class="row nv-who ${st.status[t.id + '|' + k]}" style="gap:6px">${av(k, 'sm')}${name(k)}</span>`).join('')}</div>` : ''}</div>`;
+        return `<div class="nv-tier${st.win === t.id ? ' win' : ''}"><div class="row" style="gap:8px;flex-wrap:wrap"><b class="grow">${nvRange(t, nv.sport)}</b>${tag}</div><div class="row">${dots(Math.min(ok, nvCap(t)), nvCap(t))}<span class="muted small">${Math.min(l.length, nvCap(t))} / ${nvCap(t)}${nvCapTxt(t)}${l.length > nvCap(t) || (st.win && st.win !== t.id && l.length) ? ' · ' + l.filter(k => st.status[t.id + '|' + k] === 'wait').length + ' en attente' : ''}</span></div>${l.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${l.map(k => `<span class="row nv-who ${st.status[t.id + '|' + k]}" style="gap:6px">${nvWho(k, nv)}</span>`).join('')}</div>` : ''}</div>`;
       })
       .join('');
-    body += `<span class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première fourchette complète valide ${nv.mode === 'cours' ? 'la séance' : 'la partie'} ; les autres passent en liste d'attente.</span>`;
+    body += `<span class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première fourchette complète valide ${nv.mode === 'cours' ? 'la séance' : 'la partie'} ; les autres passent en liste d'attente.</span>${nvLienBloc(p)}`;
   } else {
     const t = nvMyTier(nv, me),
       l = t ? st.lists[t.id] : [],

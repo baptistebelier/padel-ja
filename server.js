@@ -900,6 +900,7 @@ const server = http.createServer(async (req, res) => {
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
     /* ---------- /RAM Réservation : page publique et lien d'agenda, sur tous les domaines ---------- */
     if (/^\/r\/[^/]+(\/[^/]+)?$/.test(p)) return sendFile(res, '/reserver.html');
+    if (/^\/i\/[^/]+(\/[^/]+){0,2}$/.test(p)) return sendFile(res, '/inscrire.html');   // inscription publique à une séance collective ou une partie dirigée
     if (p.startsWith('/agenda/') && req.method === 'GET') {
       const uid = Agenda.lireLien(p.slice(8));
       if (!uid) { res.writeHead(404); return res.end(); }
@@ -1731,6 +1732,15 @@ const server = http.createServer(async (req, res) => {
           taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, coach: r.coach, lien })));
           return json(res, 200, { id: r.id, d: r.d, h: r.h, dur: r.dur, nom: r.nom, mail: r.mail, coach: r.coach, couvert: r.couvert, prix: r.prix, annuler: r.annuler });
         }
+        /* inscription sans compte à une séance collective ou une partie dirigée, par son lien (jeton propre à la publication) */
+        if (p === '/api/public/resa/collectif' && req.method === 'GET') return json(res, 200, await reservation.pubNv(q('c'), q('p'), q('t')));
+        if (p === '/api/public/resa/inscrire' && req.method === 'POST') {
+          if (Auth.tooManyAttempts('resa-pub|' + clientIp(req))) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
+          const b = await readBody(req), r = await reservation.pubNvInscrire(String(b.c || ''), String(b.p || ''), String(b.t || ''), b);
+          taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.inscriptionMail({ first: r.prenom, titre: r.titre, coach: r.coach, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, statut: r.statut, lien: appUrl(req) + r.annuler })));
+          return json(res, 200, { statut: r.statut, d: r.d, h: r.h, titre: r.titre, coach: r.coach, mail: r.mail, annuler: r.annuler });
+        }
+        if (p === '/api/public/resa/desinscrire' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.pubNvDesinscrire(String(b.c || ''), String(b.p || ''), String(b.k || ''), String(b.d || ''), String(b.t || ''))); }
         if (p === '/api/public/resa/photo' && req.method === 'GET') {   // la photo de profil de l'enseignant (compte /RAM), si sa page est ouverte
           const ph = await reservation.pubPhoto(q('c'), q('k'));
           if (!ph) { res.writeHead(404); return res.end(); }

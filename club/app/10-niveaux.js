@@ -255,7 +255,8 @@ document.addEventListener('submit', e => {
       dates: Array.from({ length: weeks }, (_, i) => isoIn(7 * i, d0)),
       tiers,
       ins: {},
-      at: {}
+      at: {},
+      lien: { t: nvTok() }
     }
   });
   const n = adults().filter(k => k !== ME() && tiers.some(t => nvFits(t, k, sport))).length;
@@ -269,6 +270,7 @@ document.addEventListener('submit', e => {
     S.stack.push({ v: 'post', id: newId });
   }
   render();
+  if (nvLienUrl(posts.find(x => x.id === newId))) setTimeout(() => nvLienSheet(newId), 0);
   toast(
     `${cours ? 'Séance proposée' : 'Partie proposée'} · visible par ${n} adhérent${n > 1 ? 's' : ''} des fourchettes choisies, à toi de la promouvoir sur le mur`
   );
@@ -299,3 +301,71 @@ function nvEdit(p) {
   const h = document.querySelector('#sheet header h2, #sheet header .h');
   if (h) h.textContent = 'Modifier';
 }
+/* Lien public d'inscription (sans compte) : coach.riseandmove.fr/i/club/publication/jeton.
+   Le jeton, propre à la publication et impossible à deviner, est posé dans nv.lien.t ; nv.lien.off coupe le lien.
+   Les publications déjà ouvertes reçoivent le leur au premier « Copier le lien ». Le serveur applique les mêmes règles que ci-dessus. */
+const nvTok = () => {
+  const a = crypto.getRandomValues(new Uint8Array(16));
+  return btoa(String.fromCharCode(...a))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+const nvLienUrl = p => {
+  if (!(window.RAM && RAM.live && RAM.club) || !p.nv.lien || !p.nv.lien.t) return '';
+  const h = /riseandmove\.fr$/.test(location.hostname) ? 'https://coach.riseandmove.fr' : location.origin;
+  return h + '/i/' + encodeURIComponent(RAM.club) + '/' + encodeURIComponent(p.id) + '/' + p.nv.lien.t;
+};
+const nvLienEnsure = p => {
+  if (!p.nv.lien || !p.nv.lien.t) p.nv.lien = Object.assign({}, p.nv.lien, { t: nvTok() });
+  return p.nv.lien;
+};
+const nvLienPost = d => {
+  const p = posts.find(x => x.id === d.id);
+  return p && p.nv && !p.nv.demande ? p : null;
+};
+const nvLienCopie = u =>
+  navigator.clipboard
+    ? navigator.clipboard.writeText(u).then(
+        () => toast('Lien copié'),
+        () => toast(u)
+      )
+    : toast(u);
+/* la fenêtre du lien, ouverte après la création d'une séance ou d'une partie */
+function nvLienSheet(id) {
+  const p = posts.find(x => x.id === id),
+    u = p && nvLienUrl(p);
+  if (!u) return;
+  sheet(
+    'Lien d’inscription',
+    `<div class="body"><p class="muted small">Donne ce lien en ligne : les personnes sans compte s’inscrivent d’elles-mêmes dans la fourchette de leur niveau. Tu peux le couper à tout moment depuis la publication.</p><p class="small" style="word-break:break-all">${esc(u)}</p><div class="ctl" style="flex-wrap:wrap"><button class="btn grow" data-a="nvLienCopy" data-id="${id}">${ic('link')}Copier le lien</button><button class="btn ghost grow" data-a="nvLienShare" data-id="${id}">${ic('send')}Partager</button></div></div>`
+  );
+}
+Object.assign(A, {
+  nvLienCopy(d) {
+    const p = nvLienPost(d);
+    if (!p) return;
+    nvLienEnsure(p);
+    render(true);
+    nvLienCopie(nvLienUrl(p));
+  },
+  nvLienShare(d) {
+    const p = nvLienPost(d);
+    if (!p) return;
+    nvLienEnsure(p);
+    render(true);
+    const u = nvLienUrl(p),
+      t = p.nv.mode === 'cours' ? p.nv.theme || 'Séance collective' : 'Partie dirigée';
+    if (navigator.share) navigator.share({ title: t, text: t + ' : inscris-toi ici', url: u }).catch(() => {});
+    else nvLienCopie(u);
+  },
+  nvLienToggle(d) {
+    const p = nvLienPost(d);
+    if (!p) return;
+    const l = nvLienEnsure(p);
+    if (l.off) delete l.off;
+    else l.off = true;
+    render(true);
+    toast(l.off ? 'Lien coupé : plus personne ne s’inscrit par ce lien' : 'Lien réactivé');
+  }
+});
