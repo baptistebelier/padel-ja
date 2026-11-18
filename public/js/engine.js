@@ -180,6 +180,15 @@
   const weightOf = pair => rankOf(pair.p1) + rankOf(pair.p2);
   const isPair = t => typeof t === 'string' && t !== 'BYE' && t.indexOf(':') < 0;
 
+  /* ---------- paires fictives (simulation d'un tirage) ----------
+     Marquées dans leurs données : pair.fictif et p1.fictif / p2.fictif. Elles ne laissent aucune trace réelle
+     (base joueurs, participations, statistiques, /Buvette) et empêchent la clôture tant qu'il en reste. */
+  const isFictif = p => !!(p && (p.fictif || (p.p1 && p.p1.fictif) || (p.p2 && p.p2.fictif)));
+  const hasFictifs = T => ((T && T.pairs) || []).some(isFictif);
+  /* paires manquantes pour remplir le tableau : capacité maxPairs (16 si elle n'est pas définie, comme la sélection) ;
+     toutes les paires non retirées comptent, vraies ou fictives ; les wild-cards sont comprises dans la capacité */
+  const fictifsMissing = T => Math.max(0, (+T.tournament.maxPairs || 16) - T.pairs.filter(p => !p.withdrawn).length);
+
   function tokenLabel(t) {
     if (t === 'BYE') return 'Exempt';
     if (typeof t !== 'string') return '';
@@ -202,7 +211,10 @@
       waiting = active.filter(p => !inDraw.has(p.id));
     } else {
       const sorted = active.slice().sort(cat.selection === 'weight' ? byWeight : byDate);
-      const wc = sorted.filter(p => p.wc), others = sorted.filter(p => !p.wc);
+      // les paires fictives ne prennent jamais la place d'une vraie : elles passent après toutes les vraies paires,
+      // une vraie inscription (même tardive) les repousse donc dans la liste d'attente avant le tirage
+      const wc = sorted.filter(p => p.wc), reelles = sorted.filter(p => !p.wc && !p.fictif), fictives = sorted.filter(p => !p.wc && p.fictif);
+      const others = reelles.concat(fictives);
       const max = Math.max(0, (+t.maxPairs || 16) - wc.length);
       main = wc.concat(others.slice(0, max));
       waiting = others.slice(max);
@@ -1232,7 +1244,25 @@
         if (p.level === 'draw' || p.level === 'all') { T.draw = null; T.matches = []; T.poules = []; T.pairs.forEach(x => { delete x.tie; }); }
         if (p.level === 'all') T.pairs = [];
         break;
-      case 'tournament/setClosed': T.tournament.closed = !!p.closed; T.tournament.closedAt = p.closed ? (p.at || now) : null; break;
+      case 'pairs/fictifs': {   // complète avec des paires fictives, sans toucher à aucune paire ni réglage
+        if (T.draw) throw new Error('Le tirage est fait : annulez-le avant de compléter les inscriptions.');
+        const n = fictifsMissing(T);
+        if (!n) throw new Error('Le tableau est déjà complet.');
+        const r = rand || Math.random, nums = T.pairs.filter(isFictif).map(x => +(String((x.p1 || {}).last || '').match(/(\d+)/) || [])[1] || 0);
+        let k = Math.max(0, ...nums);
+        for (let i = 0; i < n; i++) {
+          k++; const no = String(k).padStart(2, '0');
+          const pl = suf => ({ last: 'FICTIF ' + no + suf, first: 'Joueur', rank: String(500 + Math.floor(r() * 5500)), licence: '', club: '', fictif: true });
+          T.pairs.push({ id: uid('p'), p1: pl('A'), p2: pl('B'), registeredAt: localNow(), withdrawn: false, wc: false, note: 'Paire fictive (simulation)', fictif: true });
+        }
+        break;
+      }
+      case 'pairs/fictifs/remove':   // retire seulement les paires fictives, avant le tirage
+        if (T.draw && T.pairs.some(x => isFictif(x) && T.draw.entrants.includes(x.id))) throw new Error('Des paires fictives sont dans le tirage : annulez le tirage, retirez-les, puis refaites le tirage.');
+        T.pairs = T.pairs.filter(x => !isFictif(x)); break;
+      case 'tournament/setClosed':
+        if (p.closed && hasFictifs(T)) throw new Error('Clôture impossible : des joueurs fictifs sont encore inscrits. Retirez-les (annulez d’abord le tirage s’il est fait).');
+        T.tournament.closed = !!p.closed; T.tournament.closedAt = p.closed ? (p.at || now) : null; break;
       case 'draw/replace': replacePair(T, p.oldId, p.newId); break;
 
       case 'match/point': {
@@ -1368,7 +1398,7 @@
   return {
     FORMATS, FORMAT_KEYS, CATEGORIES, FORMULAS, PRESETS, TEMPLATE_FIELDS, templateFromState, PROFILE_FIELDS, profileFromState, applyProfile, pointsFor, liveStandings, REST, DEFAULT_DUR, ROUND_NAMES, ROUND_SHORT, RAM_COLORS, DEFAULT_LOOK, LOOK_FONTS,
     computeScore, pointFlags, pointLabels, setsText, scoreText, winnerScoreText, manualToSets,
-    weightOf, rankOf, isPair, tokenLabel, selection, plan, pouleSizes, seedOrder, nextPow2, defaultSeeds,
+    weightOf, rankOf, isPair, isFictif, hasFictifs, fictifsMissing, tokenLabel, selection, plan, pouleSizes, seedOrder, nextPow2, defaultSeeds,
     prepareDraw, currentPot, sessionSlots, posLabel, buildAll, matchLabel, formatOf,
     resolve, pouleStandings, standings, finalResults, matchKey, orderedMatches, orderIssues, previewStructure, timeline, autoSchedule, depsOf, pairsStatus, dayChecks, restMsAfter,
     checkRules, initialState, migrate, reduce, localNow, diffState, applyDiff

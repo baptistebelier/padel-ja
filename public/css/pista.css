@@ -1537,3 +1537,13 @@ body.editor-page .top { top: 0; z-index: 30; padding-top: calc(var(--s5) + env(s
 
 /* boutons dont le picto SVG précède le texte (Annuler, Supprimer…) : sur une ligne, picto et texte alignés */
 #btnUndo, #spUndo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* simulation : compléter avec des joueurs fictifs (onglet Inscriptions) */
+.fic-box { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 14px; padding: 10px 12px; border: 2px dashed var(--ui-accent-line, #E0284A); }
+.fic-txt { display: grid; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.fic-txt small { font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.fic-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.fic-btns button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.fic-btns button[disabled] { opacity: .55; cursor: not-allowed; }
+.fic-tag { white-space: nowrap; }
+@media (max-width: 480px) { .fic-btns, .fic-btns button { width: 100%; } .fic-btns button { justify-content: center; } }

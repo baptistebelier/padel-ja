@@ -732,6 +732,8 @@ async function cloturer(room, u) {
     try { applyServerAction(room, { type: 'ani/finish' }); } catch (e) { return { error: e.message }; }
     return { ok: true, saved: 0, skipped: 0, unfinished: 0, guest: !!u.guest };
   }
+  // paires fictives (simulation) : jamais de clôture, donc jamais de résultat ni de participation enregistrés pour elles
+  if (Engine.hasFictifs(T)) return { error: 'Clôture impossible : des joueurs fictifs sont encore inscrits. Retirez-les (annulez d’abord le tirage s’il est fait).', fictifs: true };
   if (!T.draw || !T.draw.built) return { error: 'Le tirage n\'a pas été fait : rien à clôturer.' };
   const R = Engine.resolve(T);
   const left = T.matches.filter(m => !R[m.id].staticBye && R[m.id].state !== 'done').length;
@@ -744,7 +746,7 @@ async function cloturer(room, u) {
     const pname = pl => `${String(pl.last || '').toUpperCase()} ${pl.first || ''}`.trim();
     for (const res of results) {
       const pair = T.pairs.find(x => x.id === res.pair);
-      if (!pair || pair.demo) { skipped++; continue; }
+      if (!pair || pair.demo || Engine.isFictif(pair)) { skipped++; continue; }
       for (const [pl, mate] of [[pair.p1, pair.p2], [pair.p2, pair.p1]]) {
         if (!pl || !String(pl.last || '').trim()) continue;
         const player = await upsertPlayerFrom(pl, room.row.owner);   // l'historique reste au juge-arbitre principal, même clôturé par un adjoint
@@ -782,7 +784,7 @@ async function accountStats(owner) {
     FR.forEach(x => { pts[x.pair] = x.points || 0; });
     let counted = false;
     for (const pair of T.pairs) {
-      if (pair.demo || !T.draw.entrants.includes(pair.id)) continue;
+      if (pair.demo || Engine.isFictif(pair) || !T.draw.entrants.includes(pair.id)) continue;
       const played = done.filter(m => !m.wo && (R[m.id].A === pair.id || R[m.id].B === pair.id));
       const won = played.filter(m => R[m.id].winner === pair.id).length;
       for (const pl of [pair.p1, pair.p2]) {
@@ -1423,7 +1425,7 @@ const server = http.createServer(async (req, res) => {
       if (m[2] === '/close' && req.method === 'POST') {
         const r = await closeTournament(room, u);
         await enregistrerTout(room);   // la liste des tournois (panneau « Tournoi en cours », Mes tournois) le montre aussitôt
-        return json(res, 200, r);
+        return json(res, r && r.fictifs ? 409 : 200, r);
       }
       if (m[2] === '/reopen' && req.method === 'POST') {
         // les résultats seront réenregistrés à la prochaine clôture

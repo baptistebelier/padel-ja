@@ -376,7 +376,8 @@
       ? `<div class="alert ok">Tournoi clôturé le ${new Date(t.closedAt).toLocaleString('fr-FR')}. Les joueurs et leurs résultats sont dans la base.</div><div class="btns"><button class="ghost" id="reopenBtn">Rouvrir le tournoi</button></div>`
       : `<p class="muted small">À la fin du tournoi, clôturez-le : il passe dans « Tournois clôturés » et chaque joueur est enregistré avec sa place et ses points FFT (fiche, historique, saisie semi-automatique dans vos prochains tournois et ceux des autres juges-arbitres /RAM JA).</p>
          ${left ? `<div class="alert warn">${left} match(s) restant(s) à jouer.</div>` : ''}
-         <div class="btns"><button class="accent" id="closeBtn" ${S.draw && S.draw.built ? '' : 'disabled title="Effectuez d\'abord le tirage"'}>Clôturer le tournoi</button></div>`;
+         ${E.hasFictifs(S) ? '<div class="alert warn">Des joueurs fictifs sont inscrits : la clôture est impossible tant qu’il en reste. Retirez-les dans l’onglet Inscriptions (si le tirage est fait, annulez-le d’abord avec « Recommencer le tirage » ci-dessous : les vraies paires sont conservées).</div>' : ''}
+         <div class="btns"><button class="accent" id="closeBtn" ${E.hasFictifs(S) ? 'disabled title="Des joueurs fictifs sont inscrits"' : S.draw && S.draw.built ? '' : 'disabled title="Effectuez d\'abord le tirage"'}>Clôturer le tournoi</button></div>`;
     if ($('#closeBtn')) $('#closeBtn').onclick = closeT;
     if ($('#reopenBtn')) $('#reopenBtn').onclick = reopenT;
     ['rzScores', 'rzDraw', 'rzAll'].forEach(k => { $('#' + k).disabled = closed; });
@@ -683,7 +684,7 @@
           <td class="num">${kind === 'main' && ts ? `<span class="ts">TS${ts}</span>` : i + 1}</td>
           <td>${plCell(p.p1, 'p1')}</td><td>${plCell(p.p2, 'p2')}</td>
           <td class="num"><b>${E.weightOf(p) >= 99999 ? 'NC' : E.weightOf(p)}</b></td>
-          <td>${fmtDate(p.registeredAt)} ${p.wc ? '<span class="tag">WC</span>' : ''}${p.src ? '<span class="tag lime" title="Inscrite par les joueurs depuis l’appli /Buvette">/Buvette</span>' : ''}</td>
+          <td>${fmtDate(p.registeredAt)} ${p.wc ? '<span class="tag">WC</span>' : ''}${E.isFictif(p) ? '<span class="tag pink fic-tag" title="Paire fictive : simulation, aucune trace réelle">Fictif</span>' : ''}${p.src ? '<span class="tag lime" title="Inscrite par les joueurs depuis l’appli /Buvette">/Buvette</span>' : ''}</td>
           <td class="acts"><button class="ps-more" data-a="more" data-kind="${kind}" aria-haspopup="menu" aria-label="Actions de la paire ${esc(p.p1.last || '')} / ${esc(p.p2.last || '')}">${PSI.more}</button></td></tr>`;
       }).join('') + '</tbody>';
   }
@@ -709,7 +710,37 @@
       ]));
     });
     psInsTabs(sel);
+    renderFictifs();
   }
+
+  /* ---------- paires fictives : simulation d'un tirage (aucune trace réelle, clôture impossible tant qu'il en reste) ---------- */
+  const FIC_IC = psIc('<circle cx="9" cy="8" r="3" stroke-dasharray="2 2.4"/><path d="M3 20c.6-3.4 3-5 6-5" stroke-dasharray="2 2.4"/><path d="M18 8v6M15 11h6"/>');
+  const plur = (n, a, b) => (n > 1 ? b : a);
+  function renderFictifs() {
+    const btn = $('#btnFictifs'), out = $('#btnFictifsOut'), info = $('#ficInfo'); if (!btn) return;
+    const n = E.fictifsMissing(S), nf = S.pairs.filter(E.isFictif).length, max = +S.tournament.maxPairs || 16;
+    const inDraw = !!(S.draw && S.pairs.some(p => E.isFictif(p) && S.draw.entrants.includes(p.id)));
+    btn.innerHTML = FIC_IC + '<span>Compléter avec des joueurs fictifs</span>';
+    btn.disabled = !!S.draw || n === 0 || !!S.tournament.closed;
+    btn.title = S.tournament.closed ? 'Tournoi clôturé' : S.draw ? 'Le tirage est fait : annulez-le pour compléter les inscriptions.' : n === 0 ? `Le tableau est déjà complet (${max} paires).` : `Ajoute ${n} ${plur(n, 'paire fictive', 'paires fictives')} sans toucher aux paires inscrites.`;
+    out.hidden = !nf;
+    out.innerHTML = FIC_IC + '<span>Retirer les joueurs fictifs</span>';
+    out.disabled = inDraw || !!S.tournament.closed;
+    out.title = inDraw ? 'Annulez d’abord le tirage (onglet Tirage), puis retirez-les.' : '';
+    info.textContent = S.tournament.closed ? 'Tournoi clôturé.'
+      : S.draw ? 'Tirage fait : on ne complète plus les inscriptions.' + (inDraw ? ' Des fictifs sont dans le tirage : annulez le tirage, retirez-les, puis refaites-le. Les vraies paires sont conservées.' : '')
+      : n === 0 ? `Tableau complet (${max} paires).` + (nf ? ` ${nf} ${plur(nf, 'paire fictive', 'paires fictives')} : la clôture reste impossible tant qu’il en reste.` : '')
+      : `Ajoute ${n} ${plur(n, 'paire fictive', 'paires fictives')} pour remplir le tableau (${max}) et simuler un tirage. Aucune trace réelle ; clôture impossible tant qu’il en reste.`;
+  }
+  $('#btnFictifs').onclick = () => {
+    const n = E.fictifsMissing(S); if (S.draw || n === 0) return;
+    if (confirm(`Ajouter ${n} ${plur(n, 'paire fictive', 'paires fictives')} pour remplir le tableau (${+S.tournament.maxPairs || 16} paires) ?\n\nLes paires déjà inscrites et les réglages ne changent pas. Les paires fictives n’entrent ni dans la base de joueurs, ni dans les classements ; la clôture reste impossible tant qu’il en reste.`))
+      A.send('pairs/fictifs', {}).then(() => A.toast(`${n} ${plur(n, 'paire fictive ajoutée', 'paires fictives ajoutées')}`, 'ok')).catch(() => {});
+  };
+  $('#btnFictifsOut').onclick = () => {
+    const nf = S.pairs.filter(E.isFictif).length; if (!nf) return;
+    if (confirm(`Retirer ${nf} ${plur(nf, 'paire fictive', 'paires fictives')} ? Les vraies paires ne sont pas touchées.`)) A.send('pairs/fictifs/remove', {}).then(() => A.toast('Joueurs fictifs retirés', 'ok')).catch(() => {});
+  };
 
   function openPairModal(id) {
     const p = A.pairs[id]; if (!p) return;
