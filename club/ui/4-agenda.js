@@ -90,7 +90,8 @@ function planItems(iso) {
         (i.v !== 'grp' || seesMinors()) &&
         (S.plan.scope === 'me' ? i.my : CLUB_CATS.includes(i.cat) && !i.priv && (!S.plan.mine || i.my))
     )
-    .sort((a, b) => hMin(a.t) - hMin(b.t));
+    .sort((a, b) => hMin(a.t) - hMin(b.t))
+    .map(i => ((i.iso = iso), i));
 }
 /* tout ce où l'on se positionne, en plus des cours, rencontres et événements : parties libres, parties dirigées,
    séances collectives, tournois et animations /RAM JA, repas réservés au bar */
@@ -270,7 +271,7 @@ function planGrid(days, detail) {
       .map(i => {
         const top = Math.max(0, (hMin(i.t) / 60 - H0) * ph),
           hh = Math.max((i.dur / 60) * ph, detail ? 34 : 12);
-        return `<button class="gev ${i.cat} ${i.cx ? 'cx' : ''}" style="top:${top}px;height:${hh}px;left:${(i.l * 100) / n}%;width:${100 / n}%" data-a="open" data-v="${i.v}" data-id="${i.id}" aria-label="${i.t} ${esc(i.title)}">${detail ? `<b>${i.t}</b>${i.title}` : `<span class="gt">${(i.t || '').replace(/ h ?/, 'h')}</span>`}</button>`;
+        return `<button class="gev ${i.cat} ${i.cx ? 'cx' : ''}" style="top:${top}px;height:${hh}px;left:${(i.l * 100) / n}%;width:${100 / n}%" data-a="open" data-v="${i.v}" data-id="${i.id}" data-d="${iso}" aria-label="${i.t} ${esc(i.title)}">${detail ? `<b>${i.t}</b>${i.title}` : `<span class="gt">${(i.t || '').replace(/ h ?/, 'h')}</span>`}</button>`;
       })
       .join('')}</div>`;
   };
@@ -279,7 +280,7 @@ function planGrid(days, detail) {
       .filter(i => i.all)
       .map(
         i =>
-          `<button class="gall ${i.cat}" data-a="open" data-v="${i.v}" data-id="${i.id}" aria-label="${esc(i.title)}">${detail ? i.title : ''}</button>`
+          `<button class="gall ${i.cat}" data-a="open" data-v="${i.v}" data-id="${i.id}" data-d="${iso}" aria-label="${esc(i.title)}">${detail ? i.title : ''}</button>`
       )
       .join('');
   return `<div class="grid ${detail ? 'detail' : ''}" style="--n:${days.length}"><div class="ghead"><span></span>${days
@@ -353,7 +354,7 @@ const planCard = (i, dt) =>
     t2: i.all ? '' : i.t2 !== undefined ? i.t2 : i.cat === 'eq' ? '' : hFin(i.t, i.dur),
     dt,
     cx: i.cx,
-    go: `data-a="open" data-v="${i.v}" data-id="${i.id}"`,
+    go: `data-a="open" data-v="${i.v}" data-id="${i.id}"${i.iso ? ' data-d="' + i.iso + '"' : ''}`,
     title: i.title,
     lines: i.lines,
     tags:

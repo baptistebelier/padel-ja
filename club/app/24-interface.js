@@ -195,6 +195,7 @@ ramRail = function (t, sub) {
   bvRail(t, sub);
   bvNav();
   bvBoite();
+  if (typeof agMark === 'function') agMark();
 };
 
 /* Une seule grande boîte par page à intercalaires (Agenda, Jouer, Messages) : tout le contenu de l'intercalaire choisi
@@ -204,14 +205,23 @@ function bvBoite() {
   const main = $('main');
   if (!main || S.stack.length || !['agenda', 'jouer', 'chans'].includes(S.tab)) return;
   const seg = main.querySelector(':scope > .seg');
-  if (!seg || main.querySelector(':scope > .bvbox')) return;
+  if (!seg || main.querySelector(':scope > .bvbox, :scope > .bvag')) return;
   const box = document.createElement('div');
   box.className = 'card bvbox';
   const suite = [];
-  for (let n = seg.nextElementSibling; n; n = n.nextElementSibling) if (!n.classList.contains('seg-out')) suite.push(n);
+  for (let n = seg.nextElementSibling; n; n = n.nextElementSibling)
+    if (!n.classList.contains('seg-out') && !n.classList.contains('agcol')) suite.push(n);
   if (!suite.length) return;
   suite[0].before(box);
   box.append(...suite);
+  // Agenda, grand écran : la carte de l'événement choisi vit hors de la boîte, dans une troisième colonne
+  const col = main.querySelector(':scope > .agcol');
+  if (col) {
+    const rang = document.createElement('div');
+    rang.className = 'bvag';
+    box.before(rang);
+    rang.append(box, col);
+  }
   // Messages : « Créer un groupe de discussion » passe en tête (les actions d'abord)
   box.querySelectorAll(':scope > .pad > .btn.full').forEach(b => box.prepend(b));
   // textes d'aide : petit texte en bas de la boîte

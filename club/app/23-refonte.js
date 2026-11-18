@@ -108,11 +108,56 @@ V.agenda = () => {
       '<div class="ctl"><button class="btn ghost grow" data-a="calReset">Tout afficher</button></div></div>'
     )
     .replace('<div class="body">', '');
+  const trois = ag3();
   return (
     h.slice(0, i) +
-    `<div class="bento2"><div class="bmain">${h.slice(i)}</div><aside class="bside">${calMonth()}<div class="card calf"><div class="calh">${ic('filter')}<b>Filtres</b></div>${filt}</div></aside></div>`
+    `<div class="bento2${trois ? ' bento3' : ''}"><div class="bmain">${h.slice(i)}</div><aside class="bside">${calMonth()}<div class="card calf"><div class="calh">${ic('filter')}<b>Filtres</b></div>${filt}</div></aside></div>${trois ? `<aside class="agcol" id="agcard" aria-live="polite">${agCarte()}</aside>` : ''}`
   );
 };
+/* Agenda, grand écran : trois colonnes. Toucher un bloc du calendrier affiche sa carte dans la troisième, sans quitter l'agenda.
+   Plus étroit (iPad portrait, téléphone), le toucher ouvre la publication comme avant. */
+function ag3() {
+  return matchMedia('(min-width: 1280px)').matches && S.tab === 'agenda' && !S.stack.length;
+}
+function agCarte() {
+  const s = S.plan.sel,
+    vide = `<div class="card agvide">${ic('cal')}<b>Choisis un événement</b><span class="muted small">Touche un bloc du calendrier : sa carte s’affiche ici.</span></div>`;
+  if (!s) return vide;
+  if (s.v === 'post') {
+    const p = posts.find(x => x.id === s.id);
+    return p ? `<div class="agcarte">${V.post(s.id)}</div>` : vide;
+  }
+  if (s.v === 'rec') {
+    const r = recs.find(x => x.id === s.id);
+    return r ? `<div class="agcarte">${recCard(r)}</div>` : vide;
+  }
+  const it = s.d && planItems(s.d).find(i => i.v === s.v && i.id === s.id);
+  return it
+    ? `<div class="agcarte">${planCard(it)}<p class="muted small">Touche la carte pour l’ouvrir en entier.</p></div>`
+    : vide;
+}
+function agMark() {
+  const s = S.plan.sel;
+  document.querySelectorAll('#plan .agsel').forEach(e => e.classList.remove('agsel'));
+  if (!s || !$('agcard')) return;
+  document.querySelectorAll('#plan [data-a="open"][data-id]').forEach(e => {
+    if (e.dataset.v === s.v && e.dataset.id === s.id && (!s.d || !e.dataset.d || e.dataset.d === s.d))
+      e.classList.add('agsel');
+  });
+}
+document.addEventListener(
+  'click',
+  e => {
+    const el = e.target.closest('[data-a="open"]');
+    if (!el || !ag3() || !$('agcard') || !el.closest('#plan') || el.closest('#agcard')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    S.plan.sel = { v: el.dataset.v, id: el.dataset.id, d: el.dataset.d || '' };
+    $('agcard').innerHTML = agCarte();
+    agMark();
+  },
+  true
+);
 
 /* ---------- Profil : sous-menu à 4 entrées, en-tête compact, deux colonnes sur grand écran ---------- */
 const sectionAt = (h, tag, start) => {

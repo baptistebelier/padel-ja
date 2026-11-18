@@ -3643,6 +3643,101 @@ test('Dojo : fiche de groupe en deux boîtes (identité + intercalaires collés)
   }
 });
 
+test('/Buvette Agenda : à 1280 px et plus, trois colonnes, un clic sur un bloc affiche sa carte à droite sans changer de page ; à 390 px le clic ouvre comme avant', async () => {
+  for (const w of [1280, 1600]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/index.html');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    for (const mode of ['week', 'events']) {
+      await page.evaluate(m => { S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = m; S.plan.sel = null; render(true); }, mode);
+      assert.equal(await page.locator('#main .bvag > .agcol#agcard').count(), 1, w + ' ' + mode + ' : 3e colonne');
+      assert.equal(await page.locator('#agcard .agvide').count(), 1, w + ' : état vide sans sélection');
+      const bloc = page.locator('#plan [data-a="open"][data-id]').first();
+      const id = await bloc.getAttribute('data-id');
+      await bloc.click();
+      const r = await page.evaluate(() => ({ pile: S.stack.length, tab: S.tab, vide: !!document.querySelector('#agcard .agvide'), txt: document.getElementById('agcard').textContent.trim().length, sel: document.querySelectorAll('#plan .agsel').length, debord: document.documentElement.scrollWidth - innerWidth }));
+      assert.equal(r.pile, 0, w + ' ' + mode + ' : on reste dans l’agenda');
+      assert.equal(r.tab, 'agenda');
+      assert.equal(r.vide, false, w + ' ' + mode + ' : la carte est affichée (' + id + ')');
+      assert.ok(r.txt > 10, 'carte non vide');
+      assert.ok(r.sel >= 1, w + ' ' + mode + ' : bloc marqué sélectionné');
+      assert.ok(r.debord <= 0, w + ' : pas de débordement horizontal : ' + r.debord);
+    }
+    assert.deepEqual(errs, [], w + ' : aucune erreur');
+    await ctx.close();
+  }
+  for (const w of [390, 1100]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 800 } }), page = await ctx.newPage();
+    await page.goto(JA + '/club/index.html');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    await page.evaluate(() => { S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = 'events'; S.plan.sel = null; render(true); });
+    assert.equal(await page.locator('#agcard').count(), 0, w + ' : pas de 3e colonne');
+    await page.locator('#plan [data-a="open"][data-id]').first().click();
+    assert.equal(await page.evaluate(() => S.stack.length), 1, w + ' : le clic ouvre la publication');
+    await ctx.close();
+  }
+});
+
+test('/Buvette Jouer : à 1280 px chaque partie a sa carte à fond opaque ; sur téléphone une seule boîte', async () => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }), page = await ctx.newPage(), errs = [];
+  page.on('pageerror', x => errs.push(x.message));
+  await page.goto(JA + '/club/index.html');
+  await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+  const fond = async () => page.evaluate(() => [...document.querySelectorAll('#main .bvbox .bvpar, #main .bvbox .post, #main .bvbox .lis')].map(e => getComputedStyle(e).backgroundColor));
+  for (const [tab, onglet] of [['jouer', 'parties'], ['jouer', 'resultats'], ['chans', 'club'], ['chans', 'train'], ['chans', 'team']]) {
+    await page.evaluate(([t, o]) => { S.stack = []; S.tab = t; if (t === 'jouer') S.jouTab = o; else S.chanTab = o; render(true); }, [tab, onglet]);
+    const l = await fond();
+    if (tab === 'jouer' && onglet === 'parties') assert.ok(l.length >= 1, 'des parties à l’écran');
+    l.forEach(c => assert.ok(!/rgba\(.*, 0\)$/.test(c), tab + '/' + onglet + ' : fond opaque ' + c));
+  }
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.evaluate(() => { S.stack = []; S.tab = 'jouer'; S.jouTab = 'parties'; render(true); });
+  assert.equal(await page.locator('#main > .bvbox').count(), 1, 'téléphone : une seule boîte');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('#main .bvbox .bvpar')).boxShadow), 'none', 'téléphone : parties en lignes, inchangé');
+  assert.deepEqual(errs, []);
+  await ctx.close();
+});
+
+test('Discussions : réaction pleine surface et coches (envoyé, reçu, lu en bleu fixe), dans /Buvette et /Dojo', async () => {
+  for (const url of ['/club/index.html', '/club/coach.html']) {
+    const ctx = await browser.newContext({ viewport: { width: 700, height: 900 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + url);
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    const r = await page.evaluate(() => {
+      const m = { by: ME(), x: 'Salut', t: '10:00', at: 4000, _id: 'm1', re: { '👍': 1 }, my: '👍' };
+      const h = msgRow(m, 0, '', 'c:g1', false);
+      const d = document.createElement('div');
+      d.className = 'chat';
+      d.style.cssText = 'position:fixed;top:60px;left:10px;width:400px;z-index:9999;background:#fff';
+      d.innerHTML = h;
+      document.body.append(d);
+      const box = d.querySelector('.reacts:not(.big)'), on = d.querySelector('.react.on'), cs = getComputedStyle(box), a = box.getBoundingClientRect(), b = on.getBoundingClientRect();
+      const bw = parseFloat(cs.borderTopWidth), out = { pad: cs.paddingTop + cs.paddingLeft, dh: Math.round(a.height - 2 * bw - b.height), dw: Math.round(a.width - 2 * bw - b.width), fond: getComputedStyle(on).backgroundColor, boite: cs.backgroundColor };
+      d.remove();
+      // coches
+      const sv = window.RAM;
+      window.RAM = { live: true, base: new Set(['msg/m1', 'msg/m2']), reads: { g1: 5000 } };
+      const t = (id, at, rd) => { window.RAM.reads.g1 = rd; const e = document.createElement('div'); e.className = 'chat'; e.innerHTML = `<div class="bub"><time>${msgTicks({ _id: id, at }, 'c:g1')}</time></div>`; document.body.append(e); const i = e.querySelector('.tk'); const o = { rd: i.classList.contains('rd'), n: i.querySelectorAll('path').length, col: getComputedStyle(i).color, lbl: i.getAttribute('aria-label') }; e.remove(); return o; };
+      const envoye = t('absent', 4000, 5000), recu = t('m2', 4000, 3000), lu = t('m1', 4000, 5000);
+      window.RAM = sv;
+      return { out, envoye, recu, lu };
+    });
+    assert.equal(r.out.pad, '0px0px', url + ' : pas de marge entre la boîte et la réaction');
+    assert.equal(r.out.dh, 0, url + ' : la réaction remplit toute la hauteur de la boîte');
+    assert.equal(r.out.dw, 0, url + ' : la réaction remplit toute la largeur de la boîte');
+    assert.notEqual(r.out.fond, 'rgba(0, 0, 0, 0)', url + ' : fond d’accent plein');
+    assert.equal(r.envoye.lbl, 'Envoyé', url + ' : V simple, envoyé'); assert.equal(r.envoye.rd, false);
+    assert.equal(r.recu.lbl, 'Reçu', url + ' : double V, reçu'); assert.equal(r.recu.rd, false);
+    assert.equal(r.lu.rd, true, url + ' : lu');
+    assert.equal(r.lu.col, 'rgb(47, 155, 255)', url + ' : double V bleu fixe');
+    assert.notEqual(r.recu.col, 'rgb(47, 155, 255)', url + ' : reçu, pas bleu');
+    assert.deepEqual(errs, [], url);
+    await ctx.close();
+  }
+});
+
 test('Abonnés : compteur « 2/4 ce mois-ci » sur la fiche élève, dans l’onglet Abonnés (alerte au-delà) et dans les achats de /Buvette', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 820 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
@@ -3901,12 +3996,12 @@ test('Buvette : une seule boîte sous les intercalaires (Agenda, Jouer, Messages
     const ETATS = [['agenda', "S.tab='agenda'; S.plan.scope='me'"], ['agenda du club', "S.tab='agenda'; S.plan.scope='club'"], ['parties', "S.tab='jouer'; S.jouTab='parties'"], ['équipes', "S.tab='jouer'; S.jouTab='equipes'"], ['résultats', "S.tab='jouer'; S.jouTab='resultats'"], ['messages club', "S.tab='chans'; S.chanTab='club'"], ['messages entraînements', "S.tab='chans'; S.chanTab='train'"], ['messages équipes', "S.tab='chans'; S.chanTab='team'"]];
     for (const [nom, code] of ETATS) {
       await page.evaluate(c => { S.stack = []; eval(c); render(true); }, code);
-      await page.waitForSelector('#main > .card.bvbox', { timeout: 5000 });
+      await page.waitForSelector('#main .card.bvbox', { timeout: 5000 });
       const m = await page.evaluate(() => {
-        const r = e => e.getBoundingClientRect(), main = document.getElementById('main'), seg = document.querySelector('#main > .seg, #subnav > .seg'), box = main.querySelector(':scope > .card.bvbox'), on = seg.querySelector('[aria-selected="true"]'), c = getComputedStyle(seg);
+        const r = e => e.getBoundingClientRect(), main = document.getElementById('main'), seg = document.querySelector('#main > .seg, #subnav > .seg'), box = main.querySelector('.card.bvbox'), on = seg.querySelector('[aria-selected="true"]'), c = getComputedStyle(seg);
         return { colonne: r(seg).height > 90, e: r(box).top + parseFloat(getComputedStyle(box).borderTopWidth) - r(on).bottom, mask: c.maskImage || c.webkitMaskImage || 'none',
           deborde: seg.scrollWidth > seg.clientWidth + 1, coupes: [...seg.querySelectorAll(':scope > button')].filter(b => r(b).right > r(seg).right + 1).length,
-          autres: [...main.children].filter(x => !x.matches('.seg, .bvbox, .seg-out') && r(x).height > 0 && !x.matches('.segt')).length,
+          autres: [...main.children].filter(x => !x.matches('.seg, .bvbox, .bvag, .seg-out') && r(x).height > 0 && !x.matches('.segt')).length,
           cartes: box.querySelectorAll('.card:not(.bvbox)').length > -1, gauche: r(box).left, debord: document.documentElement.scrollWidth > innerWidth + 1 };
       });
       assert.equal(m.autres, 0, w + ' ' + nom + ' : tout le contenu est dans la boîte');
@@ -3920,8 +4015,8 @@ test('Buvette : une seule boîte sous les intercalaires (Agenda, Jouer, Messages
     }
     // Messages : « Créer un groupe de discussion » en tête de boîte, l'aide en petit texte à la fin
     await page.evaluate(() => { S.stack = []; S.tab = 'chans'; S.chanTab = 'club'; render(true); });
-    await page.waitForSelector('#main > .card.bvbox');
-    const ordre = await page.evaluate(() => [...document.querySelector('#main > .card.bvbox').children].map(x => x.matches('.btn') ? 'action' : x.matches('.lis') ? 'liste' : x.matches('.bvaide') ? 'aide' : 'autre').filter(x => x !== 'autre').join(','));
+    await page.waitForSelector('#main .card.bvbox');
+    const ordre = await page.evaluate(() => [...document.querySelector('#main .card.bvbox').children].map(x => x.matches('.btn') ? 'action' : x.matches('.lis') ? 'liste' : x.matches('.bvaide') ? 'aide' : 'autre').filter(x => x !== 'autre').join(','));
     if (w === 390) assert.match(ordre, /^action,liste,aide$|^liste,aide$/, w + ' : ordre action, liste, aide (' + ordre + ')');
     assert.deepEqual(errs, []);
     await ctx.close();

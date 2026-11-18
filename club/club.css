@@ -868,7 +868,7 @@ select { -webkit-appearance: none; appearance: none; padding-right: 38px; text-o
 .tsec .tro:last-child, .tsec .item:last-child { border-bottom: 0; }
 .thero.tsec { padding: 14px; }
 .frames.tsec { padding: 6px 10px 14px; }
-.msg .reacts:not(.big) { display: inline-flex; flex-wrap: nowrap; gap: 1px; align-self: flex-start; margin: -11px 0 0 12px; padding: 1px 3px; position: relative; z-index: 1; border: var(--bw) solid var(--c-ink); box-shadow: var(--sh-sm); background: var(--c-surface); }
+.msg .reacts:not(.big) { display: inline-flex; flex-wrap: nowrap; gap: 0; align-self: flex-start; margin: -11px 0 0 12px; padding: 0; overflow: hidden; position: relative; z-index: 1; border: var(--bw) solid var(--c-ink); box-shadow: var(--sh-sm); background: var(--c-surface); }
 .msg.me .reacts:not(.big) { align-self: flex-end; margin: -11px 20px 0 0; }
 .msg .reacts:not(.big) .react { min-height: 26px; padding: 0 5px; border-radius: 0; font-size: 13px; line-height: 1; border: 0; box-shadow: none; background: transparent; }
 .msg .reacts:not(.big) .react.on { font-weight: 700; background: var(--accent-bg,var(--c-accent)); color: var(--c-on-accent); }
@@ -2026,4 +2026,34 @@ select option { background: var(--c-surface); color: var(--c-text); }
   :root:root #main > .seg.seg > button { flex: 1 1 auto; min-width: 0; padding: 0 8px; gap: 5px; font-size: 15px; justify-content: center; }
   :root:root #main > .seg.seg > button svg { width: 18px; height: 18px; }
   :root:root #main > .seg.seg > button .cnt { padding: 0 4px; margin: 0; font-size: 12px; }
+}
+
+/* ---------- Agenda, ordinateur (1280 px et plus) : calendrier | mini-calendrier et filtres | carte de l'événement choisi ---------- */
+@media (min-width: 1280px) {
+  :root #main > .bvag { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; max-width: none; width: auto; margin: 0 var(--gut, 16px) 24px; }
+  :root #main > .bvag > .bvbox { margin: 0 !important; max-width: none; width: auto; }
+  :root #main .bvbox .bento2.bento3 { grid-template-columns: minmax(0, 1fr) 232px; gap: 14px; max-width: none; }
+  :root #main .bvbox .bento3 .bside { min-width: 0; }
+  :root #main .bvbox .bento3 .cmg { gap: 2px; }
+  :root #main .bvbox .bento3 .calf .chips { gap: 6px; }
+  :root #main .bvbox .bento3 .gev.agsel, :root #main .bvbox .bento3 .gall.agsel { outline: 3px solid var(--c-ink); outline-offset: 1px; z-index: 3; box-shadow: var(--sh); }
+  :root #main .bvbox .bento3 .evx.agsel { outline: 3px solid var(--c-ink); outline-offset: 2px; background: var(--c-surface-2, var(--c-surface)) !important; }
+  .agcol { position: sticky; top: 12px; min-width: 0; }
+  .agcol .agvide { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 18px; }
+  .agcol .agvide svg { width: 28px; height: 28px; color: var(--c-ico, var(--c-muted)); }
+  .agcol .agcarte { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .agcol .agcarte .feed { padding: 0; }
+}
+@media (min-width: 1280px) and (min-width: 1500px) {
+  :root #main > .bvag { grid-template-columns: minmax(0, 1fr) 340px; }
+  :root #main .bvbox .bento2.bento3 { grid-template-columns: minmax(0, 1fr) 250px; }
+}
+
+/* ---------- grand écran et iPad (1024 px et plus) : la boîte unique laisse place à des cartes à fond opaque ----------
+   (sur téléphone : une seule boîte, inchangé). Chaque partie, chaque résultat, chaque liste a sa propre carte. */
+@media (min-width: 1024px) {
+  :root #main > .card.bvbox:not(.bvag > .bvbox) { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0; gap: 16px; }
+  :root #main .bvbox:not(.bvag > .bvbox) :is(.card, .post) { background: var(--c-surface) !important; border: var(--bw, 2px) solid var(--c-ink) !important; box-shadow: var(--sh) !important; padding: 14px 16px !important; border-radius: var(--rb, 0) !important; }
+  :root #main .bvbox:not(.bvag > .bvbox) .lis { background: var(--c-surface) !important; border: var(--bw, 2px) solid var(--c-ink) !important; box-shadow: var(--sh) !important; }
+  :root #main .bvbox:not(.bvag > .bvbox) :is(.card, .post) :is(.card, .post) { background: none !important; border-width: 0 !important; box-shadow: none !important; padding: 0 !important; }
 }

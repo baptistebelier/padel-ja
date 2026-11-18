@@ -1487,7 +1487,7 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .bub > .tx { flex: 0 0 auto; max-width: 100%; min-width: 0; }
 .bub > time { flex: none; margin-left: auto; white-space: nowrap; }
 .msg.hasre .bub { padding-bottom: 14px; }
-.msg .reacts:not(.big) { display: inline-flex; flex-wrap: nowrap; gap: 1px; align-self: flex-start; margin: -11px 0 0 12px; padding: 1px 3px; position: relative; z-index: 1; border: var(--bw) solid var(--c-ink); box-shadow: var(--sh-sm); background: var(--c-surface); }
+.msg .reacts:not(.big) { display: inline-flex; flex-wrap: nowrap; gap: 0; align-self: flex-start; margin: -11px 0 0 12px; padding: 0; overflow: hidden; position: relative; z-index: 1; border: var(--bw) solid var(--c-ink); box-shadow: var(--sh-sm); background: var(--c-surface); }
 .msg.me .reacts:not(.big) { align-self: flex-end; margin: -11px 20px 0 0; }
 .msg .reacts:not(.big) .react { min-height: 26px; padding: 0 5px; border-radius: 0; font-size: 13px; line-height: 1; border: 0; box-shadow: none; background: transparent; }
 .msg .reacts:not(.big) .react.on { font-weight: 700; background: var(--accent-bg,var(--c-accent)); color: var(--c-on-accent); }

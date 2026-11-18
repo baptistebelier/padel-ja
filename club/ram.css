@@ -658,11 +658,11 @@ html, body { background: var(--bg); }
 /* 4. réactions compactes : une petite étiquette à cheval sur le bas de la bulle (le menu de l'appui long,
       .reacts.big, ne change pas) ; la bulle garde de la place en bas pour que l'heure ne soit jamais cachée */
 .msg.hasre .bub { padding-bottom: 14px; }
-.msg .reacts:not(.big) { display: inline-flex; flex-wrap: nowrap; gap: 1px; align-self: flex-start; margin: -11px 0 0 12px; padding: 1px 3px; position: relative; z-index: 1;
+.msg .reacts:not(.big) { display: inline-flex; flex-wrap: nowrap; gap: 0; align-self: flex-start; margin: -11px 0 0 12px; padding: 0; overflow: hidden; position: relative; z-index: 1;
   background: var(--card); border: 1px solid var(--line); box-shadow: 2px 2px 0 var(--ram-hard); }
 .msg.me .reacts:not(.big) { align-self: flex-end; margin: -11px 20px 0 0; }
 .msg .reacts:not(.big) .react { min-height: 26px; padding: 0 5px; background: transparent; border-radius: 0 !important; font-size: 13px; box-shadow: none; line-height: 1; }
-.msg .reacts:not(.big) .react.on { box-shadow: inset 0 -2px 0 var(--accent); font-weight: 700; }
+.msg .reacts:not(.big) .react.on { box-shadow: none; font-weight: 700; background: var(--accent-bg,var(--accent)); color: var(--on-accent-bg,#1A0509); }
 
 /* discussions, suite (27/10/2026) */
 /* coches de mes messages : grises (envoyé, reçu), de couleur quand tous les autres membres ont lu */
