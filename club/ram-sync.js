@@ -9,8 +9,8 @@
    Sans serveur (GitHub Pages) ou sans club, l'appli reste la démo. */
 (function () {
   if (window.RAM) return; // déjà chargé (jamais deux synchronisations dans la même page)
-  const JA = 'https://ja.riseandmove.fr';
-  const onClubHost = /^(club|coach)\./.test(location.hostname); // /RAM Coach : même appli, mêmes données
+  const JA = RAM_NOMS.urlDepuis('ja', location.hostname); // /RAM JA, dans la même famille de noms que la page (ja. ou pista.)
+  const onClubHost = ['club', 'coach'].includes(RAM_NOMS.appOf(location.hostname)); // /RAM Coach : même appli, mêmes données
   const served = onClubHost || location.pathname.startsWith('/club'); // sinon : démo sans serveur
   const here = () => location.href.split('#')[0];
   // page de connexion propre à /RAM Club (même compte /RAM que /RAM JA), puis retour à l'endroit quitté

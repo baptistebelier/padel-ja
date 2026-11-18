@@ -88,7 +88,7 @@ function jaDirect(ja) {
   if (!h) return '';
   const live = ja.ani ? (d.on || []).filter(m => !m.done).length : (d.on || []).length,
     tv = ja.tv
-      ? `<a class="btn ghost full" href="${/^club\./.test(location.hostname) ? 'https://ja.riseandmove.fr' : ''}${esc(ja.tv)}" target="_blank" rel="noopener">Grand écran du tournoi ${ic('link')}</a>`
+      ? `<a class="btn ghost full" href="${RAM_NOMS.appOf(location.hostname) === 'club' ? RAM_NOMS.urlDepuis('ja', location.hostname) : ''}${esc(ja.tv)}" target="_blank" rel="noopener">Grand écran du tournoi ${ic('link')}</a>`
       : '';
   return `<details class="more ja-direct"><summary>${ic('score')}Suivre le direct${live ? ` <span class="tag hot">${live} en jeu</span>` : ''}</summary><div class="in">${h}${tv}</div></details>`;
 }

@@ -132,6 +132,22 @@ function json(res, code, obj, headers) {
 /* fichier de l'appli : empreinte (ETag) pour que l'appareil ne retélécharge pas un fichier inchangé (réponse 304),
    et compression gardée en mémoire tant que le fichier ne change pas */
 const tagOf = data => '"' + crypto.createHash('md5').update(data).digest('base64url').slice(0, 16) + '"';
+/* noms de domaine des trois applis : une seule table (club/noms.js, lue aussi par le navigateur).
+   NOMS_OFFICIELS=nouveaux : adresses écrites (e-mails, liens, webhook, présentation) et redirections des anciens noms ; absente : rien ne change. */
+const Noms = require('./club/noms.js');
+const hoteDe = req => String((req && (req.headers['x-forwarded-host'] || req.headers.host)) || '').split(',')[0].trim().split(':')[0].toLowerCase();
+const nomsOfficiels = () => Noms.officiel(process.env);
+/* famille de noms des pages envoyées : les nouveaux noms dès qu'ils sont officiels, ou quand on y est déjà ; sinon les anciens */
+const familleSortie = req => (nomsOfficiels() === 'nouveaux' ? 'nouveaux' : Noms.famille(hoteDe(req)));
+/* routes qui ne sont jamais redirigées (interfaces, webhooks, connecteur, fichiers, liens déjà publiés) */
+const SANS_REDIRECTION = /^\/(api|mcp|oauth|\.well-known|agenda|medias|r|css|js|img|fonts)(\/|$)|^\/(sw\.js|manifest\.webmanifest|favicon\.ico)$|\.[a-z0-9]{2,8}$/i;
+function redirectionNoms(req, p, search) {
+  if (nomsOfficiels() !== 'nouveaux' || (req.method !== 'GET' && req.method !== 'HEAD')) return '';
+  const host = hoteDe(req);
+  if (!Noms.appOf(host) || Noms.famille(host) !== 'anciens' || SANS_REDIRECTION.test(p)) return '';
+  const to = Noms.versFamille(host, 'nouveaux');
+  return to ? 'https://' + to + p + (search || '') : '';
+}
 function sendStatic(res, file, data, headers) {
   const tag = tagOf(data);
   const page = String((headers || {})['Content-Type'] || '').startsWith('text/html'), extra = (headers || {})._csp;
@@ -140,9 +156,10 @@ function sendStatic(res, file, data, headers) {
   if (String((res._req && res._req.headers['if-none-match']) || '') === tag) { res.writeHead(304, h); return res.end(); }
   return Compress.send(res._req, res, 200, h, data, file + tag);
 }
-/* coach.riseandmove.fr branché sur ce serveur (domaine ajouté sur Render) : vérifié au démarrage puis toutes les 10 minutes */
+/* le domaine de /RAM Coach (coach. ou, officiel, dojo.) branché sur ce serveur (domaine ajouté sur Render) : vérifié au démarrage
+   puis toutes les 10 minutes. Sans réponse (DNS pas encore créé) : abandon après 6 s, en arrière-plan, sans rien bloquer. */
 let coachLive = false;
-const checkCoach = () => fetch('https://coach.riseandmove.fr/coach-v2-icon-192.png', { signal: AbortSignal.timeout(6000) }).then(r => { coachLive = r.ok; }, () => { coachLive = false; });
+const checkCoach = () => fetch(Noms.urlApp('coach', nomsOfficiels()) + '/coach-v2-icon-192.png', { signal: AbortSignal.timeout(6000) }).then(r => { coachLive = r.ok; }, () => { coachLive = false; });
 if (ONLINE) { checkCoach(); const t = setInterval(checkCoach, 600000); if (t.unref) t.unref(); }
 function redirect(res, to, headers) { res.writeHead(302, Object.assign({ Location: to }, headers || {})); res.end(); }
 function readBody(req) {
@@ -184,6 +201,7 @@ function sendFile(res, rel, versioned) {
     const ext = path.extname(file);
     // pages et feuilles de style : les fichiers qu'elles citent reçoivent leur empreinte de version
     if (ext === '.html' || ext === '.css') data = withVersions(data.toString('utf8'));
+    if (ext === '.html') data = Noms.reecrire(data, familleSortie(res._req), nomsOfficiels() === 'anciens');
     // icônes (favicon, icône d'application) : toujours revérifiées pour que les changements de logo apparaissent
     const longCache = /\.(woff2|png|webp|jpg)$/.test(ext) && !/favicon|app-icon/.test(rel);
     const cache = versioned && /\.(css|js)$/.test(ext) ? 'public, max-age=31536000, immutable' : longCache ? 'public, max-age=604800' : 'no-cache';
@@ -211,6 +229,7 @@ function sendClub(res, rel, logged) {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Page introuvable'); }
     const ext = path.extname(file);
     if (/\/(index|coach)\.html$/.test(rel)) data = bundler.page(rel, data);
+    else if (ext === '.html' && familleSortie(res._req) === 'nouveaux') data = Noms.reecrire(data.toString('utf8'), 'nouveaux', nomsOfficiels() === 'anciens');
     const longCache = /\.(png|webp|jpg|woff2)$/.test(ext) && !/icon|favicon/.test(rel);
     // l'appli elle-même : le service worker ne garde en cache (hors ligne) que cette page, jamais la présentation ni la connexion
     sendStatic(res, file, data, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, /\/(index|coach)\.html$/.test(rel) ? { 'X-Club-Page': 'appli', _csp: bundler.empreintes(data) } : {}));
@@ -258,7 +277,7 @@ function lanAddresses() {
   return out;
 }
 // adresse publique du logiciel pour les liens envoyés par e-mail (jamais déduite de l'en-tête Host en ligne)
-const appUrl = req => process.env.APP_URL || (ONLINE ? 'https://ja.riseandmove.fr' : origin(req));
+const appUrl = req => process.env.APP_URL || (ONLINE ? Noms.urlApp('ja', nomsOfficiels()) : origin(req));
 const origin = req => `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers['x-forwarded-host'] || req.headers.host}`;
 /* administrateurs : e-mails listés dans ADMIN_EMAILS (Render), ou offre « admin » */
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'baptiste.belier@gmail.com').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
@@ -873,7 +892,10 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': f.type, 'Cache-Control': 'public, max-age=31536000, immutable', 'Content-Length': f.buf.length });
       return res.end(f.buf);
     }
-    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase(), appHote = Noms.appOf(host);
+    // noms officiels = les nouveaux : les pages des anciens noms y renvoient (jamais l'API, les webhooks, le connecteur ni les fichiers)
+    const versNouveau = redirectionNoms(req, p, url.search);
+    if (versNouveau) return redirect(res, versNouveau);
     // feuilles de style et polices communes (pages de connexion et de présentation) : servies aussi sur club.
     const clubLogged = async () => { const cu = await currentUser(req).catch(() => null); return !!(cu && !cu.guest); };
     /* ---------- /RAM Réservation : page publique et lien d'agenda, sur tous les domaines ---------- */
@@ -887,17 +909,17 @@ const server = http.createServer(async (req, res) => {
     }
     // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html, sur coach.riseandmove.fr :
     // l'appli pour un compte connecté, sinon la présentation ; /presentation, /demo, /connexion, /inscription
-    if (/^coach\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) {
+    if (appHote === 'coach' && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) {
       if (p === '/') return sendClub(res, await clubLogged() ? '/coach.html' : '/coach-presentation.html', true);
       return sendClub(res, p === '/demo' ? '/coach.html' : p === '/presentation' ? '/coach-presentation.html' : p, true);
     }
     // ailleurs, /coach/ : renvoyé sur coach.riseandmove.fr dès que ce domaine répond ; la démo en attendant
     if (p === '/coach' || p.startsWith('/coach/')) {
-      if (coachLive) return redirect(res, 'https://coach.riseandmove.fr' + (p.length <= 7 ? '/demo' : p.slice(6)));
+      if (coachLive) return redirect(res, Noms.urlApp('coach', nomsOfficiels()) + (p.length <= 7 ? '/demo' : p.slice(6)));
       if (p === '/coach') return redirect(res, '/coach/');
       return sendClub(res, p === '/coach/' ? '/coach.html' : p.slice(6), true);
     }
-    if (/^club\./.test(host) && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p, p === '/' && await clubLogged());
+    if (appHote === 'club' && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p, p === '/' && await clubLogged());
     if (p === '/club') return redirect(res, '/club/');
     if (p.startsWith('/club/')) return sendClub(res, p.slice(5), p === '/club/' && await clubLogged());
 
@@ -921,7 +943,7 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req);
       // déjà connecté : tableau de bord, ou retour direct vers /RAM Club si l'on en vient
       const back = String(url.searchParams.get('retour') || '');
-      if (u && !u.guest) return redirect(res, /^(https:\/\/club\.riseandmove\.fr\/|\/club\/|\/oauth\/authorize\?)/.test(back) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
+      if (u && !u.guest) return redirect(res, (back.startsWith('/club/') || back.startsWith('/oauth/authorize?') || Noms.hotes('club').some(h => back.startsWith('https://' + h + '/'))) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
       return sendFile(res, '/auth.html');
     }
     if (p === '/admin') { if (!isAdmin(await currentUser(req))) return redirect(res, '/app'); return sendFile(res, '/admin.html'); }
@@ -1928,7 +1950,7 @@ server.listen(PORT, '0.0.0.0', () => {
   setTimeout(() => agendaAlerte.tous().catch(e => console.error('  Agendas reliés :', e.message)), 120000).unref();
   const aga = setInterval(() => agendaAlerte.tous().catch(e => console.error('  Agendas reliés :', e.message)), 2 * 3600e3); aga.unref();
   adhesions.watch(msg => console.error('  ' + msg));
-  if (ONLINE && process.env.CALENDLY_TOKEN) Calendly.subscribe(process.env.CALENDLY_TOKEN, (process.env.APP_URL || 'https://ja.riseandmove.fr') + '/api/calendly/webhook')
+  if (ONLINE && process.env.CALENDLY_TOKEN) Calendly.subscribe(process.env.CALENDLY_TOKEN, (process.env.APP_URL || Noms.urlApp('ja', nomsOfficiels())) + '/api/calendly/webhook')
     .then(r => console.log('  Calendly : webhook ' + (r.deja ? 'déjà inscrit' : 'inscrit'))).catch(e => console.error('  Calendly :', e.message));
   progression.watch(msg => console.error('  ' + msg));   // et sa progression (trophées, points)
   groupes.watch(msg => console.error('  ' + msg));

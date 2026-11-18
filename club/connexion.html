@@ -42,11 +42,12 @@
     <p class="club-note">Un seul compte /RAM pour /RAM Club et /RAM JA, le logiciel du juge-arbitre.</p>
   </div>
 </main>
+<script src="noms.js"></script>
 <script>
 (function () {
   const qs = new URLSearchParams(location.search);
-  // sur coach.riseandmove.fr : la même page, aux couleurs de /RAM Coach
-  const coach = /^coach\./.test(location.hostname);
+  // sur coach. ou dojo.riseandmove.fr : la même page, aux couleurs de /RAM Coach
+  const coach = RAM_NOMS.appOf(location.hostname) === 'coach';
   if (coach) {
     document.title = 'Connexion — /RAM Coach';
     document.querySelector('.nav .logo img').src = 'img/coach-v2-logo-blanc.png';

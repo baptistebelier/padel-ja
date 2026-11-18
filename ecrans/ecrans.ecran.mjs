@@ -3787,6 +3787,30 @@ test('Publication d’un tournoi /RAM JA : bandeau comme les autres événements
   }
 });
 
+test('Noms de domaine : l’appli se reconnaît par son nom (ancien ou nouveau) et ses liens restent dans la même famille de noms', async () => {
+  const port = new URL(JA).port;
+  const CAS = [['club', '/demo', 'club', 'https://ja.riseandmove.fr'], ['buvette', '/demo', 'club', 'https://pista.riseandmove.fr'], ['coach', '/demo', 'coach', 'https://ja.riseandmove.fr'], ['dojo', '/demo', 'coach', 'https://pista.riseandmove.fr']];
+  for (const [label, chemin, app, versJa] of CAS) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 800 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(`http://${label}.localhost:${port}${chemin}`);
+    await page.waitForSelector('#tabs button[data-t], .rbot button', { timeout: 8000 });
+    const r = await page.evaluate(() => ({ app: RAM_NOMS.appOf(location.hostname), ja: RAM_NOMS.urlDepuis('ja', location.hostname), coach: RAM_NOMS.urlDepuis('coach', location.hostname), club: RAM_NOMS.urlDepuis('club', location.hostname), titre: document.title }));
+    assert.equal(r.app, app, label + ' : appli reconnue');
+    assert.equal(r.ja, versJa, label + ' : lien vers /Pista dans la même famille');
+    assert.equal(r.club, label === 'dojo' || label === 'buvette' ? 'https://buvette.riseandmove.fr' : 'https://club.riseandmove.fr');
+    assert.equal(r.coach, label === 'dojo' || label === 'buvette' ? 'https://dojo.riseandmove.fr' : 'https://coach.riseandmove.fr');
+    if (app === 'coach') assert.match(r.titre, /Coach|Dojo/, label + ' : /Dojo ouvert');
+    assert.deepEqual(errs, [], label + ' : aucune erreur');
+    await ctx.close();
+  }
+  // la page de connexion suit aussi le nom
+  const ctx = await browser.newContext(), page = await ctx.newPage();
+  await page.goto(`http://dojo.localhost:${port}/connexion`);
+  assert.match(await page.title(), /Coach/, 'connexion aux couleurs de /Dojo sur dojo.');
+  await ctx.close();
+});
+
 test('Abonnés : compteur « 2/4 ce mois-ci » sur la fiche élève, dans l’onglet Abonnés (alerte au-delà) et dans les achats de /Buvette', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 820 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));

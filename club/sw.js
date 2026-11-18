@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-18-tournoi-ja-bandeau';
+const VERSION = '2026-11-18-noms-de-domaine';
 /* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -19,6 +19,7 @@ const CORE = [
   'club.css',
   'dojo.css',
   'ram-sync.js',
+  'noms.js',
   'img/ram-club-blanc.png',
   'img/ram-club-noir.png',
   'img/favicon.png',

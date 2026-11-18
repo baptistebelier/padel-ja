@@ -181,7 +181,7 @@ async function jaCreateTournament(o) {
     render();
     sheet(
       'Tournoi créé dans /RAM JA',
-      `<div class="body"><div class="note ok">${ic('check')}<span><b>${esc(o.name)}</b> est créé dans /RAM JA et sera publié sur le mur dans un instant, avec les inscriptions dans l’appli.</p><p class="muted small">Le juge-arbitre gère ensuite le tirage, la programmation et les scores dans /RAM JA.</p><a class="btn full" href="${/^club\./.test(location.hostname) ? 'https://ja.riseandmove.fr' : ''}/t/${d.id}" target="_blank" rel="noopener">Ouvrir dans /RAM JA ${ic('link')}</a></div>`
+      `<div class="body"><div class="note ok">${ic('check')}<span><b>${esc(o.name)}</b> est créé dans /RAM JA et sera publié sur le mur dans un instant, avec les inscriptions dans l’appli.</p><p class="muted small">Le juge-arbitre gère ensuite le tirage, la programmation et les scores dans /RAM JA.</p><a class="btn full" href="${RAM_NOMS.appOf(location.hostname) === 'club' ? RAM_NOMS.urlDepuis('ja', location.hostname) : ''}/t/${d.id}" target="_blank" rel="noopener">Ouvrir dans /RAM JA ${ic('link')}</a></div>`
     );
   } catch (e) {
     toast(e.message);

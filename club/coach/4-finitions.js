@@ -13,7 +13,11 @@ AIDE.splice(
     q: [
       [
         'Entrer dans /RAM Coach',
-        'Connecte-toi sur coach.riseandmove.fr avec ton compte /RAM (le même que pour /RAM Club et /RAM JA). Le bureau de chaque club où tu enseignes te donne le rôle <b>Enseignant</b> : tes groupes et tes élèves de tous tes clubs sont alors réunis, sans jamais changer de club.'
+        'Connecte-toi sur ' +
+          (typeof RAM_NOMS === 'object'
+            ? RAM_NOMS.urlDepuis('coach', location.hostname).slice(8)
+            : 'coach.riseandmove.fr') +
+          ' avec ton compte /RAM (le même que pour /RAM Club et /RAM JA). Le bureau de chaque club où tu enseignes te donne le rôle <b>Enseignant</b> : tes groupes et tes élèves de tous tes clubs sont alors réunis, sans jamais changer de club.'
       ],
       [
         "Installer l'appli sur mon téléphone",
@@ -360,7 +364,7 @@ setInterval(() => {
 }, 120000);
 /* démonstration : l'enseignante a aussi un groupe dans un deuxième club, avec ses élèves */
 if (
-  !(/^(club|coach)\./.test(location.hostname) || location.pathname.startsWith('/club')) ||
+  !(['club', 'coach'].includes(RAM_NOMS.appOf(location.hostname)) || location.pathname.startsWith('/club')) ||
   /\/demo\/?$/.test(location.pathname)
 ) {
   const names = ['Lucas Moreau', 'Chloé Girard', 'Karim Haddad', 'Julie Lambert', 'Romain Mercier', 'Nadia Blanc'],
@@ -471,7 +475,11 @@ const CO_PLEIN = '.cotiles,.coshort,.cotopact,.covue,.cobento,.cosearchbar';
 function coBento() {
   const main = $('main'),
     pad = CO_BENTO.matches && main.querySelector(':scope > .pad');
-  if (!pad || pad.matches('.covues,.covuej,.covuem,.u2g,.u2f') || ['chan', 'dm', 'post', 'art', 'aide'].includes(view().v))
+  if (
+    !pad ||
+    pad.matches('.covues,.covuej,.covuem,.u2g,.u2f') ||
+    ['chan', 'dm', 'post', 'art', 'aide'].includes(view().v)
+  )
     return;
   const groupes = [];
   [...pad.children].forEach(el => {
