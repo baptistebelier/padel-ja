@@ -1187,6 +1187,8 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await pp.waitForSelector('#nx', { timeout: 8000 });
   assert.ok(await pp.locator('.fo').count() >= 1 && /durée\s*\d+ (h|min)/i.test((await pp.locator('.fo').first().innerText()).replace(/\n/g, ' ')), 'la durée de chaque formule est visible');
   await pp.click('#nx');   // le mois suivant : forcément à venir
+  await pp.locator('.fo').first().click();   // rien n'est présélectionné : formule, puis jour, puis horaire
+  await pp.locator('button.dj:visible').first().click();
   await pp.waitForSelector('.slot', { timeout: 8000 });
   assert.ok(await pp.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'page publique sans débordement (ordinateur)');
   assert.ok(await pp.evaluate(() => { const a = document.querySelector('section[aria-label="Horaires"]').getBoundingClientRect(), b = document.querySelector('.r-card[aria-label="Votre cours"]').getBoundingClientRect(); return b.top >= a.bottom - 1 && Math.abs(a.left - b.left) < 4; }), 'récapitulatif sous les horaires, dans la colonne de droite');
@@ -1261,10 +1263,11 @@ test('Page publique : filtres de formules combinés, compteur, effacement, état
     assert.deepEqual(await p.locator('.seg > button').evaluateAll(l => l.map(x => x.firstChild.textContent)), ['Tout', 'À la séance', 'Pack', 'Abonnement']);
     const ecart = await p.evaluate(() => document.querySelector('.r-card[aria-label="Formules"]').getBoundingClientRect().top - document.querySelector('.seg').getBoundingClientRect().bottom);
     assert.ok(ecart <= 0 && ecart >= -3, 'intercalaires collés à la carte : ' + ecart);
-    assert.match(await compte(p), /^6 sur 9 formules$/i);
+    assert.match(await compte(p), /^9 sur 9 formules$/i, 'à l’ouverture : « Tout », 9 formules');
     // seuls les filtres utiles (deux valeurs réelles au moins) : personnes, durée, séances, sport
     assert.deepEqual(await p.locator('select[data-fl]').evaluateAll(l => l.map(x => x.id)), ['fl-j', 'fl-d', 'fl-s', 'fl-sp']);
-    assert.equal(await p.locator('[data-fl-clear]').count(), 1, 'le type choisi se retire avec « Tout effacer »');
+    assert.equal(await p.locator('[data-fl-clear]').count(), 0, 'état neutre : rien à effacer');
+    assert.equal(await p.locator('.seg button[aria-selected=true]').evaluate(x => x.firstChild.textContent), 'Tout', 'l’intercalaire démarre sur « Tout »');
     assert.deepEqual(errs, []);
     await ctx.close();
   }
@@ -1295,6 +1298,7 @@ test('Page publique : filtres de formules combinés, compteur, effacement, état
   assert.equal(await p.locator('.vide').count(), 0);
   assert.match(await compte(p), /^9 sur 9/i);
   // choix masqué par un filtre : signalé
+  await p.locator('.fo').first().click();
   await p.locator('.seg button[data-v=p]').click();
   assert.match(await p.locator('.info').innerText(), /masqué/);
   assert.ok(await sans(p), 'sans débordement avec filtres');
@@ -1303,6 +1307,7 @@ test('Page publique : filtres de formules combinés, compteur, effacement, état
   for (const vp of [{ width: 360, height: 780 }, { width: 1280, height: 900 }]) {
     const o = await ouvre(vp);
     await o.p.locator('.fo').first().click();
+    await o.p.locator('button.dj:visible').first().click();
     await o.p.locator('.slot').first().click();
     await o.p.locator('[data-a=suite]:visible').first().click();
     await o.p.waitForSelector('#f');
@@ -1317,6 +1322,57 @@ test('Page publique : filtres de formules combinés, compteur, effacement, état
     await o.ctx.close();
   }
   assert.deepEqual(errs, []);
+});
+
+test('Page de réservation : rien de présélectionné, puis formule, jour, horaire dans l’ordre (360 et 1280 px)', async () => {
+  const FO = [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35, par: 'seance' }, { id: 'f2', nom: 'Cours individuel 1 h 30', sport: 'Padel', joueurs: 1, duree: 90, prix: 50, par: 'seance' }];
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  for (const vp of [{ width: 360, height: 780 }, { width: 1280, height: 900 }]) {
+    const ctx = await browser.newContext({ viewport: vp }), p = await ctx.newPage(), errs = [], w = vp.width;
+    p.on('pageerror', x => errs.push(x.message));
+    await p.route('**/api/public/resa/creneaux*', r => {
+      const u = new URL(r.request().url()), de = u.searchParams.get('de'), n = +u.searchParams.get('n'), t0 = iso(new Date()), jours = [];
+      for (let i = 0; i < n; i++) { const d = iso(new Date(+de.slice(0, 4), +de.slice(5, 7) - 1, +de.slice(8) + i)); jours.push({ d, libres: d > t0 ? [{ du: 540, au: 660 }, { du: 930, au: 1080 }] : [] }); }
+      r.fulfill({ json: { coach: 'Sarah Test', club: 'Club Essai', photo: false, formules: FO, packs: [{ id: 'p1', nom: 'Pack 5', formule: 'f1', seances: 5, prix: 160, duree: 60 }], abos: [], jours } });
+    });
+    await p.goto(JA + '/r/club-essai/cle-essai');
+    await p.waitForSelector('.fo');
+    const bas = async () => (await p.locator(w < 700 ? '.bas b' : '.r-card[aria-label="Votre cours"] .rc2').innerText()).trim();
+    const continuer = () => p.locator('[data-a=suite]:visible').first();
+    // état initial : aucune formule, aucun jour, aucun horaire ; « Tout » ; le calendrier dit de choisir la formule
+    assert.equal(await p.locator('.fo[aria-pressed=true]').count(), 0, 'aucune formule choisie à ' + w);
+    assert.equal(await p.locator('button.dj').count(), 0, 'aucun jour proposé sans formule');
+    assert.equal(await p.locator('.slot').count(), 0);
+    assert.equal(await p.locator('.seg button[aria-selected=true]').evaluate(x => x.firstChild.textContent), 'Tout');
+    assert.match(await p.locator('section[aria-label="Jour"]').innerText(), /d’abord une formule/);
+    assert.equal(await continuer().isDisabled(), true);
+    if (w < 700) assert.match(await bas(), /Choisissez une formule/);
+    // formule choisie : les jours apparaissent, sans qu'aucun soit choisi
+    await p.locator('.fo').first().click();
+    assert.equal(await p.locator('.fo[aria-pressed=true]').count(), 1);
+    assert.ok(await p.locator('button.dj:visible').count() > 0, 'jours proposés');
+    assert.equal(await p.locator('button.dj[aria-pressed=true]').count(), 0, 'aucun jour choisi d’office');
+    assert.equal(await p.locator('.slot').count(), 0, 'pas d’horaires avant le jour');
+    assert.match(await p.locator('section[aria-label="Horaires"]').innerText(), /Choisissez un jour/);
+    if (w < 700) assert.match(await bas(), /Choisissez un jour/);
+    assert.equal(await continuer().isDisabled(), true);
+    // jour choisi : les horaires apparaissent, sans qu'aucun soit choisi
+    await p.locator('button.dj:visible').first().click();
+    assert.ok(await p.locator('.slot').count() > 0);
+    assert.equal(await p.locator('.slot[aria-pressed=true]').count(), 0, 'aucun horaire choisi d’office');
+    if (w < 700) assert.match(await bas(), /Choisissez un horaire/);
+    assert.equal(await continuer().isDisabled(), true);
+    await p.locator('.slot').first().click();
+    assert.equal(await continuer().isDisabled(), false, '« Continuer » s’active avec l’horaire');
+    // changer de formule efface le jour et l'horaire devenus incohérents
+    await p.locator('.fo').nth(1).click();
+    assert.equal(await p.locator('button.dj[aria-pressed=true]').count(), 0);
+    assert.equal(await p.locator('.slot').count(), 0);
+    assert.equal(await continuer().isDisabled(), true);
+    assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'sans débordement à ' + w);
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
 });
 
 test('Inscription publique à une séance collective : places, fourchettes, liste d’attente, états clairs, parcours simulé (360 et 1280 px)', async () => {

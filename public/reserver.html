@@ -233,7 +233,7 @@
   var ic = function (n, s, c) { return '<svg class="ic ' + (c || '') + '" width="' + s + '" height="' + s + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
   var initiales = function (n) { return String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x[0]; }).join('') || '·'; };
   var c = parts[1], k = parts[2];
-  var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, fl: { t: 'f', j: '', d: '', s: '', sp: '' }, v: { p: '', n: '', t: '', em: '', o: '', niv: '', cv: '', pa: '' } };
+  var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, fl: { t: '', j: '', d: '', s: '', sp: '' }, v: { p: '', n: '', t: '', em: '', o: '', niv: '', cv: '', pa: '' } };
   var top = function (nom, sous) {
     var ph = S.data && S.data.photo && nom === S.data.coach ? '/api/public/resa/photo?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) : '';
     return '<header class="top"><div class="top-in"><span class="crest">' + (ph ? '<img src="' + e(ph) + '" alt="" data-i="' + e(initiales(nom)) + '">' : e(initiales(nom))) + '</span><div><h1>' + e(nom) + '</h1><p class="sub">' + e(sous) + '</p></div><span class="r-tag r-tag--flat">Réservation en ligne</span></div></header>';
@@ -261,7 +261,7 @@
   function charge() {
     fetch('/api/public/resa/creneaux?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) + '&de=' + moisDe(S.w) + '&n=' + nb(moisDe(S.w)))
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
-      .then(function (d) { S.data = d; var l = offres(); if (!l.some(function (x) { return x.k === S.f; })) S.f = (l.filter(function (x) { return x.t === 'f' && x.joueurs === 1; })[0] || l[0] || {}).k; S.pick = null; S.jour = null; dessine(); })
+      .then(function (d) { S.data = d; /* rien n'est présélectionné : ni formule, ni jour, ni horaire */ if (!offres().some(function (x) { return x.k === S.f; })) S.f = null; S.pick = null; S.jour = null; dessine(); })
       .catch(function (x) { page('Réserver un cours', '/Dojo · réservation en ligne', '<div class="r-card"><p>' + e(x.message || 'Page indisponible') + '</p></div>'); });
   }
 
@@ -313,7 +313,7 @@
   function garde() { ['p', 'n', 't', 'em', 'o', 'pa'].forEach(function (i) { var x = document.getElementById(i); if (x) S.v[i] = x.value; }); }
 
   function entete(kick, t) {
-    var l = ['Formule', 'Jour', 'Horaire', 'Vos infos'], cur = S.etape === 'infos' ? 3 : (S.jour ? 2 : 1);
+    var l = ['Formule', 'Jour', 'Horaire', 'Vos infos'], cur = S.etape === 'infos' ? 3 : !S.f ? 0 : !S.jour ? 1 : 2;
     return titre(kick, t) + '<ol class="steps" aria-label="Étapes">' + l.map(function (x, i) {
       return '<li class="' + (i < cur ? 'ok' : i === cur ? 'on' : '') + '"' + (i === cur ? ' aria-current="step"' : '') + '>' + (i < cur ? ic('check', 14) : (i + 1) + ' ·') + ' ' + x + '</li>';
     }).join('') + '</ol>';
@@ -321,9 +321,10 @@
 
   function recap(f, mode) {
     var p = S.pick, d = S.data;
+    if (!f) return '<section class="r-card" aria-label="Votre cours">' + head('clock', 'Votre cours') + '<p class="rc2" style="color:var(--c-muted)">Choisissez d’abord une formule.</p><p class="rc3">' + ic('pin', 16) + '<span>' + e(d.club) + '</span></p><hr class="hr"><button type="button" class="r-btn r-btn--full" data-a="suite" disabled>' + ic('chev', 18) + 'Continuer</button><p class="note">' + ic('shield', 16) + '<span>Annulation gratuite jusqu’à 24 h avant.</span></p></section>';
     return '<section class="r-card" aria-label="Votre cours">' + head('clock', 'Votre cours') +
       '<p class="rc1">' + e(f.nom) + (f.dOk ? ' · ' + DUR(f.duree) : '') + '</p>' +
-      (p ? '<p class="rc2">' + e(court(p.d)) + ' · ' + H(p.t) + ' – ' + H(p.t + f.duree) + '</p>' : '<p class="rc2" style="color:var(--c-muted)">Choisissez un jour et un horaire.</p>') +
+      (p ? '<p class="rc2">' + e(court(p.d)) + ' · ' + H(p.t) + ' – ' + H(p.t + f.duree) + '</p>' : '<p class="rc2" style="color:var(--c-muted)">' + (S.jour ? 'Choisissez un horaire.' : 'Choisissez un jour, puis un horaire.') + '</p>') +
       '<p class="rc3">' + ic('pin', 16) + '<span>' + e(d.club) + '</span></p><hr class="hr">' +
       '<p class="tot"><b>Total</b><b>' + e(prixTxt(f)) + '</b></p>' +
       (mode === 'continuer' ? '<button type="button" class="r-btn r-btn--full" data-a="suite"' + (p ? '' : ' disabled') + '>' + ic('chev', 18) + 'Continuer</button><p class="note">' + ic('shield', 16) + '<span>Annulation gratuite jusqu’à 24 h avant.</span></p>' :
@@ -356,9 +357,10 @@
     var d = S.data;
     if (S.etape === 'fait') return fait();
     var f = formule();
-    if (!f) { page(d.coach, 'Réserver un cours', '<div class="r-card"><p>Aucun cours n’est réservable pour l’instant.</p></div>'); return; }
-    var dispo = d.jours.filter(function (j) { return heures(j, f).length; });
-    if (!S.jour || !dispo.some(function (j) { return j.d === S.jour; })) S.jour = dispo[0] ? dispo[0].d : null;
+    if (!offres().length) { page(d.coach, 'Réserver un cours', '<div class="r-card"><p>Aucun cours n’est réservable pour l’instant.</p></div>'); return; }
+    var dispo = f ? d.jours.filter(function (j) { return heures(j, f).length; }) : [];
+    /* aucun jour ni horaire choisi d'office ; un jour ou un horaire devenu incohérent est retiré */
+    if (S.jour && !dispo.some(function (j) { return j.d === S.jour; })) S.jour = null;
     if (S.pick && S.pick.d !== S.jour) S.pick = null;
     var sport = (d.formules[0] && d.formules[0].sport) || '';
     var sous = 'Coach' + (sport ? ' ' + String(sport).toLowerCase() : '') + ' · ' + d.club;
@@ -368,16 +370,16 @@
     var de = moisDe(S.w), moisTxt = at(de).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
     var vide = (at(de).getDay() + 6) % 7, cases = '', today = iso(new Date());
     for (var v = 0; v < vide; v++) cases += '<span class="dj vide0" aria-hidden="true"></span>';
-    d.jours.forEach(function (j) {
+    if (f) d.jours.forEach(function (j) {
       var n = +j.d.slice(8), h = heures(j, f).length;
       if (h) cases += '<button type="button" class="dj" data-j="' + j.d + '" aria-pressed="' + (j.d === S.jour) + '" aria-label="' + e(jour(j.d)) + ', ' + h + ' créneaux libres"><span class="nb">' + n + '</span><span class="pt"></span></button>';
       else cases += '<span class="dj off"><span class="nb">' + n + '</span>' + (j.libres.length && j.d >= today ? '<small>complet</small>' : '') + '</span>';
     });
-    var strip = dispo.slice(0, 14).map(function (j) {
+    var strip = !f ? '' : dispo.slice(0, 14).map(function (j) {
       var n = heures(j, f).length;
       return '<button type="button" class="dj" data-j="' + j.d + '" aria-pressed="' + (j.d === S.jour) + '"><span class="dw">' + e(jour(j.d, { weekday: 'short' }).replace('.', '')) + '</span><span class="nb">' + +j.d.slice(8) + '</span><small>' + n + ' libre' + (n > 1 ? 's' : '') + '</small></button>';
     }).join('');
-    var ouvert = d.jours.filter(function (j) { return j.d === S.jour; })[0], hs = ouvert ? heures(ouvert, f) : [];
+    var ouvert = f ? d.jours.filter(function (j) { return j.d === S.jour; })[0] : null, hs = ouvert ? heures(ouvert, f) : [];
     var grp = [{ l: 'Matin', i: 'sun', s: hs.filter(function (t) { return t < 720; }) }, { l: 'Après-midi', i: 'moon', s: hs.filter(function (t) { return t >= 720; }) }].filter(function (g) { return g.s.length; });
     var slots = grp.map(function (g) {
       return '<p class="gl r-etiquette">' + ic(g.i, 18) + '<span>' + g.l + '</span></p><div class="slots">' + g.s.map(function (t) {
@@ -386,18 +388,20 @@
     }).join('');
     var nav = '<span class="nav"><button type="button" class="r-ib" id="pv" aria-label="Mois précédent"' + (S.w ? '' : ' disabled') + '>' + ic('left', 18) + '</button><button type="button" class="r-ib" id="nx" aria-label="Mois suivant"' + (S.w < 3 ? '' : ' disabled') + '>' + ic('chev', 18) + '</button></span>';
     var cal = '<div class="cal">' + ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'].map(function (x) { return '<span class="dow">' + x + '</span>'; }).join('') + cases + '</div><p class="leg"><span><i></i>créneaux libres</span><span><i class="p"></i>passé ou complet</span></p>';
-    var bas = (S.pick ? '<b>' + e(court(S.pick.d)) + ' · ' + H(S.pick.t) + '</b>' : '<b>Choisissez un horaire</b>') + '<small>' + (f.dOk ? DUR(f.duree) + ' · ' : '') + e(prixTxt(f)) + '</small>';
-    var jourCarte = '<section class="r-card" aria-label="Jour">' + head('cal', cap(moisTxt), '<button type="button" class="lien mb" id="tm">' + (S.mois ? 'Prochains jours' : 'Tout le mois') + '</button>' + nav) +
-      '<div class="mb">' + (S.mois ? cal : (strip ? '<div class="bande" role="group" aria-label="Jours disponibles">' + strip + '</div>' : '<p class="vide-m">Aucun jour libre ce mois-ci.</p>')) + '</div><div class="dk">' + cal + '</div></section>';
+    /* la barre du bas guide l'étape : formule, jour, horaire */
+    var bas = (S.pick ? '<b>' + e(court(S.pick.d)) + ' · ' + H(S.pick.t) + '</b>' : '<b>' + (!f ? 'Choisissez une formule' : !S.jour ? 'Choisissez un jour' : 'Choisissez un horaire') + '</b>') + (f ? '<small>' + (f.dOk ? DUR(f.duree) + ' · ' : '') + e(prixTxt(f)) + '</small>' : '');
+    var choisirF = '<p class="vide-m" role="status">Choisissez d’abord une formule : les jours libres dépendent de sa durée.</p>';
+    var jourCarte = '<section class="r-card" aria-label="Jour">' + head('cal', cap(moisTxt), f ? '<button type="button" class="lien mb" id="tm">' + (S.mois ? 'Prochains jours' : 'Tout le mois') + '</button>' + nav : nav) +
+      (!f ? choisirF : '<div class="mb">' + (S.mois ? cal : (strip ? '<div class="bande" role="group" aria-label="Jours disponibles">' + strip + '</div>' : '<p class="vide-m">Aucun jour libre ce mois-ci.</p>')) + '</div><div class="dk">' + cal + '</div>') + '</section>';
     var html = entete('Réserver un cours', 'Choisissez votre créneau') +
       '<div class="grille' + (filtres(offres()).some(function (x) { return x.m.k === 't'; }) ? ' tabs-on' : '') + '"><div class="col">' + blocFormules() + jourCarte + '</div>' +
-      '<div class="col"><section class="r-card" aria-label="Horaires">' + head('clock', ouvert ? cap(jour(ouvert.d)) : 'Horaire') + (ouvert ? slots : '<p class="vide-m">Aucun créneau libre ce mois-ci : essayez le mois suivant.</p>') + '</section>' +
+      '<div class="col"><section class="r-card" aria-label="Horaires">' + head('clock', ouvert ? cap(jour(ouvert.d)) : 'Horaire') + (ouvert ? slots : '<p class="vide-m" role="status">' + (!f ? 'Choisissez d’abord une formule, puis un jour.' : !S.jour ? (dispo.length ? 'Choisissez un jour pour voir les horaires.' : 'Aucun créneau libre ce mois-ci : essayez le mois suivant.') : 'Aucun horaire.') + '</p>') + '</section>' +
       '<div class="dk">' + recap(f, 'continuer') + '</div></div></div>' +
       '<div class="bas mb"><div>' + bas + '</div><button type="button" class="r-btn" data-a="suite"' + (S.pick ? '' : ' disabled') + '>' + ic('chev', 18) + 'Continuer</button></div>';
     page(d.coach, sous, html, true);
     var nvb = root.querySelector('.bande'); if (nvb) nvb.scrollLeft = sx;
     window.scrollTo(0, sy);
-    root.querySelectorAll('.fo').forEach(function (b) { b.onclick = function () { S.f = b.dataset.f; S.pick = null; dessine(); }; });
+    root.querySelectorAll('.fo').forEach(function (b) { b.onclick = function () { if (S.f !== b.dataset.f) { S.f = b.dataset.f; S.jour = null; S.pick = null; } dessine(); }; });
     root.querySelectorAll('button[data-fl]').forEach(function (b) { b.onclick = function () { S.fl[b.dataset.fl] = b.dataset.v; S.tout = false; dessine(); }; });
     root.querySelectorAll('[data-fl-plus]').forEach(function (b) { b.onclick = function () { S.tout = true; dessine(); }; });
     root.querySelectorAll('select[data-fl]').forEach(function (s) { s.onchange = function () { S.fl[s.dataset.fl] = s.value; S.tout = false; dessine(); var n = document.getElementById(s.id); if (n && n.focus && !matchMedia('(pointer:coarse)').matches) n.focus(); }; });
