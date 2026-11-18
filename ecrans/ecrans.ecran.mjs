@@ -3757,6 +3757,36 @@ test('Discussions : réaction pleine surface et coches (envoyé, reçu, lu en bl
   }
 });
 
+test('Publication d’un tournoi /RAM JA : bandeau comme les autres événements, aucun picto démesuré, hauteur raisonnable, à 390 et 1280 px', async () => {
+  for (const w of [390, 1280]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
+    page.on('pageerror', x => errs.push(x.message));
+    await page.goto(JA + '/club/index.html');
+    await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
+    for (const reg of ['ext', 'app']) {
+      await page.evaluate(reg => {
+        for (let i = posts.length - 1; i >= 0; i--) if (posts[i].id === 'jatest') posts.splice(i, 1);
+        posts.unshift({ id: 'jatest', by: 'club', kind: 'jatour', at: Date.now(), t: 'À l’instant', likes: 0, com: [], title: 'P100 SOIRÉE', d: isoIn(16), place: 'Chiquita Padel', sport: 'Padel',
+          ja: { tid: 't1', cat: 'P100', gender: 'Messieurs', time: '18:30', address: '', jaName: 'JA', jaTitle: '', deadline: '', max: 16, reg, where: reg === 'ext' ? 'https://exemple.invalid/inscription' : '', open: reg === 'app', status: 'open', count: 2, list: [], results: [], prize: '', direct: null, tv: '' } });
+        S.tab = 'home'; S.stack = [{ v: 'post', id: 'jatest' }]; render(true);
+      }, reg);
+      const m = await page.evaluate(() => {
+        const c = document.querySelector('#main .post, #main .feed') || document.getElementById('main'), r = e => e.getBoundingClientRect();
+        const gros = [...c.querySelectorAll('svg')].filter(s => r(s).width > 60 || r(s).height > 60).length;
+        return { gros, h: Math.round(r(c).height), poster: !!c.querySelector('.poster .big'), txt: c.textContent.includes('P100 SOIRÉE'), debord: document.documentElement.scrollWidth - innerWidth, acces: reg => 0 };
+      });
+      assert.equal(m.gros, 0, w + ' ' + reg + ' : aucun picto démesuré');
+      assert.ok(m.poster && m.txt, w + ' ' + reg + ' : bandeau d’événement');
+      assert.ok(m.h < 700, w + ' ' + reg + ' : hauteur de carte raisonnable (' + m.h + ' px)');
+      assert.ok(m.debord <= 0, w + ' ' + reg + ' : pas de débordement');
+      if (reg === 'ext') assert.equal(await page.locator('#main a[href^="https://exemple.invalid"]').count(), 1, w + ' : le lien d’inscription reste accessible');
+      else assert.equal(await page.locator('#main [data-a="jaIn"]').count() >= 1, true, w + ' : bouton d’inscription');
+    }
+    assert.deepEqual(errs, [], w + ' : aucune erreur');
+    await ctx.close();
+  }
+});
+
 test('Abonnés : compteur « 2/4 ce mois-ci » sur la fiche élève, dans l’onglet Abonnés (alerte au-delà) et dans les achats de /Buvette', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 820 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));

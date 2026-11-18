@@ -178,5 +178,5 @@ function jaBody(p) {
   const res = (ja.results || []).length
     ? `<div class="ja-res"><span class="kicker">Résultats</span>${ja.results.map(r => `<div class="price ${(r.k || []).some(k => me.includes(k)) ? 'me' : ''}"><span><b>${jaPlace(r.place, r.lo)}</b> ${esc(r.n)}</span>${(r.k || []).length ? '<span class="tag lime">Club</span>' : ''}</div>`).join('')}</div>`
     : '';
-  return `<span class="kicker">${kicker}</span><h2 class="tilt sm">${esc(p.title || 'Tournoi')}</h2><div class="ev">${meta}${status}${ja.prize ? `<p class="muted small">Dotation : ${esc(ja.prize)}</p>` : ''}${res}${next}${ja.status !== 'done' ? reg : ''}${jaDirect(ja)}${list}</div>`;
+  return `<div class="poster"><span class="kicker" style="color:var(--fg)">${kicker}</span><span class="big">${esc(p.title || 'Tournoi')}</span>${p.d ? `<span class="datepill">${ic('cal')}${shortDate(p)}</span>` : ''}</div><div class="ev">${meta}${status}${ja.prize ? `<p class="muted small">Dotation : ${esc(ja.prize)}</p>` : ''}${res}${next}${ja.status !== 'done' ? reg : ''}${jaDirect(ja)}${list}</div>`;
 }
