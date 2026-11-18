@@ -86,7 +86,9 @@
       if (mode === 'open' && dx > 60) open(); else if (mode === 'close' && dx < -60) close();
       sx = null; mode = '';
     });
-    fetch('/api/me').then(r => r.json()).then(d => {
+    // lectures partagées (une seule demande pour le menu et la page) ; sans le module commun, lecture directe
+    const lireMe = () => (window.Donnees ? window.Donnees.lire('/api/me') : fetch('/api/me').then(r => r.json()));
+    lireMe().then(d => {
       const u = d.user; if (!u) return;
       const ini = (((u.first || '').trim()[0] || '') + ((u.last || '').trim()[0] || '') || (u.guest ? 'DÉ' : (u.email || 'JA').slice(0, 2))).toUpperCase();
       const av = document.getElementById('railAvatar');
@@ -97,11 +99,12 @@
       accessBar(d.access);
     }).catch(() => {});
     // point rose sur « En cours » quand des matchs sont en jeu
-    fetch('/api/tournaments').then(r => r.json()).then(d => {
-      if ((d.tournaments || []).some(t => !t.closed && t.drawn && t.done < t.matches)) {
-        const a = nav.querySelector('[data-r="encours"]'); const dot = document.createElement('i'); dot.className = 'live-dot'; a.appendChild(dot);
-      }
-    }).catch(() => {});
+    // (copie locale d'abord, puis réseau : le point apparaît ou disparaît selon la dernière liste connue)
+    const pointer = d => {
+      const a = nav.querySelector('[data-r="encours"]'), on = (d.tournaments || []).some(t => !t.closed && t.drawn && t.done < t.matches), dot = a.querySelector('.live-dot');
+      if (on && !dot) { const i = document.createElement('i'); i.className = 'live-dot'; a.appendChild(i); } else if (!on && dot) dot.remove();
+    };
+    if (window.Donnees) window.Donnees.suivre('/api/tournaments', { rendre: pointer }); else fetch('/api/tournaments').then(r => r.json()).then(pointer).catch(() => {});
   }
   /* téléphone : barre du bas à 5 entrées (r-bottom), « Plus » ouvre le volet du menu */
   const BOTTOM = ['dashboard', 'encours', 'tournois', 'calendrier'];
@@ -215,7 +218,7 @@
   async function go(href, push) {
     const seq = ++navSeq;
     let page;
-    try { page = await fetchPage(href); } catch (e) { location.href = href; return; }
+    try { page = await fetchPage(href); } catch (e) { if (seq === navSeq) location.href = href; return; }
     if (seq !== navSeq) return;   // un autre clic a eu lieu entre-temps
     const target = new URL(page.url);
     if (!SOFT.has(target.pathname)) { location.href = page.url; return; }   // redirigé (connexion expirée…)
@@ -228,6 +231,8 @@
       if (![...document.querySelectorAll('link[rel="stylesheet"]')].some(x => pathOf(x.getAttribute('href')) === h)) document.head.appendChild(l.cloneNode());
     });
     const heads = [...doc.querySelectorAll('head script[src]')].map(s => s.getAttribute('src')).filter(s => !loaded(s));
+    // la page quittée n'a plus la main : ses demandes encore en route ne toucheront pas la nouvelle
+    if (window.Donnees) window.Donnees.nouvellePage();
     // contenu : tout sauf le menu, le voile du volet et la barre du haut du téléphone
     const nav = document.querySelector('.rail'), veil = document.querySelector('.rail-veil');
     [...document.body.children].forEach(el => { if (el !== nav && el !== veil && !el.classList.contains('mtop-rail') && !el.classList.contains('ps-bottom')) el.remove(); });
@@ -245,10 +250,11 @@
     markCurrent(page2);
     window.scrollTo(0, 0);
     if (window.PadelAccess) accessBar(window.PadelAccess);
-    for (const src of heads) await loadScript(src);
+    for (const src of heads) { await loadScript(src); if (seq !== navSeq) return; }   // un clic plus récent : on n'exécute plus rien de cette page
     for (const s of scripts) {
+      if (seq !== navSeq) return;
       const src = s.getAttribute('src');
-      if (src) { if (!loaded(src)) await loadScript(src); continue; }
+      if (src) { if (!loaded(src)) await loadScript(src); if (seq !== navSeq) return; continue; }
       if (s.type && s.type !== 'text/javascript' && s.type !== 'module') continue;
       const n = document.createElement('script'); n.textContent = s.textContent; document.body.appendChild(n);
     }

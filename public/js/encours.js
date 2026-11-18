@@ -74,7 +74,10 @@
   let enVol = null;
   function relire() {
     if (enVol) return enVol;
-    enVol = fetch('/api/tournaments', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(d => { if (d) { liste = d.tournaments || []; poser(); } }).catch(() => {}).finally(() => { enVol = null; });
+    // demande partagée avec le menu et la page (une seule à la fois) ; l'échec garde la liste déjà affichée
+    const D = window.Donnees, g = D && D.gen();
+    enVol = (D ? D.lire('/api/tournaments') : fetch('/api/tournaments', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)))
+      .then(d => { if (d) { liste = d.tournaments || []; if (D && g === D.gen()) D.ranger('/api/tournaments', d); poser(); } }).catch(() => {}).finally(() => { enVol = null; });
     return enVol;
   }
   const css = document.createElement('style');
@@ -109,5 +112,7 @@
     return p;
   };
   setInterval(() => { if (!document.hidden) relire(); }, 30000);
+  // dernière copie connue : le panneau apparaît aussitôt, puis la liste est relue
+  { const c = window.Donnees && window.Donnees.copie('/api/tournaments'); if (c && c.data) { liste = c.data.tournaments || []; poser(); } }
   relire().then(() => new MutationObserver(poser).observe(document.body, { childList: true, subtree: true }));
 })();

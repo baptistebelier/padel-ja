@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
 <script src="/js/theme.js"></script>
+<script src="/js/donnees.js"></script>
 <script src="/js/rail.js" defer></script>
 <script src="/js/creation.js" defer></script>
 </head>
@@ -107,10 +108,7 @@
   document.querySelector('.ps-calv').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; vue = b.dataset.v; try { localStorage.setItem('ja-cal-vue', vue); } catch (_) {} render(); };
   document.querySelector('.ps-calsport').onclick = e => { const b = e.target.closest('[data-sp]'); if (!b) return; garderSport(b.dataset.sp); render(); };
   render();
-  fetch('/api/tournaments').then(r => r.json()).then(d => {
-    if (d.error) return location.href = '/connexion';
-    toutes = d.tournaments || []; render();
-  });
+  Donnees.page('/api/tournaments', d => { toutes = d.tournaments || []; render(); }, '#cal');
 })();
 </script>
 </body>

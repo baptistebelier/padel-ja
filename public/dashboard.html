@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
 <script src="/js/theme.js"></script>
+<script src="/js/donnees.js"></script>
 <script src="/js/rail.js" defer></script>
 <script src="/js/creation.js" defer></script>
 <script src="/js/encours.js" defer></script>
@@ -93,12 +94,9 @@
     };
   }
 
-  fetch('/api/me').then(r => r.json()).then(d => {
-    if (!d.user) return location.href = '/connexion';
-    $('#guestBar').hidden = !d.user.guest;
-  });
+  Donnees.lire('/api/me').then(d => { $('#guestBar').hidden = !d.user.guest; }).catch(() => {});
 
-  fetch('/api/tournaments').then(r => r.json()).then(d => {
+  Donnees.page('/api/tournaments', (d, info) => {
     const list = d.tournaments || [];
     const open = list.filter(t => !t.closed), closed = list.filter(t => t.closed);
     const live = open.filter(t => t.drawn && t.done < t.matches);
@@ -130,7 +128,7 @@
         ${cur.drawn ? `<div class="prog"><i style="width:${pct}%"></i></div>` : ''}
         <div class="ps-courts" id="curCourts" hidden></div>
         <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/t/${cur.id}">${pic(P.open)}Ouvrir le tournoi</a><a class="btn" href="/t/${cur.id}/remote" target="_blank">${pic(P.score)}Saisir un score</a><a class="btn" href="/t/${cur.id}/tv" target="_blank">${pic(P.tv)}Écran TV</a></div></div>`;
-      if (cur.kind !== 'animation' && cur.type !== 'interne') courts(cur);
+      if (cur.kind !== 'animation' && cur.type !== 'interne' && !info.copie) courts(cur);
     } else {
       $('#current').innerHTML = `<div style="position:relative;z-index:1"><span class="eyebrow">Tournoi en cours</span><h2>Aucun tournoi ouvert</h2><p>Créez votre prochain tournoi en partant d'un modèle.</p>
         <div class="phead-act" style="margin-top:16px"><a class="btn primary" href="/app#nouveau">+ Nouveau tournoi</a></div></div>`;
@@ -143,7 +141,7 @@
       return `<a class="row" href="/t/${t.id}"><div class="d${i === 0 && dt ? ' ps-next1' : ''}"><b>${dt ? dt.getDate() : '–'}</b><span>${dt ? MOIS[dt.getMonth()] : 'date ?'}</span></div>
         <div><strong>${esc(t.name || 'Sans nom')}</strong><small>${esc([t.category, t.gender, t.club].filter(Boolean).join(' · '))}</small></div><span class="chip">${t.pairs} paires</span></a>`;
     }).join('') || '<p class="empty">Aucun autre tournoi prévu.</p>';
-  });
+  }, '#current');
 
   /* terrains du tournoi en cours : numéro (rose quand un match s'y joue), paires et score, ou « Libre » */
   async function courts(cur) {
@@ -163,7 +161,7 @@
     } catch (e) { /* les terrains restent masqués */ }
   }
 
-  fetch('/api/club-players').then(r => r.json()).then(d => {
+  Donnees.page('/api/club-players', d => {
     if (d.guest) {
       { $('#fans').innerHTML = '<p class="empty">Vos joueurs les plus fidèles apparaissent ici dès votre premier tournoi clôturé, avec un compte : <a href="/inscription">créer mon compte</a>.</p>'; return; }
     }
@@ -172,7 +170,7 @@
     $('#fans').innerHTML = top.map((p, i) => `<a class="row ps-fan" href="/joueurs#${p.id}"><i class="avatar ps-fav${i ? '' : ' one'}" aria-hidden="true">${esc(((p.last || '')[0] || '') + ((p.first || '')[0] || ''))}</i>
       <div><strong>${esc(p.last)} ${esc(p.first)}</strong><small>${p.count} tournoi${p.count > 1 ? 's' : ''} · ${p.points} pts</small></div>${p.count >= 3 ? '<span class="r-pastille r-pastille--citron">Fidèle</span>' : `<span class="r-pastille">${p.count}</span>`}</a>`).join('')
       || `<p class="empty">${esc(d.error || 'Vos joueurs apparaîtront ici dès votre premier tournoi clôturé.')}</p>`;
-  }).catch(() => { $('#fans').innerHTML = '<p class="empty">Indisponible.</p>'; });
+  }, '#fans');
 })();
 </script>
 </body>

@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
 <script src="/js/theme.js"></script>
+<script src="/js/donnees.js"></script>
 <script src="/js/rail.js" defer></script>
 </head>
 <body class="acct" data-page="stats">
@@ -57,8 +58,7 @@
       <div class="st-who"><b>${esc(p.last)}</b> ${esc(p.first)}<small>${p.club ? esc(p.club) : 'Club non renseigné'}${key !== 'tournaments' ? ' · ' + plural(p.tournaments, 'tournoi') : ''}${p.wins ? ' · ' + plural(p.wins, 'victoire') : ''}</small></div>
       <div class="st-nums"><b>${p[key]}</b><span>${unit}</span></div></li>`).join('')}</ol>` : '<p class="muted">Pas encore de données : elles apparaîtront après vos premiers tournois (tirage fait, matchs joués).</p>';
   let all = [];
-  fetch('/api/stats').then(r => r.json()).then(d => {
-    if (d.error) throw new Error(d.error);
+  Donnees.page('/api/stats', d => {
     const kp = [['Tournois joués', d.tournaments, 'tournois comptés', 'lime'], ['Matchs joués', d.matches, d.tournaments ? Math.round(d.matches / d.tournaments) + ' par tournoi' : 'disputés', 'pink'],
       ['Joueurs', d.players, 'différents', 'green'], ['Joueurs en moyenne', d.tournaments ? (d.players / d.tournaments).toFixed(1).replace('.', ',') : 0, 'par tournoi', '']];
     $('#kpis').innerHTML = kp.map(([l, n, u, c]) => `<div class="kpi ps-kpi"><div><small>${c ? `<i class="ps-sq ps-sq-${c}"></i>` : ''}${l}</small><b>${n}</b><span>${u}</span></div></div>`).join('');
@@ -66,9 +66,9 @@
     $('#topP').innerHTML = list(d.byPoints.filter(p => p.points > 0), 'points', 'pts');
     $('#topM').innerHTML = list(d.byMatches.filter(p => p.matches > 0), 'matches', 'matchs');
     all = d.byTournaments || [];
-  }).catch(e => { ['#topT', '#topP', '#topM'].forEach(s => { $(s).innerHTML = `<p class="muted">${esc(e.message || 'Statistiques indisponibles')}</p>`; }); });
+  }, '#topT');
   // barres par mois et par catégorie : calculées à partir de la liste des tournois de la saison
-  fetch('/api/tournaments').then(r => r.json()).then(d => {
+  Donnees.page('/api/tournaments', d => {
     const ts = (d.tournaments || []).filter(t => t.dateStart && t.dateStart >= y0 + '-09-01' && t.dateStart < (y0 + 1) + '-09-01');
     const per = Array(12).fill(0); ts.forEach(t => { per[(new Date(t.dateStart).getMonth() + 4) % 12]++; });
     const last = Math.max(7, (now.getMonth() + 4) % 12), max = Math.max(1, ...per);
@@ -76,7 +76,7 @@
     const cat = {}; ts.forEach(t => { const k = t.kind === 'animation' ? 'Animations' : t.type === 'interne' ? 'Tournois internes' : t.category || 'Autres'; cat[k] = (cat[k] || 0) + 1; });
     const ks = Object.keys(cat).sort((a, b) => (parseInt(a.slice(1)) || 1e9) - (parseInt(b.slice(1)) || 1e9)), cm = Math.max(1, ...Object.values(cat));
     $('#cats').innerHTML = ks.map(k => `<div class="ps-hbar"><span>${esc(k)}</span><i class="${/^P/.test(k) ? '' : 'alt'}" style="width:${Math.round(cat[k] / cm * 100)}%"></i><b>${cat[k]}</b></div>`).join('') || '<p class="muted small">Aucun tournoi daté cette saison.</p>';
-  }).catch(() => {});
+  }, '#bars');
   $('#topTabs').onclick = e => { const b = e.target.closest('[data-top]'); if (!b) return; document.querySelectorAll('#topTabs [data-top]').forEach(x => x.setAttribute('aria-selected', x === b)); ['P', 'T', 'M'].forEach(k => { $('#top' + k).hidden = k !== b.dataset.top; }); };
   $('#stExport').onclick = () => {
     if (!all.length) return alert('Aucune donnée à exporter pour l’instant.');

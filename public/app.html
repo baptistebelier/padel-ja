@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
 <script src="/js/theme.js"></script>
+<script src="/js/donnees.js"></script>
 <script src="/js/rail.js" defer></script>
 <script src="/js/creation.js" defer></script>
 </head>
@@ -33,12 +34,11 @@
 (function () {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = s => document.querySelector(s);
-  fetch('/api/me').then(r => r.json()).then(d => {
-    if (!d.user) return location.href = '/connexion';
+  Donnees.lire('/api/me').then(d => {
     $('#who').textContent = d.user.guest ? 'Visiteur (démo)' : (d.user.name || d.user.email) + (d.user.club ? ' · ' + d.user.club : '');
     if (!d.user.guest) { $('#plan').hidden = false; $('#plan').textContent = d.user.planLabel; $('#plan').className = 'tag ' + (d.user.admin ? 'pink' : d.user.free ? 'lime' : 'ink'); }
     $('#guestBar').hidden = !d.user.guest;
-  });
+  }).catch(() => {});
   const sportChoisi = () => { try { return localStorage.getItem('ja-sport') || ''; } catch (e) { return ''; } };
   const garderSport = v => { try { localStorage.setItem('ja-sport', v); } catch (e) {} };
   /* agencement de la maquette « Refonte /Pista » — segmenté Tous / Padel / Tennis,
@@ -83,8 +83,7 @@
     const m0 = new Date().toISOString().slice(0, 7), mois = d.tournaments.filter(t => (t.dateStart || '').slice(0, 7) === m0);
     document.getElementById('psMonth').innerHTML = `<div class="ps-mstat"><b>${mois.length}</b><span>tournoi${mois.length > 1 ? 's' : ''}</span></div><div class="ps-mstat"><b>${mois.reduce((n, t) => n + (t.pairs || 0), 0)}</b><span>paires inscrites</span></div>`;
   }
-  async function load() {
-    const d = await fetch('/api/tournaments').then(r => r.json());
+  function load() { Donnees.page('/api/tournaments', d => {
     // filtre par sport (chaque événement porte son sport et son type)
     if (d.tournaments && sportChoisi()) d.tournaments = d.tournaments.filter(t => (t.sport || 'Padel') === sportChoisi());
     // À venir : le plus proche d'abord ; En cours : le plus récent ; Clôturés : le plus récent
@@ -96,7 +95,7 @@
     psRender(f(up), f(live), f(closed), d);
     document.querySelectorAll('[data-dup]').forEach(b => b.onclick = async () => { const r = await fetch('/api/tournaments/' + b.dataset.dup + '/duplicate', { method: 'POST' }).then(r => r.json()); if (r.id) load(); else alert(r.error || 'Duplication impossible pour l’instant.'); });
     document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (confirm('Supprimer définitivement ce tournoi ?')) { await fetch('/api/tournaments/' + b.dataset.del, { method: 'DELETE' }); load(); } });
-  }
+  }, '#psRows'); }
   load();
 
 })();

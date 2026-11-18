@@ -131,8 +131,9 @@ function json(res, code, obj, headers) {
 }
 /* fichier de l'appli : empreinte (ETag) pour que l'appareil ne retélécharge pas un fichier inchangé (réponse 304),
    et compression gardée en mémoire tant que le fichier ne change pas */
+const tagOf = data => '"' + crypto.createHash('md5').update(data).digest('base64url').slice(0, 16) + '"';
 function sendStatic(res, file, data, headers) {
-  const tag = '"' + crypto.createHash('md5').update(data).digest('base64url').slice(0, 16) + '"';
+  const tag = tagOf(data);
   const page = String((headers || {})['Content-Type'] || '').startsWith('text/html'), extra = (headers || {})._csp;
   const h = Object.assign({ ETag: tag }, headers, page ? Securite.pageHeaders(file, data, extra) : {});
   delete h._csp;
@@ -214,6 +215,42 @@ function sendClub(res, rel, logged) {
     // l'appli elle-même : le service worker ne garde en cache (hors ligne) que cette page, jamais la présentation ni la connexion
     sendStatic(res, file, data, Object.assign({ 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': longCache ? 'public, max-age=604800' : 'no-cache' }, /\/(index|coach)\.html$/.test(rel) ? { 'X-Club-Page': 'appli', _csp: bundler.empreintes(data) } : {}));
   });
+}
+/* Compression définitive de tous les fichiers de l'appli : mise en file au démarrage (après le démarrage et la réponse du
+   contrôle de santé), préparée en arrière-plan un fichier à la fois par lib/compress.js. Un visiteur arrivé avant reçoit
+   une compression rapide. Les mêmes clés (chemin + empreinte) que sendStatic : un fichier préparé est servi tel quel. */
+const TEXTE = /\.(html|js|css|svg|json|webmanifest)$/, APPLI = /\/(index|coach)\.html$/;
+function preparerCompression() {
+  const walk = (dir, out) => {
+    let l = []; try { l = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return out; }
+    l.forEach(e => { const p = path.join(dir, e.name); if (e.isDirectory()) { if (e.name !== 'node_modules') walk(p, out); } else if (TEXTE.test(e.name)) out.push(p); });
+    return out;
+  };
+  const poser = (file, data) => Compress.preparer(file + tagOf(data), data, MIME[path.extname(file)] || '', ['br']);
+  const prio = [], reste = [];
+  // chaque tâche lit son fichier au moment de son tour : le démarrage ne lit rien
+  const club = walk(CLUB_ROOT, []).map(file => ({ file, rel: '/' + path.relative(CLUB_ROOT, file).split(path.sep).join('/') }));
+  const tacheClub = ({ file, rel }) => () => {
+    let data = fs.readFileSync(file);
+    const appli = APPLI.test(rel);
+    if (appli) data = bundler.page(rel, data);
+    poser(file, data);
+  };
+  // /RAM Club et /Dojo : pages d'abord, puis leurs fichiers réunis (le paquet de /Dojo pèse plus d'1 Mo)
+  club.filter(c => APPLI.test(c.rel)).forEach(c => prio.push(tacheClub(c)));
+  prio.push(() => bundler.tout().forEach(([rel, data]) => poser(rel, data)));
+  // /RAM JA : pages, scripts, styles (mêmes transformations que sendFile)
+  walk(ROOT, []).forEach(file => prio.push(() => {
+    let data = fs.readFileSync(file); const ext = path.extname(file);
+    if (ext === '.html' || ext === '.css') data = withVersions(data.toString('utf8'));
+    poser(file, data);
+  }));
+  club.filter(c => !APPLI.test(c.rel)).forEach(c => reste.push(tacheClub(c)));
+  const taches = prio.concat(reste);
+  // une tâche à la fois, en laissant la main au serveur entre deux
+  let i = 0;
+  const suite = () => { if (i >= taches.length) return; try { taches[i++](); } catch (e) { console.error('prépa', e.message); } setImmediate(suite); };
+  suite();
 }
 function lanAddresses() {
   const out = [];
@@ -1874,6 +1911,8 @@ server.listen(PORT, '0.0.0.0', () => {
   if (!ONLINE) lanAddresses().forEach(ip => console.log(`   Réseau   : http://${ip}:${PORT}/`));
   console.log('\n   Laissez cette fenêtre ouverte pendant le tournoi.\n');
   taches.start();
+  // compression définitive des fichiers : en arrière-plan, un à la fois, bien après le démarrage et le contrôle de santé (Render, ou PRECHAUFFER=1)
+  if (process.env.RENDER || process.env.PRECHAUFFER === '1') setTimeout(preparerCompression, 2000).unref();
   Backup.schedule(store, msg => console.log('  ' + msg));
   Retention.schedule(store, msg => console.log('  ' + msg));
   Mail.keepAlive(msg => console.log('  ' + msg));

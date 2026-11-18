@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
 <script src="/js/theme.js"></script>
+<script src="/js/donnees.js"></script>
 <script src="/js/rail.js" defer></script>
 </head>
 <body class="acct" data-page="joueurs">
@@ -43,8 +44,7 @@
   let liste = 'mine', players = [], cur = null;
   // fidélité : citron « Fidèle » à partir de 3 tournois, sinon le nombre de tournois
   const fid = n => n >= 3 ? '<span class="r-pastille r-pastille--citron">Fidèle</span>' : `<span class="r-pastille">${n}</span>`;
-  async function loadPlayers() {
-    const d = await fetch('/api/club-players').then(r => r.json()).catch(() => ({}));
+  function loadPlayers() { Donnees.page('/api/club-players', d => {
     if (d.guest) { $('#plist').innerHTML = '<p class="muted">La base de joueurs est réservée aux comptes : <a href="/inscription">créez votre compte</a>.</p>'; return; }
     if (d.error) { $('#plist').innerHTML = `<p class="muted">${esc(d.error)}</p>`; return; }
     players = d.players || [];
@@ -55,7 +55,7 @@
       : '<p class="muted">Les joueurs apparaîtront ici dès que vous clôturerez un tournoi (onglet Tournoi, section Gestion).</p>';
     document.querySelectorAll('#plist [data-p]').forEach(el => el.onclick = () => openPlayer(el.dataset.p));
     if (!cur && location.hash.length <= 1 && players[0] && matchMedia('(min-width: 1024px)').matches) openPlayer(players[0].id);
-  }
+  }, '#plist'); }
   loadPlayers();
   function setListe(l) {
     liste = l;
