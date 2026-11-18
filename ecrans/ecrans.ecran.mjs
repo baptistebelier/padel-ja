@@ -3643,36 +3643,55 @@ test('Dojo : fiche de groupe en deux boîtes (identité + intercalaires collés)
   }
 });
 
-test('/Buvette Agenda : à 1280 px et plus, trois colonnes, un clic sur un bloc affiche sa carte à droite sans changer de page ; à 390 px le clic ouvre comme avant', async () => {
-  for (const w of [1280, 1600]) {
+test('/Buvette Agenda : colonne mini-calendrier à 360 px comme avant, calendrier un peu plus large, carte affichée sans changer de page (3 colonnes ou à la place du mini-calendrier), Fermer ; inchangé sur iPad portrait et téléphone', async () => {
+  // largeurs mesurées avant le lot I (e122a31) : calendrier (bmain) et colonne mini-calendrier (bside)
+  const AVANT = { 1024: 210, 1180: 350, 1280: 350, 1366: 350, 1600: 350 };
+  for (const w of [1024, 1180, 1280, 1366, 1600]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
     page.on('pageerror', x => errs.push(x.message));
     await page.goto(JA + '/club/index.html');
     await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
-    for (const mode of ['week', 'events']) {
+    for (const mode of ['week', 'day', 'events']) {
       await page.evaluate(m => { S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = m; S.plan.sel = null; render(true); }, mode);
-      assert.equal(await page.locator('#main .bvag > .agcol#agcard').count(), 1, w + ' ' + mode + ' : 3e colonne');
-      assert.equal(await page.locator('#agcard .agvide').count(), 1, w + ' : état vide sans sélection');
-      const bloc = page.locator('#plan [data-a="open"][data-id]').first();
-      const id = await bloc.getAttribute('data-id');
-      await bloc.click();
-      const r = await page.evaluate(() => ({ pile: S.stack.length, tab: S.tab, vide: !!document.querySelector('#agcard .agvide'), txt: document.getElementById('agcard').textContent.trim().length, sel: document.querySelectorAll('#plan .agsel').length, debord: document.documentElement.scrollWidth - innerWidth }));
+      const larg = () => page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().width) : 0; }; return { cal: r('#main .bmain'), side: r('#agside'), carte: r('#agcard'), pan: r('.agpan'), debord: document.documentElement.scrollWidth - innerWidth }; });
+      const l0 = await larg();
+      assert.equal(l0.side, 360, w + ' ' + mode + ' : colonne mini-calendrier inchangée (360 px)');
+      if (w >= 1180) assert.ok(l0.cal >= AVANT[w] + 40 && l0.cal <= AVANT[w] + 80, w + ' ' + mode + ' : calendrier de 40 à 80 px plus large : ' + l0.cal + ' contre ' + AVANT[w]);
+      else assert.ok(l0.cal >= AVANT[w], w + ' ' + mode + ' : calendrier pas plus étroit : ' + l0.cal);
+      const trois = w >= 1540;
+      assert.equal(await page.locator('#main .bvag > #agcard').count(), trois ? 1 : 0, w + ' : 3e colonne seulement si la carte est lisible');
+      if (trois) assert.ok(l0.carte >= 300, w + ' : carte lisible (' + l0.carte + ' px)');
+      await page.locator('#plan [data-a="open"][data-id]').first().click();
+      const r = await page.evaluate(() => ({ pile: S.stack.length, tab: S.tab, sel: document.querySelectorAll('#plan .agsel').length, txt: ((document.querySelector('#agcard .agcarte, .agpan .agcarte') || {}).textContent || '').trim().length, cal: document.querySelectorAll('#agside .calm').length }));
+      const l1 = await larg();
       assert.equal(r.pile, 0, w + ' ' + mode + ' : on reste dans l’agenda');
-      assert.equal(r.tab, 'agenda');
-      assert.equal(r.vide, false, w + ' ' + mode + ' : la carte est affichée (' + id + ')');
-      assert.ok(r.txt > 10, 'carte non vide');
+      assert.ok(r.txt > 10, w + ' ' + mode + ' : la carte est affichée');
       assert.ok(r.sel >= 1, w + ' ' + mode + ' : bloc marqué sélectionné');
-      assert.ok(r.debord <= 0, w + ' : pas de débordement horizontal : ' + r.debord);
+      assert.equal(l1.cal, l0.cal, w + ' ' + mode + ' : le calendrier ne change pas de largeur');
+      assert.ok(l1.debord <= 0, w + ' : pas de débordement horizontal : ' + l1.debord);
+      if (!trois) {
+        assert.equal(l1.pan, 360, w + ' ' + mode + ' : la carte prend la largeur de la colonne mini-calendrier');
+        assert.equal(r.cal, 0, w + ' ' + mode + ' : mini-calendrier remplacé par la carte');
+        const bt = await page.locator('.agclose').boundingBox();
+        assert.ok(bt.width >= 44 && bt.height >= 44, w + ' : Fermer d’au moins 44 px (' + bt.width + 'x' + bt.height + ')');
+        await page.locator('.agclose').click();
+        const l2 = await larg();
+        assert.equal(await page.locator('#agside .calm').count(), 1, w + ' ' + mode + ' : Fermer ramène le mini-calendrier');
+        assert.equal(await page.locator('#agside .calf').count(), 1, w + ' ' + mode + ' : et les filtres');
+        assert.equal(l2.cal, l0.cal);
+        assert.equal(l2.side, 360);
+      }
     }
     assert.deepEqual(errs, [], w + ' : aucune erreur');
     await ctx.close();
   }
-  for (const w of [390, 1100]) {
+  for (const w of [390, 820]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 800 } }), page = await ctx.newPage();
     await page.goto(JA + '/club/index.html');
     await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
     await page.evaluate(() => { S.tab = 'agenda'; S.stack = []; S.plan.scope = 'club'; S.plan.mode = 'events'; S.plan.sel = null; render(true); });
-    assert.equal(await page.locator('#agcard').count(), 0, w + ' : pas de 3e colonne');
+    assert.equal(await page.locator('#agcard, #agside').count(), 0, w + ' : pas de colonne de carte');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 0, true, w + ' : pas de débordement');
     await page.locator('#plan [data-a="open"][data-id]').first().click();
     assert.equal(await page.evaluate(() => S.stack.length), 1, w + ' : le clic ouvre la publication');
     await ctx.close();

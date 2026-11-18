@@ -108,17 +108,27 @@ V.agenda = () => {
       '<div class="ctl"><button class="btn ghost grow" data-a="calReset">Tout afficher</button></div></div>'
     )
     .replace('<div class="body">', '');
-  const trois = ag3();
+  const mode = ag3(),
+    side = `${calMonth()}<div class="card calf"><div class="calh">${ic('filter')}<b>Filtres</b></div>${filt}</div>`;
   return (
     h.slice(0, i) +
-    `<div class="bento2${trois ? ' bento3' : ''}"><div class="bmain">${h.slice(i)}</div><aside class="bside">${calMonth()}<div class="card calf"><div class="calh">${ic('filter')}<b>Filtres</b></div>${filt}</div></aside></div>${trois ? `<aside class="agcol" id="agcard" aria-live="polite">${agCarte()}</aside>` : ''}`
+    `<div class="bento2"><div class="bmain">${h.slice(i)}</div><aside class="bside" id="agside">${mode === 'swap' && S.plan.sel ? agPanneau() : side}</aside></div>${mode === 'trois' ? `<aside class="agcol" id="agcard" aria-live="polite">${agCarte()}</aside>` : ''}`
   );
 };
-/* Agenda, grand écran : trois colonnes. Toucher un bloc du calendrier affiche sa carte dans la troisième, sans quitter l'agenda.
+/* Agenda, grand écran : toucher un bloc du calendrier affiche sa carte sans quitter l'agenda.
+   - 'trois' (assez large pour une carte lisible) : calendrier | mini-calendrier et filtres | carte.
+   - 'swap' (iPad paysage, petit ordinateur) : la carte prend la place du mini-calendrier et des filtres, avec un bouton Fermer.
    Plus étroit (iPad portrait, téléphone), le toucher ouvre la publication comme avant. */
 function ag3() {
-  return matchMedia('(min-width: 1280px)').matches && S.tab === 'agenda' && !S.stack.length;
+  if (S.tab !== 'agenda' || S.stack.length) return '';
+  return matchMedia('(min-width: 1540px)').matches ? 'trois' : wideNav() ? 'swap' : '';
 }
+const agPanneau = () =>
+  `<div class="agpan"><div class="agpanh"><b>Événement</b><button class="ib agclose" data-a="agClose" aria-label="Fermer la carte, revenir au mini-calendrier et aux filtres">${ic('x')}</button></div>${agCarte()}</div>`;
+A.agClose = () => {
+  S.plan.sel = null;
+  render(true);
+};
 function agCarte() {
   const s = S.plan.sel,
     vide = `<div class="card agvide">${ic('cal')}<b>Choisis un événement</b><span class="muted small">Touche un bloc du calendrier : sa carte s’affiche ici.</span></div>`;
@@ -139,7 +149,7 @@ function agCarte() {
 function agMark() {
   const s = S.plan.sel;
   document.querySelectorAll('#plan .agsel').forEach(e => e.classList.remove('agsel'));
-  if (!s || !$('agcard')) return;
+  if (!s || !document.querySelector('#agcard, .agpan')) return;
   document.querySelectorAll('#plan [data-a="open"][data-id]').forEach(e => {
     if (e.dataset.v === s.v && e.dataset.id === s.id && (!s.d || !e.dataset.d || e.dataset.d === s.d))
       e.classList.add('agsel');
@@ -149,10 +159,12 @@ document.addEventListener(
   'click',
   e => {
     const el = e.target.closest('[data-a="open"]');
-    if (!el || !ag3() || !$('agcard') || !el.closest('#plan') || el.closest('#agcard')) return;
+    const mode = ag3();
+    if (!el || !mode || !el.closest('#plan') || el.closest('#agcard, #agside')) return;
     e.preventDefault();
     e.stopPropagation();
     S.plan.sel = { v: el.dataset.v, id: el.dataset.id, d: el.dataset.d || '' };
+    if (mode === 'swap') return render(true);
     $('agcard').innerHTML = agCarte();
     agMark();
   },

@@ -214,6 +214,7 @@ function bvBoite() {
   if (!suite.length) return;
   suite[0].before(box);
   box.append(...suite);
+  if (box.querySelector('#plan')) box.classList.add('bvagb');
   // Agenda, grand écran : la carte de l'événement choisi vit hors de la boîte, dans une troisième colonne
   const col = main.querySelector(':scope > .agcol');
   if (col) {
