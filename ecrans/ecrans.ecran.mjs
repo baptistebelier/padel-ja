@@ -1209,6 +1209,21 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await cc.close(); await sc.close(); await pub.close();
 });
 
+/* en-tête des pages publiques : bord à bord, fond uni opaque de celui des applis, aligné sur la colonne de la page, fixe au défilement */
+const enteteOk = async (p, w) => {
+  const r = await p.evaluate(() => {
+    const h = document.querySelector('.top'), b = h.getBoundingClientRect(), cs = getComputedStyle(h), crest = document.querySelector('.crest').getBoundingClientRect(), col = document.querySelector('main.pad > *').getBoundingClientRect();
+    window.scrollTo(0, 400);
+    return { left: b.left, width: b.width, vw: innerWidth, bg: cs.backgroundColor, fond: getComputedStyle(document.body).backgroundColor, crest: crest.left, col: col.left, hautApres: h.getBoundingClientRect().top, defile: window.scrollY, ok: document.documentElement.scrollWidth <= innerWidth + 1 };
+  });
+  assert.equal(Math.round(r.left), 0, 'en-tête collée au bord gauche à ' + w);
+  assert.ok(Math.abs(r.width - r.vw) < 1, 'en-tête sur toute la largeur à ' + w + ' : ' + r.width + ' / ' + r.vw);
+  assert.ok(/^rgb\(/.test(r.bg) && r.bg === r.fond, 'fond uni et opaque, celui de l’en-tête des applis (' + r.bg + ')');
+  assert.ok(Math.abs(r.crest - r.col) < 1.5, 'contenu aligné sur la colonne de la page à ' + w);
+  if (r.defile > 0) assert.equal(Math.round(r.hautApres), 0, 'en-tête fixe au défilement');
+  assert.ok(r.ok, 'pas de débordement horizontal');
+  await p.evaluate(() => window.scrollTo(0, 0));
+};
 test('Page publique : filtres de formules combinés, compteur, effacement, état vide, intercalaires collés, parcours simulé (360, 390 et 1280 px)', async () => {
   // l'API publique est simulée : aucune réservation réelle, des formules de tous les types
   const FO = [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35, par: 'seance' }, { id: 'f2', nom: 'Cours individuel 1 h 30', sport: 'Padel', joueurs: 1, duree: 90, prix: 50, par: 'seance' },
@@ -1237,6 +1252,7 @@ test('Page publique : filtres de formules combinés, compteur, effacement, état
   for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { width: 1280, height: 900 }]) {
     const { ctx, p, errs } = await ouvre(vp), w = vp.width;
     assert.ok(await sans(p), 'pas de débordement à ' + w);
+    await enteteOk(p, w);
     assert.equal(await p.locator('.crest').innerText(), 'ST', 'photo illisible : les initiales');
     // la maquette Dojo : fond à motifs, marges latérales de 10 px sur téléphone
     assert.ok(await p.evaluate(() => getComputedStyle(document.querySelector('.motif'), '::before').maskImage !== 'none'), 'fond à motifs du Dojo');
@@ -1322,6 +1338,7 @@ test('Inscription publique à une séance collective : places, fourchettes, list
     const { ctx, p, errs } = await ouvre(vp, ouvert);
     await p.waitForSelector('.tr');
     assert.ok(await sans(p), 'sans débordement à ' + vp.width);
+    await enteteOk(p, vp.width);
     assert.equal(await p.locator('.tr').count(), 2, 'les deux fourchettes');
     const texte = await p.locator('main').innerText();
     assert.match(texte, /Salle 2/); assert.match(texte, /12 € par joueur/); assert.match(texte, /1 h 30/); assert.match(texte, /Sarah Test/);

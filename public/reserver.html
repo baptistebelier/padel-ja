@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Réserver un cours — /Dojo</title>
 <link rel="icon" href="/img/favicon.png">
@@ -33,12 +33,14 @@
   .motif{position:fixed;inset:0;z-index:0;pointer-events:none}
   .motif::before,.motif::after{content:'';position:absolute;inset:0;-webkit-mask:var(--mk) 0 0/800px 800px repeat;mask:var(--mk) 0 0/800px 800px repeat;background:color-mix(in srgb,var(--c-text) 9%,transparent)}
   .motif::after{-webkit-mask-image:var(--ma);mask-image:var(--ma);background:color-mix(in srgb,var(--c-accent) 14%,transparent)}
-  #m{position:relative;z-index:1;max-width:1320px;margin:0 auto}
+  #m{position:relative;z-index:1}
   .ic{flex:none;fill:none;stroke:currentColor}
   :focus-visible{outline:3px solid var(--c-pink);outline-offset:2px}
 
   /* en-tête : écusson (photo ou initiales), nom, club */
-  .top{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px var(--gut)}
+  /* en-tête bord à bord, fond uni opaque (celui de l'en-tête des applis : --c-bg), fixe en haut, zone sûre de l'iPhone respectée ; son contenu suit la colonne de la page */
+  .top{position:sticky;top:0;z-index:5;background:var(--c-bg);padding-top:env(safe-area-inset-top,0px)}
+  .top-in{display:flex;align-items:center;gap:12px;min-height:64px;max-width:1320px;margin:0 auto;padding:10px max(var(--gut),env(safe-area-inset-right,0px)) 10px max(var(--gut),env(safe-area-inset-left,0px))}
   .crest{display:grid;place-items:center;flex:none;width:44px;height:44px;background:var(--c-lime);color:var(--c-dark);border:var(--bw) solid var(--c-ink);font:400 17px/1 var(--f-display);text-transform:uppercase;transform:rotate(-3deg);box-shadow:3px 3px 0 var(--accent2);overflow:hidden}
   .crest img{width:100%;height:100%;object-fit:cover}
   .top h1{margin:0;font:400 24px/1.05 var(--f-display);letter-spacing:.01em;text-transform:uppercase;overflow-wrap:anywhere}
@@ -46,7 +48,7 @@
   .top .r-tag{display:none;margin-left:auto}
   .ti{padding:8px var(--gut) 0}
   .ti h2{margin:4px 0 0;font:400 26px/1.05 var(--f-display);letter-spacing:.01em;text-transform:uppercase}
-  .pad{display:flex;flex-direction:column;gap:18px;padding:16px var(--gut) 40px}
+  .pad{display:flex;flex-direction:column;gap:18px;max-width:1320px;margin:0 auto;padding:16px var(--gut) 40px}
   .pad.bas-p{padding-bottom:110px}
   .col{display:flex;flex-direction:column;gap:18px;min-width:0}
 
@@ -179,7 +181,7 @@
     .mb{display:none!important}
     .dk{display:block!important}
     .r-card__head.dk,.col.dk{display:flex!important}
-    .top{min-height:76px;padding-top:14px;padding-bottom:14px}
+    .top-in{min-height:76px;padding-top:14px;padding-bottom:14px}
     .crest{width:52px;height:52px;font-size:20px}
     .top h1{font-size:30px}
     .top .r-tag{display:inline-flex}
@@ -234,7 +236,7 @@
   var S = { w: 0, data: null, f: null, pick: null, jour: null, etape: 'choisir', mois: false, conf: null, fl: { t: 'f', j: '', d: '', s: '', sp: '' }, v: { p: '', n: '', t: '', em: '', o: '', niv: '', cv: '', pa: '' } };
   var top = function (nom, sous) {
     var ph = S.data && S.data.photo && nom === S.data.coach ? '/api/public/resa/photo?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k) : '';
-    return '<header class="top"><span class="crest">' + (ph ? '<img src="' + e(ph) + '" alt="" data-i="' + e(initiales(nom)) + '">' : e(initiales(nom))) + '</span><div><h1>' + e(nom) + '</h1><p class="sub">' + e(sous) + '</p></div><span class="r-tag r-tag--flat">Réservation en ligne</span></header>';
+    return '<header class="top"><div class="top-in"><span class="crest">' + (ph ? '<img src="' + e(ph) + '" alt="" data-i="' + e(initiales(nom)) + '">' : e(initiales(nom))) + '</span><div><h1>' + e(nom) + '</h1><p class="sub">' + e(sous) + '</p></div><span class="r-tag r-tag--flat">Réservation en ligne</span></div></header>';
   };
   /* photo introuvable ou illisible : retour aux initiales */
   root.addEventListener('error', function (ev) {
