@@ -535,7 +535,7 @@ test('sans adresse prouvée, rien d’une fiche ne décompte un abonnement ou un
   assert.deepEqual([preuve.couvert, preuve.prix], ['abo', 0], 'adresse prouvée : abonnement reconnu');
 });
 
-test('liste des inscrits : prénom, nom et photo du compte /RAM, jamais un mineur ni une coordonnée ; fourchette choisie ; fiche prouvée', async () => {
+test('liste des inscrits : prénom, nom et photo du compte /RAM, tous nommés, jamais une coordonnée ; fourchette choisie ; fiche prouvée', async () => {
   const { coach, club, key, d, a, b, ka } = await monte(27), TOK = 'jeton-liste-1234567890';
   const mailsAvatar = { [a]: 'data:image/png;base64,iVBORw0KGgo=' };
   store.getIdentity = async uid => ({ avatar: mailsAvatar[uid] || '' });
@@ -548,19 +548,19 @@ test('liste des inscrits : prénom, nom et photo du compte /RAM, jamais un mineu
   assert.ok((await lis()).ins[d + '|t2'].length === 1 && !(await lis()).ins[d + '|t1'], 'inscrit dans la fourchette touchée');
   await assert.rejects(resa.pubNvInscrire(club.id, 'pl1', TOK, moi(9, { tier: 'inconnue' })), /fourchette/);
   await resa.pubNvInscrire(club.id, 'pl1', TOK, moi(2));
-  // un enfant (fiche avec parents) : jamais nommé
+  // une fiche d'enfant : nommée comme les autres
   await ram.ops(coach, club.id, [{ coll: 'eleve', id: 'enf1', op: 'put', data: { n: 'Petit Enfant', sport: 'Padel', parents: ['x'], mail: 'enfant.liste@exemple.test', tel: '06 00 00 00 01' } }]);
   await resa.pubNvInscrire(club.id, 'pl1', TOK, moi(3, { email: 'enfant.liste@exemple.test', prenom: 'Petit', nom: 'Enfant' }));
   // un adhérent inscrit depuis l'appli (compte avec photo)
   await ram.ops(coach, club.id, [{ coll: 'post', id: 'pl1', op: 'patch', patch: [{ p: ['nv', 'ins', d + '|t1'], t: 'add', v: ka }, { p: ['nv', 'at', ka, d], t: 'set', v: Date.now() }] }]);
   const info = await resa.pubNv(club.id, 'pl1', TOK), t1 = info.dates[0].tiers[0], t2 = info.dates[0].tiers[1], sortie = JSON.stringify(info);
   assert.deepEqual(t2.inscrits.map(x => [x.nom || null, !!x.i]), [['Camille Public1', true]], 'nom et identifiant opaque');
-  assert.ok(t1.inscrits.every(x => x.nom ? !!x.i : !x.i), 'un « Participant » (mineur) n’a ni nom ni identifiant');
+  assert.ok(t1.inscrits.every(x => x.nom && x.i), 'tous nommés, avec un identifiant opaque');
   assert.ok(t1.inscrits.some(x => x.nom === 'Élève A27' && x.av === true), 'adhérent avec compte : nom et photo');
-  assert.ok(t1.inscrits.some(x => !x.nom), 'l’enfant reste « Participant »');
+  assert.ok(t1.inscrits.some(x => x.nom === 'Petit Enfant'), 'liste d’attente et fiches d’enfant comprises');
   assert.equal(t1.n + t2.n, 4, 'tous comptent dans « N inscrits »');
-  assert.ok(!/exemple\.test|06 55|06 00|Petit|Enfant|"k"/.test(sortie), 'jamais d’e-mail, de téléphone, ni de fiche enfant');
-  // la photo : par un identifiant opaque ; rien pour un mineur
+  assert.ok(!/exemple\.test|06 55|06 00|"k"/.test(sortie), 'jamais d’e-mail, de téléphone');
+  // la photo : par un identifiant opaque 
   const av = t1.inscrits.find(x => x.nom === 'Élève A27'), photo = await resa.pubNvAvatar(club.id, 'pl1', TOK, av.i);
   assert.equal(photo.mime, 'image/png');
   assert.equal(await resa.pubNvAvatar(club.id, 'pl1', TOK, 'inconnu'), null);

@@ -1096,6 +1096,15 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await coachP.waitForSelector('#co-nom', { timeout: 8000 });
   await coachP.waitForFunction(() => document.getElementById('co-nom').value.length > 2, null, { timeout: 8000 });
   assert.match(await coachP.inputValue('#co-nom'), /^[a-z0-9-]+$/, 'nom proposé : minuscules, sans accent, tirets');
+  // le nom proposé, déjà vérifié libre, se valide d'un clic sans rien retaper ; l'adresse est enregistrée et répond
+  await coachP.waitForFunction(() => /Libre/.test(document.getElementById('co-nom-msg').textContent), null, { timeout: 8000 });
+  assert.equal(await coachP.locator('[data-a=coNomOk]').isDisabled(), false, 'nom proposé : « Valider cette adresse » actif d’emblée');
+  const propose = await coachP.inputValue('#co-nom');
+  await coachP.click('[data-a=coNomOk]');
+  await coachP.waitForFunction(m => OFFRES.nom === m, propose, { timeout: 8000 });
+  const rep = await coachP.evaluate(async n => (await fetch('/reservation/' + n)).status, propose);
+  assert.equal(rep, 200, 'la page /reservation/<nom> répond');
+  await coachP.waitForSelector('#co-nom', { timeout: 8000 });
   await coachP.fill('#co-nom', 'admin');
   await coachP.waitForFunction(() => /réservé/i.test(document.getElementById('co-nom-msg').textContent), null, { timeout: 8000 });
   assert.equal(await coachP.locator('[data-a=coNomOk]').isDisabled(), true, 'nom réservé : pas de validation');
@@ -1599,7 +1608,7 @@ test('Page de réservation : compte connecté non confirmé (aucune fiche), lien
 
 test('Inscription publique à une séance collective : places, fourchettes, liste d’attente, états clairs, parcours simulé (360 et 1280 px)', async () => {
   const ya = new Date(Date.now() + 5 * 864e5), iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  const tiers = [{ id: 't1', nom: 'Confirmés', lo: 3, hi: 5, min: 2, cap: 3, n: 3, restant: 0, complet: true, valide: false, attente: 1, inscrits: [{ a: false, nom: 'Alice Martin', i: 'o1', av: true }, { a: false }, { a: false, nom: 'Chloé Petit', i: 'o3', av: false }, { a: true, nom: 'Dan Roux', i: 'o4', av: false }] }, { id: 't2', nom: '', lo: 6, hi: 8, min: 2, cap: 2, n: 1, restant: 1, complet: false, valide: false, attente: 0, inscrits: [{ a: false, nom: 'Bob Durand', i: 'o2', av: false }] }];
+  const tiers = [{ id: 't1', nom: 'Confirmés', lo: 3, hi: 5, min: 2, cap: 3, n: 3, restant: 0, complet: true, valide: false, attente: 1, inscrits: [{ a: false, nom: 'Alice Martin', i: 'o1', av: true }, { a: false, nom: 'Eva Blanc', i: 'o5', av: false }, { a: false, nom: 'Chloé Petit', i: 'o3', av: false }, { a: true, nom: 'Dan Roux', i: 'o4', av: false }] }, { id: 't2', nom: '', lo: 6, hi: 8, min: 2, cap: 2, n: 1, restant: 1, complet: false, valide: false, attente: 0, inscrits: [{ a: false, nom: 'Bob Durand', i: 'o2', av: false }] }];
   const base = { titre: 'Volée au filet', mode: 'cours', club: 'Club Essai', coach: 'Sarah Test', sport: 'Padel', fmt: '', body: 'Travail du jeu au filet.', time: '18 h', dur: '1 h 30', place: 'Salle 2', price: '12 € par joueur', niveaux: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] };
   const ouvert = Object.assign({ etat: 'ouvert', dates: [{ d: iso(ya), etat: 'ouvert', tiers }, { d: iso(new Date(+ya + 7 * 864e5)), etat: 'ouvert', tiers }] }, base);
   const posts = [];
@@ -1639,7 +1648,7 @@ test('Inscription publique à une séance collective : places, fourchettes, list
     // la liste des inscrits : prénom, nom, photo du compte /RAM ; le mineur reste « Participant » ; liste d'attente marquée
     assert.equal(await p.locator('.ins').count(), 2);
     const l1 = await p.locator('.tr').nth(0).locator('.ins').innerText();
-    assert.match(l1, /Alice Martin/); assert.match(l1, /Participant/); assert.match(l1, /Chloé Petit/); assert.match(l1, /Dan Roux[\s\S]*liste d’attente/i);
+    assert.match(l1, /Alice Martin/); assert.match(l1, /Eva Blanc/); assert.ok(!/Participant/.test(l1), 'tout le monde est nommé'); assert.match(l1, /Chloé Petit/); assert.match(l1, /Dan Roux[\s\S]*liste d’attente/i);
     assert.match(await p.locator('.tr').nth(1).locator('.ins').innerText(), /Bob Durand/);
     assert.equal(await p.locator('.ins img').count(), 1, 'une photo seulement : celle d’Alice');
     assert.match(await p.locator('.ins img').getAttribute('src'), /avatar-nv\?c=club-essai&p=pn1&t=jeton-essai-1234567890&i=o1$/);

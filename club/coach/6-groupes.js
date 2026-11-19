@@ -531,7 +531,12 @@ function coNomInit() {
   fetch('/api/coach/nom-reservation', { credentials: 'include' })
     .then(r => r.json())
     .then(d => {
-      if (!CO_NOM.saisie) CO_NOM.saisie = d.propose || '';
+      /* le nom proposé est déjà vérifié libre par le serveur : il se valide d'un clic (avant, le bouton restait inactif) */
+      if (!CO_NOM.saisie && d.propose) {
+        CO_NOM.saisie = d.propose;
+        CO_NOM.ok = d.propose !== OFFRES.nom;
+        CO_NOM.msg = CO_NOM.ok ? 'Libre : ' + coNomPre() + d.propose : '';
+      }
       render(true);
     })
     .catch(() => {});
