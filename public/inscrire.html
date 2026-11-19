@@ -7,6 +7,7 @@
 <title>S’inscrire — /Dojo</title>
 <link rel="icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/fonts/fonts.css">
+<script src="/js/compte-public.js"></script>
 <script>
 /* Feuilles et scripts communs des trois applis : /club/… sur le domaine principal, racine sur coach. et club. */
 (function () {
@@ -41,7 +42,8 @@
   .crest{display:grid;place-items:center;flex:none;width:44px;height:44px;background:var(--c-lime);color:var(--c-dark);border:var(--bw) solid var(--c-ink);font:400 17px/1 var(--f-display);text-transform:uppercase;transform:rotate(-3deg);box-shadow:3px 3px 0 var(--accent2);overflow:hidden}
   .top h1{margin:0;font:400 24px/1.05 var(--f-display);letter-spacing:.01em;text-transform:uppercase;overflow-wrap:anywhere}
   .top .sub{margin-top:2px;color:var(--c-muted);font-size:13px}
-  .top .r-tag{display:none;margin-left:auto}
+  .top-in>div:nth-child(2){min-width:0;flex:1 1 auto}
+  #cp-zone{flex:none;margin-left:auto}
   .pad{display:flex;flex-direction:column;gap:18px;max-width:1100px;margin:0 auto;padding:16px var(--gut) 40px}
   .ti h2{margin:4px 0 0;font:400 26px/1.05 var(--f-display);letter-spacing:.01em;text-transform:uppercase;overflow-wrap:anywhere}
   .ti p.lead{margin-top:8px;max-width:62ch}
@@ -59,6 +61,17 @@
   .dt[aria-pressed=true] small{color:var(--c-dark)}
   .dt:disabled{opacity:.55}
   .tr{display:flex;flex-direction:column;gap:6px;padding:12px;margin:0 0 10px;background:var(--c-surface-2);border:var(--bw) solid var(--c-ink)}
+  .trb{display:flex;flex-direction:column;gap:6px;width:100%;padding:0;text-align:left;color:inherit}
+  .tr.off{opacity:.6}
+  .choisir{display:flex;align-items:center;gap:8px;margin-top:4px;font:700 15px/1.1 var(--f-label);text-decoration:underline}
+  .ins{list-style:none;margin:10px 0 0;padding:10px 0 0;border-top:var(--bw) solid color-mix(in srgb,var(--c-ink) 18%,transparent);display:grid;gap:8px}
+  .ins li{display:flex;align-items:center;gap:10px;font-size:14px;min-width:0}
+  .ins .nm{font:700 15px/1.2 var(--f-label);overflow-wrap:anywhere}
+  .ins small{margin-left:auto;color:inherit;opacity:.7;font-size:12px}
+  .av{display:grid;place-items:center;flex:none;width:30px;height:30px;background:var(--c-lime);color:var(--c-dark);border:var(--bw) solid var(--c-ink);font:700 12px/1 var(--f-label);overflow:hidden}
+  .av img{width:100%;height:100%;object-fit:cover;display:block}
+  .av.anon{background:var(--c-surface);color:var(--c-muted)}
+  .r-field>.lbl{font:700 13px/1.2 var(--f-label);letter-spacing:.08em;text-transform:uppercase}
   .tr.moi{background:var(--c-lime);color:var(--c-dark);box-shadow:var(--sh-sm)}
   .tr .l1{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
   .tr b{font:700 17px/1.2 var(--f-label)}
@@ -86,7 +99,6 @@
     .top-in{min-height:76px;padding-top:14px;padding-bottom:14px}
     .crest{width:52px;height:52px;font-size:20px}
     .top h1{font-size:30px}
-    .top .r-tag{display:inline-flex}
     .ti h2{font-size:34px}
     .grille{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,440px);gap:20px;align-items:start}
   }
@@ -108,13 +120,15 @@
   <symbol id="i-plus" viewBox="0 0 18 18"><path d="M9 3.75V9M9 9V14.25M9 9H3.75M9 9H14.25" stroke-width="1.5" stroke-linecap="square"/></symbol>
   <symbol id="i-x" viewBox="0 0 18 18"><path d="M4.5 4.5L9 9M9 9L13.5 13.5M9 9L13.5 4.5M9 9L4.5 13.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
   <symbol id="i-ball" viewBox="0 0 18 18"><path d="M9 2.25A6.75 6.75 0 1 0 9 15.75A6.75 6.75 0 1 0 9 2.25ZM3.2 6C6 6.2 7.2 8 7.2 9S6 11.8 3.2 12M14.8 6C12 6.2 10.8 8 10.8 9S12 11.8 14.8 12" stroke-width="1.5" stroke-linecap="square"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 18 18"><path d="M2.25 4.5H15.75V13.5H2.25ZM2.25 4.5L9 10.5L15.75 4.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
   <symbol id="i-user" viewBox="0 0 18 18"><path d="M9 8.25A2.75 2.75 0 1 0 9 2.75A2.75 2.75 0 1 0 9 8.25ZM3.5 15.5C3.5 12.5 6 10.75 9 10.75S14.5 12.5 14.5 15.5" stroke-width="1.5" stroke-linecap="square"/></symbol>
 </svg>
 <div class="motif" aria-hidden="true"></div>
 <div id="m"><main class="pad"><p>Chargement…</p></main></div>
 <script>
-/* /Dojo · inscription en ligne à une séance collective ou une partie dirigée, sans compte.
-   Aucun nom ni aucune coordonnée d'autres inscrits n'arrive ici : seulement des nombres de places. Tout texte passe par e(). */
+/* /Dojo · inscription en ligne à une séance collective ou une partie dirigée, sans compte (ou avec : bouton « Me connecter » de l'en-tête, /js/compte-public.js).
+   Les inscrits sont affichés avec leur prénom et leur nom (choix de l'enseignant : le lien se partage en privé). Aucun e-mail, téléphone ni niveau détaillé n'arrive ici.
+   Tout texte venu du serveur passe par e(). */
 (function () {
   var root = document.getElementById('m'), parts = location.pathname.split('/').filter(Boolean), q = new URLSearchParams(location.search);
   var e = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -122,16 +136,18 @@
   var cap = function (s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); };
   var jour = function (s, o) { return cap(new Date(s + 'T12:00:00').toLocaleDateString('fr-FR', o || { weekday: 'long', day: 'numeric', month: 'long' })); };
   var ic = function (n, s) { return '<svg class="ic" width="' + s + '" height="' + s + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; };
-  var initiales = function (n) { return String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x[0]; }).join('') || '·'; };
-  var top = function (nom, sous) { return '<header class="top"><div class="top-in"><span class="crest">' + e(initiales(nom)) + '</span><div><h1>' + e(nom) + '</h1><p class="sub">' + e(sous) + '</p></div><span class="r-tag r-tag--flat">Inscription en ligne</span></div></header>'; };
+  var initiales = function (n) { return String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x[0]; }).join('').toUpperCase() || '·'; };
+  var top = function (nom, sous) { return '<header class="top"><div class="top-in"><span class="crest">' + e(initiales(nom)) + '</span><div><h1>' + e(nom) + '</h1><p class="sub">' + e(sous) + '</p></div><div id="cp-zone">' + (window.ComptePublic ? window.ComptePublic.entete() : '') + '</div></div></header>'; };
   var page = function (nom, sous, corps) { root.innerHTML = top(nom, sous) + '<main class="pad">' + corps + '</main>'; };
   var titre = function (kick, t, lead) { return '<div class="ti"><span class="r-surtitre">' + e(kick) + '</span><h2>' + e(t) + '</h2>' + (lead ? '<p class="lead">' + e(lead) + '</p>' : '') + '</div>'; };
   var head = function (i, t) { return '<div class="r-card__head">' + (i ? ic(i, 20) : '') + '<b>' + e(t) + '</b></div>'; };
   var carte = function (h, c) { return '<div class="r-card">' + h + c + '</div>'; };
+  /* photo illisible : retour aux initiales */
+  root.addEventListener('error', function (ev) { var i = ev.target; if (i && i.tagName === 'IMG' && i.closest('.av')) i.replaceWith(document.createTextNode(i.dataset.i || '')); }, true);
 
   /* désinscription par le lien personnel reçu par e-mail */
   if (parts[1] === 'annuler') {
-    var corps = '<div class="fin">' + titre('Inscription', 'Me désinscrire') + carte('', '<p>Tu libères ta place : l’enseignant est prévenu et la liste d’attente avance.</p><p style="margin-top:14px"><button class="r-btn r-btn--full" id="a" type="button">' + ic('x', 18) + 'Me désinscrire</button></p><p class="err" id="er" role="alert"></p>') + '</div>';
+    var corps = '<div class="fin">' + titre('Inscription', 'Mon inscription') + carte('', '<p>Tu libères ta place : l’enseignant est prévenu et la liste d’attente avance.</p><p style="margin-top:14px"><button class="r-btn r-btn--full" id="a" type="button">' + ic('x', 18) + 'Me désinscrire</button></p><p class="err" id="er" role="alert"></p>') + '</div>';
     page('Inscription', '/Dojo · inscription en ligne', corps);
     document.getElementById('a').onclick = function () {
       post('/api/public/resa/desinscrire', { c: q.get('c'), p: q.get('p'), k: q.get('k'), d: q.get('d'), t: q.get('t') })
@@ -141,71 +157,112 @@
     return;
   }
   var c = parts[1], pid = parts[2], tok = parts[3];
-  var S = { data: null, d: null, niv: '', v: { p: '', n: '', t: '', em: '' }, conf: null };
+  var S = { data: null, d: null, tier: null, fiche: '', prefill: '', v: { p: '', n: '', t: '', em: '' }, conf: null, compteLu: false };
+  var CPm = function () { return window.ComptePublic ? window.ComptePublic.moi() : null; };
+  var moiOk = function () { var m = CPm(); return !!m && m.verifie !== false; };
+  var fichesMoi = function () { return moiOk() ? CPm().fiches || [] : []; };
+  var ficheChoisie = function () { return fichesMoi().filter(function (f) { return f.id === S.fiche; })[0] || null; };
   function charge() {
     fetch('/api/public/resa/collectif?c=' + encodeURIComponent(c) + '&p=' + encodeURIComponent(pid) + '&t=' + encodeURIComponent(tok))
       .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
-      .then(function (d) { S.data = d; var dd = d.dates || [], ok = dd.filter(function (x) { return x.etat !== 'passe'; })[0]; S.d = (ok || dd[0] || {}).d; dessine(); })
+      .then(function (d) {
+        S.data = d;
+        var ok = (d.dates || []).filter(function (x) { return x.etat !== 'passe'; });
+        S.d = ok.length === 1 ? ok[0].d : (ok.some(function (x) { return x.d === S.d; }) ? S.d : null);   // plusieurs dates : on en choisit une, rien n'est présélectionné
+        var dt = (d.dates || []).filter(function (x) { return x.d === S.d; })[0];
+        S.tier = dt && dt.tiers.length === 1 ? dt.tiers[0].id : (dt && dt.tiers.some(function (t) { return t.id === S.tier; }) ? S.tier : null);
+        dessine(); demarreCompte();
+      })
       .catch(function (x) { page('Inscription', '/Dojo · inscription en ligne', '<div class="fin">' + titre('Inscription', 'Lien introuvable') + carte('', '<p>' + e(x.message || 'Ce lien d’inscription n’est pas valable.') + '</p><p class="dg">Demande un nouveau lien à ton enseignant.</p>') + '</div>'); });
   }
-  var tierDe = function (dt) {
-    if (S.niv === '') return null;
-    var d = S.data, padel = d.sport === 'Padel', rk = d.niveaux, v = padel ? +S.niv : rk.indexOf(S.niv), b = function (x) { return padel ? +x : rk.indexOf(x); };
-    return dt.tiers.filter(function (t) { return v >= Math.min(b(t.lo), b(t.hi)) && v <= Math.max(b(t.lo), b(t.hi)); })[0] || null;
-  };
+  function demarreCompte() {
+    if (S.compteLu || !window.ComptePublic) return;
+    S.compteLu = true;
+    window.ComptePublic.init({
+      moiUrl: function () { return '/api/public/resa/moi-collectif?c=' + encodeURIComponent(c) + '&p=' + encodeURIComponent(pid) + '&t=' + encodeURIComponent(tok); },
+      corps: function () { return { c: c, p: pid, t: tok, k: 'collectif' }; },
+      chemin: function () { return location.pathname; },
+      onMoi: function (m) { if (m && m.fiches && m.fiches.length === 1) S.fiche = m.fiches[0].id; if (!m) { S.fiche = ''; S.prefill = ''; } },
+      onChange: function () { if (S.data && !S.conf) dessine(); }
+    });
+  }
+  var tierDe = function (dt) { return dt ? dt.tiers.filter(function (t) { return t.id === S.tier; })[0] || null : null; };
   var rangeTxt = function (t, padel) { return (t.nom ? t.nom + ' · ' : '') + (padel ? 'Niveau ' + t.lo + ' à ' + t.hi : t.lo + ' à ' + t.hi); };
   var sous = function (d) { return d.coach + (d.club ? ' · ' + d.club : ''); };
+  /* la liste des inscrits d'une fourchette, liste d'attente comprise : prénom, nom, et photo du compte /RAM s'il y en a une */
+  function inscrits(t) {
+    var l = t.inscrits || [];
+    if (!l.length) return '<p class="dg" style="margin:8px 0 0">Aucun inscrit pour l’instant.</p>';
+    return '<ul class="ins" aria-label="Inscrits">' + l.map(function (x) {
+      var who = x.nom
+        ? '<span class="av">' + (x.av ? '<img src="/api/public/resa/avatar-nv?c=' + encodeURIComponent(c) + '&p=' + encodeURIComponent(pid) + '&t=' + encodeURIComponent(tok) + '&i=' + encodeURIComponent(x.i) + '" alt="" data-i="' + e(initiales(x.nom)) + '">' : e(initiales(x.nom))) + '</span><span class="nm">' + e(x.nom) + '</span>'
+        : '<span class="av anon">' + ic('user', 16) + '</span><span class="nm">Participant</span>';
+      return '<li' + (x.a ? ' class="att"' : '') + '>' + who + (x.a ? '<small>liste d’attente</small>' : '') + '</li>';
+    }).join('') + '</ul>';
+  }
   function dessine() {
     var d = S.data, kick = d.mode === 'cours' ? 'Séance collective' : 'Partie dirigée';
     if (S.conf) return fait();
     if (d.etat === 'coupe') return page(d.coach || 'Inscription', sous(d), '<div class="fin">' + titre(kick, d.titre) + carte(head('x', 'Inscriptions fermées'), '<p>Le lien d’inscription de cette séance est coupé. Contacte ton enseignant.</p>') + '</div>');
     if (d.etat === 'annule') return page(d.coach || 'Inscription', sous(d), '<div class="fin">' + titre(kick, d.titre) + carte(head('x', 'Séance annulée'), '<p>Cette séance est annulée. Contacte ton enseignant.</p>') + '</div>');
-    var padel = d.sport === 'Padel', dt = (d.dates || []).filter(function (x) { return x.d === S.d; })[0], tous = (d.dates || []), passe = !tous.some(function (x) { return x.etat !== 'passe'; });
-    var tier = dt ? tierDe(dt) : null;
-    var meta = '<ul class="meta"><li>' + ic('cal', 18) + (tous.length > 1 ? 'Chaque ' + jour(tous[0].d, { weekday: 'long' }).toLowerCase() : e(jour(S.d))) + ' · ' + e(d.time) + '</li><li>' + ic('clock', 18) + e(d.dur || '') + '</li>' + (d.place ? '<li>' + ic('pin', 18) + e(d.place) + '</li>' : '') + (d.price ? '<li class="px">' + e(d.price) + '</li>' : '') + '</ul>';
+    var padel = d.sport === 'Padel', tous = d.dates || [], avenir = tous.filter(function (x) { return x.etat !== 'passe'; }), passe = !avenir.length;
+    var dt = tous.filter(function (x) { return x.d === S.d; })[0];
+    if (dt && dt.tiers.length === 1) S.tier = dt.tiers[0].id;   // une seule fourchette : pas de choix inutile
+    var tier = tierDe(dt), un = dt && dt.tiers.length === 1;
+    var meta = '<ul class="meta"><li>' + ic('cal', 18) + (tous.length > 1 ? 'Chaque ' + jour(tous[0].d, { weekday: 'long' }).toLowerCase() : e(jour((dt || tous[0]).d))) + ' · ' + e(d.time) + '</li><li>' + ic('clock', 18) + e(d.dur || '') + '</li>' + (d.place ? '<li>' + ic('pin', 18) + e(d.place) + '</li>' : '') + (d.price ? '<li class="px">' + e(d.price) + '</li>' : '') + '</ul>';
     var dates = tous.length > 1 ? '<div class="dates" role="group" aria-label="Dates">' + tous.map(function (x) {
-      var lib = x.etat === 'passe' ? 'passée' : x.etat === 'valide' ? 'validée' : 'ouverte';
-      return '<button type="button" class="dt" data-d="' + x.d + '" aria-pressed="' + (x.d === S.d) + '"' + (x.etat === 'passe' ? ' disabled' : '') + '><b>' + e(jour(x.d, { weekday: 'short', day: 'numeric', month: 'short' })) + '</b><small>' + lib + '</small></button>';
+      return '<button type="button" class="dt" data-d="' + x.d + '" aria-pressed="' + (x.d === S.d) + '"' + (x.etat === 'passe' ? ' disabled' : '') + '><b>' + e(jour(x.d, { weekday: 'short', day: 'numeric', month: 'short' })) + '</b><small>' + (x.etat === 'passe' ? 'séance passée' : x.etat === 'valide' ? 'validée' : 'ouverte') + '</small></button>';
     }).join('') + '</div>' : '';
-    var tiers = dt ? dt.tiers.map(function (t) {
-      var moi = tier && tier.id === t.id;
-      return '<div class="tr' + (moi ? ' moi' : '') + '"><div class="l1"><b>' + e(rangeTxt(t, padel)) + '</b><small>' + (t.valide ? 'Validée' : t.complet ? 'Complet' : t.restant + ' place' + (t.restant > 1 ? 's' : '') + ' restante' + (t.restant > 1 ? 's' : '')) + '</small></div>' +
-        '<div class="pts" aria-hidden="true">' + Array.from({ length: t.cap }, function (_, i) { return '<i class="' + (i < t.n ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
-        '<small>' + t.n + ' sur ' + t.cap + (t.cap > t.min ? ' · minimum ' + t.min + ' pour valider' : '') + (t.attente ? ' · ' + t.attente + ' en attente' : '') + '</small></div>';
-    }).join('') : '';
-    var info = carte(head('', kick + (d.sport ? ' · ' + d.sport : '') + (d.fmt ? ' · ' + d.fmt : '')), (d.body ? '<p style="margin-bottom:12px">' + e(d.body) + '</p>' : '') + meta + dates + '<p class="r-etiquette" style="margin:0 0 8px;color:var(--c-muted)">Fourchettes de niveau</p>' + (tiers || '<p class="vide-m">Aucune date à venir.</p>') +
+    var autreValidee = dt && dt.tiers.some(function (x) { return x.valide; });
+    var cartes = !dt ? '<p class="vide-m" role="status">Choisis d’abord une date.</p>' : dt.tiers.map(function (t) {
+      var attente = t.complet || (autreValidee && !t.valide), etat = dt.etat === 'passe' ? 'Séance passée' : t.valide ? 'Validée' : t.complet ? 'Complet · liste d’attente' : autreValidee ? 'Liste d’attente' : t.restant + ' place' + (t.restant > 1 ? 's' : '') + ' restante' + (t.restant > 1 ? 's' : '');
+      var corps = '<span class="l1"><b>' + e(rangeTxt(t, padel)) + '</b><small>' + e(etat) + '</small></span><span class="pts" aria-hidden="true">' + Array.from({ length: t.cap }, function (_, i) { return '<i class="' + (i < t.n ? 'on' : '') + '"></i>'; }).join('') + '</span><small>' + t.n + ' inscrit' + (t.n > 1 ? 's' : '') + ' sur ' + t.cap + (t.cap > t.min ? ' · minimum ' + t.min + ' pour valider' : '') + (t.attente ? ' · ' + t.attente + ' en attente' : '') + '</small>';
+      var sel = !un && tier && tier.id === t.id;
+      return '<div class="tr' + (sel || un ? ' moi' : '') + (dt.etat === 'passe' ? ' off' : '') + '">' + (un ? '<div class="trb">' + corps + '</div>' : '<button type="button" class="trb" data-tier="' + e(t.id) + '" aria-pressed="' + sel + '"' + (dt.etat === 'passe' ? ' disabled' : '') + '>' + corps + '<span class="choisir">' + (sel ? ic('check', 16) + 'Choisie' : (attente ? 'Rejoindre la liste d’attente' : 'M’inscrire dans cette fourchette')) + '</span></button>') + inscrits(t) + '</div>';
+    }).join('');
+    var info = carte(head('', kick + (d.sport ? ' · ' + d.sport : '') + (d.fmt ? ' · ' + d.fmt : '')), (d.body ? '<p style="margin-bottom:12px">' + e(d.body) + '</p>' : '') + meta + dates + '<p class="r-etiquette" style="margin:0 0 8px;color:var(--c-muted)">Fourchettes de niveau</p>' + cartes +
       '<p class="dg">La première fourchette qui atteint son minimum valide ' + (d.mode === 'cours' ? 'la séance' : 'la partie') + '. Les inscrits des autres passent en liste d’attente. Le tarif est à régler sur place.</p>');
-    var etatNiv = '';
-    if (tier) etatNiv = '<div class="etat' + (tier.complet || tier.valide && tier.restant === 0 ? '' : ' ok') + '" role="status"><b>' + e(rangeTxt(tier, padel)) + '</b> · ' + (dt && dt.tiers.some(function (x) { return x.valide && x.id !== tier.id; }) ? 'une autre fourchette est déjà validée : liste d’attente' : tier.complet ? 'complet : liste d’attente' : tier.restant + ' place' + (tier.restant > 1 ? 's' : '') + ' restante' + (tier.restant > 1 ? 's' : '')) + '</div>';
-    else if (S.niv !== '' && dt) etatNiv = '<div class="etat" role="status">Ton niveau n’entre dans aucune fourchette de cette séance.</div>';
-    var attente = tier && (tier.complet || dt.tiers.some(function (x) { return x.valide && x.id !== tier.id; }));
-    var form = passe ? carte(head('clock', 'Séance passée'), '<p>Les inscriptions sont terminées pour cette séance.</p>') :
-      '<form class="r-card" id="f" novalidate>' + head('user', 'M’inscrire') + '<div class="fm">' +
-      '<div class="r-field"><label for="p">Prénom</label><input class="r-input" id="p" required autocomplete="given-name" value="' + e(S.v.p) + '"></div>' +
-      '<div class="r-field"><label for="n">Nom</label><input class="r-input" id="n" required autocomplete="family-name" value="' + e(S.v.n) + '"></div>' +
-      '<div class="r-field w"><label for="em">E-mail</label><input class="r-input" id="em" required type="email" autocomplete="email" value="' + e(S.v.em) + '"></div>' +
-      '<div class="r-field w"><label for="t">Téléphone</label><input class="r-input" id="t" required type="tel" autocomplete="tel" value="' + e(S.v.t) + '"></div>' +
-      '<div class="r-field w"><label for="niv">Ton niveau</label><span class="r-selectw"><select class="r-select" id="niv" required><option value="">Choisis ton niveau</option>' + d.niveaux.map(function (x) { return '<option value="' + e(x) + '"' + (String(x) === S.niv ? ' selected' : '') + '>' + (padel ? 'Niveau ' + e(x) : e(x)) + '</option>'; }).join('') + '</select></span></div>' +
-      '<div class="w">' + etatNiv + '</div>' +
-      '<div class="pot" aria-hidden="true"><label for="site">Site</label><input id="site" tabindex="-1" autocomplete="off"></div>' +
-      '<label class="chk w"><input type="checkbox" class="r-check" id="ac" required><span>J’accepte que ' + e(d.coach) + ' conserve ces informations pour organiser ses séances. Je peux demander leur suppression à tout moment.</span></label>' +
-      '<div class="w"><button class="r-btn r-btn--full" id="go" type="submit"' + (S.niv !== '' && !tier ? ' disabled' : '') + '>' + ic('check', 18) + (attente ? 'Rejoindre la liste d’attente' : 'Je m’inscris') + '</button></div><p class="err w" id="er" role="alert"></p></div></form>';
-    page(d.coach, sous(d), titre(kick, d.titre) + '<div class="grille"><div class="col">' + info + '</div><div class="col">' + form + '</div></div>');
-    root.querySelectorAll('.dt').forEach(function (b) { b.onclick = function () { garde(); S.d = b.dataset.d; dessine(); }; });
-    var sel = document.getElementById('niv');
-    if (sel) sel.onchange = function () { garde(); S.niv = sel.value; dessine(); };
+    var form;
+    if (passe) form = carte(head('clock', 'Séance passée'), '<p>Les inscriptions sont terminées pour cette séance.</p>');
+    else if (!dt) form = carte(head('user', 'M’inscrire'), '<p class="vide-m">Choisis une date, puis ta fourchette.</p>');
+    else if (!tier) form = carte(head('user', 'M’inscrire'), '<p class="vide-m">Touche la fourchette dans laquelle tu veux t’inscrire.</p>');
+    else form = formulaire(d, dt, tier, padel);
+    page(d.coach, sous(d), titre(kick, d.titre) + (window.ComptePublic ? window.ComptePublic.note() : '') + '<div class="grille"><div class="col">' + info + '</div><div class="col">' + form + '</div></div>');
+    root.querySelectorAll('.dt').forEach(function (b) { b.onclick = function () { garde(); if (S.d !== b.dataset.d) { S.d = b.dataset.d; S.tier = null; } dessine(); }; });
+    root.querySelectorAll('[data-tier]').forEach(function (b) { b.onclick = function () { garde(); S.tier = b.dataset.tier; dessine(); var f = document.getElementById('f'); if (f && f.scrollIntoView && matchMedia('(max-width:899px)').matches) f.scrollIntoView({ block: 'start' }); }; });
+    root.querySelectorAll('[data-fiche]').forEach(function (b) { b.onclick = function () { garde(); S.fiche = b.dataset.fiche; S.prefill = ''; dessine(); }; });
     var fm = document.getElementById('f');
     if (fm) fm.onsubmit = function (x) {
       x.preventDefault();
       garde();
+      if (fichesMoi().length > 1 && !S.fiche) { document.getElementById('er').textContent = 'Choisis pour qui tu t’inscris.'; return; }
       if (!fm.checkValidity()) { fm.reportValidity(); return; }
       var bt = document.getElementById('go'), val = function (i) { return document.getElementById(i).value; };
       bt.disabled = true;
-      post('/api/public/resa/inscrire', { c: c, p: pid, t: tok, d: S.d, niveau: S.niv, prenom: val('p'), nom: val('n'), email: val('em'), tel: val('t'), site: val('site'), accord: document.getElementById('ac').checked })
+      post('/api/public/resa/inscrire', { c: c, p: pid, t: tok, d: S.d, tier: S.tier, fiche: moiOk() ? S.fiche : '', prenom: val('p'), nom: val('n'), email: val('em'), tel: val('t'), site: val('site'), accord: document.getElementById('ac').checked })
         .then(function (r) { S.conf = r; dessine(); window.scrollTo(0, 0); })
         .catch(function (z) { bt.disabled = false; document.getElementById('er').textContent = z.message; });
     };
   }
+  function formulaire(d, dt, tier, padel) {
+    var v = S.v, fc = ficheChoisie(), l = fichesMoi();
+    /* compte connecté dont l'adresse est prouvée : tout est prérempli, il ne reste qu'à confirmer */
+    if (moiOk()) { if (fc && S.prefill !== fc.id) { var np = fc.nom.split(' '); v.p = np[0] || ''; v.n = np.slice(1).join(' '); if (fc.tel) v.t = fc.tel; S.prefill = fc.id; } v.em = CPm().email; if (!v.p && !v.n && !l.length) { var nm = String(CPm().nom || '').split(' '); v.p = nm[0] || ''; v.n = nm.slice(1).join(' '); } }
+    var attente = tier.complet || dt.tiers.some(function (x) { return x.valide && x.id !== tier.id; });
+    var qui = moiOk() && l.length > 1 ? '<div class="r-field w"><span class="lbl">Pour qui t’inscris-tu ?</span><div class="r-tabs r-tabs--full" role="group" aria-label="Pour qui">' + l.map(function (f) { return '<button type="button" data-fiche="' + e(f.id) + '" aria-pressed="' + (f.id === S.fiche) + '">' + e(f.nom) + '</button>'; }).join('') + '</div></div>' : '';
+    return '<form class="r-card" id="f" novalidate>' + head('user', 'M’inscrire') +
+      '<div class="etat' + (attente ? '' : ' ok') + '" role="status"><b>' + e(rangeTxt(tier, padel)) + '</b> · ' + (autreValideeTxt(dt, tier) || (tier.complet ? 'complet : liste d’attente' : tier.restant + ' place' + (tier.restant > 1 ? 's' : '') + ' restante' + (tier.restant > 1 ? 's' : ''))) + '</div>' +
+      '<div class="fm">' + qui +
+      '<div class="r-field"><label for="p">Prénom</label><input class="r-input" id="p" required autocomplete="given-name" value="' + e(v.p) + '"></div>' +
+      '<div class="r-field"><label for="n">Nom</label><input class="r-input" id="n" required autocomplete="family-name" value="' + e(v.n) + '"></div>' +
+      '<div class="r-field w"><label for="em">E-mail</label><input class="r-input" id="em" required type="email" autocomplete="email"' + (moiOk() ? ' readonly' : '') + ' value="' + e(v.em) + '"></div>' +
+      '<div class="r-field w"><label for="t">Téléphone</label><input class="r-input" id="t" required type="tel" autocomplete="tel" value="' + e(v.t) + '"></div>' +
+      '<div class="pot" aria-hidden="true"><label for="site">Site</label><input id="site" tabindex="-1" autocomplete="off"></div>' +
+      '<label class="chk w"><input type="checkbox" class="r-check" id="ac" required><span>J’accepte que ' + e(d.coach) + ' conserve ces informations pour organiser ses séances. Je peux demander leur suppression à tout moment.</span></label>' +
+      '<p class="dg w" style="margin:0">Ton prénom et ton nom apparaîtront dans la liste des inscrits de cette séance.</p>' +
+      '<div class="w"><button class="r-btn r-btn--full" id="go" type="submit">' + ic('check', 18) + (attente ? 'Rejoindre la liste d’attente' : 'Je m’inscris') + '</button></div><p class="err w" id="er" role="alert"></p></div></form>';
+  }
+  var autreValideeTxt = function (dt, tier) { return dt.tiers.some(function (x) { return x.valide && x.id !== tier.id; }) ? 'une autre fourchette est déjà validée : liste d’attente' : ''; };
   function garde() { [['p', 'p'], ['n', 'n'], ['t', 't'], ['em', 'em']].forEach(function (i) { var x = document.getElementById(i[0]); if (x) S.v[i[1]] = x.value; }); }
   function fait() {
     var d = S.data, r = S.conf, wait = r.statut === 'wait';

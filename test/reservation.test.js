@@ -375,7 +375,7 @@ test('lien d’inscription public : jeton, mêmes places et fourchettes que l’
   assert.ok((await lis('pn1')).via[fiche.id], 'marqué comme inscrit par le lien');
   // rien de personnel ne sort de l'API publique
   const sortie = JSON.stringify(await resa.pubNv(club.id, 'pn1', TOK));
-  assert.ok(!/exemple\.test|Roy|06 00|"k"|eleve/.test(sortie), 'aucun nom ni coordonnée');
+  assert.ok(!/exemple\.test|06 00|"k"|"mail"|"tel"|eleve/.test(sortie), 'aucun e-mail, téléphone ni clé interne (les prénoms et noms sont montrés aux participants, par choix)');
   assert.deepEqual((await resa.pubNv(club.id, 'pn1', TOK)).dates[0].tiers.map(t => [t.n, t.restant, t.complet]), [[3, 0, true], [1, 1, false]], 'places restantes par fourchette');
   // désinscription par le lien personnel
   const q = new URL('http://x' + a.annuler).searchParams;
@@ -533,6 +533,48 @@ test('sans adresse prouvée, rien d’une fiche ne décompte un abonnement ou un
   assert.equal(autre.couvert, '', 'adresse prouvée différente de celle du formulaire : pas d’abonnement reconnu');
   const preuve = await resa.pubReserver(club.id, key, Object.assign({}, base, { d: REGLES.addDays(d, 7), t: 540, verifie: 'lea26@exemple.test' }));
   assert.deepEqual([preuve.couvert, preuve.prix], ['abo', 0], 'adresse prouvée : abonnement reconnu');
+});
+
+test('liste des inscrits : prénom, nom et photo du compte /RAM, jamais un mineur ni une coordonnée ; fourchette choisie ; fiche prouvée', async () => {
+  const { coach, club, key, d, a, b, ka } = await monte(27), TOK = 'jeton-liste-1234567890';
+  const mailsAvatar = { [a]: 'data:image/png;base64,iVBORw0KGgo=' };
+  store.getIdentity = async uid => ({ avatar: mailsAvatar[uid] || '' });
+  const nvData = { by: key, kind: 'niveaux', mur: false, likes: 0, com: [], at: Date.now(), nv: { mode: 'cours', sport: 'Padel', theme: 'Volée', body: '', time: '10 h', dur: '1 h', place: 'Salle', price: '10 €', dates: [d], tiers: [{ id: 't1', lo: 3, hi: 5, places: 2, max: 4 }, { id: 't2', lo: 6, hi: 8, places: 2 }], ins: {}, at: {}, lien: { t: TOK } } };
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pl1', op: 'put', data: nvData }]);
+  const lis = async () => (await ram.itemsOf(club.id, 'post')).find(x => x.id === 'pl1').data.nv;
+  const moi = (n, plus) => Object.assign({ d, tier: 't1', prenom: 'Camille', nom: 'Public' + n, email: `cam${n}.liste@exemple.test`, tel: '06 55 55 55 5' + n, accord: true }, plus);
+  // fourchette choisie directement, sans niveau
+  assert.equal((await resa.pubNvInscrire(club.id, 'pl1', TOK, moi(1, { tier: 't2' }))).statut, 'in');
+  assert.ok((await lis()).ins[d + '|t2'].length === 1 && !(await lis()).ins[d + '|t1'], 'inscrit dans la fourchette touchée');
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pl1', TOK, moi(9, { tier: 'inconnue' })), /fourchette/);
+  await resa.pubNvInscrire(club.id, 'pl1', TOK, moi(2));
+  // un enfant (fiche avec parents) : jamais nommé
+  await ram.ops(coach, club.id, [{ coll: 'eleve', id: 'enf1', op: 'put', data: { n: 'Petit Enfant', sport: 'Padel', parents: ['x'], mail: 'enfant.liste@exemple.test', tel: '06 00 00 00 01' } }]);
+  await resa.pubNvInscrire(club.id, 'pl1', TOK, moi(3, { email: 'enfant.liste@exemple.test', prenom: 'Petit', nom: 'Enfant' }));
+  // un adhérent inscrit depuis l'appli (compte avec photo)
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pl1', op: 'patch', patch: [{ p: ['nv', 'ins', d + '|t1'], t: 'add', v: ka }, { p: ['nv', 'at', ka, d], t: 'set', v: Date.now() }] }]);
+  const info = await resa.pubNv(club.id, 'pl1', TOK), t1 = info.dates[0].tiers[0], t2 = info.dates[0].tiers[1], sortie = JSON.stringify(info);
+  assert.deepEqual(t2.inscrits.map(x => [x.nom || null, !!x.i]), [['Camille Public1', true]], 'nom et identifiant opaque');
+  assert.ok(t1.inscrits.every(x => x.nom ? !!x.i : !x.i), 'un « Participant » (mineur) n’a ni nom ni identifiant');
+  assert.ok(t1.inscrits.some(x => x.nom === 'Élève A27' && x.av === true), 'adhérent avec compte : nom et photo');
+  assert.ok(t1.inscrits.some(x => !x.nom), 'l’enfant reste « Participant »');
+  assert.equal(t1.n + t2.n, 4, 'tous comptent dans « N inscrits »');
+  assert.ok(!/exemple\.test|06 55|06 00|Petit|Enfant|"k"/.test(sortie), 'jamais d’e-mail, de téléphone, ni de fiche enfant');
+  // la photo : par un identifiant opaque ; rien pour un mineur
+  const av = t1.inscrits.find(x => x.nom === 'Élève A27'), photo = await resa.pubNvAvatar(club.id, 'pl1', TOK, av.i);
+  assert.equal(photo.mime, 'image/png');
+  assert.equal(await resa.pubNvAvatar(club.id, 'pl1', TOK, 'inconnu'), null);
+  await assert.rejects(resa.pubNvAvatar(club.id, 'pl1', 'faux', av.i), /pas valable/, 'mauvais jeton : rien');
+  // adresse prouvée : l'inscription se rattache à la fiche choisie ; sans preuve la fiche demandée est ignorée (fiche à l'adresse saisie)
+  await ram.ops(coach, club.id, [{ coll: 'eleve', id: 'ef1', op: 'put', data: { n: 'Léa Roy', sport: 'Padel', parents: [], mail: 'lea.liste@exemple.test', tel: '06 11 11 11 11' } }, { coll: 'eleve', id: 'ef2', op: 'put', data: { n: 'Tom Roy', sport: 'Padel', parents: [], mail: 'lea.liste@exemple.test', tel: '06 11 11 11 11' } }]);
+  const sure = await resa.pubNvInscrire(club.id, 'pl1', TOK, moi(5, { email: 'lea.liste@exemple.test', verifie: 'lea.liste@exemple.test', fiche: 'ef2' }));
+  assert.ok((await lis()).ins[d + '|t1'].includes('ef2') && !(await lis()).ins[d + '|t1'].includes('ef1'), 'rattachée à la fiche choisie');
+  assert.equal(sure.statut === undefined, false);
+  await assert.rejects(resa.pubNvInscrire(club.id, 'pl1', TOK, moi(6, { email: 'lea.liste@exemple.test', verifie: 'lea.liste@exemple.test', fiche: 'e3-pas-la-sienne' })), /pas la tienne/);
+  await resa.pubNvInscrire(club.id, 'pl1', TOK, moi(7, { email: 'lea.liste@exemple.test', fiche: 'ef2', tier: 't2' }));
+  assert.ok((await lis()).ins[d + '|t2'].includes('ef1'), 'sans adresse prouvée : fiche à l’adresse saisie, la fiche demandée est ignorée');
+  // une fiche inconnue ou sans nom : jamais nommée (prudence)
+  delete store.getIdentity;
 });
 
 test('agenda : les cours confirmés vers Google, et ce qui est posé chez Google n’est plus réservable', async () => {

@@ -438,6 +438,13 @@ const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/
 // anti-force brute : au-delà de 10 codes PIN / clés faux en 15 min, l'appareil est bloqué pour ce tournoi
 const accessFails = new Map();
 const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+/* « Déjà élève ? » depuis un lien d'inscription (corps avec p et t) : la même brique, branchée sur la publication au lieu de la page de réservation */
+const resaDe = b => b && b.p ? { pubConnu: (c, k, e) => reservation.pubConnuNv(String(c), String(b.p), String(b.t || ''), e), pubCreneaux: async () => ({ coach: await reservation.pubNvCoach(String(b.c || ''), String(b.p), String(b.t || '')) }) } : reservation;
+/* nom et photo affichés dans l'en-tête des pages publiques, pour le compte connecté (le sien seulement) */
+const compteAffiche = async cu => {
+  const id = await store.getIdentity(cu.id).catch(() => null), nom = [(id && id.first) || '', (id && id.last) || ''].filter(Boolean).join(' ') || String(cu.name || '').trim();
+  return { nom, avatar: !!(id && typeof id.avatar === 'string' && id.avatar.startsWith('data:image/')) };
+};
 /* limite de débit simple : plus de `max` appels par fenêtre de `ms` pour une même clé */
 const limites = new Map();
 const limite = (cle, max, ms) => { const now = Date.now(), a = limites.get(cle); if (!a || now - a.t > ms) { limites.set(cle, { n: 1, t: now }); return false; } a.n++; return a.n > max; };
@@ -1762,7 +1769,7 @@ const server = http.createServer(async (req, res) => {
           if (Auth.tooManyAttempts('resa-acces|' + clientIp(req)) || Auth.tooManyAttempts('resa-acces|' + email)) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
           if (!Mail.enabled()) return json(res, 503, { error: 'L’envoi d’e-mails n’est pas encore activé : contacte ton enseignant.' });
           // la réponse part sans attendre le traitement : son temps ne dit pas si l'adresse est connue (les erreurs sont journalisées)
-          AccesResa.demanderAcces({ store, reservation, Auth, Mail, base: appUrl(req), c, k, email, retour: b.chemin }).catch(e => console.error('Accès par e-mail : ' + e.message));
+          AccesResa.demanderAcces({ store, reservation: resaDe(b), Auth, Mail, base: appUrl(req), c, k, email, retour: b.chemin }).catch(e => console.error('Accès par e-mail : ' + e.message));
           return json(res, 200, { ok: true });
         }
         /* l'élève connecté : ses fiches chez cet enseignant, SEULEMENT si l'adresse de son compte est prouvée par un lien reçu dans sa boîte e-mail
@@ -1770,9 +1777,34 @@ const server = http.createServer(async (req, res) => {
         if (p === '/api/public/resa/moi' && req.method === 'GET') {
           const cu = await currentUser(req);
           if (!cu || cu.guest || !cu.email) return json(res, 200, { connecte: false });
-          if (!(await AccesResa.adresseVerifiee(store, cu))) return json(res, 200, { connecte: true, verifie: false, email: cu.email });
+          const ident = await compteAffiche(cu);
+          if (!(await AccesResa.adresseVerifiee(store, cu))) return json(res, 200, Object.assign({ connecte: true, verifie: false, email: cu.email }, ident));
           const moi = await reservation.pubMoi(q('c'), q('k'), cu.email);
-          return json(res, 200, Object.assign({ connecte: true, verifie: true, email: cu.email }, moi));
+          return json(res, 200, Object.assign({ connecte: true, verifie: true, email: cu.email }, ident, moi));
+        }
+        /* même chose pour une séance collective (lien d'inscription) : ses fiches chez l'enseignant, pour préremplir, si l'adresse est prouvée */
+        if (p === '/api/public/resa/moi-collectif' && req.method === 'GET') {
+          const cu = await currentUser(req);
+          if (!cu || cu.guest || !cu.email) return json(res, 200, { connecte: false });
+          const ident = await compteAffiche(cu);
+          if (!(await AccesResa.adresseVerifiee(store, cu))) return json(res, 200, Object.assign({ connecte: true, verifie: false, email: cu.email }, ident));
+          const moi = await reservation.pubMoiNv(q('c'), q('p'), q('t'), cu.email);
+          return json(res, 200, Object.assign({ connecte: true, verifie: true, email: cu.email }, ident, moi));
+        }
+        /* sa propre photo de profil (compte /RAM), pour l'en-tête des pages publiques : jamais celle d'un autre */
+        if (p === '/api/public/resa/avatar' && req.method === 'GET') {
+          const cu = await currentUser(req), id = cu && !cu.guest ? await store.getIdentity(cu.id).catch(() => null) : null;
+          const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec((id && id.avatar) || '');
+          if (!m) { res.writeHead(404); return res.end(); }
+          res.writeHead(200, { 'Content-Type': m[1], 'Cache-Control': 'private, max-age=60' });
+          return res.end(Buffer.from(m[2], 'base64'));
+        }
+        /* la photo d'un inscrit qui a accepté d'être montré (identifiant opaque, propre à la séance) */
+        if (p === '/api/public/resa/avatar-nv' && req.method === 'GET') {
+          const ph = await reservation.pubNvAvatar(q('c'), q('p'), q('t'), q('i'));
+          if (!ph) { res.writeHead(404); return res.end(); }
+          res.writeHead(200, { 'Content-Type': ph.mime, 'Cache-Control': 'public, max-age=300' });
+          return res.end(ph.buf);
         }
         /* lien de confirmation de l'adresse du compte connecté (usage unique, 1 h, sans changer le mot de passe) : part à l'adresse du compte */
         if (p === '/api/public/resa/confirmation' && req.method === 'POST') {
@@ -1781,7 +1813,7 @@ const server = http.createServer(async (req, res) => {
           if (Auth.tooManyAttempts('resa-conf|' + clientIp(req)) || Auth.tooManyAttempts('resa-conf|' + cu.id)) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
           if (!Mail.enabled()) return json(res, 503, { error: 'L’envoi d’e-mails n’est pas encore activé : contacte ton enseignant.' });
           const b = await readBody(req);
-          AccesResa.demanderConfirmation({ store, reservation, Auth, Mail, base: appUrl(req), user: cu, c: String(b.c || ''), k: String(b.k || ''), retour: b.chemin }).catch(e => console.error('Confirmation d’adresse : ' + e.message));
+          AccesResa.demanderConfirmation({ store, reservation: resaDe(b), Auth, Mail, base: appUrl(req), user: cu, c: String(b.c || ''), k: String(b.k || ''), retour: b.chemin }).catch(e => console.error('Confirmation d’adresse : ' + e.message));
           return json(res, 200, { ok: true });
         }
         /* ouverture du lien de confirmation : l'adresse n'est confirmée que par le détenteur du compte (session ouverte ou mot de passe actuel)
@@ -1809,7 +1841,10 @@ const server = http.createServer(async (req, res) => {
         if (p === '/api/public/resa/collectif' && req.method === 'GET') return json(res, 200, await reservation.pubNv(q('c'), q('p'), q('t')));
         if (p === '/api/public/resa/inscrire' && req.method === 'POST') {
           if (Auth.tooManyAttempts('resa-pub|' + clientIp(req))) return json(res, 429, { error: 'Trop de demandes : réessaie dans 15 minutes.' });
-          const b = await readBody(req), r = await reservation.pubNvInscrire(String(b.c || ''), String(b.p || ''), String(b.t || ''), b);
+          const b = await readBody(req), cu = await currentUser(req);
+          // même règle de preuve que la réservation : la fiche d'un compte n'est utilisée que si son adresse est PROUVÉE
+          if (cu && !cu.guest && cu.email && (await AccesResa.adresseVerifiee(store, cu))) b.verifie = String(cu.email).toLowerCase(); else delete b.verifie;
+          const r = await reservation.pubNvInscrire(String(b.c || ''), String(b.p || ''), String(b.t || ''), b);
           taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.inscriptionMail({ first: r.prenom, titre: r.titre, coach: r.coach, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, statut: r.statut, lien: appUrl(req) + r.annuler })));
           return json(res, 200, { statut: r.statut, d: r.d, h: r.h, titre: r.titre, coach: r.coach, mail: r.mail, annuler: r.annuler });
         }

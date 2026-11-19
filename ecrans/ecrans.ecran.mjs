@@ -1250,18 +1250,18 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await post(cc, `/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'eleve', id: 'ez' + t, op: 'put', data: { n: 'Ines Eleve', sport: 'Padel', parents: [], mail: `out-e-${t}@exemple.test`, tel: '06 22 22 22 22' } }] });
   await pp.goto(JA + '/reservation/' + nom2);
   await pp.waitForSelector('.fo', { timeout: 10000 });
-  await pp.click('.acc [data-a=acces]');
-  await pp.fill('#ae', `out-e-${t}@exemple.test`); await pp.fill('#ap', 'essai-' + t);
-  await pp.click('#al');
-  await pp.waitForSelector('[aria-label="Mon compte"]', { timeout: 10000 });
+  await pp.click('[data-cp=ouvre]');
+  await pp.fill('#cp-ae', `out-e-${t}@exemple.test`); await pp.fill('#cp-ap', 'essai-' + t);
+  await pp.click('#cp-fa button[type=submit]');
+  await pp.waitForSelector('.cp-av', { timeout: 10000 });
   // connecté ne veut pas dire adresse prouvée : sans lien reçu dans la boîte, aucune fiche ni achat
-  assert.match(await pp.locator('[aria-label="Mon compte"]').innerText(), /pas encore confirmée/i);
+  assert.match(await pp.locator('.cp-note').innerText(), /pas encore confirmée/i);
   assert.ok(!/Ines Eleve|06 22 22 22 22/.test(await pp.locator('main').innerText()), 'aucune donnée de fiche avant la confirmation');
   const { createRequire } = await import('node:module'), Auth = createRequire(import.meta.url)(join(ROOT, 'lib', 'auth.js'));
   await pp.goto(JA + '/reservation/' + nom2 + '?v=' + encodeURIComponent(Auth.makeVerifToken({ id: eleveU.id, email: eleveU.email })));   // le lien reçu par e-mail : session ouverte sur ce compte, rien à ressaisir
   await pp.waitForFunction(() => /Adresse confirmée/.test(document.body.innerText), null, { timeout: 10000 });
-  await pp.waitForSelector('[aria-label="Mon compte"]');
-  assert.match(await pp.locator('[aria-label="Mon compte"]').innerText(), /Ines Eleve/);
+  await pp.waitForSelector('section[aria-label="Mon compte"]');
+  assert.match(await pp.locator('section[aria-label="Mon compte"]').innerText(), /Ines Eleve/);
   await pp.locator('.fo').first().click();
   await pp.locator('button.dj:visible').first().click();
   await pp.locator('.slot').first().click();
@@ -1487,7 +1487,7 @@ test('Page de réservation : « Déjà élève ? Se connecter », réponse neutr
       for (let i = 0; i < n; i++) { const d = iso(new Date(+de.slice(0, 4), +de.slice(5, 7) - 1, +de.slice(8) + i)); jours.push({ d, libres: d > t0 ? [{ du: 540, au: 660 }] : [] }); }
       r.fulfill({ json: { coach: 'Sarah Test', club: 'Club Essai', photo: false, formules: FO, packs: [{ id: 'p1', nom: 'Pack 5', formule: 'f1', seances: 5, prix: 160, duree: 60 }], abos: [], jours } });
     });
-    await p.route('**/api/public/resa/moi*', r => r.fulfill({ json: connecte ? { connecte: true, email: 'lea@exemple.test', fiches: [{ id: 'e1', nom: 'Léa Roy', tel: '06 11 11 11 11', achats: [{ id: 'h1', ref: 'p1', t: 'pack', nom: 'Pack 5', d: '2026-01-01', encours: true, restantes: 4, total: 5 }] }, { id: 'e2', nom: 'Tom Roy', tel: '', achats: [] }] } : { connecte: false } }));
+    await p.route('**/api/public/resa/moi*', r => r.fulfill({ json: connecte ? { connecte: true, verifie: true, nom: 'Léa Roy', avatar: false, email: 'lea@exemple.test', fiches: [{ id: 'e1', nom: 'Léa Roy', tel: '06 11 11 11 11', achats: [{ id: 'h1', ref: 'p1', t: 'pack', nom: 'Pack 5', d: '2026-01-01', encours: true, restantes: 4, total: 5 }] }, { id: 'e2', nom: 'Tom Roy', tel: '', achats: [] }] } : { connecte: false } }));
     await p.route('**/api/auth/login', r => { const b = r.request().postDataJSON(); if (b.password === 'bon-mot-de-passe') { connecte = true; r.fulfill({ json: { ok: true } }); } else r.fulfill({ status: 401, json: { error: 'E-mail ou mot de passe incorrect.' } }); });
     await p.route('**/api/auth/logout', r => { connecte = false; r.fulfill({ json: { ok: true } }); });
     await p.route('**/api/public/resa/acces', r => { acces.push(r.request().postDataJSON().email); r.fulfill({ json: { ok: true } }); });
@@ -1495,28 +1495,42 @@ test('Page de réservation : « Déjà élève ? Se connecter », réponse neutr
     await p.goto(JA + '/r/club-essai/cle-essai');
     await p.waitForSelector('.fo');
     // l'accès est visible mais ne bloque rien : la réservation sans compte reste possible
-    const bouton = p.locator('.acc [data-a=acces]');
-    assert.match(await bouton.innerText(), /Déjà élève \? Se connecter/);
-    assert.equal(await p.locator('#fa').count(), 0, 'le formulaire de connexion ne s’ouvre pas tout seul');
+    // en-tête, non connecté : un seul bouton « Me connecter » à droite, plus de grand encadré ; jamais de débordement
+    assert.equal(await p.locator('.acc').count(), 0, 'l’ancien encadré « Déjà élève ? » a disparu');
+    const bouton = p.locator('header [data-cp=ouvre], #cp-zone [data-cp=ouvre]').first();
+    assert.equal(await bouton.getAttribute('aria-label'), 'Me connecter');
+    if (w >= 520) assert.match(await bouton.innerText(), /Me connecter/i);
+    const bb = await bouton.boundingBox(), tt = await p.locator('h1').first().boundingBox();
+    assert.ok(bb.x + bb.width <= w + 1 && bb.x >= 0 && bb.width >= 44 - 1 && bb.height >= 44 - 1, 'bouton entier à l’écran, zone tactile 44 px (' + JSON.stringify(bb) + ')');
+    assert.ok(bb.x >= tt.x, 'le bouton ne pousse pas le titre hors de l’écran');
+    assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'sans débordement non connecté à ' + w);
+    assert.equal(await p.locator('#cp-fa').count(), 0, 'le formulaire de connexion ne s’ouvre pas tout seul');
     await bouton.click();
-    await p.waitForSelector('#fa');
+    await p.waitForSelector('#cp-fa');
     // adresse connue ou non : exactement la même réponse, sans rien révéler
-    await p.fill('#ae', 'quelquun@exemple.test'); await p.click('#fa [data-a=lien]');
-    await p.waitForSelector('#fa .info');
-    const neutre = await p.locator('#fa .info').innerText();
+    await p.fill('#cp-ae', 'quelquun@exemple.test'); await p.click('#cp-fa [data-cp=lien]');
+    await p.waitForSelector('#cp-fa .info');
+    const neutre = await p.locator('#cp-fa .info').innerText();
     assert.match(neutre, /Si cette adresse est connue, un e-mail vient de partir/);
-    await p.fill('#ae', 'autre@exemple.test'); await p.click('#fa [data-a=lien]');
-    assert.equal(await p.locator('#fa .info').innerText(), neutre, 'même message pour toute adresse');
+    await p.fill('#cp-ae', 'autre@exemple.test'); await p.click('#cp-fa [data-cp=lien]');
+    assert.equal(await p.locator('#cp-fa .info').innerText(), neutre, 'même message pour toute adresse');
     assert.deepEqual(acces, ['quelquun@exemple.test', 'autre@exemple.test']);
     // mot de passe faux : message générique
-    await p.fill('#ae', 'lea@exemple.test'); await p.fill('#ap', 'faux');
-    await p.click('#al');
-    await p.waitForFunction(() => /incorrect/.test(document.getElementById('aerr').textContent));
-    // connexion : pour qui, pack en cours mis en avant avec ses séances restantes, rien de présélectionné
-    await p.fill('#ap', 'bon-mot-de-passe');
-    await p.click('#al');
-    await p.waitForSelector('[aria-label="Mon compte"]');
-    assert.match(await p.locator('[aria-label="Mon compte"]').innerText(), /Pour qui réserves-tu/i);
+    await p.fill('#cp-ae', 'lea@exemple.test'); await p.fill('#cp-ap', 'faux');
+    await p.click('#cp-fa button[type=submit]');
+    await p.waitForFunction(() => /incorrect/.test(document.getElementById('cp-aerr').textContent));
+    // connexion : étiquette « Vous êtes connecté » + nom ; pour qui, pack en cours mis en avant, rien de présélectionné
+    await p.fill('#cp-ap', 'bon-mot-de-passe');
+    await p.click('#cp-fa button[type=submit]');
+    await p.waitForSelector('.cp-av');
+    assert.equal(await p.locator('#cp-voile').isHidden(), true, 'la fenêtre se referme après la connexion');
+    const zone = await p.locator('#cp-zone').textContent();
+    assert.match(zone, /Vous êtes connecté/i); assert.match(zone, /Léa Roy/);
+    assert.match((await p.locator('.cp-av').innerText()).trim(), /^LR$/, 'sans photo : initiales');
+    if (w >= 900) { assert.equal(await p.locator('.cp-who').isVisible(), true); assert.equal(await p.locator('.cp-out').isVisible(), true); }
+    else { assert.equal(await p.locator('.cp-who').isVisible(), false, 'version réduite : l’avatar seul'); await p.locator('.cp-av').click(); assert.match(await p.locator('.cp-menu').innerText(), /Vous êtes connecté[\s\S]*Léa Roy[\s\S]*Se déconnecter/i); const mb = await p.locator('.cp-menu').boundingBox(); assert.ok(mb.x >= 0 && mb.x + mb.width <= w + 1, 'menu entier à l’écran'); await p.locator('.cp-av').click(); }
+    assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'sans débordement connecté à ' + w);
+    assert.match(await p.locator('section[aria-label="Mon compte"]').innerText(), /Pour qui réserves-tu/i);
     assert.equal(await p.locator('[data-fiche]').count(), 2, 'plusieurs fiches pour une adresse : on choisit');
     assert.match(await p.locator('.fo .mine').first().innerText(), /Ton pack · 4 séances restantes/i);
     assert.equal(await p.locator('.fo[aria-pressed=true]').count(), 0, 'sa formule est mise en avant, pas choisie');
@@ -1541,10 +1555,11 @@ test('Page de réservation : « Déjà élève ? Se connecter », réponse neutr
     assert.match(await p.locator('main').innerText(), /Rattaché|Décompté|Inclus/i, 'rien à régler : décompté du pack');
     // déconnexion
     await p.locator('#enc').click();
-    await p.waitForSelector('[aria-label="Mon compte"]');
-    await p.click('[data-a=logout]');
-    await p.waitForSelector('.acc [data-a=acces]');
-    assert.equal(await p.locator('[aria-label="Mon compte"]').count(), 0);
+    await p.waitForSelector('section[aria-label="Mon compte"]');
+    if (w >= 900) await p.click('.cp-out'); else { await p.locator('.cp-av').click(); await p.click('.cp-menu [data-cp=sortir]'); }
+    await p.waitForSelector('[data-cp=ouvre]');
+    assert.equal(await p.locator('.cp-av').count(), 0);
+    assert.equal(await p.locator('section[aria-label="Mon compte"]').count(), 0);
     assert.deepEqual(errs, []);
     await ctx.close();
   }
@@ -1559,23 +1574,24 @@ test('Page de réservation : compte connecté non confirmé (aucune fiche), lien
   await p.route('**/api/public/resa/confirmation', r => { demandes.push(r.request().postDataJSON()); r.fulfill({ json: { ok: true } }); });
   await p.route('**/api/public/resa/confirmer', r => { const b = r.request().postDataJSON(); essais.push(b); if (b.nouveau) { confirme = true; r.fulfill({ json: { ok: true } }); } else r.fulfill({ json: { besoin: true, faux: !!b.password } }); });
   await p.goto(JA + '/r/club-essai/cle-essai');
-  await p.waitForSelector('[aria-label="Mon compte"]');
-  const carte = await p.locator('[aria-label="Mon compte"]').innerText();
+  await p.waitForSelector('.cp-note');
+  const carte = await p.locator('.cp-note').innerText();
   assert.match(carte, /pas encore confirmée/i);
   assert.ok(!/Pour qui|Léa Roy|06 11/.test(await p.locator('main').innerText()), 'aucune fiche ni téléphone tant que l’adresse n’est pas prouvée');
-  await p.click('[data-a=confirmation]');
+  await p.click('.cp-note [data-cp=ouvre]');
+  await p.click('[data-cp=confirmation]');
   await p.waitForFunction(() => /Un e-mail de confirmation vient de partir à lea@exemple\.test/.test(document.body.innerText));
   assert.equal(demandes.length, 1);
   // le lien reçu par e-mail, ouvert sans session : la page demande une preuve (mot de passe actuel ou nouveau mot de passe)
   await p.goto(JA + '/r/club-essai/cle-essai?v=jeton-essai');
-  await p.waitForSelector('#fv');
+  await p.waitForSelector('#cp-fv');
   assert.equal(essais[0].t, 'jeton-essai');
-  await p.fill('#vp', 'pas-le-bon'); await p.press('#vp', 'Enter');
-  await p.waitForFunction(() => /Mot de passe incorrect/.test(document.getElementById('verr').textContent));
-  await p.fill('#vn', 'nouveau-mot-de-passe-1'); await p.click('[data-v=nouveau]');
+  await p.fill('#cp-vp', 'pas-le-bon'); await p.press('#cp-vp', 'Enter');
+  await p.waitForFunction(() => /Mot de passe incorrect/.test(document.getElementById('cp-verr').textContent));
+  await p.fill('#cp-vn', 'nouveau-mot-de-passe-1'); await p.click('[data-cp=nouveau]');
   await p.waitForFunction(() => /Adresse confirmée/.test(document.body.innerText));
-  await p.waitForSelector('[aria-label="Mon compte"]');
-  assert.match(await p.locator('[aria-label="Mon compte"]').innerText(), /Léa Roy/, 'adresse prouvée : sa fiche apparaît');
+  await p.waitForSelector('section[aria-label="Mon compte"]');
+  assert.match(await p.locator('section[aria-label="Mon compte"]').innerText(), /Léa Roy/, 'adresse prouvée : sa fiche apparaît');
   assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   assert.deepEqual(errs, []);
   await ctx.close();
@@ -1583,49 +1599,99 @@ test('Page de réservation : compte connecté non confirmé (aucune fiche), lien
 
 test('Inscription publique à une séance collective : places, fourchettes, liste d’attente, états clairs, parcours simulé (360 et 1280 px)', async () => {
   const ya = new Date(Date.now() + 5 * 864e5), iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  const tiers = [{ id: 't1', nom: 'Confirmés', lo: 3, hi: 5, min: 2, cap: 3, n: 3, restant: 0, complet: true, valide: false, attente: 1 }, { id: 't2', nom: '', lo: 6, hi: 8, min: 2, cap: 2, n: 1, restant: 1, complet: false, valide: false, attente: 0 }];
+  const tiers = [{ id: 't1', nom: 'Confirmés', lo: 3, hi: 5, min: 2, cap: 3, n: 3, restant: 0, complet: true, valide: false, attente: 1, inscrits: [{ a: false, nom: 'Alice Martin', i: 'o1', av: true }, { a: false }, { a: false, nom: 'Chloé Petit', i: 'o3', av: false }, { a: true, nom: 'Dan Roux', i: 'o4', av: false }] }, { id: 't2', nom: '', lo: 6, hi: 8, min: 2, cap: 2, n: 1, restant: 1, complet: false, valide: false, attente: 0, inscrits: [{ a: false, nom: 'Bob Durand', i: 'o2', av: false }] }];
   const base = { titre: 'Volée au filet', mode: 'cours', club: 'Club Essai', coach: 'Sarah Test', sport: 'Padel', fmt: '', body: 'Travail du jeu au filet.', time: '18 h', dur: '1 h 30', place: 'Salle 2', price: '12 € par joueur', niveaux: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] };
   const ouvert = Object.assign({ etat: 'ouvert', dates: [{ d: iso(ya), etat: 'ouvert', tiers }, { d: iso(new Date(+ya + 7 * 864e5)), etat: 'ouvert', tiers }] }, base);
   const posts = [];
-  const ouvre = async (vp, info) => {
+  const ouvre = async (vp, info, moi) => {
     const ctx = await browser.newContext({ viewport: vp }), p = await ctx.newPage(), errs = [];
     p.on('pageerror', x => errs.push(x.message));
     await p.route('**/api/public/resa/collectif*', r => r.fulfill({ json: info }));
-    await p.route('**/api/public/resa/inscrire', r => { posts.push(r.request().postDataJSON()); r.fulfill({ json: { statut: posts.at(-1).niveau === '4' ? 'wait' : 'in', d: posts.at(-1).d, h: '18 h', titre: 'Volée au filet', coach: 'Sarah', mail: posts.at(-1).email, annuler: '/i/annuler?c=x&p=y&k=z&d=2030-01-01&t=abc' } }); });
+    await p.route('**/api/public/resa/moi-collectif*', r => r.fulfill({ json: moi || { connecte: false } }));
+    await p.route('**/api/public/resa/avatar-nv*', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64') }));
+    await p.route('**/api/public/resa/inscrire', r => { posts.push(r.request().postDataJSON()); r.fulfill({ json: { statut: posts.at(-1).tier === 't1' ? 'wait' : 'in', d: posts.at(-1).d, h: '18 h', titre: 'Volée au filet', coach: 'Sarah', mail: posts.at(-1).email, annuler: '/i/annuler?c=x&p=y&k=z&d=2030-01-01&t=abc' } }); });
     await p.goto(JA + '/i/club-essai/pn1/jeton-essai-1234567890');
     return { ctx, p, errs };
   };
   const sans = p => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
   for (const vp of [{ width: 360, height: 780 }, { width: 1280, height: 900 }]) {
     const { ctx, p, errs } = await ouvre(vp, ouvert);
+    // plusieurs dates : rien n'est présélectionné, il faut d'abord toucher une date
+    await p.waitForSelector('.dt');
+    assert.equal(await p.locator('.dt[aria-pressed=true]').count(), 0, 'aucune date choisie d’office');
+    assert.equal(await p.locator('.tr').count(), 0, 'pas de fourchette avant la date');
+    assert.match(await p.locator('main').innerText(), /Choisis d’abord une date/i);
+    await p.locator('.dt').first().click();
     await p.waitForSelector('.tr');
     assert.ok(await sans(p), 'sans débordement à ' + vp.width);
     await enteteOk(p, vp.width);
     assert.equal(await p.locator('.tr').count(), 2, 'les deux fourchettes');
     const texte = await p.locator('main').innerText();
-    assert.match(texte, /Salle 2/); assert.match(texte, /12 € par joueur/); assert.match(texte, /1 h 30/); assert.match(texte, /Sarah Test/);
+    assert.match(texte, /Salle 2/); assert.match(texte, /12 € par joueur/); assert.match(texte, /1 h 30/); assert.match(await p.locator('header.top').innerText(), /Sarah Test/);
     assert.match(texte, /Complet/i); assert.match(texte, /1 place restante/i);
     assert.ok(!/@|06 /.test(texte), 'aucune coordonnée affichée');
     assert.ok(await p.evaluate(() => getComputedStyle(document.querySelector('.motif'), '::before').maskImage !== 'none'), 'même fond que la page de réservation');
-    // le niveau choisit la fourchette : complète = liste d'attente, avec place = inscription, hors fourchette = refusé
-    await p.selectOption('#niv', '4');
+    // rien de présélectionné : chaque fourchette est une carte à toucher, le formulaire n'existe pas encore
+    assert.equal(await p.locator('[data-tier]').count(), 2, 'une carte à toucher par fourchette');
+    assert.equal(await p.locator('[data-tier][aria-pressed=true]').count(), 0, 'aucune fourchette choisie d’office');
+    assert.equal(await p.locator('#f').count(), 0, 'pas de formulaire avant le choix');
+    assert.match(texte, /Touche la fourchette/i);
+    // la liste des inscrits : prénom, nom, photo du compte /RAM ; le mineur reste « Participant » ; liste d'attente marquée
+    assert.equal(await p.locator('.ins').count(), 2);
+    const l1 = await p.locator('.tr').nth(0).locator('.ins').innerText();
+    assert.match(l1, /Alice Martin/); assert.match(l1, /Participant/); assert.match(l1, /Chloé Petit/); assert.match(l1, /Dan Roux[\s\S]*liste d’attente/i);
+    assert.match(await p.locator('.tr').nth(1).locator('.ins').innerText(), /Bob Durand/);
+    assert.equal(await p.locator('.ins img').count(), 1, 'une photo seulement : celle d’Alice');
+    assert.match(await p.locator('.ins img').getAttribute('src'), /avatar-nv\?c=club-essai&p=pn1&t=jeton-essai-1234567890&i=o1$/);
+    assert.ok(!/@|0\d ?\d\d ?\d\d/.test(await p.locator('.ins').first().innerText()), 'ni e-mail ni téléphone dans la liste');
+    // non connecté : un bouton « Me connecter » dans l'en-tête
+    assert.equal(await p.locator('[data-cp=ouvre]').first().getAttribute('aria-label'), 'Me connecter');
+    // toucher la fourchette complète : le formulaire apparaît, en liste d'attente ; l'autre : inscription
+    await p.locator('[data-tier=t1]').click();
+    await p.waitForSelector('#f');
+    assert.equal(await p.locator('[data-tier=t1][aria-pressed=true]').count(), 1);
     assert.match(await p.locator('#go').innerText(), /liste d’attente/i);
-    await p.selectOption('#niv', '7');
+    assert.ok(await sans(p), 'formulaire sans débordement');
+    await p.locator('[data-tier=t2]').click();
     assert.match(await p.locator('#go').innerText(), /m’inscris/i);
-    await p.selectOption('#niv', '1');
-    assert.equal(await p.locator('#go').isDisabled(), true);
-    assert.match(await p.locator('.etat').innerText(), /aucune fourchette/i);
-    await p.selectOption('#niv', '4');
+    await p.locator('[data-tier=t1]').click();
     await p.fill('#p', 'Camille'); await p.fill('#n', 'Durand'); await p.fill('#em', 'camille@exemple.test'); await p.fill('#t', '0612345678');
     await p.check('#ac', { force: true });
     await p.click('#go');
     await p.waitForSelector('.fin .ok');
     assert.match(await p.locator('main').innerText(), /liste d’attente/i);
     assert.ok(await sans(p), 'confirmation sans débordement');
-    assert.equal(posts.at(-1).niveau, '4'); assert.equal(posts.at(-1).d, iso(ya)); assert.equal(posts.at(-1).t, 'jeton-essai-1234567890');
+    assert.equal(posts.at(-1).tier, 't1'); assert.equal(posts.at(-1).d, iso(ya)); assert.equal(posts.at(-1).t, 'jeton-essai-1234567890');
     assert.deepEqual(errs, []);
     await ctx.close();
   }
+  // compte connecté et adresse prouvée : étiquette dans l'en-tête, formulaire prérempli, inscription rattachée à la fiche
+  const moiOk = { connecte: true, verifie: true, nom: 'Léa Roy', avatar: false, email: 'lea@exemple.test', fiches: [{ id: 'e1', nom: 'Léa Roy', tel: '06 11 11 11 11' }] };
+  for (const vp of [{ width: 360, height: 780 }, { width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    const { ctx, p, errs } = await ouvre(vp, ouvert, moiOk);
+    await p.waitForSelector('.cp-av');
+    await p.locator('.dt').first().click();
+    await p.waitForSelector('.tr');
+    assert.ok(await sans(p), 'connecté sans débordement à ' + vp.width);
+    assert.match(await p.locator('#cp-zone').textContent(), /Vous êtes connecté[\s\S]*Léa Roy/);
+    if (vp.width >= 900) { assert.equal(await p.locator('.cp-who').isVisible(), true); assert.equal(await p.locator('.cp-out').isVisible(), true); }
+    else { assert.equal(await p.locator('.cp-who').isVisible(), false, 'version réduite : avatar seul'); const b = await p.locator('.cp-av').boundingBox(), t = await p.locator('h1').first().boundingBox(); assert.ok(b.x + b.width <= vp.width && b.width >= 43, 'avatar entier et touchable'); assert.ok(t.x >= 0 && t.x + 40 < b.x, 'le titre n’est pas poussé hors de l’écran'); }
+    await p.locator('[data-tier=t2]').click();
+    await p.waitForSelector('#f');
+    assert.equal(await p.inputValue('#p'), 'Léa'); assert.equal(await p.inputValue('#n'), 'Roy'); assert.equal(await p.inputValue('#t'), '06 11 11 11 11'); assert.equal(await p.inputValue('#em'), 'lea@exemple.test');
+    assert.equal(await p.locator('#em').getAttribute('readonly') !== null, true, 'adresse prouvée non modifiable');
+    await p.check('#ac', { force: true });
+    await p.click('#go');
+    await p.waitForSelector('.fin .ok');
+    assert.equal(posts.at(-1).tier, 't2'); assert.equal(posts.at(-1).fiche, 'e1');
+    assert.deepEqual(errs, []);
+    await ctx.close();
+  }
+  // une seule fourchette : pas de choix inutile, le formulaire est déjà là
+  const seule = await ouvre({ width: 360, height: 780 }, Object.assign({}, ouvert, { dates: [{ d: iso(ya), etat: 'ouvert', tiers: [tiers[1]] }] }));
+  await seule.p.waitForSelector('#f');
+  assert.equal(await seule.p.locator('[data-tier]').count(), 0, 'pas de carte à toucher');
+  await seule.ctx.close();
   // états clairs : lien coupé, séance annulée, séance passée
   for (const [etat, re] of [['coupe', /Inscriptions fermées/], ['annule', /Séance annulée/]]) {
     const { ctx, p } = await ouvre({ width: 360, height: 780 }, Object.assign({}, base, { etat }));
@@ -1635,8 +1701,9 @@ test('Inscription publique à une séance collective : places, fourchettes, list
     await ctx.close();
   }
   const o = await ouvre({ width: 360, height: 780 }, Object.assign({}, ouvert, { dates: [{ d: '2020-01-06', etat: 'passe', tiers }] }));
-  await o.p.waitForSelector('.tr');
+  await o.p.waitForSelector('main .r-card');
   assert.match(await o.p.locator('main').innerText(), /Séance passée/);
+  assert.equal(await o.p.locator('#f').count(), 0, 'aucun formulaire pour une séance passée');
   await o.ctx.close();
   // un lien inconnu : message clair, rien d'autre
   const ctx = await browser.newContext({ viewport: { width: 360, height: 780 } }), p = await ctx.newPage();
