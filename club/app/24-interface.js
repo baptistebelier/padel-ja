@@ -1,4 +1,4 @@
-/* /RAM Club — app/24-interface.js : nouvelle organisation de /Buvette (maquette Figma « /Buvette · Nouvelle interface »,
+/* /Buvette — app/24-interface.js : nouvelle organisation de /Buvette (maquette Figma « /Buvette · Nouvelle interface »,
    validée par Baptiste le 14/11/2026). En place pour tout le monde, sans interrupteur d'essai.
    Ce fichier n'est chargé que par index.html (/Buvette) : /Dojo (coach.html) garde ses propres onglets.
    Étape 1 — navigation : 5 rubriques (Accueil, Agenda, Jouer, Messages, Club) ; « Moi » s'ouvre en touchant l'avatar
@@ -752,7 +752,7 @@ const BV_MOI = {
   reglages: ['Réglages', 'gear', 'Affichage, notifications, compte']
 };
 TITLES.moi = () => [(BV_MOI[view().id] || ['Moi'])[0], 'Moi'];
-/* le corps d'un onglet de l'ancien profil (avec ce qu'y ajoute la synchro : fiche /RAM JA, code du club…) */
+/* le corps d'un onglet de l'ancien profil (avec ce qu'y ajoute la synchro : fiche /Pista, code du club…) */
 function bvProfilCorps(t) {
   const keep = S.meTab;
   S.meTab = t;
@@ -854,7 +854,7 @@ V.me = id => {
       gere || plusieurs
         ? `<section class="card bvclubm"><div class="bvclubmh"><span class="bvh grow">${ic('flag')}<span class="bvcn">${esc(club().name)}</span></span>${ici && ici.main ? '<span class="tag lime">Club principal</span>' : ''}${gere ? `<button class="ib" data-a="admin" aria-label="${gereL}" title="${gereL}">${ic('gear')}</button>` : ''}${plusieurs ? `<button class="ib" data-a="ramClubs" aria-label="Changer de club" title="Changer de club">${ic('swap')}</button>` : ''}</div>${plusieurs && ici && !ici.main ? `<button class="btn sm ghost" data-a="ramMain" data-id="${ici.id}">${ic('star')}Faire de ce club mon club principal</button>` : ''}</section>`
         : '';
-  return `<div class="pad bvmoi">${pending() ? lockCard() : ''}<section class="card bvmoih"><label class="avedit" aria-label="Changer ma photo de profil">${av(me)}<span class="cam">${ic('image')}</span><input type="file" id="me-photo" accept="image/*"></label><span class="grow"><h2 class="bvnom${legN(me)}">${esc(m.n)}</h2><span class="bds wrap">${tags}</span></span><p class="muted small bvchif"><button class="nm" data-a="bvMoi" data-k="jeu">${chiffres}</button></p></section>${pending() ? '' : adh}${pts}${clubC}<nav class="card bvmenu" aria-label="Mes pages">${menu}</nav>${window.RAM && RAM.user ? `<button class="btn ghost full logout" data-a="logout">${ic('logout')}Se déconnecter de /RAM Club</button>` : ''}</div>`;
+  return `<div class="pad bvmoi">${pending() ? lockCard() : ''}<section class="card bvmoih"><label class="avedit" aria-label="Changer ma photo de profil">${av(me)}<span class="cam">${ic('image')}</span><input type="file" id="me-photo" accept="image/*"></label><span class="grow"><h2 class="bvnom${legN(me)}">${esc(m.n)}</h2><span class="bds wrap">${tags}</span></span><p class="muted small bvchif"><button class="nm" data-a="bvMoi" data-k="jeu">${chiffres}</button></p></section>${pending() ? '' : adh}${pts}${clubC}<nav class="card bvmenu" aria-label="Mes pages">${menu}</nav>${window.RAM && RAM.user ? `<button class="btn ghost full logout" data-a="logout">${ic('logout')}Se déconnecter de /Buvette</button>` : ''}</div>`;
 };
 TITLES.me = () => ['Moi', S.super ? 'Administrateur' : 'Mon profil'];
 /* les anciens sous-onglets du profil mènent à leur page */

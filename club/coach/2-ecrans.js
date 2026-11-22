@@ -1,4 +1,4 @@
-/* /RAM Coach — coach/2-ecrans.js : les pages de l'enseignant (Aujourd'hui, Planning, Séance, Élèves,
+/* /Dojo — coach/2-ecrans.js : les pages de l'enseignant (Aujourd'hui, Planning, Séance, Élèves,
    Messages, École, Profil). Elles s'ajoutent à la table des écrans V du Club ; les discussions de groupe,
    les notifications et la conversation privée (ui/13-suivi.js) sont celles du Club.
    Un logiciel de gestion, pas un réseau social : pas de mur, pas de favoris, pas de palmarès ni de trophées.
@@ -89,7 +89,7 @@ function coSessions(from, to, scope, all) {
     )
     .sort((a, b) => a.d.localeCompare(b.d) || hMin(hAt(a.g, a.d)) - hMin(hAt(b.g, b.d)));
 }
-/* présence fusionnée d'une séance (appel de /RAM Coach et de /RAM Club : regles.js presDe) */
+/* présence fusionnée d'une séance (appel de /Dojo et de /Buvette : regles.js presDe) */
 const coPresOf = x => REGLES.presDe(x.s, x.g, x.d);
 /* l'enseignant effectif d'une séance : remplaçant, cycle, groupe */
 const coCoachOf = (g, d) => REGLES.coachDe(g, d, sesFind(g, d));
@@ -221,7 +221,7 @@ function coSetup() {
     faits = coOf().setup || [],
     steps = [
       ['Ma fiche enseignant', 'Diplôme, coordonnées, tarifs, réservation', !!proOf(ME()).on, 'data-a="coPro"'],
-      ['Mes groupes', 'Créés ici, visibles dans /RAM Club', mine.length > 0, 'data-a="coNewGrp"'],
+      ['Mes groupes', 'Créés ici, visibles dans /Buvette', mine.length > 0, 'data-a="coNewGrp"'],
       [
         'Thèmes des séances',
         'Préparer les prochaines séances',
@@ -236,7 +236,7 @@ function coSetup() {
       ],
       [
         'Premier bilan ou message',
-        'Reçu par l’élève dans /RAM Club',
+        'Reçu par l’élève dans /Buvette',
         SUIVI.some(x => coIsMe(x.by)),
         'data-a="tab" data-t="msgs"'
       ]
@@ -660,7 +660,7 @@ function coSeancePlan(P) {
   if (!x)
     return `<div class="pad">${none('cal', 'Séance déjà planifiée', 'Elle a reçu une date : retrouve-la au planning.')}</div>`;
   const num = REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).posees + P.rang;
-  return `<div class="pad"><div class="card"><span class="kicker">${esc(c.nom || 'Cycle')} · séance ${num} sur ${REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).prevues}</span><span class="h3">${esc(g.name)}</span><p class="muted small">Cette séance n’a pas encore de date. Dès qu’elle en a une, elle apparaît au planning, dans l’Agenda et l’École de /RAM Club.</p><button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button></div><form class="card" id="co-aplan" data-g="${g.id}" data-c="${c.id}" data-r="${P.rang}"><div class="fld"><label for="co-ap-d">Date</label><input id="co-ap-d" type="date" value=""></div><div class="fld"><label for="co-ap-t">Thème</label><input id="co-ap-t" autocomplete="off" value="${esc(x.theme || '')}" placeholder="Thème de la séance"></div><div class="fld"><label for="co-ap-c">Enseignant</label><select id="co-ap-c"><option value="">Enseignant du cycle</option>${coCoachList()
+  return `<div class="pad"><div class="card"><span class="kicker">${esc(c.nom || 'Cycle')} · séance ${num} sur ${REGLES.cycleEtat(g, c, coCycleSes(g), TODAY).prevues}</span><span class="h3">${esc(g.name)}</span><p class="muted small">Cette séance n’a pas encore de date. Dès qu’elle en a une, elle apparaît au planning, dans l’Agenda et l’École de /Buvette.</p><button class="btn sm ghost full cogo" data-a="open" data-v="cgroupe" data-id="${g.id}">${ic('users')}Fiche du groupe · ${esc(g.name)}</button></div><form class="card" id="co-aplan" data-g="${g.id}" data-c="${c.id}" data-r="${P.rang}"><div class="fld"><label for="co-ap-d">Date</label><input id="co-ap-d" type="date" value=""></div><div class="fld"><label for="co-ap-t">Thème</label><input id="co-ap-t" autocomplete="off" value="${esc(x.theme || '')}" placeholder="Thème de la séance"></div><div class="fld"><label for="co-ap-c">Enseignant</label><select id="co-ap-c"><option value="">Enseignant du cycle</option>${coCoachList()
     .map(k => `<option value="${k}" ${x.coach === k ? 'selected' : ''}>${esc(name(k))} · remplaçant</option>`)
     .join(
       ''
@@ -710,7 +710,7 @@ ${coIsGrp(g) ? `<button class="btn sm ghost full cogo" data-a="open" data-v="cgr
 ${coIsGrp(g) ? coRempl(g, d, s) : ''}${coActs(g, d, loc, cx)}</div>
 ${
   cx
-    ? '<div class="card"><p>Les élèves et leurs parents sont prévenus dans /RAM Club.</p></div>'
+    ? '<div class="card"><p>Les élèves et leurs parents sont prévenus dans /Buvette.</p></div>'
     : `${typeof coSesCycle === 'function' ? coSesCycle(g, d) : ''}${hd(`Appel · ${nP} présent${nP > 1 ? 's' : ''} sur ${st.length}`)}<div class="card">${roll || empty('users', 'Aucun élève', '')}<div class="ctl" style="flex-wrap:wrap"><button class="btn sm ghost grow" data-a="coAllP" data-id="${id}">${ic('check')}Tout le monde présent</button><button class="btn sm ghost grow" data-a="coPlus" data-id="${id}">${ic('plus')}Ajouter un participant</button></div></div>
 ${coIsGrp(g) ? '' : coSesPay(g, d, id, st, s)}${hd('Bilan de la séance')}${dr ? `<div class="card codraft"><span class="kicker">Brouillon à relire</span><p>Ce bilan a été préparé${dr.src === 'claude' ? ' par Claude' : ''} et n'est pas encore envoyé : relis-le, corrige-le si besoin, puis publie-le.</p></div>` : ''}<form id="co-bilan" data-id="${id}" class="card"><div class="fld"><label for="co-recap">Pour tout le groupe</label><textarea id="co-recap" placeholder="Ce qui a été travaillé, ce qu'on garde pour la prochaine fois">${esc(dr && dr.recap != null ? dr.recap : s.recap || '')}</textarea></div>${st
         .filter(k => !s.pres || s.pres[k] !== 'A')
@@ -720,7 +720,7 @@ ${coIsGrp(g) ? '' : coSesPay(g, d, id, st, s)}${hd('Bilan de la séance')}${dr ?
         )
         .join(
           ''
-        )}<button class="btn full" name="go" value="pub">${ic('send')}${past ? 'Publier le bilan aux élèves' : 'Enregistrer'}</button><button class="btn full ghost" name="go" value="draft">${ic('edit')}Garder en brouillon</button><p class="muted small">Le bilan arrive dans /RAM Club, École, Mon espace : celui du groupe pour tous, le commentaire personnel pour l'élève (et ses parents) seulement.</p></form>`
+        )}<button class="btn full" name="go" value="pub">${ic('send')}${past ? 'Publier le bilan aux élèves' : 'Enregistrer'}</button><button class="btn full ghost" name="go" value="draft">${ic('edit')}Garder en brouillon</button><p class="muted small">Le bilan arrive dans /Buvette, École, Mon espace : celui du groupe pour tous, le commentaire personnel pour l'élève (et ses parents) seulement.</p></form>`
 }</div>`;
 }
 /* le filtre par club est dans l'en-tête (coTopClub) */
@@ -764,7 +764,7 @@ function coEleves() {
             .join('')
         )
       : none('users', 'Aucun élève', q ? 'Personne ne correspond à la recherche.' : '')
-  }<div class="card"><button class="btn full ghost" data-a="coNewEl">${ic('plus')}Ajouter un élève sans compte</button><p class="muted small">Un élève sans compte /RAM Club retrouve sa fiche, ses bilans et ses messages dès qu'il est relié à son compte.</p></div></div>`;
+  }<div class="card"><button class="btn full ghost" data-a="coNewEl">${ic('plus')}Ajouter un élève sans compte</button><p class="muted small">Un élève sans compte /Buvette retrouve sa fiche, ses bilans et ses messages dès qu'il est relié à son compte.</p></div></div>`;
 }
 /* une tuile : pictogramme, valeur, libellé ; txt : la valeur est un mot, écrit plus petit qu'un chiffre */
 const coTile = (i, v, l, txt) =>
@@ -882,7 +882,7 @@ ${(e.parents || []).length ? hd(ic('kid') + 'Parents') + `<div class="card">${e.
       (cards ? hd('Bilans, vidéos et contenus') + cards : '');
   }
   return (
-    `<div class="pad"><div class="card coid"><div class="row" style="gap:12px">${coAv(id, 'lg')}<div class="grow"><span class="h3">${esc(svName(id))}</span><br><span class="tag">${M[id] ? 'Compte /RAM Club' : 'Sans compte'}</span></div></div><div class="cocontact">${tel ? `<a href="tel:${esc(String(tel).replace(/[^+\d]/g, ''))}">${ic('phone')}${esc(tel)}</a>` : `<button data-a="coEditEl" data-id="${id}">${ic('phone')}Ajouter un téléphone</button>`}${mail ? `<a href="mailto:${esc(mail)}">${ic('mail')}${esc(mail)}</a>` : ''}</div></div><div class="card cotools"><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte /RAM</button>`}</div></div>` +
+    `<div class="pad"><div class="card coid"><div class="row" style="gap:12px">${coAv(id, 'lg')}<div class="grow"><span class="h3">${esc(svName(id))}</span><br><span class="tag">${M[id] ? 'Compte /Buvette' : 'Sans compte'}</span></div></div><div class="cocontact">${tel ? `<a href="tel:${esc(String(tel).replace(/[^+\d]/g, ''))}">${ic('phone')}${esc(tel)}</a>` : `<button data-a="coEditEl" data-id="${id}">${ic('phone')}Ajouter un téléphone</button>`}${mail ? `<a href="mailto:${esc(mail)}">${ic('mail')}${esc(mail)}</a>` : ''}</div></div><div class="card cotools"><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte /RAM</button>`}</div></div>` +
     segs('elTab', [
       ['fiche', 'Fiche', 'user'],
       ['histo', 'Historique', 'cal'],
@@ -941,7 +941,7 @@ function coMsgs() {
         .join('');
     b =
       (rows ? list(rows) : none('users', 'Aucun groupe', '')) +
-      `<div class="card"><p class="muted small">Les discussions des groupes sont celles de /RAM Club : annonces, changements de lieu, cours annulés.</p></div>`;
+      `<div class="card"><p class="muted small">Les discussions des groupes sont celles de /Buvette : annonces, changements de lieu, cours annulés.</p></div>`;
   }
   return (
     segs('msTab', [
@@ -1278,13 +1278,13 @@ function coClubPage(id) {
     mem = Object.keys(M).filter(k => k !== 'club' && (M[k]._club || coMainId()) === id && !M[k].kids),
     el = new Set(gs.flatMap(coStu));
   return `<div class="pad"><div class="card"><span class="coey">${id === coMainId() ? 'Club principal' : 'Club'}</span><span class="h3">${esc(c.name)}</span><div class="cokv"><span class="muted">Mes groupes</span><b>${gs.length}</b></div><div class="cokv"><span class="muted">Mes élèves</span><b>${el.size}</b></div><div class="cokv"><span class="muted">Adhérents du club</span><b>${mem.length}</b></div></div>
-${hd('Mes groupes dans ce club')}${gs.length ? list(gs.map(coGrpRow).join('')) : none('users', 'Aucun groupe', 'Un groupe rassemble des élèves qui jouent ensemble chaque semaine, avec leur discussion dans /RAM Club.')}${over.length ? hd('Cycles terminés') + list(over.map(coGrpRow).join('')) : ''}
+${hd('Mes groupes dans ce club')}${gs.length ? list(gs.map(coGrpRow).join('')) : none('users', 'Aucun groupe', 'Un groupe rassemble des élèves qui jouent ensemble chaque semaine, avec leur discussion dans /Buvette.')}${over.length ? hd('Cycles terminés') + list(over.map(coGrpRow).join('')) : ''}
 <div class="card cotools"><button class="btn" data-a="coNewGrp" data-c="${id}">${ic('plus')}Créer un groupe dans ce club</button><button class="btn ghost" data-a="newPost" data-k="stage">${ic('ball')}Créer un stage</button><button class="btn ghost" data-a="coSeeEl" data-c="${id}">${ic('users')}Voir mes élèves de ce club</button><button class="btn ghost" data-a="open" data-v="histo">${ic('cal')}Historique des séances</button></div>
-<div class="card"><p class="muted small">Les élèves se proposent d'eux-mêmes : ce sont les adhérents de ce club dans /RAM Club. Un élève qui n'a pas encore de compte s'ajoute à la main, puis se relie à son compte.</p></div></div>`;
+<div class="card"><p class="muted small">Les élèves se proposent d'eux-mêmes : ce sont les adhérents de ce club dans /Buvette. Un élève qui n'a pas encore de compte s'ajoute à la main, puis se relie à son compte.</p></div></div>`;
 }
 /* échelles de niveaux de l'enseignant (sur son compte /RAM, pour tous ses clubs) : modifiables, autant de niveaux que voulu */
 const coLevels = () =>
-  `<div class="pad"><div class="card"><p class="muted small">Tes échelles, pour tous tes clubs. Le niveau donné à un élève se recopie dans sa fiche /RAM Club (niveau padel ou niveau tennis). Changer l'ordre ou supprimer un niveau change le numéro des niveaux suivants.</p></div>${Object.keys(
+  `<div class="pad"><div class="card"><p class="muted small">Tes échelles, pour tous tes clubs. Le niveau donné à un élève se recopie dans sa fiche /Buvette (niveau padel ou niveau tennis). Changer l'ordre ou supprimer un niveau change le numéro des niveaux suivants.</p></div>${Object.keys(
     SCALES
   )
     .map(
@@ -1354,7 +1354,7 @@ function coHisto() {
 }
 /* ---------- page d'un groupe vue par l'enseignant ----------
    ses séances à venir (thème, date déplacée, séance ajoutée) et ses séances faites (appel, bilan), sa formule
-   (pack, cycle, abonnement : coach/6-groupes.js), sa discussion dans /RAM Club et ses élèves */
+   (pack, cycle, abonnement : coach/6-groupes.js), sa discussion dans /Buvette et ses élèves */
 function coSesRow(g, d) {
   const s = sesFind(g, d),
     cx = isCx(g, d),
@@ -1421,9 +1421,9 @@ function coGroupe(id) {
 ${hd(ic('chat') + 'Discussion du groupe')}${
     c
       ? list(
-          `${c.ext ? `<div class="item"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">Dans /RAM Club, ${esc(coClubName(g))}</span></span></div>` : `<button class="item" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">Dans /RAM Club pour les élèves et les parents</span></span></button>`}<button class="item" data-a="coChanDel" data-id="${g.id}"><span class="tile">${ic('x')}</span><span class="grow"><span class="nm">Supprimer la discussion</span><br><span class="muted small">Le groupe et ses séances restent</span></span></button>`
+          `${c.ext ? `<div class="item"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">Dans /Buvette, ${esc(coClubName(g))}</span></span></div>` : `<button class="item" data-a="open" data-v="chan" data-id="${c.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">Dans /Buvette pour les élèves et les parents</span></span></button>`}<button class="item" data-a="coChanDel" data-id="${g.id}"><span class="tile">${ic('x')}</span><span class="grow"><span class="nm">Supprimer la discussion</span><br><span class="muted small">Le groupe et ses séances restent</span></span></button>`
         )
-      : `<div class="card"><p class="muted small">Ce groupe n'a pas de discussion dans /RAM Club.</p><button class="btn sm full ghost" data-a="coChanNew" data-id="${g.id}">${ic('plus')}Créer la discussion du groupe</button></div>`
+      : `<div class="card"><p class="muted small">Ce groupe n'a pas de discussion dans /Buvette.</p><button class="btn sm full ghost" data-a="coChanNew" data-id="${g.id}">${ic('plus')}Créer la discussion du groupe</button></div>`
   }
 ${hd(ic('cal') + 'Séances à venir · ' + up.length, `<button class="chip" data-a="coPlan" data-id="${g.id}">${ic('plus')}Ajouter</button>`)}${
     up.length
@@ -1471,7 +1471,7 @@ ${
 }
 ${hd(ic('users') + 'Élèves')}<div class="card">${st.map(k => `<div class="corow">${coAv(k)}<button class="nm grow" data-a="open" data-v="eleve" data-id="${k}" style="text-align:left">${esc(svName(k))}</button><button class="ib" data-a="coRm" data-g="${g.id}" data-k="${k}" aria-label="Retirer ${esc(svName(k))} du groupe">${ic('x')}</button></div>`).join('') || empty('users', 'Aucun élève', '')}<button class="btn sm full" data-a="coAdd" data-id="${g.id}">${ic('plus')}Ajouter des élèves</button></div></div>`;
 }
-/* ---------- Profil : la page de l'enseignant, sur le modèle du profil /RAM JA ----------
+/* ---------- Profil : la page de l'enseignant, sur le modèle du profil /Pista ----------
    carte d'identité bordeaux, puis des cartes titrées : fiche enseignant, clubs (pour information : on n'y
    change pas de club), apparence, notifications, compte /RAM. Rien du réseau social du Club. */
 const coPCard = (ey, h, body) =>
@@ -1512,17 +1512,17 @@ function coProfile() {
   const fiche = coPCard(
     'Profil public',
     'Ma fiche enseignant',
-    `${p.on ? profCard(me, true) : '<p>Ta fiche n’est pas encore publiée. Remplis-la pour apparaître dans /RAM Club, École, Enseignants, avec ton diplôme, tes coordonnées, tes tarifs et ton lien de réservation.</p>'}<button class="btn full ${p.on ? 'ghost' : ''}" data-a="coPro">${ic('edit')}${p.on ? 'Modifier ma fiche' : 'Remplir ma fiche'}</button>`
+    `${p.on ? profCard(me, true) : '<p>Ta fiche n’est pas encore publiée. Remplis-la pour apparaître dans /Buvette, École, Enseignants, avec ton diplôme, tes coordonnées, tes tarifs et ton lien de réservation.</p>'}<button class="btn full ${p.on ? 'ghost' : ''}" data-a="coPro">${ic('edit')}${p.on ? 'Modifier ma fiche' : 'Remplir ma fiche'}</button>`
   );
   const mesClubs = coPCard(
     'Clubs',
     'Mes clubs',
-    `<div class="colist">${clubs.map(c => `<div class="item"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">${c.role}</span></span>${c.main ? '<span class="tag copink">Club principal</span>' : ''}</div>`).join('')}</div><p class="muted small">Tous tes groupes et tous tes élèves, de tous tes clubs, sont dans /RAM Coach. Le club principal est celui de ta licence, choisi dans /RAM Club.</p><button class="btn full ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button>`
+    `<div class="colist">${clubs.map(c => `<div class="item"><span class="tile">${ic('club')}</span><span class="grow"><span class="nm">${esc(c.name)}</span><br><span class="muted small">${c.role}</span></span>${c.main ? '<span class="tag copink">Club principal</span>' : ''}</div>`).join('')}</div><p class="muted small">Tous tes groupes et tous tes élèves, de tous tes clubs, sont dans /Dojo. Le club principal est celui de ta licence, choisi dans /Buvette.</p><button class="btn full ghost" data-a="coOtherClub">${ic('plus')}J'enseigne dans un autre club</button>`
   );
   const tarifs = coPCard(
     'Tarifs',
     'Formules et tarifs',
-    `<p class="muted small">${plural(OFFRES.formules.length, 'formule')} · ${plural(OFFRES.packs.length, 'pack')} · ${plural(OFFRES.abos.length, 'abonnement')}. Ils s'affichent sur ta fiche enseignant dans /RAM Club.</p><button class="btn full" data-a="open" data-v="formules">${ic('ball')}Mes formules et tarifs</button>`
+    `<p class="muted small">${plural(OFFRES.formules.length, 'formule')} · ${plural(OFFRES.packs.length, 'pack')} · ${plural(OFFRES.abos.length, 'abonnement')}. Ils s'affichent sur ta fiche enseignant dans /Buvette.</p><button class="btn full" data-a="open" data-v="formules">${ic('ball')}Mes formules et tarifs</button>`
   );
   const look = coPCard(
     'Affichage',
@@ -1545,7 +1545,7 @@ function coProfile() {
   const compte = coPCard(
     'Compte /RAM',
     'Mon compte',
-    `<div class="colist"><div class="cokv"><span class="muted">E-mail</span><b>${user ? esc(user.email || '') : 'Démonstration'}</b></div><div class="cokv"><span class="muted">Applis</span><b>/RAM Coach · /RAM Club · /RAM JA</b></div></div><p class="muted small">Un seul compte /RAM pour les trois applis. Le mot de passe changé ici vaut aussitôt dans les trois.</p><div class="cotools">${user ? `<button class="btn ghost" data-a="ramPw">${ic('shield')}${user.hasPassword ? 'Changer le mot de passe' : 'Choisir un mot de passe'}</button>` : ''}<button class="btn ghost" data-a="open" data-v="aide">${ic('info')}Aide</button><button class="btn ghost" data-a="open" data-v="legal">${ic('shield')}Conditions</button>${user ? `<button class="btn ghost" data-a="logout">${ic('logout')}Se déconnecter</button>` : ''}</div>`
+    `<div class="colist"><div class="cokv"><span class="muted">E-mail</span><b>${user ? esc(user.email || '') : 'Démonstration'}</b></div><div class="cokv"><span class="muted">Applis</span><b>/Dojo · /Buvette · /Pista</b></div></div><p class="muted small">Un seul compte /RAM pour les trois applis. Le mot de passe changé ici vaut aussitôt dans les trois.</p><div class="cotools">${user ? `<button class="btn ghost" data-a="ramPw">${ic('shield')}${user.hasPassword ? 'Changer le mot de passe' : 'Choisir un mot de passe'}</button>` : ''}<button class="btn ghost" data-a="open" data-v="aide">${ic('info')}Aide</button><button class="btn ghost" data-a="open" data-v="legal">${ic('shield')}Conditions</button>${user ? `<button class="btn ghost" data-a="logout">${ic('logout')}Se déconnecter</button>` : ''}</div>`
   );
   const stats = `<div class="stats"><div><b>${mine.length}</b><span>Groupes</span></div><div><b>${nEl}</b><span>Élèves</span></div><div><b>${fr(hrs)}</b><span>Heures / sem.</span></div><div><b>${p.since ? +TODAY.slice(0, 4) - +p.since : '–'}</b><span>Ans d'expérience</span></div></div>`;
   return `<div class="pad coprof">${hero}${stats}${fiche}${tarifs}${coDispoCard()}${typeof coOutilsCard === 'function' ? coOutilsCard() : ''}${coVacCard()}${mesClubs}${look}${notifs}${compte}</div>`;

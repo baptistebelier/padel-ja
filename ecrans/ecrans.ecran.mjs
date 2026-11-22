@@ -1,5 +1,5 @@
 /* =========================================================================
-   Tests d'écran : /RAM JA et /RAM Club dans un vrai navigateur (Chromium)
+   Tests d'écran : /Pista et /Buvette dans un vrai navigateur (Chromium)
    - chaque écran s'ouvre sans erreur JavaScript
    - rien ne déborde sur la largeur d'un petit téléphone (360 px)
    - le zoom n'est jamais bloqué
@@ -37,8 +37,8 @@ before(async () => {
   server.once('exit', c => { exited = c; });
   for (const t0 = Date.now(); ; await new Promise(r => setTimeout(r, 100))) {
     try { if ((await fetch(JA + '/')).ok) break; } catch (e) { /* pas encore prêt */ }
-    if (exited !== null) throw new Error('le serveur /RAM JA s’est arrêté au démarrage (code ' + exited + ')');
-    if (Date.now() - t0 > 30000) throw new Error('le serveur /RAM JA ne répond pas au bout de 30 s');
+    if (exited !== null) throw new Error('le serveur /Pista s’est arrêté au démarrage (code ' + exited + ')');
+    if (Date.now() - t0 > 30000) throw new Error('le serveur /Pista ne répond pas au bout de 30 s');
   }
 
   // la démo Club telle que GitHub Pages la sert : fichiers statiques, sans serveur /RAM
@@ -95,7 +95,7 @@ async function assertZoomAllowed(page) {
 
 const phone = () => browser.newContext({ viewport: { width: 360, height: 760 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 
-/* ---------- /RAM Club (démo) ---------- */
+/* ---------- /Buvette (démo) ---------- */
 test('Club : chaque onglet s’ouvre sans erreur et sans débordement sur 360 px', async () => {
   const ctx = await phone();
   const { page, errors } = await openPage(ctx, DEMO + '/index.html');
@@ -134,7 +134,7 @@ test('Club : servi par le serveur /RAM, la page s’ouvre sans erreur', async ()
   await ctx.close();
 });
 
-/* ---------- /RAM JA ---------- */
+/* ---------- /Pista ---------- */
 test('JA : la page d’accueil s’ouvre sans erreur, sur ordinateur et téléphone', async () => {
   for (const ctx of [await browser.newContext({ viewport: { width: 1366, height: 860 } }), await phone()]) {
     const { page, errors } = await openPage(ctx, JA + '/');
@@ -373,7 +373,7 @@ test('JA : tournois par statut et création dans une fenêtre, la même depuis l
   await ctx.close();
 });
 
-test('Accès : compte créé depuis le Club, sans offre, puis essai à la première venue sur /RAM JA', async () => {
+test('Accès : compte créé depuis le Club, sans offre, puis essai à la première venue sur /Pista', async () => {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }), page = await ctx.newPage();
   await page.goto(JA + '/club/inscription');
   const r = await page.evaluate(async m => { const x = await fetch('/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: m, password: 'essai-club-1', first: 'Esther', last: 'Essai' }) }); return x.status; }, `club-${Date.now()}@exemple.test`);
@@ -586,7 +586,7 @@ test('Coach : statistiques sans chiffre d’affaires, paiements à régulariser,
   await ctx.close();
 });
 
-test('Coach : le volet du menu suit le doigt, comme /RAM JA', async () => {
+test('Coach : le volet du menu suit le doigt, comme /Pista', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 780 }, hasTouch: true }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
   await page.goto(JA + '/club/coach.html?ui=1');
@@ -1112,7 +1112,7 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   await coachP.waitForFunction(() => /Libre/.test(document.getElementById('co-nom-msg').textContent), null, { timeout: 8000 });
   await coachP.click('[data-a=coNomOk]');
   await coachP.waitForFunction(m => OFFRES.nom === m, 'sarah-ui-' + t, { timeout: 8000 });
-  assert.match(await coachP.evaluate(() => coResaUrl()), new RegExp('/reservation/sarah-ui-' + t + '$'), 'le lien de /Dojo devient la nouvelle adresse');  // créer un stage depuis /RAM Coach
+  assert.match(await coachP.evaluate(() => coResaUrl()), new RegExp('/reservation/sarah-ui-' + t + '$'), 'le lien de /Dojo devient la nouvelle adresse');  // créer un stage depuis /Dojo
   await coachP.evaluate(() => A.newPost({ k: 'stage' }));
   await coachP.waitForSelector('#adm-form[data-k="stage"]', { timeout: 8000 });
   await coachP.evaluate(() => { const v = (i, x) => { const e = document.getElementById(i); if (e) e.value = x; }; v('a-title', 'Stage de Noël'); v('a-d1', isoIn(10)); v('a-h1', '9 h'); v('a-h2', '12 h'); v('a-place', 'Club'); v('a-body', 'Pour tous'); document.getElementById('a-same') && (document.getElementById('a-same').checked = true); document.querySelector('#adm-form').requestSubmit(); });
@@ -2471,7 +2471,7 @@ const petitsTextes = page => page.evaluate(() => {
   return [...new Set(out)].slice(0, 15);
 });
 
-test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA (téléphone et ordinateur)', async () => {
+test('Lisibilité : aucun texte sous 12 px dans /Buvette, /Dojo et /Pista (téléphone et ordinateur)', async () => {
   const trop = [];
   for (const [w, h] of [[360, 780], [1280, 860]]) {
     const mob = w < 500;
@@ -2479,7 +2479,7 @@ test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA
     const page = await ctx.newPage(), errs = [];
     page.on('pageerror', e => errs.push(e.message));
     const note = async nom => { const p = await petitsTextes(page); if (p.length) trop.push(`${nom} (${w} px) : ${p.join(' ; ')}`); };
-    // /RAM Club : chaque onglet, puis la page des trophées
+    // /Buvette : chaque onglet, puis la page des trophées
     await page.goto(DEMO + '/index.html');
     await page.waitForFunction(() => typeof A !== 'undefined' && typeof trophyCard === 'function', null, { polling: 300 });
     for (const t of ['home', 'chans', 'agenda', 'ecole', 'club', 'me']) {
@@ -2490,7 +2490,7 @@ test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA
     await page.evaluate(() => { S.tab = 'me'; S.stack = []; render(); document.querySelector('.tcard')?.click(); });
     await page.waitForTimeout(300);
     await note('Club trophées');
-    // /RAM Coach : chaque onglet du menu (planning compris), et les paiements
+    // /Dojo : chaque onglet du menu (planning compris), et les paiements
     await page.goto(JA + '/club/coach.html?ui=1');
     await page.waitForFunction(() => typeof coGoogleSheet === 'function', null, { timeout: 8000 });
     for (const t of await page.evaluate(() => TABBAR.map(x => x[0]))) {
@@ -2501,7 +2501,7 @@ test('Lisibilité : aucun texte sous 12 px dans /RAM Club, /RAM Coach et /RAM JA
     await page.evaluate(() => { S.dashTab = 'pay'; S.stack = []; A.tab({ t: 'dash' }); });
     await page.waitForTimeout(250);
     await note('Coach paiements');
-    // /RAM JA : chaque section de l'éditeur, puis les pages du compte
+    // /Pista : chaque section de l'éditeur, puis les pages du compte
     await page.goto(JA + '/demo');
     await page.waitForSelector('#nav [data-tab]', { state: 'attached' });
     for (const t of ['tournoi', 'inscriptions', 'tirage', 'tableaux', 'programmation', 'direct', 'diffusion']) {
@@ -3014,7 +3014,7 @@ test('Coach : réglages d’un cycle, remplaçant, séances à planifier, Abonn�
   await page.click('#co-aplan .btn.full');
   const pl = await page.evaluate(([x, d]) => { const g = grp(x.id); return { dans: g.cycles[0].dates.includes(d), theme: (sesFind(g, d) || {}).theme, plan: REGLES.aPlanifier(g, g.cycles[0]).length, planning: coSessions(d, d, 'me', 1).some(s => s.g === g) }; }, [r, dp]);
   assert.deepEqual(pl, { dans: true, theme: 'Smash', plan: 3, planning: true });
-  // appel depuis /RAM Club (g.att) : compté par la jauge et les présences de Coach
+  // appel depuis /Buvette (g.att) : compté par la jauge et les présences de Coach
   const club = await page.evaluate(x => { const g = grp(x.id), k = g.mem[0]; delete (sesFind(g, x.d1) || {}).pres; g.att = { [x.d1]: { [k]: true } }; return { faites: REGLES.cycleEtat(g, g.cycles[0], coCycleSes(g), TODAY).faites, venue: coVenues(k).some(v => v.d === x.d1 && v.gid === g.id) }; }, r);
   assert.deepEqual(club, { faites: 1, venue: true });
   // abonnement en cours : étiquette « Abonné », fréquence enregistrée ; états des attributions
@@ -3063,7 +3063,7 @@ test('Coach : réglages d’un cycle, remplaçant, séances à planifier, Abonn�
   await ctx.close();
 });
 
-test('Club : l’appel de l’enseignant s’écrit dans la séance, comme dans /RAM Coach', async () => {
+test('Club : l’appel de l’enseignant s’écrit dans la séance, comme dans /Dojo', async () => {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 760 } }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
   await page.goto(DEMO + '/index.html');
@@ -4294,7 +4294,7 @@ test('Discussions : réaction pleine surface et coches (envoyé, reçu, lu en bl
   }
 });
 
-test('Publication d’un tournoi /RAM JA : bandeau comme les autres événements, aucun picto démesuré, hauteur raisonnable, à 390 et 1280 px', async () => {
+test('Publication d’un tournoi /Pista : bandeau comme les autres événements, aucun picto démesuré, hauteur raisonnable, à 390 et 1280 px', async () => {
   for (const w of [390, 1280]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 900 } }), page = await ctx.newPage(), errs = [];
     page.on('pageerror', x => errs.push(x.message));
@@ -4344,7 +4344,7 @@ test('Noms de domaine : l’appli se reconnaît par son nom (ancien ou nouveau) 
   // la page de connexion suit aussi le nom
   const ctx = await browser.newContext(), page = await ctx.newPage();
   await page.goto(`http://dojo.localhost:${port}/connexion`);
-  assert.match(await page.title(), /Coach/, 'connexion aux couleurs de /Dojo sur dojo.');
+  assert.match(await page.title(), /Coach|Dojo/, 'connexion aux couleurs de /Dojo sur dojo.');
   await ctx.close();
 });
 

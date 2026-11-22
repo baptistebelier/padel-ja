@@ -1,4 +1,4 @@
-/* /RAM Club — app/8-demarrage.js : Démo animée, barre d'onglets, démarrage, push, installation, fonds, gestes, version ordinateur.
+/* /Buvette — app/8-demarrage.js : Démo animée, barre d'onglets, démarrage, push, installation, fonds, gestes, version ordinateur.
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- la démo vit : le direct avance, des messages arrivent ---------- */
 setInterval(() => {
@@ -61,10 +61,12 @@ function topPad() {
 new ResizeObserver(topPad).observe($('top'), { box: 'border-box' });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(topPad);
 addEventListener('resize', topPad);
-addEventListener('load', () => [0, 300, 1000, 2500].forEach(t => setTimeout(topPad, t)));   // en-tête recomposé après coup (polices, sélecteur de club)
+addEventListener('load', () => [0, 300, 1000, 2500].forEach(t => setTimeout(topPad, t))); // en-tête recomposé après coup (polices, sélecteur de club)
 if (document.fonts) document.fonts.addEventListener('loadingdone', topPad);
 if (window.visualViewport) visualViewport.addEventListener('resize', topPad);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) topPad(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) topPad();
+});
 addEventListener('orientationchange', () => setTimeout(topPad, 200));
 const renderSansMarge = render;
 render = function () {
@@ -256,7 +258,7 @@ function openFromUrl(u) {
     A.tab({ t: 'ecole' });
     return true;
   }
-  // conversation privée enseignant-élève (/RAM Coach)
+  // conversation privée enseignant-élève (/Dojo)
   if (v === 'dm' && id) {
     A.tab({ t: S.tab });
     A.open({ v: 'dm', id });
@@ -588,7 +590,7 @@ if (window.matchMedia)
       render(true);
     }
   });
-/* style de l'interface : épuré, street dosé (par défaut) ou full street, comme /RAM JA */
+/* style de l'interface : épuré, street dosé (par défaut) ou full street, comme /Pista */
 function setUStyle(v) {
   S.ustyle = v || '';
   if (S.ustyle) document.documentElement.dataset.style = S.ustyle;
@@ -660,7 +662,7 @@ A.motif = d => {
   document.addEventListener(
     'touchstart',
     e => {
-      // /RAM Coach : ce geste ouvre le menu (comme /RAM JA), il ne revient pas en arrière
+      // /Dojo : ce geste ouvre le menu (comme /Pista), il ne revient pas en arrière
       if (window.RAM_APP === 'coach' || e.touches.length !== 1 || !S.stack.length || $('sheet')) return;
       const t = e.touches[0],
         r = ph.getBoundingClientRect();
@@ -842,11 +844,16 @@ function segHint(seg) {
     seg.addEventListener('scroll', maj, { passive: true });
   }
   const on = seg.querySelector('[aria-selected="true"]');
-  if (on && seg.scrollWidth > seg.clientWidth && (on.offsetLeft < seg.scrollLeft || on.offsetLeft + on.offsetWidth > seg.scrollLeft + seg.clientWidth)) seg.scrollLeft = Math.max(0, on.offsetLeft - 24);
+  if (
+    on &&
+    seg.scrollWidth > seg.clientWidth &&
+    (on.offsetLeft < seg.scrollLeft || on.offsetLeft + on.offsetWidth > seg.scrollLeft + seg.clientWidth)
+  )
+    seg.scrollLeft = Math.max(0, on.offsetLeft - 24);
   maj();
   setTimeout(maj, 300);
 }
-/* ---------- version ordinateur, comme /RAM JA : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
+/* ---------- version ordinateur, comme /Pista : bas du menu (mode jour/nuit, profil, sortie) et titre du sous-menu ---------- */
 function ramRail(title, sub) {
   let rb = $('rbot');
   if (!rb) {
@@ -888,7 +895,7 @@ A.mode = d => {
   setTheme(S.club);
   render(true);
 };
-/* sortir : on se déconnecte et on arrive sur la page de connexion de /RAM Club */
+/* sortir : on se déconnecte et on arrive sur la page de connexion de /Buvette */
 A.logout = () => {
   if (window.RAM && RAM.cacheClear) RAM.cacheClear(); // plus rien du club sur cet appareil
   fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })

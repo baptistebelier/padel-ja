@@ -1,7 +1,7 @@
 /* =========================================================================
-   /RAM JA — Tournoi interne d'un club (tennis ou padel, simple ou double)
+   /Pista — Tournoi interne d'un club (tennis ou padel, simple ou double)
    Moteur partagé (serveur Node + navigateur), à côté des tournois FFT et des animations.
-   - Le juge-arbitre crée le tournoi dans /RAM JA : règlement, format de match (formats FFT 1 à 7),
+   - Le juge-arbitre crée le tournoi dans /Pista : règlement, format de match (formats FFT 1 à 7),
      participants (adhérents du club) et leur classement, formule, date limite de chaque tour, tirage.
    - Trois formules (règlements sportifs FFT 2027) :
        · tableaux : un tableau unique, ou des tableaux successifs par classement (art. 45 à 50) ;
@@ -1005,7 +1005,7 @@
         out.push({ to: [adv], body: `${nm(m.by)} a saisi le résultat de votre match : ${m.w === m.by ? 'victoire de ' + nm(m.by) : 'ta victoire'}${m.sc ? ' (' + m.sc + ')' : ''}. Confirme-le dans l’appli.`, tag: 'conf-' + m.id });
       }
       // contestation : le juge-arbitre tranche
-      if (m.conteste && !o.conteste) out.push({ to: [], ja: true, body: `Résultat contesté (${nomTour(IB, m).toLowerCase()}) : ${nm(m.a)} contre ${nm(m.b)}. À trancher dans /RAM JA.`, tag: 'contest-' + m.id });
+      if (m.conteste && !o.conteste) out.push({ to: [], ja: true, body: `Résultat contesté (${nomTour(IB, m).toLowerCase()}) : ${nm(m.a)} contre ${nm(m.b)}. À trancher dans /Pista.`, tag: 'contest-' + m.id });
     }
     // vainqueur du tournoi
     const ch = champion(IB);

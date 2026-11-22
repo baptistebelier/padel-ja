@@ -1,4 +1,4 @@
-/* /RAM Coach — coach/1-donnees.js : l'appli des enseignants, bâtie sur le code de /RAM Club.
+/* /Dojo — coach/1-donnees.js : l'appli des enseignants, bâtie sur le code de /Buvette.
    Mêmes comptes, mêmes clubs, mêmes groupes d'entraînement, mêmes discussions : seules les pages changent.
    Données propres à l'enseignant (dans le club, collections du serveur) :
      ELEVES  fiches élèves (équipe pédagogique seulement) : { id, n, sport, lvl, hand, side, goals, note, parents, tech, lvlH }
@@ -45,7 +45,7 @@ Object.assign(I, {
   ladder: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>',
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   euro: '<path d="M18 6a7 7 0 100 12M4 10h10M4 14h10"/>',
-  // le même pictogramme que le tableau de bord de /RAM JA
+  // le même pictogramme que le tableau de bord de /Pista
   dashboard:
     '<rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/>',
   // un club / plusieurs clubs ; filtres de la liste d'élèves

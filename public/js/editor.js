@@ -1,4 +1,4 @@
-/* /RAM JA — Éditeur du juge-arbitre (charte /RAM) */
+/* /Pista — Éditeur du juge-arbitre (charte /RAM) */
 (function () {
   'use strict';
   const E = Engine, A = App, esc = A.esc;
@@ -374,7 +374,7 @@
     const left = S.draw && S.draw.built ? S.matches.filter(m => !R[m.id].staticBye && R[m.id].state !== 'done').length : null;
     $('#closeBox').innerHTML = closed
       ? `<div class="alert ok">Tournoi clôturé le ${new Date(t.closedAt).toLocaleString('fr-FR')}. Les joueurs et leurs résultats sont dans la base.</div><div class="btns"><button class="ghost" id="reopenBtn">Rouvrir le tournoi</button></div>`
-      : `<p class="muted small">À la fin du tournoi, clôturez-le : il passe dans « Tournois clôturés » et chaque joueur est enregistré avec sa place et ses points FFT (fiche, historique, saisie semi-automatique dans vos prochains tournois et ceux des autres juges-arbitres /RAM JA).</p>
+      : `<p class="muted small">À la fin du tournoi, clôturez-le : il passe dans « Tournois clôturés » et chaque joueur est enregistré avec sa place et ses points FFT (fiche, historique, saisie semi-automatique dans vos prochains tournois et ceux des autres juges-arbitres /Pista).</p>
          ${left ? `<div class="alert warn">${left} match(s) restant(s) à jouer.</div>` : ''}
          ${E.hasFictifs(S) ? '<div class="alert warn">Des joueurs fictifs sont inscrits : la clôture est impossible tant qu’il en reste. Retirez-les dans l’onglet Inscriptions (si le tirage est fait, annulez-le d’abord avec « Recommencer le tirage » ci-dessous : les vraies paires sont conservées).</div>' : ''}
          <div class="btns"><button class="accent" id="closeBtn" ${E.hasFictifs(S) ? 'disabled title="Des joueurs fictifs sont inscrits"' : S.draw && S.draw.built ? '' : 'disabled title="Effectuez d\'abord le tirage"'}>Clôturer le tournoi</button></div>`;
@@ -1160,9 +1160,9 @@
 
   /* RGPD : texte prêt à afficher pour informer les joueurs */
   if ($('#rgpdCopy')) $('#rgpdCopy').onclick = () => {
-    const txt = 'Information : vos nom, prénom, numéro de licence, classement, club et résultats sont enregistrés par le juge-arbitre dans le logiciel /RAM JA '
+    const txt = 'Information : vos nom, prénom, numéro de licence, classement, club et résultats sont enregistrés par le juge-arbitre dans le logiciel /Pista '
       + 'pour organiser ce tournoi, puis conservés dans sa base de joueurs pendant 3 ans après votre dernier tournoi (historique, inscriptions plus rapides). '
-      + 'Vous pouvez à tout moment demander à les consulter, les corriger ou les supprimer auprès du juge-arbitre ou de /RAM JA (ja.riseandmove.fr).';
+      + 'Vous pouvez à tout moment demander à les consulter, les corriger ou les supprimer auprès du juge-arbitre ou de /Pista (ja.riseandmove.fr).';
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => A.toast('Texte copié : collez-le sur la fiche ou l\'affiche du tournoi', 'ok'))
       .catch(() => window.prompt('Copiez ce texte :', txt));
   };

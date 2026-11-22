@@ -1,10 +1,10 @@
-/* /RAM Coach — coach/6-groupes.js : ce qui se fait depuis un groupe d'enseignement, et deux outils de l'accueil.
+/* /Dojo — coach/6-groupes.js : ce qui se fait depuis un groupe d'enseignement, et deux outils de l'accueil.
    - Programmer des séances : un pack, un cycle, un abonnement ou une formule à la séance donne le nombre de séances
      et le tarif ; les dates se règlent une par une (déplacer, retirer, ajouter). Les dates hors du créneau du groupe
      sont rangées dans g.extra, celles qu'on retire dans g.skip (comme une séance déplacée, data.js trainOn) ; un
      pack ou un cycle s'arrête après sa dernière date (g.to). Les séances apparaissent aussitôt dans le planning,
-     l'Agenda et l'École de /RAM Club.
-   - La discussion du groupe dans /RAM Club : la créer si elle manque (la supprimer : app/14-discussions.js).
+     l'Agenda et l'École de /Buvette.
+   - La discussion du groupe dans /Buvette : la créer si elle manque (la supprimer : app/14-discussions.js).
    - Messages : conversations et groupes favoris, épinglés en haut (sur cet appareil).
    - Accueil : bilans à écrire sélectionnés comme des mails, puis retirés d'un coup (séance marquée « sans bilan »,
      brouillon effacé). */
@@ -483,7 +483,7 @@ function coVacCard() {
   );
 }
 /* ---------- disponibilités : les périodes où je travaille, par jour et par lieu ----------
-   le planning montre ce qui reste libre ; les élèves réservent sur ces plages depuis /RAM Club. */
+   le planning montre ce qui reste libre ; les élèves réservent sur ces plages depuis /Buvette. */
 const COJOURS = [1, 2, 3, 4, 5, 6, 0];
 const hMinTxt = n => Math.floor(n / 60) + ' h' + (n % 60 ? ' ' + String(n % 60).padStart(2, '0') : '');
 const coOccupe = d =>
@@ -514,7 +514,7 @@ function coDispoCard() {
         )
         .join('') ||
       '<p class="muted small">Indique quand tu travailles : ce qui reste libre s’affiche dans ton planning.</p>'
-    }<button class="btn sm ghost full" data-a="coDispoAdd">${ic('plus')}Ajouter une période</button><p class="muted small">Les élèves réservent sur ces plages depuis ta fiche dans /RAM Club : il faut aussi une formule individuelle dans tes tarifs.</p>`
+    }<button class="btn sm ghost full" data-a="coDispoAdd">${ic('plus')}Ajouter une période</button><p class="muted small">Les élèves réservent sur ces plages depuis ta fiche dans /Buvette : il faut aussi une formule individuelle dans tes tarifs.</p>`
   );
 }
 /* page publique, agendas reliés, Calendly : chacun réserve par l'outil qu'il a, le temps de passer à l'appli */
@@ -956,7 +956,7 @@ function coLocInit() {
   });
 }
 
-/* renommer un groupe : sa discussion dans /RAM Club suit (dans ce club, ou dans le club du groupe s'il est ailleurs) */
+/* renommer un groupe : sa discussion dans /Buvette suit (dans ce club, ou dans le club du groupe s'il est ailleurs) */
 function coGrpRename(g, nom) {
   const avant = g.name;
   g.name = nom;
@@ -1118,7 +1118,7 @@ Object.assign(A, {
       next = coNextOcc(g, L[L.length - 1] || d.d);
     sheet(
       'Reporter la séance',
-      `<div class="body"><p>La séance du <b>${fmtD(d.d)}</b> est reportée à la suivante, le <b>${fmtD(L[1] || next)}</b>. Les ${plural(L.length - 1, 'séance suivante', 'séances suivantes')} glissent aussi d'une occurrence, avec leurs thèmes${g.to ? ` : le cycle se termine le <b>${fmtD(next)}</b> au lieu du ${fmtD(g.to)}` : ''}.</p><p class="muted small">Les élèves et leurs parents sont prévenus dans /RAM Club.</p><button class="btn full" data-a="coShiftOk" data-id="${g.id}" data-d="${d.d}">${ic('cal')}Reporter</button><button class="btn full ghost" data-a="coMove" data-id="${g.id}" data-d="${d.d}">Changer seulement la date ou l’heure de cette séance</button></div>`
+      `<div class="body"><p>La séance du <b>${fmtD(d.d)}</b> est reportée à la suivante, le <b>${fmtD(L[1] || next)}</b>. Les ${plural(L.length - 1, 'séance suivante', 'séances suivantes')} glissent aussi d'une occurrence, avec leurs thèmes${g.to ? ` : le cycle se termine le <b>${fmtD(next)}</b> au lieu du ${fmtD(g.to)}` : ''}.</p><p class="muted small">Les élèves et leurs parents sont prévenus dans /Buvette.</p><button class="btn full" data-a="coShiftOk" data-id="${g.id}" data-d="${d.d}">${ic('cal')}Reporter</button><button class="btn full ghost" data-a="coMove" data-id="${g.id}" data-d="${d.d}">Changer seulement la date ou l’heure de cette séance</button></div>`
     );
   },
   coShiftOk(d) {
@@ -1171,7 +1171,7 @@ Object.assign(A, {
     const n = coGroups('', true).filter(x => coIsGrp(x) && x.id !== g.id && coClubOf(x) === coClubOf(g)).length;
     sheet(
       'Période sans cours',
-      `<form class="body" id="co-off" data-id="${g.id}">${O('co-of-n', 'Nom', 'Vacances de Noël, fermeture du club…')}<div class="row" style="gap:8px"><div class="fld grow"><label for="co-of-d">Du</label><input id="co-of-d" type="date" required value="${isoIn(1)}"></div><div class="fld grow"><label for="co-of-a">Au (inclus)</label><input id="co-of-a" type="date" required value="${isoIn(14)}"></div></div>${n ? `<div class="fld"><label class="chk" for="co-of-all"><input type="checkbox" id="co-of-all">Aussi pour mes ${plural(n, 'autre groupe', 'autres groupes')} de ce club</label></div>` : ''}<button class="btn full">Enregistrer la période</button><p class="muted small">Les séances de cette période disparaissent du planning, de l'Agenda et de l'École de /RAM Club. Un cycle ou un pack se décale tout seul si tu reprogrammes ses dates.</p></form>`
+      `<form class="body" id="co-off" data-id="${g.id}">${O('co-of-n', 'Nom', 'Vacances de Noël, fermeture du club…')}<div class="row" style="gap:8px"><div class="fld grow"><label for="co-of-d">Du</label><input id="co-of-d" type="date" required value="${isoIn(1)}"></div><div class="fld grow"><label for="co-of-a">Au (inclus)</label><input id="co-of-a" type="date" required value="${isoIn(14)}"></div></div>${n ? `<div class="fld"><label class="chk" for="co-of-all"><input type="checkbox" id="co-of-all">Aussi pour mes ${plural(n, 'autre groupe', 'autres groupes')} de ce club</label></div>` : ''}<button class="btn full">Enregistrer la période</button><p class="muted small">Les séances de cette période disparaissent du planning, de l'Agenda et de l'École de /Buvette. Un cycle ou un pack se décale tout seul si tu reprogrammes ses dates.</p></form>`
     );
   },
   coOffDel(d) {
@@ -1258,9 +1258,9 @@ Object.assign(A, {
       return toast('Discussion créée dans ' + coClubName(g));
     }
     chans.push(Object.assign({ msgs: [{ by: 'club', x: 'Groupe ouvert. Bienvenue !', t: "À l'instant" }], un: 0 }, ch));
-    coSave('Discussion du groupe créée dans /RAM Club');
+    coSave('Discussion du groupe créée dans /Buvette');
   },
-  /* supprimer la discussion d'un groupe depuis /RAM Coach (pas seulement depuis l'administration du Club) ;
+  /* supprimer la discussion d'un groupe depuis /Dojo (pas seulement depuis l'administration du Club) ;
      le groupe et ses séances restent, la discussion se recrée depuis cette page */
   coChanDel(d) {
     const g = grp(d.id);
@@ -1329,7 +1329,7 @@ Object.assign(A, {
           ['0', 'Sans récurrence · dates libres']
         ],
         g.libre ? '0' : g.every > 1 ? '14' : '7'
-      )}<button type="button" class="btn sm ghost full" data-a="coPlanGen">${ic('cal')}Proposer les dates</button><span class="kicker" style="margin-top:12px">Dates · <span id="co-pl-cnt">${plural(cur.length, 'séance')}</span></span><div id="co-pl-dates" class="copl"></div><button type="button" class="btn sm ghost full" data-a="coPlanAdd">${ic('plus')}Ajouter une date</button><div class="fld"><label class="chk" for="co-pl-c"><input type="checkbox" id="co-pl-c" ${cyc ? 'checked' : ''}>Le groupe s'arrête après la dernière date (pack ou cycle)</label></div><button class="btn full">Enregistrer les séances</button><p class="muted small">Les séances apparaissent dans ton planning et dans l'Agenda et l'École de /RAM Club.</p></form>`
+      )}<button type="button" class="btn sm ghost full" data-a="coPlanGen">${ic('cal')}Proposer les dates</button><span class="kicker" style="margin-top:12px">Dates · <span id="co-pl-cnt">${plural(cur.length, 'séance')}</span></span><div id="co-pl-dates" class="copl"></div><button type="button" class="btn sm ghost full" data-a="coPlanAdd">${ic('plus')}Ajouter une date</button><div class="fld"><label class="chk" for="co-pl-c"><input type="checkbox" id="co-pl-c" ${cyc ? 'checked' : ''}>Le groupe s'arrête après la dernière date (pack ou cycle)</label></div><button class="btn full">Enregistrer les séances</button><p class="muted small">Les séances apparaissent dans ton planning et dans l'Agenda et l'École de /Buvette.</p></form>`
     );
     coPlanPaint(cur);
   },
@@ -1522,7 +1522,7 @@ document.addEventListener('submit', e => {
 /* ---------- réglages propres à un cycle : enseignant, thème, bilan de fin de cycle ----------
    c.coach : l'enseignant du cycle (par défaut celui du groupe) ; le changer vaut pour les séances à venir du cycle,
    sauf celles qui ont un remplaçant (regles.js coachDe, historique c.coachH). c.theme : le thème du cycle, montré
-   sur les séances qui n'ont pas le leur. c.bilan : le bilan de fin de cycle, lu par les élèves dans /RAM Club
+   sur les séances qui n'ont pas le leur. c.bilan : le bilan de fin de cycle, lu par les élèves dans /Buvette
    (École, Mon espace) comme les bilans de séance. */
 Object.assign(A, {
   coCycleCfg(d) {
@@ -1537,7 +1537,7 @@ Object.assign(A, {
         .map(k => `<option value="${k}" ${c.coach === k ? 'selected' : ''}>${esc(name(k))}</option>`)
         .join(
           ''
-        )}</select></div><p class="muted small">Le changement vaut pour les séances à venir du cycle, pas pour celles déjà passées ni pour celles qui ont un remplaçant.</p><div class="fld"><label for="co-cy-th">Thème du cycle</label><input id="co-cy-th" autocomplete="off" maxlength="80" value="${esc(c.theme || '')}" placeholder="Jeu au filet, préparation tournoi…"></div><div class="fld"><label for="co-cy-ob">Objectifs du cycle</label><textarea id="co-cy-ob" rows="3" placeholder="Ce que les élèves sauront faire à la fin du cycle">${esc(c.obj || '')}</textarea></div><div class="fld"><label for="co-cy-bi">Bilan de fin de cycle</label><textarea id="co-cy-bi" rows="4" placeholder="Ce qui a été travaillé, les progrès, la suite">${esc(c.bilan || '')}</textarea></div><p class="muted small">Les objectifs et le bilan sont lus par les élèves du groupe dans /RAM Club, comme les bilans de séance. Les élèves sont prévenus d’un nouvel enseignant ou d’un nouveau thème.</p><button class="btn full">Enregistrer</button></form>`
+        )}</select></div><p class="muted small">Le changement vaut pour les séances à venir du cycle, pas pour celles déjà passées ni pour celles qui ont un remplaçant.</p><div class="fld"><label for="co-cy-th">Thème du cycle</label><input id="co-cy-th" autocomplete="off" maxlength="80" value="${esc(c.theme || '')}" placeholder="Jeu au filet, préparation tournoi…"></div><div class="fld"><label for="co-cy-ob">Objectifs du cycle</label><textarea id="co-cy-ob" rows="3" placeholder="Ce que les élèves sauront faire à la fin du cycle">${esc(c.obj || '')}</textarea></div><div class="fld"><label for="co-cy-bi">Bilan de fin de cycle</label><textarea id="co-cy-bi" rows="4" placeholder="Ce qui a été travaillé, les progrès, la suite">${esc(c.bilan || '')}</textarea></div><p class="muted small">Les objectifs et le bilan sont lus par les élèves du groupe dans /Buvette, comme les bilans de séance. Les élèves sont prévenus d’un nouvel enseignant ou d’un nouveau thème.</p><button class="btn full">Enregistrer</button></form>`
     );
   }
 });

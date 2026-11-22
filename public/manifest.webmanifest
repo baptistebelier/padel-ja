@@ -1,6 +1,6 @@
 {
-  "name": "/RAM JA",
-  "short_name": "/RAM JA",
+  "name": "/Pista",
+  "short_name": "/Pista",
   "description": "Le logiciel du juge-arbitre de padel",
   "lang": "fr",
   "start_url": "/dashboard",

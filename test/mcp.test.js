@@ -32,7 +32,7 @@ test.before(async () => { await new Promise(r => server.listen(0, r)); base = 'h
 test.after(() => server.close());
 
 test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois et du club', async () => {
-  // le compte /RAM, son club (il en est au bureau et enseigne) et un tournoi /RAM JA
+  // le compte /RAM, son club (il en est au bureau et enseigne) et un tournoi /Pista
   me = { id: 'U1', email: 'coach@test.fr', first: 'Sarah', last: 'Benali', pass_hash: 'h1' };
   await store.saveUser(me);
   const club = await ram.create({ id: 'U1', name: 'Sarah Benali' }, { name: 'TC Essai', short: 'tce' });
@@ -101,7 +101,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   // un tournoi d'un autre compte reste invisible
   rooms.set('t2', { row: { id: 't2', owner: 'U2', state: T } });
   assert.equal((await rpc('tools/call', { name: 'ja_tournoi', arguments: { id: 't2' } })).isError, true);
-  // ---------- écriture /RAM Coach (accordée par défaut sur la page d'autorisation) ----------
+  // ---------- écriture /Dojo (accordée par défaut sur la page d'autorisation) ----------
   const names = (await rpc('tools/list')).tools.map(x => x.name);
   assert.ok(names.includes('coach_bilan_brouillon') && names.includes('coach_niveau'));
   const w = async (name, args) => { const r = await rpc('tools/call', { name, arguments: args }); if (r.isError) throw new Error(r.content[0].text); return JSON.parse(r.content[0].text); };
@@ -240,7 +240,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.deepEqual((await w('coach_collectifs', {})).collectifs.find(x => x.publication === col2.publication).dates[0].groupes[0].inscrits, ['Léo Martin']);
   await w('coach_inscrire_collectif', { publication: col2.publication, date: '2031-03-01', groupe: 't1', eleve: 'kid1', retirer: true });
   assert.deepEqual((await w('coach_collectifs', {})).collectifs.find(x => x.publication === col2.publication).dates[0].groupes[0].inscrits, []);
-  // ---------- /RAM Club : mur (texte échappé), discussion, bar ----------
+  // ---------- /Buvette : mur (texte échappé), discussion, bar ----------
   const pub = await w('club_publier', { titre: 'Fermeture', texte: 'Le club <b>ferme</b>' });
   assert.equal((await ram.itemsOf(club.id, 'post')).find(x => x.id === pub.publication).data.body, 'Le club &lt;b&gt;ferme&lt;/b&gt;', 'jamais de code dans une publication');
   assert.equal((await w('club_ecrire_discussion', { discussion_id: gm.groupe_id, texte: 'Bonjour' })).envoye, true);
@@ -248,7 +248,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   await assert.rejects(w('club_ecrire_discussion', { discussion_id: 'rien', texte: 'x' }), /introuvable/);
   assert.ok(Array.isArray((await w('club_bar', {})).reservations));
   assert.ok(Array.isArray((await w('club_adhesions', {})).a_valider));
-  // ---------- /RAM JA : tournoi et animation du compte, jamais ceux d'un autre ----------
+  // ---------- /Pista : tournoi et animation du compte, jamais ceux d'un autre ----------
   const tj = await w('ja_creer_tournoi', { nom: 'Open MCP' });
   await w('ja_inscrire', { id: tj.id, joueur1: { prenom: 'A', nom: 'Un' }, joueur2: { prenom: 'B', nom: 'Deux' } });
   const ip = await w('ja_inscrits', { id: tj.id });
@@ -274,7 +274,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   const nv = await w('coach_ajouter_eleve', { prenom: 'Jules', nom: 'Perrin', email: 'jules@test.fr', sport: 'Padel', groupe_id: g.groupe_id });
   assert.equal(nv.compte_ram_club, false);
   const linked = await w('coach_ajouter_eleve', { prenom: 'Léo', nom: 'Martin', groupe_id: g.groupe_id });
-  assert.equal(linked.eleve_id, 'kid1', 'adhérent déjà dans /RAM Club : relié à son compte');
+  assert.equal(linked.eleve_id, 'kid1', 'adhérent déjà dans /Buvette : relié à son compte');
   // import d'une liste (une seule confirmation) : relie, complète ou crée, sans doublon
   const imp = await w('coach_importer_eleves', { eleves: [{ prenom: 'Léo', nom: 'Martin' }, { prenom: 'Jules', nom: 'Perrin', email: 'jules@test.fr', telephone: '0600000000' }, { prenom: 'Nina', nom: 'Anglade', email: 'nina@test.fr', note: 'Séance unique' }, { prenom: 'Nina', nom: 'Anglade' }] });
   assert.deepEqual([imp.eleves, imp.relie_au_compte, imp.complete, imp.cree], [3, 1, 1, 1]);
@@ -311,7 +311,7 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.deepEqual(it('group', g.groupe_id).ext, [nv.eleve_id]);
   assert.ok(it('group', g.groupe_id).mem.includes('kid1'));
   assert.equal(it('cours', once.groupe_id).once, '2026-11-20');
-  assert.equal(it('member', 'kid1').pl, 4, 'niveau recopié dans la fiche /RAM Club');
+  assert.equal(it('member', 'kid1').pl, 4, 'niveau recopié dans la fiche /Buvette');
   assert.equal(it('eleve', 'kid1').tech.Revers, 2);
   assert.equal(it('brouillon', g.groupe_id + '.2026-11-17').recap, 'Bandeja');
   assert.equal(it('seance', g.groupe_id + '.2026-11-10').pres.kid1, 'P');

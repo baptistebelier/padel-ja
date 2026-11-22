@@ -1,4 +1,4 @@
-/* /RAM Club : l'administrateur de l'appli a tous les droits (bureau et enseignant) dans les clubs dont il fait partie */
+/* /Buvette : l'administrateur de l'appli a tous les droits (bureau et enseignant) dans les clubs dont il fait partie */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs'), os = require('os'), path = require('path');

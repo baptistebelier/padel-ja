@@ -33,7 +33,7 @@
     if (mine) return;
     const top = document.createElement('header'); top.className = 'mtop mtop-rail';
     top.innerHTML = `<button type="button" class="mtop-btn" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
-        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/pista-detoure-blanc.png" alt="/RAM JA"><img class="lg-j" src="/img/pista-detoure-noir.png" alt="/RAM JA"></a><span class="mtop-sp"></span>`;
+        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/pista-detoure-blanc.png" alt="/Pista"><img class="lg-j" src="/img/pista-detoure-noir.png" alt="/Pista"></a><span class="mtop-sp"></span>`;
     nav.after(top);
   }
   function build() {
@@ -356,14 +356,14 @@
     (window.RamSuggQ || []).forEach(r => rules.push(r));
     window.RamSuggQ = { push: r => rules.push(r) };
   }
-  /* annuaire des clubs commun à /RAM JA et /Buvette : proposé dans les champs « Club »
+  /* annuaire des clubs commun à /Pista et /Buvette : proposé dans les champs « Club »
      (tournoi, paires, profil, adversaire d'une rencontre), clubs /Buvette en premier */
   function clubList() {
     let annuaire = null;
     const charger = () => (annuaire = annuaire || fetch('/api/clubs-directory').then(r => r.json()).then(d => (d.clubs || []).map(c => ({ v: c.name, l: [c.city, c.ramClub ? '/Buvette' : c.tournaments ? c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') }))).catch(() => { annuaire = null; return []; }));
     window.RamSugg.add({ match: el => el.matches('input[data-f="club"], input[name="k1"], input[name="k2"], input[name="club"], input[data-clubs]'), source: () => charger() });
   }
-  /* juges-arbitres /RAM JA proposés dans le champ « Juge-arbitre » (tournoi, préférences) ;
+  /* juges-arbitres /Pista proposés dans le champ « Juge-arbitre » (tournoi, préférences) ;
      en choisir un remplit aussi « Qualification JA » (son titre padel en priorité) */
   function jaList() {
     window.RamSugg.add({
@@ -380,7 +380,7 @@
         ['input', 'change'].forEach(t => num.dispatchEvent(new Event(t, { bubbles: true })));
       }
     });
-    // joueurs de la base /RAM JA (et adhérents /Buvette) : champs marqués data-joueurs
+    // joueurs de la base /Pista (et adhérents /Buvette) : champs marqués data-joueurs
     window.RamSugg.add({
       match: el => el.hasAttribute('data-joueurs'),
       filtre: false,

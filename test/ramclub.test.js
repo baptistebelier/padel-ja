@@ -1,4 +1,4 @@
-/* RAM Club : clubs, adhésions, droits d'écriture et synchronisation (stockage fichiers temporaire) */
+/* Buvette : clubs, adhésions, droits d'écriture et synchronisation (stockage fichiers temporaire) */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { freePort, serverReady } = require('./helpers');

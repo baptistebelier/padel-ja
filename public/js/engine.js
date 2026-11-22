@@ -1,5 +1,5 @@
 /* =========================================================================
-   /RAM JA — Moteur partagé (serveur Node + navigateur)
+   /Pista — Moteur partagé (serveur Node + navigateur)
    Score, formats FFT, formules (poules, qualifications, tableau final),
    tirage au sort par cartes, programmation, repos et contrôles réglementaires.
    ========================================================================= */
@@ -1217,7 +1217,7 @@
         T.matches.forEach(m => { if (m.court === p.id) { m.court = null; m.order = null; } }); break;
 
       case 'pair/add':
-        T.pairs.push(Object.assign({ id: uid('p'), p1: p.p1, p2: p.p2, registeredAt: p.registeredAt || localNow(), withdrawn: false, wc: !!p.wc, note: p.note || '' }, p.src ? { src: p.src } : {})); break;   // src : inscription venue de /RAM Club
+        T.pairs.push(Object.assign({ id: uid('p'), p1: p.p1, p2: p.p2, registeredAt: p.registeredAt || localNow(), withdrawn: false, wc: !!p.wc, note: p.note || '' }, p.src ? { src: p.src } : {})); break;   // src : inscription venue de /Buvette
       case 'pairs/import': (p.list || []).forEach(x => T.pairs.push(Object.assign({ id: uid('p'), withdrawn: false, wc: false, note: '' }, x))); break;
       case 'pair/update': { const pr = T.pairs.find(x => x.id === p.id); if (pr) deepAssign(pr, p.fields); break; }
       case 'pair/remove':

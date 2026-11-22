@@ -1,4 +1,4 @@
-/* /RAM Club — app/19-formulaires.js : formulaires du club (à la place de Google Forms).
+/* /Buvette — app/19-formulaires.js : formulaires du club (à la place de Google Forms).
    - créés par le bureau, les enseignants, les animateurs et les membres d'une commission
    - questions : texte court, texte long, choix unique, choix multiples, date, nombre, oui / non ; obligatoires ou non
    - date de clôture, anonyme ou nominatif, pour tout le club ou une commission

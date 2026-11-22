@@ -35,7 +35,7 @@ test('signature VAPID vérifiable avec la clé publique', () => {
   assert.ok(crypto.verify('sha256', Buffer.from(head + '.' + body), { key, dsaEncoding: 'ieee-p1363' }, Buffer.from(sig, 'base64url')));
 });
 
-test('appareils : l’enseignement va à l’appli /RAM Coach, le reste à /RAM Club', async () => {
+test('appareils : l’enseignement va à l’appli /Dojo, le reste à /Buvette', async () => {
   const fs = require('fs'), os = require('os'), path = require('path');
   const { createStore } = require('../lib/store');
   const { createWebPush } = require('../lib/webpush');
@@ -58,7 +58,7 @@ test('appareils : l’enseignement va à l’appli /RAM Coach, le reste à /RAM 
   assert.deepEqual(hits.map(u => u.split('/').pop()), ['coach', 'club']);
 });
 
-test('/RAM JA : l’abonnement est reconnu, et son message ne part pas sur les autres applis', async () => {
+test('/Pista : l’abonnement est reconnu, et son message ne part pas sur les autres applis', async () => {
   const fs = require('fs'), os = require('os'), path = require('path');
   const { createStore } = require('../lib/store');
   const { createWebPush } = require('../lib/webpush');
@@ -75,17 +75,17 @@ test('/RAM JA : l’abonnement est reconnu, et son message ne part pas sur les a
   try {
     await push.subscribe('U', sub('club'), 'Chrome', 'club');
     await push.send('U', { body: 'x', app: 'ja' });
-    assert.deepEqual(hits, ['club'], 'sans appareil /RAM JA : sur /RAM Club');
+    assert.deepEqual(hits, ['club'], 'sans appareil /Pista : sur /Buvette');
     hits.length = 0;
     await push.subscribe('U', sub('ja'), 'Chrome', 'ja');
     await push.send('U', { body: 'x', app: 'ja' });
     assert.deepEqual(hits, ['ja']);
     hits.length = 0;
     await push.send('U', { body: 'x' });
-    assert.deepEqual(hits, ['club'], 'un message du Club ne va pas sur /RAM JA');
+    assert.deepEqual(hits, ['club'], 'un message du Club ne va pas sur /Pista');
   } finally { global.fetch = real; }
 });
-test('/RAM JA : message d’inscription, de retrait, tournoi complet', () => {
+test('/Pista : message d’inscription, de retrait, tournoi complet', () => {
   const { avisInscription } = require('../lib/jaclub');
   assert.equal(avisInscription('T1', { name: 'Open' }, 'in', 'Nina A / Paul B', 3, 16).body, "Nina A / Paul B s'inscrit : Open");
   assert.equal(avisInscription('T1', { name: 'Open' }, 'in', 'A / B', 16, 16).body, "A / B s'inscrit : Open · complet (16/16)");
@@ -106,7 +106,7 @@ test('boîte de notifications : gardée même sans appareil, et par appli', asyn
   const push = createWebPush({ store });
   await push.sendMany(['SANS'], { title: 'Club', body: 'Nouvelle réservation', url: '#/seance/r1.2031-01-01?club=C', app: 'coach' });
   await push.sendMany(['SANS'], { title: 'Club', body: 'Publication', url: '#/post/p1?club=C' });
-  await push.sendMany(['SANS'], { title: '/RAM JA', body: 'Inscription', url: '/t/1', app: 'ja' });
+  await push.sendMany(['SANS'], { title: '/Pista', body: 'Inscription', url: '/t/1', app: 'ja' });
   const l = await push.boite('SANS', 0);
   assert.equal(l.length, 3, 'un compte sans téléphone abonné les retrouve dans son panneau');
   assert.deepEqual(pourAppli(l, 'coach').map(x => x.body), ['Nouvelle réservation']);

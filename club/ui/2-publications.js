@@ -1,4 +1,4 @@
-/* /RAM Club — ui/2-publications.js : Publications du mur : visibilité, événements, tournois, partenaires, messages.
+/* /Buvette — ui/2-publications.js : Publications du mur : visibilité, événements, tournois, partenaires, messages.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- publications ---------- */
 function postSport(p) {

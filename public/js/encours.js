@@ -1,4 +1,4 @@
-/* /RAM JA — panneau « Tournoi en cours » : plusieurs tournois peuvent se jouer en même temps (un tournoi interne
+/* /Pista — panneau « Tournoi en cours » : plusieurs tournois peuvent se jouer en même temps (un tournoi interne
    dure des semaines) ; ce panneau déroulant ouvre le tournoi à éditer.
    - sur un tournoi en cours (et sur le tableau de bord) : seulement les tournois en cours ;
    - sur un tournoi clôturé (ouvert depuis « Mes tournois ») : tous les tournois clôturés, et le menu marque « Tournois ».

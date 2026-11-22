@@ -1,4 +1,4 @@
-/* /RAM JA — écran d'accueil au logo, comme /RAM Club, mais seulement quand l'appli est ouverte
+/* /Pista — écran d'accueil au logo, comme /Buvette, mais seulement quand l'appli est ouverte
    depuis l'écran d'accueil du téléphone (appli installée) : une fois par lancement, court (0,6 s),
    puis fondu. Dans un navigateur ordinaire, rien ne s'affiche.
    Chargé dans le <head> de chaque page de l'appli, avant tout le reste, pour couvrir le premier affichage. */

@@ -1,4 +1,4 @@
-/* Fiches joueurs /RAM JA nourries par /RAM Club : profil sportif du compte, fiche des enfants sans compte */
+/* Fiches joueurs /Pista nourries par /Buvette : profil sportif du compte, fiche des enfants sans compte */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { freePort, until, serverReady } = require('./helpers');
@@ -31,7 +31,7 @@ test('profil sportif recopié sur la fiche ; un enfant sans compte reçoit sa fi
     const fiche = (await api('/api/players/' + kid.data._ja)).player;
     assert.deepEqual([fiche.first, fiche.last, fiche.sex, fiche.birthYear, fiche.club], ['Léo', 'TEST', 'H', 2014, 'TC Fiches']);
 
-    // identité du club : l'adresse et les pistes de padel saisies dans /RAM Club servent aux nouveaux tournois /RAM JA
+    // identité du club : l'adresse et les pistes de padel saisies dans /Buvette servent aux nouveaux tournois /Pista
     await api(`/api/ram/c/${club.id}/ops`, { ops: [{ coll: 'conf', id: 'main', op: 'patch', patch: [{ p: ['info', 'addr'], t: 'set', v: '12 allée des Tilleuls' }, { p: ['info', 'pistes'], t: 'set', v: 4 }] }] });
     await api('/api/me', { club: 'TC Fiches' });
     await api('/api/profile', { profile: { club: 'TC Fiches' } });

@@ -1,4 +1,4 @@
-/* Référentiel des clubs commun à /RAM JA et /RAM Club : un club = une ligne, retrouvé quelle que soit l'écriture */
+/* Référentiel des clubs commun à /Pista et /Buvette : un club = une ligne, retrouvé quelle que soit l'écriture */
 const test = require('node:test');
 const assert = require('node:assert');
 const { freePort, until, serverReady } = require('./helpers');
@@ -25,7 +25,7 @@ test('référentiel : un nom déjà connu ne crée pas de doublon, même saisi d
   assert.equal(await clubs.resolve(' '), null);
 });
 
-test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', async () => {
+test('API : comptes, fiches joueurs et espace /Buvette reliés au même club', async () => {
   const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'clubs-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
@@ -51,15 +51,15 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     const ub2 = (await b('/api/me')).user;
     assert.notEqual(ub2.clubId, ua.clubId);
     assert.equal((await b('/api/me/player')).linked.club, 'TC Les Tilleuls');
-    // l'espace /RAM Club du même nom est relié au même club, et l'annuaire le signale
+    // l'espace /Buvette du même nom est relié au même club, et l'annuaire le signale
     await a('/api/ram/clubs', { name: 'Chiquita padel', short: 'CHQ' });
     const dir = (await a('/api/clubs-directory')).clubs;
     const chq = dir.find(c => c.id === ua.clubId);
     assert.ok(chq && chq.ramClub);
     assert.equal(dir.filter(c => /chiquita/i.test(c.name)).length, 1);
 
-    /* adhésions : club du compte (joueur, club de licence) et bureau de l'espace /RAM Club */
-    // les changements /RAM Club sont recopiés en différé : on attend l'état attendu, pas un délai fixe
+    /* adhésions : club du compte (joueur, club de licence) et bureau de l'espace /Buvette */
+    // les changements /Buvette sont recopiés en différé : on attend l'état attendu, pas un délai fixe
     let mine = (await a('/api/me/clubs')).memberships;
     assert.ok(mine.some(x => x.clubId === ua.clubId && x.role === 'joueur' && x.source === 'compte' && x.licenceClub));
     assert.ok(mine.some(x => x.clubId === ua.clubId && x.role === 'bureau' && x.source === 'ramclub' && x.status === 'actif'));
@@ -73,7 +73,7 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     const season = (s.items.find(i => i.coll === 'conf').data || {}).season;
     await a(`/api/ram/c/${space.id}/ops`, { ops: [{ coll: 'member', id: joined.key, op: 'put', data: Object.assign({}, item.data, { valid: season, req: 0 }) }] });
     await until(async () => (await b('/api/me/clubs')).memberships.find(x => x.clubId === ua.clubId && x.status === 'actif'), { msg: 'validation jamais recopiée' });
-    // validé au club /RAM Club : son club /RAM JA devient celui-ci, et ne se change plus à la main
+    // validé au club /Buvette : son club /Pista devient celui-ci, et ne se change plus à la main
     const ub3 = (await b('/api/me')).user;
     assert.equal(ub3.clubId, ua.clubId);
     assert.equal((await b('/api/me/clubs')).managed.clubId, ua.clubId);
@@ -99,7 +99,7 @@ test('API : comptes, fiches joueurs et espace /RAM Club reliés au même club', 
     assert.equal((await b('/api/clubs/' + ua.clubId + '/members')).error, 'Réservé au bureau du club.');
     const list = (await a('/api/clubs/' + ua.clubId + '/members')).members;
     assert.deepEqual(list.map(x => x.first).sort(), ['Alice', 'Bruno']);
-    // quitter le club : l'adhésion /RAM Club disparaît
+    // quitter le club : l'adhésion /Buvette disparaît
     await b(`/api/ram/c/${space.id}/remove`, { key: joined.key });
     // il garde son dernier club, et redevient libre de le changer
     await until(async () => {

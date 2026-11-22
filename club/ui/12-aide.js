@@ -1,4 +1,4 @@
-/* /RAM Club — ui/12-aide.js : page « Aide », le guide complet de l'appli.
+/* /Buvette — ui/12-aide.js : page « Aide », le guide complet de l'appli.
    Rubriques dépliables, recherche dans tout le guide, et « Pour toi » : les rubriques du rôle
    de la personne (bureau, enseignant, capitaine, parent) remontent en premier.
    Les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
@@ -10,7 +10,7 @@ const AIDE = [
     q: [
       [
         'Rejoindre mon club',
-        "Crée ton compte /RAM (le même que pour /RAM JA), puis entre le <b>code du club</b> donné par le bureau (par exemple TPC-4821). Ta demande part au bureau : dès qu'il valide ton adhésion pour la saison, tout le club s'ouvre."
+        "Crée ton compte /RAM (le même que pour /Pista), puis entre le <b>code du club</b> donné par le bureau (par exemple TPC-4821). Ta demande part au bureau : dès qu'il valide ton adhésion pour la saison, tout le club s'ouvre."
       ],
       [
         "Installer l'appli sur mon téléphone",
@@ -68,7 +68,7 @@ const AIDE = [
       ],
       [
         'Mon palmarès',
-        'Dans Jouer, Résultats (et dans Moi, Mon jeu) : tes résultats de la saison (tennis et padel), et les tournois et animations /RAM JA que tu as joués, avec ta place.'
+        'Dans Jouer, Résultats (et dans Moi, Mon jeu) : tes résultats de la saison (tennis et padel), et les tournois et animations /Pista que tu as joués, avec ta place.'
       ]
     ]
   },
@@ -151,7 +151,7 @@ const AIDE = [
   },
   {
     id: 'tournois',
-    t: 'Tournois et animations /RAM JA',
+    t: 'Tournois et animations /Pista',
     i: 'trophy',
     q: [
       [
@@ -245,7 +245,7 @@ const AIDE = [
       ],
       [
         'Le club principal',
-        "C'est le club de ta licence : il apparaît sur ta fiche joueur /RAM JA. Choisis-le avec « Principal » dans « Mes clubs »."
+        "C'est le club de ta licence : il apparaît sur ta fiche joueur /Pista. Choisis-le avec « Principal » dans « Mes clubs »."
       ],
       [
         'Les nouveautés des autres clubs',
@@ -284,8 +284,8 @@ const AIDE = [
         "« Publier », « Pour le club » : annonce, événement (avec inscriptions dans l'appli ou sur Ten'Up), tournoi, sondage, publication avec lien, actu, mise en avant des partenaires."
       ],
       [
-        'Organiser un tournoi avec /RAM JA',
-        "« Publier », « Tournoi » : le tournoi est créé dans /RAM JA sur ton compte, puis publié sur le mur avec les inscriptions dans l'appli. Le juge-arbitre gère ensuite le tirage, la programmation et les scores. Si ton accès /RAM JA ne permet plus de créer de tournoi, l'appli t'explique quoi faire."
+        'Organiser un tournoi avec /Pista',
+        "« Publier », « Tournoi » : le tournoi est créé dans /Pista sur ton compte, puis publié sur le mur avec les inscriptions dans l'appli. Le juge-arbitre gère ensuite le tirage, la programmation et les scores. Si ton accès /Pista ne permet plus de créer de tournoi, l'appli t'explique quoi faire."
       ],
       [
         'Championnats, équipes et groupes',

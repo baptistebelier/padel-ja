@@ -1,4 +1,4 @@
-/* /RAM Club — ui/3-rencontres.js : Rencontres par équipes et résultat final dans le championnat.
+/* /Buvette — ui/3-rencontres.js : Rencontres par équipes et résultat final dans le championnat.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- rencontre ---------- */
 function recView(id) {

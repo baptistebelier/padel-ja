@@ -1,4 +1,4 @@
-/* /RAM Coach — modèle des cycles, des remplaçants et des attributions (club/regles.js) :
+/* /Dojo — modèle des cycles, des remplaçants et des attributions (club/regles.js) :
    enseignant effectif, séances à planifier, une seule source de présence, attribution qui suit le groupe,
    états En cours / Utilisé / Terminé */
 const test = require('node:test');
@@ -57,7 +57,7 @@ test('séances à planifier : N par pack ou cycle, datées ou non, identifiants 
   assert.equal(R.trainOn({ libre: 1, day: 3, extra: ['2030-01-02'] }, '2030-01-02'), true);
 });
 
-test('présence : l’appel de /RAM Club compte comme celui de /RAM Coach', () => {
+test('présence : l’appel de /Buvette compte comme celui de /Dojo', () => {
   const g = { att: { '2030-01-01': { a: true, b: false, c: true } } };
   assert.deepEqual(R.presDe(null, g, '2030-01-01'), { a: 'P', b: 'A', c: 'P' });
   assert.deepEqual(R.presDe({ pres: { c: 'E' } }, g, '2030-01-01'), { a: 'P', b: 'A', c: 'E' }, 'l’appel Coach prime');

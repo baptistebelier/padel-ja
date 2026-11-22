@@ -1,5 +1,5 @@
 /* =========================================================================
-   /RAM JA — serveur (local ou en ligne), sans dépendance, Node.js >= 18
+   /Pista — serveur (local ou en ligne), sans dépendance, Node.js >= 18
    - comptes juge-arbitre, plusieurs tournois par compte, démo en un clic
    - chaque tournoi a son « salon » temps réel (Server-Sent Events)
    - écrans TV / overlay ouverts sur un autre appareil : clé de diffusion
@@ -16,8 +16,8 @@ const Ani = require('./public/js/animation.js');
 const Int = require('./public/js/interne.js');   // tournoi interne d'un club (tableau sur plusieurs semaines)
 const Securite = require('./lib/securite.js');   // en-têtes de sécurité des pages, nettoyage des textes reçus
 const Agenda = require('./lib/agenda.js');   // /RAM Réservation : lien vers Google Agenda et agendas reliés
-const Formules = require('./lib/formules.js');   // /RAM Coach : formules, packs et abonnements de chaque enseignant
-const Echelles = require('./lib/echelles.js');   // /RAM Coach : échelles de niveaux de chaque enseignant   // animations : americano, mexicano, par équipes, montée-descente
+const Formules = require('./lib/formules.js');   // /Dojo : formules, packs et abonnements de chaque enseignant
+const Echelles = require('./lib/echelles.js');   // /Dojo : échelles de niveaux de chaque enseignant   // animations : americano, mexicano, par équipes, montée-descente
 const reducerOf = T => (Int.isInterne(T) ? Int : Ani.isAnimation(T) ? Ani : Engine);
 const autreMoteur = T => Ani.isAnimation(T) || Int.isInterne(T);   // pas un tournoi FFT : son propre état
 const { createStore, norm } = require('./lib/store.js');
@@ -36,7 +36,7 @@ const PORT = +process.env.PORT || 3737;
 const ROOT = path.join(__dirname, 'public');
 const store = createStore(process.env.DATA_DIR || path.join(__dirname, 'data'));   // DATA_DIR : dossier de test
 const ram = require('./lib/ramclub.js').createRamClub(process.env.DATA_DIR || path.join(__dirname, 'data'));
-const medias = require('./lib/medias.js').createMedias(process.env.DATA_DIR || path.join(__dirname, 'data'));   // images des clubs, rangées en fichiers   // /RAM Club : clubs, publications, groupes…
+const medias = require('./lib/medias.js').createMedias(process.env.DATA_DIR || path.join(__dirname, 'data'));   // images des clubs, rangées en fichiers   // /Buvette : clubs, publications, groupes…
 const { createClubs, withClubLinks } = require('./lib/clubs.js');
 const clubs = createClubs(store);   // référentiel des clubs commun aux deux applis
 withClubLinks(store, clubs);        // comptes et tournois enregistrés avec le club_id de leur texte « club »
@@ -50,17 +50,17 @@ const fiches = require('./lib/fiches.js').createFiches({ store, ram, mainClubOf:
   accountPlayer: async u => { const id = await store.getIdentity(u.id).catch(() => null); if (id && id.player) return id.player; const full = await store.getUser(u.id).catch(() => null); return full && !full.guest ? syncAccountPlayer(full) : null; } });   // profil sportif et enfants → fiches joueurs
 const reconciliation = require('./lib/reconciliation.js').createReconciliation({ store, ram });   // fusion des fiches en double (Administration)
 // notifications sur le téléphone ; heures calmes : ce qui attend part au réveil, par la file de tâches (une seule fois par nuit et par compte)
-const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/RAM Club : ' + m), planifier: (uid, at) => taches.enqueue('push-reveil', { uid }, { at, key: 'reveil:' + uid + ':' + at }) });
+const push = require('./lib/webpush.js').createWebPush({ store, log: m => console.warn('/Buvette : ' + m), planifier: (uid, at) => taches.enqueue('push-reveil', { uid }, { at, key: 'reveil:' + uid + ':' + at }) });
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
 // une notification passe par la file : un redémarrage du serveur ne la perd pas
-const mesAchats = require('./lib/mes-achats.js').createMesAchats({ ram, formules: u => Formules.get(store, u) });   // /RAM Club : un élève voit ses propres achats
+const mesAchats = require('./lib/mes-achats.js').createMesAchats({ ram, formules: u => Formules.get(store, u) });   // /Buvette : un élève voit ses propres achats
 const notifier = require('./lib/pushnotif.js').createNotifier({ ram, formules: u => require('./lib/formules.js').get(store, u), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) },
   mail: m => ResaMails.seanceChange(Object.assign({ lien: ONLINE ? Noms.urlApp('club', nomsOfficiels()) + '/' : '' }, m)),   // cours annulé, déplacé : aussi par e-mail aux élèves
-  log: m => console.warn('/RAM Club : ' + m) });
+  log: m => console.warn('/Buvette : ' + m) });
 taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
 taches.on('push-reveil', p => push.reveil(p.uid));
 taches.on('shopify-achat', o => reservation.achatShopify(o));
-/* une séance Calendly annulée dans /RAM Coach : annulée aussi chez Calendly, sinon les deux agendas se contredisent */
+/* une séance Calendly annulée dans /Dojo : annulée aussi chez Calendly, sinon les deux agendas se contredisent */
 ram.onOps((clubId, actor, changes) => {
   if (!actor || !actor.client) return;
   changes.filter(c => (c.coll === 'cours' || c.coll === 'group') && c.before && c.after && c.after.cal && !String(c.after.cal).startsWith('ram:') && (c.after.cancel || []).length > (c.before.cancel || []).length)
@@ -82,8 +82,8 @@ const NomsResa = require('./lib/noms-resa.js').createNoms({ store });   // adres
 const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
 /* e-mails de réservation vers l'enseignant, annulations et listes d'attente (le courrier de l'élève à la réservation part des routes) */
 const ResaMails = require('./lib/resa-mails.js').createResaMails({ ram, store, taches, Mail, nvEtat: require('./lib/reservation.js').nvEtat, log: m => console.warn(m) });
-const agendaAlerte = require('./lib/agenda-alerte.js').createAgendaAlerte({ store, agenda: agendaLu, push, Formules, log: m => console.warn('/RAM Coach : ' + m) });   // agenda relié devenu illisible : alerte dans la cloche
-const googleAgenda = require('./lib/google-agenda.js').createGoogleAgenda({ ram, store, coachTables, taches, log: m => console.warn('/RAM Coach : ' + m) });   // les séances écrites dans Google Agenda, en temps réel
+const agendaAlerte = require('./lib/agenda-alerte.js').createAgendaAlerte({ store, agenda: agendaLu, push, Formules, log: m => console.warn('/Dojo : ' + m) });   // agenda relié devenu illisible : alerte dans la cloche
+const googleAgenda = require('./lib/google-agenda.js').createGoogleAgenda({ ram, store, coachTables, taches, log: m => console.warn('/Dojo : ' + m) });   // les séances écrites dans Google Agenda, en temps réel
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
 const titlesCache = new Map();
 async function jaTitlesOf(spaceId) {
@@ -97,8 +97,8 @@ async function jaTitlesOf(spaceId) {
   titlesCache.set(spaceId, { at: Date.now(), map });
   return map;
 }
-/* identité du club : celle de son espace /RAM Club (logo, sigle, couleur, adresse, terrains) recopiée dans le
-   référentiel des clubs, et reprise par /RAM JA pour les nouveaux tournois */
+/* identité du club : celle de son espace /Buvette (logo, sigle, couleur, adresse, terrains) recopiée dans le
+   référentiel des clubs, et reprise par /Pista pour les nouveaux tournois */
 async function syncClubIdentity(spaceId) {
   const sp = (await ram.spaces()).find(s => s.id === spaceId);
   const conf = sp && sp.club_id && await ram.confOf(spaceId);
@@ -111,9 +111,9 @@ function watchClubIdentity() {
   const timers = new Map();
   ram.onChange(id => { clearTimeout(timers.get(id)); timers.set(id, setTimeout(() => { timers.delete(id); syncClubIdentity(id).catch(e => console.error('Identité du club :', e.message)); }, 4000)); });
 }
-/* le club d'un compte suit son club /RAM Club (adhésion validée la plus récente) ;
-   sans club /RAM Club, il garde celui qu'il a choisi */
-/* club principal d'un compte (celui de sa licence) : celui qu'il a choisi parmi ses clubs /RAM Club,
+/* le club d'un compte suit son club /Buvette (adhésion validée la plus récente) ;
+   sans club /Buvette, il garde celui qu'il a choisi */
+/* club principal d'un compte (celui de sa licence) : celui qu'il a choisi parmi ses clubs /Buvette,
    sinon son adhésion validée la plus récente ; les autres sont ses clubs secondaires */
 async function mainClubOf(userId) {
   const id = await store.getIdentity(userId).catch(() => null), want = id && id.mainClub;
@@ -165,7 +165,7 @@ function sendStatic(res, file, data, headers) {
   if (String((res._req && res._req.headers['if-none-match']) || '') === tag) { res.writeHead(304, h); return res.end(); }
   return Compress.send(res._req, res, 200, h, data, file + tag);
 }
-/* le domaine de /RAM Coach (coach. ou, officiel, dojo.) branché sur ce serveur (domaine ajouté sur Render) : vérifié au démarrage
+/* le domaine de /Dojo (coach. ou, officiel, dojo.) branché sur ce serveur (domaine ajouté sur Render) : vérifié au démarrage
    puis toutes les 10 minutes. Sans réponse (DNS pas encore créé) : abandon après 6 s, en arrière-plan, sans rien bloquer. */
 let coachLive = false;
 const checkCoach = () => fetch(Noms.urlApp('coach', nomsOfficiels()) + '/coach-v2-icon-192.png', { signal: AbortSignal.timeout(6000) }).then(r => { coachLive = r.ok; }, () => { coachLive = false; });
@@ -217,11 +217,11 @@ function sendFile(res, rel, versioned) {
     sendStatic(res, file, data, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': cache });
   });
 }
-// /RAM Club : fichiers de l'appli (dossier club/). Pages, scripts et icônes toujours revérifiés,
+// /Buvette : fichiers de l'appli (dossier club/). Pages, scripts et icônes toujours revérifiés,
 // le service worker de l'appli gère le hors-ligne.
 const CLUB_ROOT = path.join(__dirname, 'club');
-// pages de /RAM Club à adresse propre : connexion (et inscription, mot de passe oublié), présentation et démo.
-// L'adresse de base (comme /RAM JA) : l'appli pour un compte connecté, sinon la présentation ;
+// pages de /Buvette à adresse propre : connexion (et inscription, mot de passe oublié), présentation et démo.
+// L'adresse de base (comme /Pista) : l'appli pour un compte connecté, sinon la présentation ;
 // /demo : l'appli de démonstration (club fictif), connecté ou non.
 const CLUB_PAGES = { '/connexion': '/connexion.html', '/inscription': '/connexion.html', '/mot-de-passe-oublie': '/connexion.html', '/presentation': '/presentation.html', '/demo': '/index.html' };
 const bundler = require('./lib/bundle.js').createBundler(CLUB_ROOT);   // un seul fichier au lieu d'une quarantaine
@@ -264,10 +264,10 @@ function preparerCompression() {
     if (appli) data = bundler.page(rel, data);
     poser(file, data);
   };
-  // /RAM Club et /Dojo : pages d'abord, puis leurs fichiers réunis (le paquet de /Dojo pèse plus d'1 Mo)
+  // /Buvette et /Dojo : pages d'abord, puis leurs fichiers réunis (le paquet de /Dojo pèse plus d'1 Mo)
   club.filter(c => APPLI.test(c.rel)).forEach(c => prio.push(tacheClub(c)));
   prio.push(() => bundler.tout().forEach(([rel, data]) => poser(rel, data)));
-  // /RAM JA : pages, scripts, styles (mêmes transformations que sendFile)
+  // /Pista : pages, scripts, styles (mêmes transformations que sendFile)
   walk(ROOT, []).forEach(file => prio.push(() => {
     let data = fs.readFileSync(file); const ext = path.extname(file);
     if (ext === '.html' || ext === '.css') data = withVersions(data.toString('utf8'));
@@ -293,7 +293,7 @@ const coachUrl = req => (ONLINE ? Noms.urlApp('coach', nomsOfficiels()) + '/' : 
 /* administrateurs : e-mails listés dans ADMIN_EMAILS (Render), ou offre « admin » */
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'baptiste.belier@gmail.com').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
 const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email || '').toLowerCase()) || u.plan === 'admin'));
-/* /RAM Club : l'administrateur de l'appli (e-mails ADMIN_EMAILS seulement) a tous les droits dans ses clubs,
+/* /Buvette : l'administrateur de l'appli (e-mails ADMIN_EMAILS seulement) a tous les droits dans ses clubs,
    bureau et enseignant compris ; liste des comptes recalculée au démarrage puis toutes les 10 minutes */
 const superIds = new Set();
 async function loadSuper() {
@@ -312,7 +312,7 @@ const AccesResa = require('./lib/acces-resa.js');
 const PARTAGES_PUBLICS = /^\/(css|fonts)\/|^\/js\/compte-public\.js$/;
 /* titres de juge-arbitre reconnus, par sport */
 const JA_TITLES = { tennis: ['JAT1', 'JAT2', 'JAT3'], padel: ['JAP1', 'JAP2', 'JAP3'] };
-let refDir = null;   // juges-arbitres /RAM JA proposés dans les tournois, recalculés toutes les 2 minutes
+let refDir = null;   // juges-arbitres /Pista proposés dans les tournois, recalculés toutes les 2 minutes
 const publicUser = u => u && { id: u.id, email: u.email, name: u.name, ...splitName(u), avatar: u.avatar || '', club: u.club, clubId: u.club_id || null, jaTitles: Array.isArray(u.jaTitles) ? u.jaTitles : [], hasPassword: !!u.pass_hash, guest: !!u.guest, plan: isAdmin(u) ? 'admin' : (u.plan || 'essai'),
   planLabel: PLANS[isAdmin(u) ? 'admin' : (u.plan || 'essai')], admin: isAdmin(u), free: freeAccess(u) };
 
@@ -333,7 +333,7 @@ const accessOfOwner = async id => accessFor(await store.getUser(id));
 /* compte de la session : gardé 20 s en mémoire (chaque page et chaque appel n'interroge plus la base),
    oublié dès que le compte est enregistré ou supprimé */
 const userCache = new Map();
-let clubDir = null;   // annuaire des clubs (/RAM Club + tournois /RAM JA), recalculé toutes les 5 minutes
+let clubDir = null;   // annuaire des clubs (/Buvette + tournois /Pista), recalculé toutes les 5 minutes
 ['saveUser', 'deleteUser'].forEach(fn => { const orig = store[fn].bind(store); store[fn] = async (x, ...rest) => { userCache.delete(typeof x === 'object' ? x.id : x); try { return await orig(x, ...rest); } finally { userCache.delete(typeof x === 'object' ? x.id : x); } }; });
 async function currentUser(req) {
   const s = Auth.sessionOf(req);
@@ -383,7 +383,7 @@ function saveRoom(room) {
   room.timer = setTimeout(() => {
     room.row.updated_at = Date.now(); clubDuTournoi(room);
     store.saveTournament(room.row).catch(e => console.error('Sauvegarde impossible :', e.message));
-    jaClub.schedule(room, msg => console.error(msg));   // publication /RAM Club tenue à jour
+    jaClub.schedule(room, msg => console.error(msg));   // publication /Buvette tenue à jour
     if (Ani.isAnimation(room.row.state)) aniParticipations(room).catch(e => console.error('Animation, historique des joueurs :', e.message));
   }, 700);
 }
@@ -492,7 +492,7 @@ async function newTournament(owner, opts) {
   }
   if (opts.name) state.tournament.name = opts.name;
   if (opts.example) state.tournament.example = true;   // tournoi d'exemple de l'inscription : hors limite de l'essai
-  // identité du club (référentiel, venue de /RAM Club) : adresse, logo et pistes de padel par défaut
+  // identité du club (référentiel, venue de /Buvette) : adresse, logo et pistes de padel par défaut
   const cl = !opts.state && clubs.lookup((state.tournament || {}).club);
   if (cl) {
     if (!state.tournament.address && cl.address) state.tournament.address = cl.address;
@@ -524,7 +524,7 @@ function applyServerAction(room, action) {
   room.row.state = draft; room.rev++; saveRoom(room); broadcast(room);
 }
 
-/* tournois et animations publiés sur /RAM Club, inscriptions depuis l'appli du club (lib/jaclub.js) */
+/* tournois et animations publiés sur /Buvette, inscriptions depuis l'appli du club (lib/jaclub.js) */
 const jaClub = require('./lib/jaclub.js').createJaClub({ store, ram, clubs, Engine, Ani, getRoom, applyServerAction, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) } });
 // tournois internes : rappel aux joueurs deux jours avant la date limite de leur tour
 { const t = setInterval(() => jaClub.relances(() => store.listAllTournaments()).catch(e => console.error('Rappels des tournois internes :', e.message)), 3 * 3600000); if (t.unref) t.unref(); }
@@ -553,7 +553,7 @@ async function upsertPlayerFrom(pl, owner) {
 }
 
 /* ---------- fiche joueur de chaque compte /RAM ----------
-   Chaque compte (créé depuis /RAM JA ou /RAM Club : c'est la même inscription) a sa propre fiche joueur,
+   Chaque compte (créé depuis /Pista ou /Buvette : c'est la même inscription) a sa propre fiche joueur,
    qui suit le compte : nom, prénom, licence et classement padel sont recopiés à chaque modification du profil.
    Seule exception : une fiche saisie par un juge-arbitre qui porte la même licence est la même personne :
    le compte la reprend, avec son historique. Une fiche n'appartient qu'à un seul compte. */
@@ -573,7 +573,7 @@ async function moveAccountPlayer(u, id, pl) {
   }
   pl.user_id = u.id; id.player = pl.id;
 }
-/* crée ou met à jour la fiche du compte ; extra : { rank } (classement padel venu de /RAM Club) */
+/* crée ou met à jour la fiche du compte ; extra : { rank } (classement padel venu de /Buvette) */
 async function syncAccountPlayer(u, extra = {}) {
   if (!u || u.guest) return null;
   const id = Object.assign({}, await store.getIdentity(u.id).catch(() => null));
@@ -629,7 +629,7 @@ async function ensureClubLinks(log) {
     if (s.club_id) continue;
     const c = await clubs.resolve(s.name).catch(() => null); if (c) { await ram.linkClub(s.id, c.id); nR++; }
   }
-  // adhésions : clubs des comptes et adhérents des espaces /RAM Club, pour la saison en cours
+  // adhésions : clubs des comptes et adhérents des espaces /Buvette, pour la saison en cours
   for (const u of users) if (u.club_id) { const id = await store.getIdentity(u.id).catch(() => null); await adhesions.syncAccount(u, id && id.player).catch(() => {}); }
   await adhesions.syncAllSpaces();
   await progression.syncAllSpaces();
@@ -654,7 +654,7 @@ async function ensureClubLinks(log) {
       }
     } catch (e) {}
   }
-  if (nU + nR + nT + nP) log(`Clubs : ${clubs.list().length} au référentiel — ${nU} compte(s), ${nR} espace(s) /RAM Club, ${nT} tournoi(s), ${nP} fiche(s) joueur rattaché(s)`);
+  if (nU + nR + nT + nP) log(`Clubs : ${clubs.list().length} au référentiel — ${nU} compte(s), ${nR} espace(s) /Buvette, ${nT} tournoi(s), ${nP} fiche(s) joueur rattaché(s)`);
 }
 
 /* animation terminée : sa place entre dans l'historique de chaque joueur reconnu (compte /RAM ou fiche de la base),
@@ -701,7 +701,7 @@ function probableDoubles(list) {
 }
 
 /* classements inter-clubs de la saison (gardés 10 minutes) :
-   - activité : points d'investissement /RAM Club moyens par adhérent (clubs d'au moins 3 adhérents)
+   - activité : points d'investissement /Buvette moyens par adhérent (clubs d'au moins 3 adhérents)
    - tournois : points et titres gagnés par les joueurs de chaque club (club de leur fiche) */
 const rankCache = new Map();
 async function interClubRankings(season) {
@@ -879,7 +879,7 @@ function currentTournament(list) {
 }
 
 /* connecteur MCP /RAM (lib/mcp.js) : Claude lit les tournois, les clubs et le suivi d'un compte, avec son accord */
-/* première venue sur /RAM JA d'un compte créé ailleurs : son essai commence, avec le tournoi d'exemple */
+/* première venue sur /Pista d'un compte créé ailleurs : son essai commence, avec le tournoi d'exemple */
 async function firstJaVisit(u) {
   if (!u || u.guest) return;
   const b = await store.getBilling(u.id).catch(() => null);
@@ -892,7 +892,7 @@ async function firstJaVisit(u) {
 const mcp = require('./lib/mcp.js').createMcp({ store, ram, Engine, Ani, getRoom, mainClubOf, currentUser, readBody, json, redirect, isAdmin, newTournament, applyServerAction, accessFor });
 /* réservation ou annulation Calendly → planning de l'enseignant : le compte /RAM de l'hôte (même e-mail), sinon CALENDLY_COMPTE */
 taches.on('calendly', async b => {
-  const relie = b.hote && ((await store.getSetting('calendly-hotes').catch(() => null)) || {})[b.hote];   // l'enseignant a relié ce Calendly depuis /RAM Coach
+  const relie = b.hote && ((await store.getSetting('calendly-hotes').catch(() => null)) || {})[b.hote];   // l'enseignant a relié ce Calendly depuis /Dojo
   const coach = (relie && await store.getUser(relie)) || (b.hote && await store.getUserByEmail(b.hote)) || (process.env.CALENDLY_COMPTE && await store.getUserByEmail(String(process.env.CALENDLY_COMPTE).trim().toLowerCase()));
   if (!coach) throw new Error('Calendly : aucun compte /RAM pour ' + b.hote + ' (renseigner CALENDLY_COMPTE dans Render)');
   const r = b.type === 'reservation' ? await mcp.calendly.book(coach, b) : await mcp.calendly.cancel(coach, b);
@@ -905,8 +905,8 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   try {
-    /* ---------- /RAM Club (club.riseandmove.fr) : même serveur, mêmes comptes, même base ----------
-       Sur le sous-domaine club., tout ce qui n'est pas l'API est l'appli /RAM Club (dossier club/).
+    /* ---------- /Buvette (club.riseandmove.fr) : même serveur, mêmes comptes, même base ----------
+       Sur le sous-domaine club., tout ce qui n'est pas l'API est l'appli /Buvette (dossier club/).
        Ailleurs (ja., localhost), elle reste accessible sous /club/ pour les essais. */
     // connecteur MCP /RAM pour Claude (OAuth avec le compte /RAM, lecture seule) : /mcp, /oauth/…, /.well-known/oauth-…
     if (await mcp(req, res, url)) return;
@@ -934,7 +934,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'no-store' });
       return res.end(Agenda.toIcs((await coachTables.pourAgenda(uid, de, a)).seances));
     }
-    // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html, sur coach.riseandmove.fr :
+    // /Dojo : la même appli que /Buvette (dossier club/), ouverte sur coach.html, sur coach.riseandmove.fr :
     // l'appli pour un compte connecté, sinon la présentation ; /presentation, /demo, /connexion, /inscription
     /* icônes demandées d'office à la racine par Safari (favoris, écran d'accueil) et les navigateurs : celles de l'appli du domaine */
     if (/^\/(apple-touch-icon(-precomposed)?\.png|favicon\.ico)$/.test(p) && (appHote === 'coach' || appHote === 'club')) {
@@ -974,7 +974,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/mot-de-passe-oublie' || p === '/reinitialiser') return sendFile(res, '/auth.html');
     if (p === '/connexion' || p === '/inscription') {
       const u = await currentUser(req);
-      // déjà connecté : tableau de bord, ou retour direct vers /RAM Club si l'on en vient
+      // déjà connecté : tableau de bord, ou retour direct vers /Buvette si l'on en vient
       const back = String(url.searchParams.get('retour') || '');
       if (u && !u.guest) return redirect(res, (back.startsWith('/club/') || back.startsWith('/oauth/authorize?') || Noms.hotes('club').some(h => back.startsWith('https://' + h + '/'))) ? back : '/dashboard', { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
       return sendFile(res, '/auth.html');
@@ -1006,7 +1006,7 @@ const server = http.createServer(async (req, res) => {
       return redirect(res, '/t/' + row.id, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 1), 1) });
     }
     if (p === '/deconnexion') return redirect(res, '/', { 'Set-Cookie': Auth.sessionCookie(req, null) });
-    // déconnexion sans changer de page (/RAM Club, y compris sur club.riseandmove.fr)
+    // déconnexion sans changer de page (/Buvette, y compris sur club.riseandmove.fr)
     if (p === '/api/auth/logout' && req.method === 'POST') return json(res, 200, { ok: true }, { 'Set-Cookie': Auth.sessionCookie(req, null) });
     let m = p.match(/^\/t\/([\w-]+)\/?(tv|overlay|print|remote)?$/);
     if (m) {
@@ -1037,10 +1037,10 @@ const server = http.createServer(async (req, res) => {
         pass_hash: await Auth.hashPasswordAsync(b.password), plan: 'essai', guest: false, created_at: Date.now() };
       await store.saveUser(u);
       if (first || last) await store.saveIdentity(u.id, { first, last });
-      await ensureAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // sa fiche joueur /RAM JA
-      // compte créé depuis /RAM Club ou /RAM Coach : ni offre ni essai /RAM JA tant qu'il n'y est pas venu
+      await ensureAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // sa fiche joueur /Pista
+      // compte créé depuis /Buvette ou /Dojo : ni offre ni essai /Pista tant qu'il n'y est pas venu
       if (/^(club|coach)\./.test(host) || /\/club\//.test(String(req.headers.referer || ''))) await store.saveBilling(u.id, { noTrial: true });
-      // sur /RAM JA : l'essai commence, avec un premier tournoi d'exemple pour bien démarrer
+      // sur /Pista : l'essai commence, avec un premier tournoi d'exemple pour bien démarrer
       else await newTournament(u.id, { demo: true, example: true, name:'Tournoi d\'exemple' });
       // e-mail de bienvenue (sans bloquer l'inscription si l'envoi échoue)
       taches.enqueue('mail', Object.assign({ to: email }, Mail.welcomeMail({ first, appUrl: appUrl(req) })));
@@ -1054,7 +1054,7 @@ const server = http.createServer(async (req, res) => {
       if (!u || !(await Auth.checkPasswordAsync(b.password, u.pass_hash))) return json(res, 401, { error: 'E-mail ou mot de passe incorrect.' });
       return json(res, 200, { ok: true, user: publicUser(u) }, { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) });
     }
-    /* ---------- Calendly : réservation ou annulation → séance du planning /RAM Coach (lib/calendly.js) ---------- */
+    /* ---------- Calendly : réservation ou annulation → séance du planning /Dojo (lib/calendly.js) ---------- */
     if (p === '/api/calendly/webhook' && req.method === 'POST') {
       const raw = (await readRaw(req)).toString('utf8');
       if (!Calendly.verify(raw, req.headers['calendly-webhook-signature'])) return json(res, 401, { error: 'Signature invalide' });
@@ -1089,7 +1089,7 @@ const server = http.createServer(async (req, res) => {
           pass_hash: null, plan: 'actif', guest: false, created_at: Date.now() };
         await store.saveUser(u);
         if (first || last) await store.saveIdentity(u.id, { first, last });
-      await ensureAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // sa fiche joueur /RAM JA
+      await ensureAccountPlayer(u).catch(e => console.error('Fiche joueur du compte :', e.message));   // sa fiche joueur /Pista
         await newTournament(u.id, { demo: true, example: true, name: 'Tournoi d\'exemple' });
       } else if ((u.plan || 'essai') === 'essai') { u.plan = 'actif'; await store.saveUser(u); }
       if (!u.pass_hash) link = appUrl(req) + '/reinitialiser?t=' + encodeURIComponent(Auth.makeResetToken(u, Date.now(), 7 * 864e5));
@@ -1190,9 +1190,9 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req), from = String(b.from || ''), to = String(b.to || '');
         try {
           if (!clubs.get(from) || !clubs.get(to) || from === to) throw new Error('Choisissez deux clubs différents du référentiel.');
-          for (const s of (await ram.spaces()).filter(s => s.club_id === from)) await ram.linkClub(s.id, to);   // espaces /RAM Club d'abord
+          for (const s of (await ram.spaces()).filter(s => s.club_id === from)) await ram.linkClub(s.id, to);   // espaces /Buvette d'abord
           const kept = await clubs.merge(from, to);
-          // club principal (licence) choisi dans /RAM Club
+          // club principal (licence) choisi dans /Buvette
           for (const x of await store.listIdentities().catch(() => [])) if (x.identity && x.identity.mainClub === from) await store.saveIdentity(x.owner, Object.assign({}, x.identity, { mainClub: to }));
           // adhésions, progression et groupes refaits sous le bon club ; comptes rattachés recalculés
           for (const x of (await store.listUsers()).filter(x => !x.guest && x.club_id === to)) { const id = await store.getIdentity(x.id).catch(() => null); await adhesions.syncAccount(x, id && id.player).catch(() => {}); }
@@ -1265,7 +1265,7 @@ const server = http.createServer(async (req, res) => {
         if (a && (!/^data:image\/(png|jpeg|webp);base64,/.test(a) || a.length > 400000)) return json(res, 400, { error: 'Image trop lourde ou format non reconnu.' });
         id.avatar = a; changed = true;
       }
-      // le club d'un adhérent /RAM Club est celui de /RAM Club : il ne se change pas ici
+      // le club d'un adhérent /Buvette est celui de /Buvette : il ne se change pas ici
       if (b.club != null && !(await mainClubOf(u.id).catch(() => null))) u.club = String(b.club).trim().slice(0, 120);
       await store.saveUser(u);
       if (changed) await store.saveIdentity(u.id, id);
@@ -1286,17 +1286,17 @@ const server = http.createServer(async (req, res) => {
       const u = await currentUser(req);
       // identité et accès lus en même temps
       const [id, access] = await Promise.all([u && !u.guest ? store.getIdentity(u.id).catch(() => null) : null, u ? accessFor(u) : null]);
-      // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (/RAM JA + /RAM Club)
+      // compte /RAM : la session est renouvelée et étendue à tout riseandmove.fr (/Pista + /Buvette)
       const renew = u && !u.guest ? { 'Set-Cookie': Auth.sessionCookie(req, Auth.makeToken(u.id, 0, u.pass_hash)) } : undefined;
       return json(res, 200, { user: publicUser(u && Object.assign({}, u, id || {})), access, storage: store.kind }, renew);
     }
 
-    /* ---------- API /RAM Club (même compte /RAM, mêmes données Supabase) ---------- */
+    /* ---------- API /Buvette (même compte /RAM, mêmes données Supabase) ---------- */
     if (p.startsWith('/api/ram/')) {
       const u = await currentUser(req);
       if (!u || u.guest) return json(res, 401, { error: 'Connectez-vous avec votre compte /RAM.' });
       const fail = e => json(res, 400, { error: e.message });
-      // mes clubs /RAM Club, avec le club du référentiel et lequel est mon club principal
+      // mes clubs /Buvette, avec le club du référentiel et lequel est mon club principal
       if (p === '/api/ram/clubs' && req.method === 'GET') {
         const main = await mainClubOf(u.id).catch(() => null), sps = await ram.spaces();
         return json(res, 200, { clubs: (await ram.myClubs(u.id)).map(c => { const cid = (sps.find(s => s.id === c.id) || {}).club_id || null; return Object.assign(c, { clubId: cid, main: !!cid && cid === main }); }) });
@@ -1351,10 +1351,10 @@ const server = http.createServer(async (req, res) => {
       }
       if (p === '/api/ram/clubs' && req.method === 'POST') {
         const b = await readBody(req), id = await store.getIdentity(u.id).catch(() => null), n = splitName(Object.assign({}, u, id || {}));
-        // l'espace /RAM Club est relié au club du référentiel (créé s'il n'y est pas encore)
+        // l'espace /Buvette est relié au club du référentiel (créé s'il n'y est pas encore)
         const club = await clubs.resolve(b.name, { by: u.id }).catch(() => null);
         return ram.create({ id: u.id, email: u.email, name: [n.first, n.last].filter(Boolean).join(' ') || u.name }, Object.assign({}, b, { clubId: club && club.id })).then(async c => {
-          await adhesions.syncSpace(c.id).catch(() => {});   // le créateur, au bureau du club : son club /RAM JA devient celui-ci
+          await adhesions.syncSpace(c.id).catch(() => {});   // le créateur, au bureau du club : son club /Pista devient celui-ci
           await progression.syncSpace(c.id).catch(() => {});
           await groupes.syncSpace(c.id).catch(() => {});
           return json(res, 200, c);
@@ -1405,12 +1405,12 @@ const server = http.createServer(async (req, res) => {
         const r = await ram.older(u.id, m[1], String(url.searchParams.get('ref') || ''), url.searchParams.get('before'), url.searchParams.get('n'));
         return r ? json(res, 200, r) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
       }
-      // /RAM Coach : l'historique des cours et des séances, à la demande (ouverture de l'appli allégée)
+      // /Dojo : l'historique des cours et des séances, à la demande (ouverture de l'appli allégée)
       if (m && m[2] === 'histo' && req.method === 'GET') {
         const r = await ram.history(u.id, m[1], url.searchParams.get('avant'));
         return r ? json(res, 200, r) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
       }
-      // /RAM Club : mes achats (et ceux de mes enfants) notés par mes enseignants, en résumé (lib/mes-achats.js)
+      // /Buvette : mes achats (et ceux de mes enfants) notés par mes enseignants, en résumé (lib/mes-achats.js)
       if (m && m[2] === 'achats' && req.method === 'GET') {
         const r = await mesAchats(u.id, m[1]);
         return r ? json(res, 200, r) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
@@ -1426,7 +1426,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (m && m[2] === 'sync') {
         const out = await ram.sync(u.id, m[1], url.searchParams.get('since'), { fenetre: url.searchParams.get('fenetre') === '1' });
-        // titres de juge-arbitre /RAM JA des adhérents (badge dans le club), au premier chargement
+        // titres de juge-arbitre /Pista des adhérents (badge dans le club), au premier chargement
         if (out && !+url.searchParams.get('since')) out.jaTitles = await jaTitlesOf(m[1]).catch(() => ({}));
         return out ? json(res, 200, out) : json(res, 404, { error: "Ce club n'existe pas ou vous n'en faites plus partie." });
       }
@@ -1457,7 +1457,7 @@ const server = http.createServer(async (req, res) => {
         let opts = { name: b.name, demo: !!b.demo, profile: u.guest ? null : await store.getProfile(u.id) };
         // animation (americano, mexicano, par équipes, montée-descente)
         if (b.kind === 'animation') opts = { animation: { format: b.format, name: b.name, club: (opts.profile && opts.profile.club) || u.club || '' } };
-        // tournoi interne du club : tableau à élimination sur plusieurs semaines, joué et suivi dans /RAM Club
+        // tournoi interne du club : tableau à élimination sur plusieurs semaines, joué et suivi dans /Buvette
         if (b.kind === 'interne') opts = { interne: { name: b.name, sport: b.sport, club: (opts.profile && opts.profile.club) || u.club || '' } };
         if (b.template) {
           const mine = await store.getTemplates(u.id);
@@ -1518,8 +1518,8 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, Object.assign(await accountStats(u.id), { guest: !!u.guest }));
     }
 
-    /* ---------- liens /RAM JA ↔ /RAM Club ---------- */
-    /* ma fiche joueur /RAM JA : celle rattachée à mon compte, sinon les fiches qui pourraient être la mienne
+    /* ---------- liens /Pista ↔ /Buvette ---------- */
+    /* ma fiche joueur /Pista : celle rattachée à mon compte, sinon les fiches qui pourraient être la mienne
        (même licence, ou même nom et prénom), avec leurs derniers tournois pour que je me reconnaisse */
     if (p === '/api/me/player') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
@@ -1555,7 +1555,7 @@ const server = http.createServer(async (req, res) => {
       } catch (e) { return json(res, 200, { linked: null, licence: id.licence || '', candidates: [] }); }
     }
     /* annuaire des clubs commun aux deux applis : le référentiel des clubs, avec pour chacun
-       son espace /RAM Club éventuel et le nombre de tournois /RAM JA qu'il a accueillis */
+       son espace /Buvette éventuel et le nombre de tournois /Pista qu'il a accueillis */
     if (p === '/api/clubs-directory') {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
       if (!clubDir || Date.now() - clubDir.at > 300000) {
@@ -1569,8 +1569,8 @@ const server = http.createServer(async (req, res) => {
       const q = norm(url.searchParams.get('q') || '');
       return json(res, 200, { clubs: clubDir.list.filter(c => !q || norm(c.name).includes(q)).slice(0, q ? 30 : 500) });
     }
-    /* juges-arbitres /RAM JA proposés dans le champ « Juge-arbitre » d'un tournoi : comptes qui ont un titre
-       de juge-arbitre ou qui ont déjà organisé un vrai tournoi (pas les comptes seulement /RAM Club) ;
+    /* juges-arbitres /Pista proposés dans le champ « Juge-arbitre » d'un tournoi : comptes qui ont un titre
+       de juge-arbitre ou qui ont déjà organisé un vrai tournoi (pas les comptes seulement /Buvette) ;
        seulement nom, titres et club — jamais de coordonnées */
     if (p === '/api/referees') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
@@ -1592,8 +1592,8 @@ const server = http.createServer(async (req, res) => {
       list.sort((a, b) => Number(b.sameClub) - Number(a.sameClub));
       return json(res, 200, { referees: list.slice(0, 20) });
     }
-    /* s'inscrire (ou se désinscrire) à un tournoi /RAM JA depuis /RAM Club */
-    // tournoi interne : un joueur saisit, confirme ou conteste le résultat de son match depuis /RAM Club
+    /* s'inscrire (ou se désinscrire) à un tournoi /Pista depuis /Buvette */
+    // tournoi interne : un joueur saisit, confirme ou conteste le résultat de son match depuis /Buvette
     if (p === '/api/ja/interne' && req.method === 'POST') {
       const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
       const b = await readBody(req);
@@ -1613,7 +1613,7 @@ const server = http.createServer(async (req, res) => {
       const managed = await mainClubOf(u.id).catch(() => null);
       const prog = await progression.ofUser(u.id).catch(() => []), grs = await groupes.ofUser(u.id).catch(() => []);
       return json(res, 200, { season: adhesions.seasonOf(), managed: managed ? { clubId: managed, club: clubs.name(managed) } : null, memberships: rows.map(r => ({ clubId: r.club_id, club: clubs.name(r.club_id), role: r.role, status: r.status, season: r.season, source: r.source, licenceClub: !!r.licence_club })),
-        // progression /RAM Club : points et trophées, par club et par saison
+        // progression /Buvette : points et trophées, par club et par saison
         progress: prog.map(g => ({ clubId: g.club_id, club: clubs.name(g.club_id), season: g.season, points: g.points, trophies: Object.keys(g.trophies || {}).length })),
         // mes groupes d'entraînement et mes équipes
         groups: grs.map(g => ({ clubId: g.club_id, club: clubs.name(g.club_id), name: g.name, type: g.type, sport: g.sport, day: g.day, start: g.start_time, duration: g.duration, location: g.location, role: g.role, season: g.season })) });
@@ -1664,7 +1664,7 @@ const server = http.createServer(async (req, res) => {
           const players = await store.searchPlayers(q, 8);
           const parts = await store.participationsOfPlayers(players.map(x => x.id));
           const list = players.map(pl => Object.assign(publicPlayer(pl), { tournaments: parts.filter(x => x.player_id === pl.id).length }));
-          // adhérents /RAM Club pas encore dans la base : proposés aussi (nom, licence, classement padel, club)
+          // adhérents /Buvette pas encore dans la base : proposés aussi (nom, licence, classement padel, club)
           const known = new Set(players.flatMap(pl => [pl.id, pl.licence && 'l:' + pl.licence, pl.name_key && 'n:' + pl.name_key].filter(Boolean)));
           // fiche de la base qui est aussi un adhérent d'un club : on le dit (clé dans le club), pour ne pas la proposer deux fois
           const deCle = new Map();
@@ -1730,7 +1730,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { profile: await store.getProfile(u.id), guest: !!u.guest });
     }
 
-    /* ---------- /RAM Coach : formules et tarifs de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
+    /* ---------- /Dojo : formules et tarifs de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
     // planning de l'enseignant, tous ses clubs : lu dans les vraies tables, sans charger aucun club en mémoire
     if (p === '/api/coach/planning' && req.method === 'GET') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
@@ -1770,7 +1770,7 @@ const server = http.createServer(async (req, res) => {
       }
       return json(res, 200, { formules: await Formules.get(store, u.id) });
     }
-    // les tarifs d'un enseignant d'un club, pour sa fiche dans /RAM Club (des prix publics : ni nom ni coordonnées)
+    // les tarifs d'un enseignant d'un club, pour sa fiche dans /Buvette (des prix publics : ni nom ni coordonnées)
     if (p === '/api/coach/formules/public') {
       const m = await ram.memberByKey(url.searchParams.get('c') || '', url.searchParams.get('k') || '').catch(() => null);
       return json(res, 200, { formules: m && m.user_id ? Formules.publicOf(await Formules.get(store, m.user_id), url.searchParams.get('c') || '') : null });
@@ -1906,7 +1906,7 @@ const server = http.createServer(async (req, res) => {
       } catch (e) { return refus(e); }
       return json(res, 404, { error: 'Introuvable' });
     }
-    /* ---------- /RAM Coach : relier ses outils de réservation ---------- */
+    /* ---------- /Dojo : relier ses outils de réservation ---------- */
     if (p === '/api/coach/agenda-lien' && req.method === 'GET') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       return json(res, 200, { lien: appUrl(req) + Agenda.lienIcs(u.id) });
@@ -1949,7 +1949,7 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { ok: true, email: r.email });
       } catch (e) { return json(res, 400, { error: 'Calendly refuse ce jeton.' }); }
     }
-    /* ---------- /RAM Réservation : réserver un cours depuis /RAM Club (lib/reservation.js) ---------- */
+    /* ---------- /RAM Réservation : réserver un cours depuis /Buvette (lib/reservation.js) ---------- */
     if (p.startsWith('/api/reservation/')) {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       const q = k => url.searchParams.get(k) || '', refus = e => { if (e instanceof reservation.Refus) return json(res, 400, { error: e.message }); throw e; };
@@ -1964,7 +1964,7 @@ const server = http.createServer(async (req, res) => {
       } catch (e) { return refus(e); }
       return json(res, 404, { error: 'Introuvable' });
     }
-    /* ---------- /RAM Coach : échelles de niveaux de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
+    /* ---------- /Dojo : échelles de niveaux de l'enseignant (sur son compte, pour tous ses clubs) ---------- */
     if (p === '/api/coach/echelles') {
       const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
       if (req.method === 'POST') return json(res, 200, { echelles: await Echelles.save(store, u.id, (await readBody(req)).echelles) });
@@ -2035,7 +2035,7 @@ const server = http.createServer(async (req, res) => {
               const t = (room.row.state.tournament || {}).name || 'tournoi', nomMoi = [me.first, me.last].filter(Boolean).join(' ') || me.name || me.email, link = appUrl(req) + '/t/' + room.row.id;
               if (Mail.enabled()) Mail.send(Object.assign({ to: e }, Mail.adjointMail({ by: nomMoi, tournoi: t, link }))).catch(er => console.error('E-mail adjoint :', er.message));
               const cible = await store.getUserByEmail(e).catch(() => null);
-              if (cible) taches.enqueue('push', { uids: [cible.id], msg: { title: '/RAM JA', body: `${nomMoi} vous a ajouté comme juge-arbitre adjoint : ${t}`, url: '/t/' + room.row.id, tag: 'adjoint-' + room.row.id, app: 'ja' } });
+              if (cible) taches.enqueue('push', { uids: [cible.id], msg: { title: '/Pista', body: `${nomMoi} vous a ajouté comme juge-arbitre adjoint : ${t}`, url: '/t/' + room.row.id, tag: 'adjoint-' + room.row.id, app: 'ja' } });
             }
           }
           room.row.updated_at = Date.now();
@@ -2093,7 +2093,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('\n  ==============================================');
-  console.log('   /RAM JA — serveur démarré');
+  console.log('   /Pista — serveur démarré');
   console.log('  ==============================================');
   console.log(`   Stockage : ${ONLINE ? 'Supabase (en ligne)' : 'fichiers locaux (dossier data)'}`);
   console.log(`   Ouvrir   : http://localhost:${PORT}/`);
@@ -2120,7 +2120,7 @@ server.listen(PORT, '0.0.0.0', () => {
   progression.watch(msg => console.error('  ' + msg));   // et sa progression (trophées, points)
   groupes.watch(msg => console.error('  ' + msg));
   fiches.watch(msg => console.error('  ' + msg));
-  watchClubIdentity();   // logo, adresse, terrains du club        // et ses groupes   // chaque changement d'un espace /RAM Club met à jour ses adhésions
+  watchClubIdentity();   // logo, adresse, terrains du club        // et ses groupes   // chaque changement d'un espace /Buvette met à jour ses adhésions
   // images encore intégrées aux données des clubs : rangées en fichiers, une seule fois (version notée dans les réglages du serveur)
   setTimeout(async () => {
     try {
@@ -2129,7 +2129,7 @@ server.listen(PORT, '0.0.0.0', () => {
       await store.saveSetting('medias', { v: 1, at: Date.now() });
     } catch (e) { console.error('  Images :', e.message); }
   }, 15000).unref();
-  // /RAM Coach : les vraies tables donnent-elles le même planning que les éléments des clubs ? (résultat : server_settings, « coach-verif »)
+  // /Dojo : les vraies tables donnent-elles le même planning que les éléments des clubs ? (résultat : server_settings, « coach-verif »)
   setTimeout(() => coachTables.verify(new Date().toISOString().slice(0, 10), msg => console.log('  ' + msg)).catch(e => console.error('  Coach, comparaison :', e.message)), 30000).unref();
   // autres migrations des données (lib/migrations.js), une seule fois chacune
   setTimeout(() => Migrations.run(store, [
@@ -2138,7 +2138,7 @@ server.listen(PORT, '0.0.0.0', () => {
   ], msg => console.error('  ' + msg)).catch(e => console.error('  Migrations :', e.message)), 20000).unref();
 });
 server.on('error', e => {
-  if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /RAM JA est sans doute déjà lancé.\n`);
+  if (e.code === 'EADDRINUSE') console.log(`\n  Le port ${PORT} est déjà utilisé : /Pista est sans doute déjà lancé.\n`);
   else console.error(e);
 });
 // sauvegarde propre à l'arrêt

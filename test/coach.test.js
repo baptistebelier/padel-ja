@@ -1,4 +1,4 @@
-/* /RAM Coach : fiches élèves, séances et suivi rangés dans l'espace du club.
+/* /Dojo : fiches élèves, séances et suivi rangés dans l'espace du club.
    Les fiches restent à l'équipe pédagogique ; le suivi d'un élève n'est lu que par lui, ses parents
    et ses enseignants ; seul l'enseignant ouvre la conversation, l'élève répond ensuite. */
 const test = require('node:test');
@@ -16,7 +16,7 @@ if (saved.key) process.env.SUPABASE_SERVICE_KEY = saved.key;
 const item = (s, coll, id) => (s.items.find(i => i.coll === coll && i.id === id) || {}).data;
 const has = (s, coll) => s.items.some(i => i.coll === coll && !i.del);
 
-test('suivi /RAM Coach : enseignant, élève, parent et autres adhérents', async () => {
+test('suivi /Dojo : enseignant, élève, parent et autres adhérents', async () => {
   const coach = { id: 'C', name: 'Sarah Benali' }, eleve = { id: 'E', name: 'Thomas Leroy' }, autre = { id: 'O', name: 'Paul Martin' };
   const club = await ram.create(coach, { name: 'TC Coach', short: 'tcc' });
   const kC = club.key, kE = (await ram.join(eleve, club.code)).key, kO = (await ram.join(autre, club.code)).key;
@@ -130,7 +130,7 @@ test('cours particuliers rangés à part des groupes : migration, droits, séanc
   assert.equal(r.rejected.length, 1);
 });
 
-test('ouverture allégée de /RAM Coach : cours et séances anciens à la demande, jamais perdus', async () => {
+test('ouverture allégée de /Dojo : cours et séances anciens à la demande, jamais perdus', async () => {
   const coach = { id: 'C4', name: 'Sarah Benali' }, eleve = { id: 'E4', name: 'Thomas Leroy' }, autre = { id: 'O4', name: 'Paul Martin' };
   const club = await ram.create(coach, { name: 'TC Histo', short: 'tch' });
   const kC = club.key, kE = (await ram.join(eleve, club.code)).key, kO = (await ram.join(autre, club.code)).key;

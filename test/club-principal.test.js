@@ -1,4 +1,4 @@
-/* Plusieurs clubs sur /RAM Club : un club principal (celui de la licence, repris par /RAM JA) et des clubs secondaires */
+/* Plusieurs clubs sur /Buvette : un club principal (celui de la licence, repris par /Pista) et des clubs secondaires */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { freePort, until, serverReady } = require('./helpers');

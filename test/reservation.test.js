@@ -1,4 +1,4 @@
-/* Réservation depuis /RAM Club : ce qui est libre, sans aucun nom ; un cours confirmé tout de suite ; pas de doublon */
+/* Réservation depuis /Buvette : ce qui est libre, sans aucun nom ; un cours confirmé tout de suite ; pas de doublon */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs'), os = require('os'), path = require('path');
@@ -684,7 +684,7 @@ test('parcours : l’élève réserve, le coach est prévenu avec l’objectif ;
   assert.equal(await libre(club, key, a, d, 570), false, 'pris');
   const it = (await ram.itemsOf(club.id, 'cours')).find(x => x.id === r.id);
   assert.equal(it.data.goal, 'Améliorer ma volée');
-  // le coach annule dans /RAM Coach
+  // le coach annule dans /Dojo
   recus.length = 0;
   await ram.ops(coach, club.id, [{ coll: 'cours', id: r.id, op: 'patch', patch: [{ p: ['cancel'], t: 'add', v: d }] }], { client: true });
   await repos();
@@ -712,7 +712,7 @@ test('parcours : l’élève réserve, le coach est prévenu avec l’objectif ;
   void ka;
 });
 
-test('Calendly et /RAM Club : une réservation Calendly bloque le créneau, son annulation le rend ; jamais deux cours au même moment', async () => {
+test('Calendly et /Buvette : une réservation Calendly bloque le créneau, son annulation le rend ; jamais deux cours au même moment', async () => {
   const { coach, club, key, d, a, ka } = await monte(41);
   const g = { type: 'train', name: 'Cours Academy', once: d, h: '9 h', dur: '1 h', coach: key, mem: [ka], cal: 'https://api.calendly.com/scheduled_events/E1', day: REGLES.dowOf(d) };
   await ram.ops(coach, club.id, [{ coll: 'cours', id: 'gcal', op: 'put', data: g }]);

@@ -1,4 +1,4 @@
-/* /RAM Club — app/3-direct.js : Bandeaux de notification, rencontres en direct et score, photos jointes.
+/* /Buvette — app/3-direct.js : Bandeaux de notification, rencontres en direct et score, photos jointes.
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* Bandeau de notification qui descend du haut, puis remonte ; un toucher ouvre la cible, un glissé vers le haut le range */
 /* Un seul bandeau visible à la fois : les suivants s'accumulent derrière avec un compteur « +N » qui ouvre la liste des notifications. Ceux du direct sont rouges */

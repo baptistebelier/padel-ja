@@ -142,7 +142,7 @@ test('suivi : N adhérents validés reçoivent les notifications sur M (un enfan
   const store = localStore('ram-suivi-');
   const push = W.createWebPush({ store });
   await push.subscribe('uA', sub('a'), 'Chrome', 'club');
-  await push.subscribe('uB', sub('b'), 'Chrome', 'coach');   // seulement /RAM Coach : ne compte pas
+  await push.subscribe('uB', sub('b'), 'Chrome', 'coach');   // seulement /Dojo : ne compte pas
   const au = { keys: ['a', 'b', 'c', 'kid', 'att'], user: { a: 'uA', b: 'uB', c: 'uC', att: 'uE' }, parent: { kid: 'a' },
     valid: { a: true, b: true, c: true, kid: true, att: false } };
   assert.deepEqual(await suiviNotifs(au, push), { n: 2, m: 4, sansCompte: 0 });

@@ -1,6 +1,6 @@
 {
- "name": "/RAM Coach",
- "short_name": "/RAM Coach",
+ "name": "/Dojo",
+ "short_name": "/Dojo",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",

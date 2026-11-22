@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#120A0C">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja3">
-<title>Tournoi interne — /RAM JA</title>
+<title>Tournoi interne — /Pista</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
@@ -117,7 +117,7 @@ main#app { min-width: 0; }
 <!-- même coque que l'éditeur des tournois : section « En cours », menu du tournoi à gauche (barre du bas sur téléphone) -->
 <header class="appbar" id="appbar">
   <button class="ab-btn ab-menu" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
-  <div class="ab-title"><a class="ab-logo" href="/dashboard" aria-label="Tableau de bord"><img class="lg-n" src="/img/pista-detoure-blanc.png" alt="/RAM JA"><img class="lg-j" src="/img/pista-detoure-noir.png" alt="/RAM JA"></a><b id="abTitle">Tournoi interne</b><small id="abSub"></small></div>
+  <div class="ab-title"><a class="ab-logo" href="/dashboard" aria-label="Tableau de bord"><img class="lg-n" src="/img/pista-detoure-blanc.png" alt="/Pista"><img class="lg-j" src="/img/pista-detoure-noir.png" alt="/Pista"></a><b id="abTitle">Tournoi interne</b><small id="abSub"></small></div>
 </header>
 <div class="shell">
 <aside class="side r-sub">
@@ -146,7 +146,7 @@ main#app { min-width: 0; }
   const $ = s => document.querySelector(s);
   const tid = location.pathname.split('/')[2], base = '/api/t/' + tid;
   let S = null, membres = [], club = true, ouvert = null, espace = null;
-  /* liste déroulante des participants : adhérents du club (reliés à leur fiche), puis joueurs de la base /RAM JA */
+  /* liste déroulante des participants : adhérents du club (reliés à leur fiche), puis joueurs de la base /Pista */
   (window.RamSuggQ = window.RamSuggQ || []).push({
     match: el => el.hasAttribute('data-in-joueur'),
     filtre: false,
@@ -155,7 +155,7 @@ main#app { min-width: 0; }
       const l = membres.filter(m => !pris.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ id: 'k:' + m.k, v: m.n, l: 'Adhérent · ' + [m.compte ? 'Compte /RAM' : 'Fiche sans compte', m.niv, m.lic ? 'lic. ' + m.lic : ''].filter(Boolean).join(' · '), d: { k: m.k }, pp: 1, ph: m.ph, ml: m.ml }));
       if (t.length >= 2) {
         const d = await fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).catch(() => ({}));
-        (d.players || []).filter(p => p.source !== 'club' && !(p.membres || []).some(x => x.c === espace)).forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p }, pp: 1, ph: p.photo, ml: p.mail }));
+        (d.players || []).filter(p => p.source !== 'club' && !(p.membres || []).some(x => x.c === espace)).forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /Pista', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p }, pp: 1, ph: p.photo, ml: p.mail }));
       }
       return l;
     }
@@ -241,7 +241,7 @@ main#app { min-width: 0; }
       ${tennis && !tire && i.players.length ? '<p class="muted small">Les têtes de série suivent le classement (le quart du tableau final, une par section). « TS » les fixe à la main.</p>' : ''}
       ${tri.map(ligne).join('') || '<p class="muted">Ajoute les participants parmi les adhérents du club.</p>'}
       ${tire && aj.ok && !fini ? `<p class="note">Le tournoi a commencé : vous pouvez encore inscrire des joueurs classés <b>${esc(aj.min)}</b> ou mieux, qui entreront dans un tableau pas encore tiré.</p>` : ''}
-      ${(tire && !aj.ok) || fini ? '' : `<form id="in-add" class="in-add"><input name="a" data-in-joueur placeholder="${i.simple ? 'Tape un nom : adhérents, joueurs /RAM JA' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" data-in-joueur placeholder="Joueur 2" autocomplete="off" required>'}${tennis ? `<select name="cl" aria-label="Classement" style="flex:0 0 120px">${opt('', 'Classement', '')}${Int.ECHELONS.filter(e => !tire || !aj.min || Int.rang(e) >= Int.rang(aj.min)).map(e => opt(e, e, '')).join('')}</select>` : ''}<button class="btn">Ajouter</button></form>
+      ${(tire && !aj.ok) || fini ? '' : `<form id="in-add" class="in-add"><input name="a" data-in-joueur placeholder="${i.simple ? 'Tape un nom : adhérents, joueurs /Pista' : 'Joueur 1'}" autocomplete="off" required>${i.simple ? '' : '<input name="b" data-in-joueur placeholder="Joueur 2" autocomplete="off" required>'}${tennis ? `<select name="cl" aria-label="Classement" style="flex:0 0 120px">${opt('', 'Classement', '')}${Int.ECHELONS.filter(e => !tire || !aj.min || Int.rang(e) >= Int.rang(aj.min)).map(e => opt(e, e, '')).join('')}</select>` : ''}<button class="btn">Ajouter</button></form>
       <p class="muted small">Un nom choisi dans la liste relie le joueur à sa fiche /Buvette : il suivra le tableau et saisira ses résultats dans l’appli.</p>`}
       ${tire ? '<p class="muted small">Les placements se modifient dans « Tirage et composition ».</p>' : `<div class="in-row" style="margin-top:14px"><button type="button" class="btn ghost" data-go="tirage">Passer au tirage</button></div>`}</section>`;
   }
@@ -409,7 +409,7 @@ main#app { min-width: 0; }
   }
   function render() {
     if (!S || !S.int) return;
-    document.title = S.tournament.name + ' — /RAM JA';
+    document.title = S.tournament.name + ' — /Pista';
     const i = I(), fini = i.status === 'done', t = S.tournament;
     const sous = [i.sport, i.simple ? 'simple' : 'double', i.mode === 'poules' ? 'poules et tableau' : i.mode === 'tmc' ? 'TMC' : ''].filter(Boolean).join(' · ');
     const etat = fini ? 'Terminé' : Int.tire(i) ? 'En cours' : 'Inscriptions';

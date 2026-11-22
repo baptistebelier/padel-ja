@@ -1,4 +1,4 @@
-/* /RAM Club — ui/4-agenda.js : Planning et agenda du club : semaine, jour, liste.
+/* /Buvette — ui/4-agenda.js : Planning et agenda du club : semaine, jour, liste.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- planning ---------- */
 /* l'agenda du club : ce que le club organise (événements, stages, animations, tournois, rencontres d'équipes) ;
@@ -18,7 +18,7 @@ function planItems(iso) {
       t: hAt(g, iso),
       dur: REGLES.durMin(durAt(g, iso)),
       lines: [coachDu(g, iso) && M[coachDu(g, iso)] && ['user', first(coachDu(g, iso))], ['clock', durAt(g, iso)]],
-      // les élèves sans compte /RAM Club (ajoutés dans /RAM Coach) comptent aussi
+      // les élèves sans compte /Buvette (ajoutés dans /Dojo) comptent aussi
       tg0: cx ? evCx('Cours annulé') : evLoc(locOf(g, iso)),
       tg1:
         cx || !(g.mem.length + (g.ext || []).length)
@@ -94,7 +94,7 @@ function planItems(iso) {
     .map(i => ((i.iso = iso), i));
 }
 /* tout ce où l'on se positionne, en plus des cours, rencontres et événements : parties libres, parties dirigées,
-   séances collectives, tournois et animations /RAM JA, repas réservés au bar */
+   séances collectives, tournois et animations /Pista, repas réservés au bar */
 const hhmm = t => {
   const m = String(t || '').match(/^(\d{1,2}):(\d{2})/);
   return m ? +m[1] + ' h' + (m[2] !== '00' ? ' ' + m[2] : '') : t || '';
@@ -192,7 +192,7 @@ function planMore(iso, out, me, mine) {
       });
       return;
     }
-    // tournoi ou animation /RAM JA
+    // tournoi ou animation /Pista
     if (p.kind === 'jatour' && p.ja && p.d && iso >= p.d && iso <= (p.d2 || p.d)) {
       const inn = (p.ja.list || []).some(x => keys.includes(x.k1) || keys.includes(x.k2));
       // mon match programmé ce jour-là : à son heure, avec terrain et adversaires
@@ -365,7 +365,7 @@ const planCard = (i, dt) =>
     foot: i.foot || ''
   });
 /* Événements de l'agenda du club : ce qu'organise le club (événements, stages, animations,
-   tournois du club, tournois et animations /RAM JA, rencontres d'équipes),
+   tournois du club, tournois et animations /Pista, rencontres d'équipes),
    à venir sur 4 mois, une seule fois chacun (un stage sur plusieurs jours apparaît à son premier jour) */
 function eventsView() {
   const me = S.plan.scope === 'me',

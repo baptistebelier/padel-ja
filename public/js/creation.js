@@ -1,4 +1,4 @@
-/* /RAM JA — la fenêtre « Nouveau tournoi » (maquette /Pista, écran 5) : la même depuis Tournois, Calendrier et Tableau de bord.
+/* /Pista — la fenêtre « Nouveau tournoi » (maquette /Pista, écran 5) : la même depuis Tournois, Calendrier et Tableau de bord.
    Fenêtre centrée, segmenté Officiels / Mes modèles / Vierge / Animations / Interne, tuiles sur deux colonnes,
    le premier modèle présélectionné en citron ; le nom se règle dessous, puis « Continuer » crée le tournoi.
    Tout lien vers /app#nouveau ou /app#animation l'ouvre sans quitter la page. */
@@ -54,7 +54,7 @@
     // essai terminé ou tournoi d'essai déjà utilisé : on explique et on propose les offres
     const shop = (d.access && d.access.shop) || (window.PadelAccess && window.PadelAccess.shop);
     err.hidden = false;
-    err.innerHTML = esc(d.error || 'Création impossible.') + (shop ? ` <a href="${esc(shop)}" target="_blank" rel="noopener">Voir les offres /RAM JA</a>` : '');
+    err.innerHTML = esc(d.error || 'Création impossible.') + (shop ? ` <a href="${esc(shop)}" target="_blank" rel="noopener">Voir les offres /Pista</a>` : '');
   }
   function build() {
     dlg = document.createElement('dialog');

@@ -1,5 +1,5 @@
 /* =========================================================================
-   /RAM JA — rail de navigation principal + pages de l'espace juge-arbitre
+   /Pista — rail de navigation principal + pages de l'espace juge-arbitre
    (tableau de bord, mes tournois, calendrier, joueurs, profil, admin)
    Utilise les variables --ui-* de ui.css (thèmes jour / nuit).
    ========================================================================= */
@@ -104,7 +104,7 @@ a.kpi:hover { border-color: var(--ui-border-2); transform: translateY(-1px); }
 :root[data-theme="light"] .acct input, :root[data-theme="light"] .acct select { background: #fff; }
 .acct input:focus, .acct select:focus { border-color: var(--ui-accent-line); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent-line) 18%, transparent); }
 .acct label { display: grid; gap: 6px; font-size: 13px; color: var(--ui-text-mut); font-weight: 500; }
-.acct input[readonly] { background: transparent; border-style: dashed; cursor: default; }   /* valeur venue d'ailleurs (club /RAM Club) */
+.acct input[readonly] { background: transparent; border-style: dashed; cursor: default; }   /* valeur venue d'ailleurs (club /Buvette) */
 .acct input[readonly]:focus { box-shadow: none; }
 .form2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form2 .span2 { grid-column: span 2; }
@@ -370,7 +370,7 @@ a.row:hover { background: var(--ui-surface-2); border-radius: 12px; }
 .av-acts { display: flex; gap: 6px; }
 .av-acts .btn { padding: 4px 10px; font-size: 12px; }
 
-/* téléphone : logo /RAM JA au centre de la barre du haut */
+/* téléphone : logo /Pista au centre de la barre du haut */
 .ab-logo { display: none; }
 @media (max-width: 720px) {
   .mtop { position: sticky; justify-content: space-between; }
@@ -525,7 +525,7 @@ body.editor-page main > .acc-bar { margin: 12px 0 6px; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
 
 /* ---------- fond de l'interface (Profil › Apparence) : motifs /RAM ou uni ----------
-   Deux couches, comme /RAM Club : ::before porte les pictogrammes dans la teinte du texte (brun-rouge clair la nuit,
+   Deux couches, comme /Buvette : ::before porte les pictogrammes dans la teinte du texte (brun-rouge clair la nuit,
    foncé le jour), ::after les traces (balles, cœurs, flèches, trajectoires) dans le jaune /RAM. Contraste 1,2. */
 :root[data-fond="ram-padel"] { --fond: url(/img/motifs/w32/padel-base.png); --fond-acc: url(/img/motifs/w32/padel-accent.png); }
 :root[data-fond="ram-tennis"] { --fond: url(/img/motifs/w32/tennis-base.png); --fond-acc: url(/img/motifs/w32/tennis-accent.png); }

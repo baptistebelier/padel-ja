@@ -1,5 +1,5 @@
-/* /RAM Club — ui/13-suivi.js : suivi personnel des élèves, partagé avec /RAM Coach.
-   L'enseignant (dans /RAM Coach) écrit à un élève : messages, bilans de séance, analyses vidéo, contenus.
+/* /Buvette — ui/13-suivi.js : suivi personnel des élèves, partagé avec /Dojo.
+   L'enseignant (dans /Dojo) écrit à un élève : messages, bilans de séance, analyses vidéo, contenus.
    L'élève (ou son parent) les reçoit dans École, Mon espace, et répond une fois la conversation ouverte
    par l'enseignant : texte ou vidéo à analyser. Données : SUIVI (un élément par envoi) et SEANCES. */
 Object.assign(I, {
@@ -19,7 +19,7 @@ const svMine = () => [ME()].concat((M[ME()] && M[ME()].kids) || []);
 /* nom d'un élève : son profil du club, sinon sa fiche (élève pas encore inscrit dans l'appli) */
 const svName = id => (M[id] ? M[id].n : (ELEVES.find(e => e.id === id) || {}).n || 'Élève');
 const svFirst = id => svName(id).split(' ')[0];
-/* /RAM Coach (plusieurs clubs) : mes clés dans chaque club comptent comme « moi », et un envoi part dans le club de l'élève */
+/* /Dojo (plusieurs clubs) : mes clés dans chaque club comptent comme « moi », et un envoi part dans le club de l'élève */
 let svMe = k => k,
   svFrom = to => ({ by: ME() });
 const svOf = id => SUIVI.filter(x => x.to === id).sort((a, b) => (a.at || 0) - (b.at || 0));
@@ -97,11 +97,11 @@ function dmView(id) {
       dmStudent(id) ? 'Pas encore de message' : 'Aucun échange',
       dmStudent(id)
         ? "Ton enseignant t'écrira ici : messages, bilans de séance, analyses vidéo."
-        : 'Écris à ' + svFirst(id) + ' : le message arrive dans /RAM Club, École, Mon espace.'
+        : 'Écris à ' + svFirst(id) + ' : le message arrive dans /Buvette, École, Mon espace.'
     )
   }${canVid ? `<button class="btn full ghost" data-a="svVideo" data-id="${id}">${ic('video')}Envoyer une vidéo à analyser</button>` : ''}</div>`;
 }
-/* objectifs et bilans de fin de cycle (c.obj, c.bilan, écrits dans /RAM Coach) des groupes de l'élève, comme les bilans de séance */
+/* objectifs et bilans de fin de cycle (c.obj, c.bilan, écrits dans /Dojo) des groupes de l'élève, comme les bilans de séance */
 function cycBilans(k) {
   const l = GROUPS.filter(g => g.type === 'train' && [...(g.mem || []), ...(g.ext || [])].includes(k)).flatMap(g =>
     (g.cycles || []).filter(c => c.bilan || c.obj).map(c => ({ g, c }))
@@ -126,7 +126,9 @@ function objMes(k) {
     L.map(o => {
       const p = REGLES.objProgres(o, [k]),
         pct = p.total ? Math.round((100 * p.ok) / p.total) : 0;
-      return `<div class="card obj-card"><div class="obj"><div class="objh"><b>${esc(o.nom)}</b><span class="objp">${p.ok}/${p.total}</span></div><span class="objb" role="img" aria-label="${p.ok} compétences validées sur ${p.total}"><i style="width:${pct}%"></i></span><div class="objl">${(o.comps || [])
+      return `<div class="card obj-card"><div class="obj"><div class="objh"><b>${esc(o.nom)}</b><span class="objp">${p.ok}/${p.total}</span></div><span class="objb" role="img" aria-label="${p.ok} compétences validées sur ${p.total}"><i style="width:${pct}%"></i></span><div class="objl">${(
+        o.comps || []
+      )
         .map(c => {
           const on = !!(o.ok && o.ok[c.id] && o.ok[c.id][k]);
           return `<div class="objc ro${on ? ' on' : ''}" role="img" aria-label="${esc(c.nom)} : ${on ? 'validée' : 'à acquérir'}"><span class="objk">${ic('check')}</span><span class="grow">${esc(c.nom)}</span></div>`;
@@ -196,7 +198,7 @@ function persoBody() {
     .join('');
 }
 /* ---------- École, Enseignants : la fiche publique de chaque enseignant ----------
-   Remplie par l'enseignant dans /RAM Coach (Profil, Ma fiche enseignant), rangée dans son profil du club
+   Remplie par l'enseignant dans /Dojo (Profil, Ma fiche enseignant), rangée dans son profil du club
    (M[clé].pro) : diplôme, année de début, âge (s'il le montre), téléphone, e-mail, site, lien de réservation,
    tarifs, présentation. Les enseignants des groupes apparaissent aussi, même sans fiche remplie. */
 const proOf = k => (M[k] && M[k].pro) || {};

@@ -1,4 +1,4 @@
-/* /RAM Club — ui/1-briques.js : Briques communes : catégories, classements, avatars, petits éléments réutilisés partout.
+/* /Buvette — ui/1-briques.js : Briques communes : catégories, classements, avatars, petits éléments réutilisés partout.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* Briques d'interface et écrans */
 const hue = id => [...id].reduce((a, c) => a + c.charCodeAt(0) * 7, 0) % 360;
@@ -56,9 +56,9 @@ function bd(id, sport) {
   if (id === 'club') return '<span class="bds"><span class="bd club">Club</span></span>';
   const m = M[id],
     r = rk(id, sport);
-  // juge-arbitre /RAM JA : son titre (JAP2, JAT1…) en badge
+  // juge-arbitre /Pista : son titre (JAP2, JAT1…) en badge
   const ja = (window.RAM && RAM.jaTitles && RAM.jaTitles[id]) || [];
-  return `<span class="bds">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}${r ? `<span class="bd rk">${r}</span>` : ''}${ja.length ? `<span class="bd ja" title="Juge-arbitre /RAM JA">JA ${ja.join(' · ')}</span>` : ''}</span>`;
+  return `<span class="bds">${m.role ? `<span class="bd ${RC[m.role] || ''}">${m.role}</span>` : ''}${r ? `<span class="bd rk">${r}</span>` : ''}${ja.length ? `<span class="bd ja" title="Juge-arbitre /Pista">JA ${ja.join(' · ')}</span>` : ''}</span>`;
 }
 /* avatar d'un adhérent qui ouvre son profil (comme son nom) ; le club et soi-même restent de simples images */
 const avLink = (id, c = '') =>
@@ -98,7 +98,7 @@ const gallery = ph =>
     ? `<div class="gal ${ph.length === 1 ? 'one' : ''}">${ph.map((u, i) => `<button class="ph" style="background-image:url(${u})" data-a="photo" aria-label="Photo ${i + 1} sur ${ph.length}"></button>`).join('')}</div>`
     : '';
 
-/* carte d'événement, la même dans /RAM Club et /RAM Coach : l'heure seule (le jour est sur l'étiquette épinglée au-dessus),
+/* carte d'événement, la même dans /Buvette et /Dojo : l'heure seule (le jour est sur l'étiquette épinglée au-dessus),
    le titre, une ligne par information avec son picto, les étiquettes ; un grand picto en fond rappelle ce que c'est */
 const EV_PIC = { ens: 'cCours', jeu: 'ball', ani: 'cal', tour: 'cTour', eq: 'users', repas: 'cRepas' };
 /* l'heure de fin d'un créneau : « 14 h » + 90 min → « 15 h 30 » */

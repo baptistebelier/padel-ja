@@ -127,7 +127,7 @@ const TROPHIES = [
   {
     id: 'tourn',
     n: 'Habitué des tournois',
-    d: 'Aller au bout de tournois /RAM JA du club',
+    d: 'Aller au bout de tournois /Pista du club',
     u: 'tournois terminés',
     t: [1, 3, 8, 15],
     i: 'trophy'
@@ -225,7 +225,7 @@ const RARES = [
     id: 'roi',
     cl: 1,
     n: 'Roi du terrain',
-    d: 'Gagner une animation montée-descente /RAM JA du club (finir 1er sur le terrain du roi)',
+    d: 'Gagner une animation montée-descente /Pista du club (finir 1er sur le terrain du roi)',
     r: 2,
     i: 'trophy',
     ok: id =>

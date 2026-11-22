@@ -1,6 +1,6 @@
-/* /RAM Coach — coach/3-actions.js : titres des pages, gestes et formulaires de l'enseignant, minuteur.
+/* /Dojo — coach/3-actions.js : titres des pages, gestes et formulaires de l'enseignant, minuteur.
    Chaque changement passe par les listes partagées (GROUPS, ELEVES, SEANCES, SUIVI) : la synchronisation
-   du Club (ram-sync.js) l'envoie au serveur, et les élèves le retrouvent dans /RAM Club. */
+   du Club (ram-sync.js) l'envoie au serveur, et les élèves le retrouvent dans /Buvette. */
 Object.assign(TITLES, {
   today: () => ['Tableau de bord', fmtD(TODAY)],
   planning: () => ['Planning', S.plScope === 'ecole' ? "Toute l'école" : 'Mes cours'],
@@ -45,7 +45,7 @@ function sesGet(id) {
   }
   return s;
 }
-/* appel : recopié dans celui du groupe (g.att, celui de /RAM Club, enregistré dans les présences du club) */
+/* appel : recopié dans celui du groupe (g.att, celui de /Buvette, enregistré dans les présences du club) */
 function coAtt(s, k, v) {
   const g = grp(s.g);
   if (!g || !M[k]) return;
@@ -191,14 +191,12 @@ Object.assign(A, {
         (M[k].mail && el.mail && fold(M[k].mail) === fold(el.mail) ? 9 : 0) +
         mots.filter(x => fold(name(k)).includes(x)).length;
     if (!cands.length)
-      return toast(
-        'Aucun compte /RAM Club dans tes clubs : l’élève doit d’abord créer son compte et rejoindre un club'
-      );
+      return toast('Aucun compte /Buvette dans tes clubs : l’élève doit d’abord créer son compte et rejoindre un club');
     sheet(
       'Relier ' + svFirst(d.id),
       `<form class="body" id="co-link" data-id="${d.id}">${Who(
         'co-who',
-        'Son compte /RAM Club',
+        'Son compte /Buvette',
         cands.sort((a, b) => proche(b) - proche(a) || name(a).localeCompare(name(b)))
       )}<p class="muted small">Sa fiche, ses séances, ses bilans et ses messages passent sur son compte. S’il a déjà une fiche, les deux sont réunies.</p><button class="btn full">Relier</button></form>`
     );
@@ -493,7 +491,7 @@ document.addEventListener('submit', e => {
       REGLES.changeCoach(g, val('co-coach'), coCoupure(g));
       g.sub = g.sub ? g.sub.replace(/ · [^·]+$/, ' · ' + first(g.coach)) : g.sub;
     }
-    // nouveau nom : le groupe, sa discussion dans /RAM Club et la discussion d'équipe s'il y en a une
+    // nouveau nom : le groupe, sa discussion dans /Buvette et la discussion d'équipe s'il y en a une
     const nom = val('co-gname').trim().slice(0, 60);
     if (nom && nom !== g.name) coGrpRename(g, nom);
     g.tarif = { mode, prix };
@@ -634,7 +632,7 @@ Object.assign(A, {
     tmDraw();
   }
 });
-/* logo /RAM Coach (au lieu de /RAM Club) dans le menu latéral, quand le club n'a pas de logo à lui */
+/* logo /Dojo (au lieu de /Buvette) dans le menu latéral, quand le club n'a pas de logo à lui */
 /* couleurs du logo /Dojo (validées le 22/11/2026) : citron et olive ; les fonds (page, cartes, champs) viennent de fondsTeintes,
    gris clair ou foncé légèrement teinté de l’olive du menu. accent : couleur de texte lisible ; accent-bg : fond des boutons et pastilles */
 const CO_THEME = {
@@ -697,7 +695,7 @@ A.coPro = () => {
       `<label class="corow"><input type="checkbox" id="${id}" ${on ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--accent)"><span class="grow">${l}</span></label>`;
   sheet(
     'Ma fiche enseignant',
-    `<form class="body" id="co-pro">${O('co-dip', 'Diplôme', 'DE JEPS tennis, moniteur padel…', p.dip)}${O('co-since', 'Année de début d’activité', '2015', p.since)}${O('co-sports', 'Sports enseignés', 'Tennis, padel', p.sports)}${O('co-tel', 'Téléphone', '', p.tel)}${O('co-mail', 'E-mail', '', p.mail)}${O('co-web', 'Site internet', '', p.web)}${O('co-book', 'Lien de réservation (agenda en ligne)', 'Calendly, Google Agenda…', p.book)}${T('co-tarifs', 'Tarifs (un par ligne)', 'Cours individuel : 45 € de l’heure', p.tarifs)}${T('co-bio', 'Présentation', 'Ce que tu enseignes, à qui', p.bio)}${ck('co-age', 'Montrer mon âge', p.age)}${ck('co-on', 'Publier ma fiche dans /RAM Club', p.on !== false)}<button class="btn full">Enregistrer</button></form>`
+    `<form class="body" id="co-pro">${O('co-dip', 'Diplôme', 'DE JEPS tennis, moniteur padel…', p.dip)}${O('co-since', 'Année de début d’activité', '2015', p.since)}${O('co-sports', 'Sports enseignés', 'Tennis, padel', p.sports)}${O('co-tel', 'Téléphone', '', p.tel)}${O('co-mail', 'E-mail', '', p.mail)}${O('co-web', 'Site internet', '', p.web)}${O('co-book', 'Lien de réservation (agenda en ligne)', 'Calendly, Google Agenda…', p.book)}${T('co-tarifs', 'Tarifs (un par ligne)', 'Cours individuel : 45 € de l’heure', p.tarifs)}${T('co-bio', 'Présentation', 'Ce que tu enseignes, à qui', p.bio)}${ck('co-age', 'Montrer mon âge', p.age)}${ck('co-on', 'Publier ma fiche dans /Buvette', p.on !== false)}<button class="btn full">Enregistrer</button></form>`
   );
   ['co-tarifs', 'co-bio'].forEach(x => ($(x).required = false));
   $('co-since').inputMode = 'numeric';
@@ -721,7 +719,7 @@ document.addEventListener('submit', e => {
     bio: v('co-bio')
   };
   closeSheet();
-  coSave('Fiche enregistrée : visible dans /RAM Club, École, Enseignants');
+  coSave('Fiche enregistrée : visible dans /Buvette, École, Enseignants');
 });
 /* enseigner dans un autre club : on le rejoint avec son code, le bureau donne ensuite le rôle d'enseignant
    (formulaire « ram-join2 » de ram-sync.js : on rejoint sans quitter ses autres clubs) */
@@ -808,13 +806,13 @@ Object.assign(A, {
     S.hiF = d.v;
     render();
   },
-  /* créer un groupe d'entraînement dans l'un de mes clubs (il apparaît aussitôt dans /RAM Club, École et Groupes) */
+  /* créer un groupe d'entraînement dans l'un de mes clubs (il apparaît aussitôt dans /Buvette, École et Groupes) */
   coNewGrp(d) {
     const cl = coClubList(),
       cur = (d && d.c) || (S.coClub !== 'all' && S.coClub) || coMainId();
     sheet(
       'Nouveau groupe',
-      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}<p class="muted small">Un groupe rassemble des élèves qui jouent ensemble chaque semaine. Sa discussion est créée dans /RAM Club. Pour un cours individuel ou une séance unique : Ajouter une séance.</p>${F('co-gn', 'Nom', 'Adultes compétition, duo du mardi…')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour (chaque semaine)', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Dt('co-go', 'Première séance', false, TODAY)}${Dt('co-gz', 'Dernière séance (cycle, facultatif)', false, '')}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['En salle', 'Extérieur'], 'En salle')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
+      `<form class="body" id="co-grpnew">${cl.length > 1 ? `<div class="fld"><label for="co-gc">Club</label><select id="co-gc">${cl.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>` : ''}<p class="muted small">Un groupe rassemble des élèves qui jouent ensemble chaque semaine. Sa discussion est créée dans /Buvette. Pour un cours individuel ou une séance unique : Ajouter une séance.</p>${F('co-gn', 'Nom', 'Adultes compétition, duo du mardi…')}${Sel('co-gs', 'Sport', ['Padel', 'Tennis'], 'Padel')}${Sel('co-gd', 'Jour (chaque semaine)', DAYS.slice(1).concat(DAYS[0]), 'Mardi')}${Dt('co-go', 'Première séance', false, TODAY)}${Dt('co-gz', 'Dernière séance (cycle, facultatif)', false, '')}${Sel('co-gh', 'Heure', HOURS, '18 h')}${Sel('co-gdu', 'Durée', ['45 min', '1 h', '1 h 30', '2 h', '2 h 30', '3 h'], '1 h 30')}${Sel('co-gl', 'Lieu', ['En salle', 'Extérieur'], 'En salle')}${O('co-gm', 'Nombre de places', '8')}${Sel('co-gt', 'Tarif', Object.values(TARIF_MODES), TARIF_MODES.seance)}${O('co-gp', 'Montant en euros', '60')}<button class="btn full">Créer le groupe</button></form>`
     );
     $('co-gm').inputMode = 'numeric';
     $('co-gp').inputMode = 'decimal';
@@ -889,7 +887,7 @@ document.addEventListener('submit', e => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(v('co-go')) && v('co-go') > TODAY) g.from = v('co-go');
   if (/^\d{4}-\d{2}-\d{2}$/.test(v('co-gz'))) g.to = v('co-gz');
   if (parseInt(v('co-gm'), 10)) g.max = parseInt(v('co-gm'), 10);
-  // la discussion du groupe dans /RAM Club : créée avec le groupe
+  // la discussion du groupe dans /Buvette : créée avec le groupe
   const ch = { id, g: 'train', sport: g.sport, name: g.name, desc: g.sub, kid: 0 };
   if (ext) {
     g._club = ext;
@@ -907,7 +905,7 @@ document.addEventListener('submit', e => {
   coSave('Groupe créé dans ' + (ext ? CO_EXT[ext].name : club().name));
 });
 
-/* niveau donné dans /RAM Coach : recopié dans la fiche /RAM Club de l'adhérent (niveau padel ou niveau tennis) */
+/* niveau donné dans /Dojo : recopié dans la fiche /Buvette de l'adhérent (niveau padel ou niveau tennis) */
 function coMemberLevel(id) {
   const m = M[id],
     e = coEl(id);

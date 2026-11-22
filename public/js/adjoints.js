@@ -1,4 +1,4 @@
-/* /RAM JA — juges-arbitres adjoints d'un tournoi (tournoi FFT, animation, tournoi interne).
+/* /Pista — juges-arbitres adjoints d'un tournoi (tournoi FFT, animation, tournoi interne).
    Toute page qui contient un emplacement [data-adjoints] l'affiche : la liste des adjoints, et pour le
    juge-arbitre principal l'invitation par e-mail et le retrait. Un adjoint a les mêmes droits que le
    juge-arbitre principal, sauf supprimer le tournoi et choisir les adjoints. */
@@ -13,7 +13,7 @@
     if (!data) return '<p class="muted small">Chargement…</p>';
     const l = data.adjoints || [];
     return `<span class="eyebrow">Équipe d’arbitrage</span><h3>Juges-arbitres adjoints</h3>
-      <p class="muted small">Un adjoint gère le tournoi comme vous (inscriptions, tirage, programmation, scores), avec son propre compte /RAM JA. Il ne peut pas supprimer le tournoi.</p>
+      <p class="muted small">Un adjoint gère le tournoi comme vous (inscriptions, tirage, programmation, scores), avec son propre compte /Pista. Il ne peut pas supprimer le tournoi.</p>
       ${l.length ? `<div class="adj-l">${l.map(e => `<div class="adj-p"><span class="adj-n">${esc(e)}</span>${data.proprio ? `<button type="button" class="ghost adj-x" data-adj-x="${esc(e)}">Retirer</button>` : ''}</div>`).join('')}</div>` : '<p class="muted small">Aucun adjoint pour le moment.</p>'}
       ${data.proprio ? `<form class="adj-f" data-adj-f><input type="email" name="e" placeholder="E-mail de l’adjoint" required autocomplete="off" aria-label="E-mail du juge-arbitre adjoint"><button class="btn">Inviter</button></form><p class="muted small">Il reçoit un e-mail et une notification ; le tournoi apparaît dans ses tournois dès qu’il se connecte avec cette adresse.</p>` : '<p class="note">Vous êtes juge-arbitre adjoint de ce tournoi.</p>'}
       ${msg ? `<p class="muted small" role="status">${esc(msg)}</p>` : ''}`;

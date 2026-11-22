@@ -1,4 +1,4 @@
-/* /RAM Club — app/17-promo.js : promouvoir des événements de l'agenda du club sur le mur.
+/* /Buvette — app/17-promo.js : promouvoir des événements de l'agenda du club sur le mur.
    Bureau, enseignants et animateurs : « … » sur une carte de l'agenda du club → Promouvoir sur le mur,
    ou Sélectionner plusieurs événements → une seule publication qui les présente en liste. */
 const promoKey = (i, iso) => i.v + '|' + i.id + '|' + iso;

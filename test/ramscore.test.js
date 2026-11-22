@@ -1,4 +1,4 @@
-/* Score d'investissement RAM Club calculé par le serveur */
+/* Score d'investissement Buvette calculé par le serveur */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
@@ -78,7 +78,7 @@ test('anti-triche : classement compté par le serveur, une fois par jour, compte
   assert.strictEqual(a2._rk, 1);
 });
 
-test("lien /RAM JA : le champ « _ja » d'un profil n'est écrit que par le serveur", () => {
+test("lien /Pista : le champ « _ja » d'un profil n'est écrit que par le serveur", () => {
   const club = { items: new Map([['member/a', { coll: 'member', id: 'a', data: { n: 'Léa Morin', _ja: 'j1' } }]]) };
   const ctx = { key: 'a', valid: true, staff: false };
   // un adhérent ne peut ni changer ni retirer sa fiche rattachée depuis son appareil

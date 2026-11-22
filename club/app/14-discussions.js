@@ -1,4 +1,4 @@
-/* /RAM Club — app/14-discussions.js : discussions plus vivantes, façon WhatsApp.
+/* /Buvette — app/14-discussions.js : discussions plus vivantes, façon WhatsApp.
    - Glisser un message vers la droite : on y répond (comme l'appui long, « Répondre »).
    - Glisser un de ses messages vers la gauche : ses infos dans un panneau latéral (lu par, distribué à, avec date et heure).
    - « Paul est en train d'écrire… » : signal envoyé au serveur pendant la saisie (au plus toutes les 2,5 s),
@@ -221,7 +221,7 @@ document.addEventListener('touchcancel', swpEnd, { passive: true });
 /* ---------- supprimer un groupe de discussion ----------
    Le bureau (ou l'administrateur) supprime n'importe quel groupe, sauf Annonces et Général ; un enseignant, la
    discussion de son groupe d'entraînement. Le groupe d'entraînement lui-même et ses séances restent : sa discussion
-   peut être recréée depuis sa page dans /RAM Coach. */
+   peut être recréée depuis sa page dans /Dojo. */
 const chanCanDel = c => {
   if (!c || ['annonces', 'general'].includes(c.id)) return false;
   const g = typeof grp === 'function' ? grp(c.id) : null;

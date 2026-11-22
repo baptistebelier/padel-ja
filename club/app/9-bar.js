@@ -1,4 +1,4 @@
-/* /RAM Club — app/9-bar.js : Bar et club-house : actions et formulaires (carte tenue par le bureau,
+/* /Buvette — app/9-bar.js : Bar et club-house : actions et formulaires (carte tenue par le bureau,
    réservation des repas par les adhérents, commandes servies).
    Les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 const barId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);

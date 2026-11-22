@@ -1,4 +1,4 @@
-/* /RAM Coach : planning d'un enseignant, tous clubs confondus (lib/coach-tables.js) ;
+/* /Dojo : planning d'un enseignant, tous clubs confondus (lib/coach-tables.js) ;
    la source « tables » est testée contre une fausse base qui répond comme PostgREST */
 const test = require('node:test');
 const assert = require('node:assert/strict');

@@ -1,4 +1,4 @@
-/* /RAM Club — ui/10-niveaux.js : publications par niveaux des enseignants (parties dirigées et séances collectives).
+/* /Buvette — ui/10-niveaux.js : publications par niveaux des enseignants (parties dirigées et séances collectives).
    Une publication propose plusieurs fourchettes de niveau, chacune avec ses places. Chaque adhérent ne voit que
    la fourchette de son niveau ; l'enseignant les voit toutes. La première fourchette complète valide le créneau :
    les inscrits des autres fourchettes passent automatiquement en liste d'attente.

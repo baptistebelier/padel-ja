@@ -104,7 +104,7 @@ function isoIn(n, from) {
 }
 const rIdx = r => RANKS.indexOf(r);
 /* un groupe d'entraînement a-t-il cours ce jour-là ? chaque semaine (g.day), ou une seule fois (g.once : séance
-   ponctuelle, cours individuel créé dans /RAM Coach) */
+   ponctuelle, cours individuel créé dans /Dojo) */
 // groupe chaque semaine (ou toutes les every semaines) : entre from et to s'ils sont donnés (un cycle), avec ses séances déplacées
 // (extra : en plus, skip : pas ce jour-là) ; séance ponctuelle : sa seule date (once)
 // règle écrite une seule fois, partagée avec le serveur : regles.js
@@ -1300,7 +1300,7 @@ const S = {
 };
 
 const club = () => CLUBS[S.club];
-/* logo /RAM Club lisible sur les couleurs du club : blanc sur fond sombre, noir sur fond clair */
+/* logo /Buvette lisible sur les couleurs du club : blanc sur fond sombre, noir sur fond clair */
 /* mode jour / nuit choisi par l'adhérent (sinon celui du club) */
 /* mode d'affichage choisi par l'adhérent : jour, nuit ou celui du système (par défaut) ; les couleurs restent celles du club */
 const effDark = c => (
@@ -1635,7 +1635,7 @@ try {
 }
 Object.assign(I, { screen: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>' });
 
-/* barre de navigation : [onglet, pictogramme, titre] ; /RAM Coach (coach.html) y met ses propres onglets */
+/* barre de navigation : [onglet, pictogramme, titre] ; /Dojo (coach.html) y met ses propres onglets */
 const TABBAR = [
   ['home', 'home', 'Accueil'],
   ['chans', 'chat', 'Groupes'],
@@ -1644,7 +1644,7 @@ const TABBAR = [
   ['club', 'club', 'Club'],
   ['me', 'user', 'Profil']
 ];
-/* /RAM Coach : fiches élèves (équipe pédagogique seulement), séances (thème, appel, bilan du groupe)
+/* /Dojo : fiches élèves (équipe pédagogique seulement), séances (thème, appel, bilan du groupe)
    et suivi de chaque élève (messages, bilans personnels, analyses vidéo, contenus), reçu dans École, Mon espace */
 const ELEVES = [],
   SEANCES = [],
@@ -1656,7 +1656,7 @@ const sesDu = (g, iso) =>
   g ? SEANCES.find(s => s.id === g.id + '.' + iso && (s._club || '') === (g._club || '')) : null;
 /* qui enseigne ce jour-là : remplaçant de la séance, enseignant du cycle, puis du groupe (regles.js) */
 const coachDu = (g, iso) => REGLES.coachDe(g, iso, sesDu(g, iso));
-/* une seule source de présence (regles.js presDe) : l'appel, de /RAM Club comme de /RAM Coach, s'écrit dans la séance
+/* une seule source de présence (regles.js presDe) : l'appel, de /Buvette comme de /Dojo, s'écrit dans la séance
    (s.pres : P, E ou A) et dans le groupe (g.att, recopié dans les présences du club). v vide : retiré de l'appel */
 function appelNote(g, iso, k, v) {
   if (!g) return;
@@ -1760,7 +1760,7 @@ function appelNote(g, iso, k, v) {
     }
   );
 })();
-/* fiches enseignants de démonstration (École, Enseignants ; remplies dans /RAM Coach, Profil) */
+/* fiches enseignants de démonstration (École, Enseignants ; remplies dans /Dojo, Profil) */
 M.sarah.pro = {
   on: true,
   dip: 'DE JEPS tennis',

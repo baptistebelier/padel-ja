@@ -1,4 +1,4 @@
-/* /RAM Club — trophées et classements : profil vérifié par le serveur, plafond quotidien par type d'action,
+/* /Buvette — trophées et classements : profil vérifié par le serveur, plafond quotidien par type d'action,
    classement par saison (septembre à août) en plus du total à vie, trophées du jeu réel,
    et choix de ne pas apparaître dans le classement */
 'use strict';
@@ -83,7 +83,7 @@ test('saison : de septembre à août, le classement repart, les trophées resten
   assert.equal(memberProgress(items, {}).a.trophies.msg, 1);
 });
 
-test('jeu réel : séances /RAM Coach pointées, rencontres jouées, tournois /RAM JA terminés', () => {
+test('jeu réel : séances /Dojo pointées, rencontres jouées, tournois /Pista terminés', () => {
   const items = new Map([
     mem('a'), mem('b'), mem('c'),
     // séances : a présent deux fois, absent une fois ; une séance à venir ne compte pas
@@ -95,7 +95,7 @@ test('jeu réel : séances /RAM Coach pointées, rencontres jouées, tournois /R
     ['rec/r1', { coll: 'rec', id: 'r1', data: { d: '2026-10-12', st: 'done', ms: [{ a: 'a', st: 'done', w: 0 }, { a: 'b', st: 'live' }, { an: 'Martin / Colin', st: 'done' }], lineup: { c: 'T', b: 'R' } } }],
     // rencontre à venir : personne ne l'a jouée
     ['rec/r2', { coll: 'rec', id: 'r2', data: { d: '2099-01-01', st: 'soon', ms: [{ a: 'a', st: 'soon' }], lineup: { a: 'T' } } }],
-    // tournoi /RAM JA terminé (paire a / c), et un autre encore en cours
+    // tournoi /Pista terminé (paire a / c), et un autre encore en cours
     ['post/t1', { coll: 'post', id: 't1', data: { by: 'club', kind: 'jatour', d: '2026-10-20', ja: { status: 'done', list: [{ k1: 'a', k2: 'c' }] } } }],
     ['post/t2', { coll: 'post', id: 't2', data: { by: 'club', kind: 'jatour', d: '2026-10-27', ja: { status: 'live', list: [{ k1: 'b' }] } } }],
   ]);

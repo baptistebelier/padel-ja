@@ -1,4 +1,4 @@
-/* /RAM Coach — coach/coach.css : ce qui s'ajoute aux styles du Club (app.css, ram.css) pour les pages de l'enseignant */
+/* /Dojo — coach/coach.css : ce qui s'ajoute aux styles du Club (app.css, ram.css) pour les pages de l'enseignant */
 .cotheme {
   display: flex;
   gap: 6px;
@@ -393,7 +393,7 @@
   width: 13px;
   height: 13px;
 }
-/* pas de cadres d'avatar gagnés au club (trophées) dans /RAM Coach */
+/* pas de cadres d'avatar gagnés au club (trophées) dans /Dojo */
 .av[class*=' fr'] {
   box-shadow: none !important;
   outline: 0 !important;
@@ -420,8 +420,8 @@
   }
 }
 
-/* ---------- barres de navigation : les codes exacts de /RAM JA ----------
-   barre principale = le rail de /RAM JA (bordeaux presque noir, texte rosé, onglet ouvert sur voile clair,
+/* ---------- barres de navigation : les codes exacts de /Pista ----------
+   barre principale = le rail de /Pista (bordeaux presque noir, texte rosé, onglet ouvert sur voile clair,
    pictogramme et repère citron) ; barre secondaire = le bandeau « Tournoi en cours » (dégradé bordeaux) */
 :root {
   --co-rail: #0b0306;
@@ -552,7 +552,7 @@
     color: var(--co-lime);
   }
 }
-/* profil, sur le modèle du profil /RAM JA : carte d'identité bordeaux à ombre citron, cartes titrées */
+/* profil, sur le modèle du profil /Pista : carte d'identité bordeaux à ombre citron, cartes titrées */
 .cohero {
   background: var(--co-side) !important;
   color: #fff;
@@ -693,8 +693,8 @@
   flex-direction: row !important;
   align-items: center;
 }
-/* Full street : les sur-titres et sous-titres de /RAM Coach deviennent des étiquettes surlignées et penchées
-   (sur-titres rose, titres de section et petits titres des cartes citron), comme les sous-titres du Club et de /RAM JA */
+/* Full street : les sur-titres et sous-titres de /Dojo deviennent des étiquettes surlignées et penchées
+   (sur-titres rose, titres de section et petits titres des cartes citron), comme les sous-titres du Club et de /Pista */
 :root[data-style='street'] .coey {
   display: inline-block;
   width: fit-content;
@@ -741,7 +741,7 @@
   color: var(--on-accent) !important;
 }
 
-/* ---------- téléphone : la navigation de /RAM JA ----------
+/* ---------- téléphone : la navigation de /Pista ----------
    bandeau du haut (menu, logo au centre, notifications), volet de menu qui glisse depuis la gauche */
 .cobar,
 .cdr,
@@ -912,7 +912,7 @@
   }
 }
 
-/* volet du téléphone : l'onglet ouvert comme dans /RAM JA (bandeau citron plein, texte et pictogramme foncés,
+/* volet du téléphone : l'onglet ouvert comme dans /Pista (bandeau citron plein, texte et pictogramme foncés,
    angles droits) ; le survol seulement avec une souris (au doigt, le dernier bouton touché restait éclairé) */
 @media (max-width: 1023px) {
   .cdr-it {
@@ -1979,12 +1979,12 @@ button.copp:hover span:last-child {
   }
 }
 
-/* /RAM Coach garde sa cloche dans sa barre, y compris dans une discussion */
+/* /Dojo garde sa cloche dans sa barre, y compris dans une discussion */
 .top .ib.nochan {
   display: grid;
 }
 
-/* /RAM Coach est pensé d'abord pour l'ordinateur et l'iPad : toute la largeur, sur chaque écran */
+/* /Dojo est pensé d'abord pour l'ordinateur et l'iPad : toute la largeur, sur chaque écran */
 @media (min-width: 481px) {
   #main > .pad.pad,
   #main > .seg.seg {

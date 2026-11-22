@@ -1,11 +1,11 @@
-/* Pont /RAM JA ↔ /RAM Club : tournoi publié sur le mur du club, inscription depuis l'appli, résultats en retour */
+/* Pont /Pista ↔ /Buvette : tournoi publié sur le mur du club, inscription depuis l'appli, résultats en retour */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { freePort, until, serverReady } = require('./helpers');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { spawn } = require('child_process');
 
-test('tournoi et animation /RAM JA publiés sur /RAM Club, inscriptions depuis le club, résultats', async () => {
+test('tournoi et animation /Pista publiés sur /Buvette, inscriptions depuis le club, résultats', async () => {
   const PORT = await freePort(), DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'jaclub-'));
   const env = Object.assign({}, process.env, { PORT: String(PORT), DATA_DIR: DATA });
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
@@ -81,7 +81,7 @@ test('tournoi et animation /RAM JA publiés sur /RAM Club, inscriptions depuis l
     assert.ok(pa.data.ja.results.some(r => r.k.includes(j.key)), 'la place de l’adhérent est reconnue');
     // et compte pour son palmarès (trophée)
     await until(async () => ((await mem(`/api/ram/c/${space.id}/sync?since=0`)).counts[j.key] || {}).palm >= 1, { msg: 'palmarès jamais compté' });
-    // sa place entre dans l'historique de sa fiche joueur /RAM JA
+    // sa place entre dans l'historique de sa fiche joueur /Pista
     const h = await until(async () => { const fiche = await mem('/api/me/player'); return (fiche.linked && fiche.linked.history || []).find(x => x.tournament === 'Americano du vendredi'); }, { msg: 'animation jamais entrée dans l’historique' });
     assert.match(h.category, /^Animation · /);
     assert.ok(h.place >= 1 && h.place <= 4);

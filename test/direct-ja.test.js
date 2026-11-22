@@ -1,4 +1,4 @@
-/* /RAM JA en direct : seulement ce qui change ; un écran qui applique les différences retrouve exactement l'état complet */
+/* /Pista en direct : seulement ce qui change ; un écran qui applique les différences retrouve exactement l'état complet */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const E = require('../public/js/engine.js');

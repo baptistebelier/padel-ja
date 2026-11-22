@@ -66,8 +66,8 @@ test('sans NOMS_OFFICIELS : les six noms ouvrent la bonne appli, aucune redirect
       const r = await get('/', h), t = await r.text();
       assert.equal(r.status, 200, h + ' : ouvre une page, sans redirection');
       const app = Noms.appOf(h);
-      if (app === 'coach') assert.match(t, /Coach/, h + ' : présentation de /RAM Coach');
-      if (app === 'club') assert.ok(!/<title>[^<]*Coach/.test(t), h + ' : /RAM Club');
+      if (app === 'coach') assert.match(t, /\/Dojo/, h + ' : présentation de /Dojo');
+      if (app === 'club') assert.ok(!/<title>[^<]*Coach/.test(t), h + ' : /Buvette');
       const p = await get('/presentation', h);
       assert.notEqual(p.status, 302, h + ' : /presentation sans redirection');
     }

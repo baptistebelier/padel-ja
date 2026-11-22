@@ -155,18 +155,42 @@
         ]
       ])
     ),
-    sec('États et listes', demo([
-      ['Bouton appuyé', `<button class="r-btn is-pressed">Nouveau tournoi</button>`],
-      ['Bouton au clavier (focus)', `<button class="r-btn r-btn--sec is-focus">Voir l’agenda</button>`],
-      ['Champ en saisie (focus)', `<div class="r-field cat-col"><label for="c5">Nom du tournoi</label><input class="r-input is-focus" id="c5" value="Open de printemps 2027"></div>`],
-      ['Liste ouverte', `<div class="r-field cat-col"><label>Catégorie</label><span class="r-selectw is-open"><button class="r-select" style="text-align:left">P500</button></span><div class="r-menu" role="listbox"><button role="option" aria-selected="false">P250</button><button role="option" aria-selected="true">P500</button><button role="option" aria-selected="false">P1000</button></div></div>`],
-      ['Ligne choisie', `<div class="r-card r-card--flush cat-col" style="padding:0 14px"><div class="r-list"><button class="r-row"><span class="r-av r-av--sm">IF</span><span class="r-row__txt"><b>Inès Faure</b><small>Padel loisirs · 12 séances</small></span></button><button class="r-row" aria-current="true"><span class="r-av r-av--sm r-av--pink">TL</span><span class="r-row__txt"><b>Thomas Leroy</b><small>Padel compétition · 20 séances</small></span></button></div></div>`],
-      ['Fenêtre du bas', `<div class="r-sheet cat-col"><div class="r-card__head"><b>Appel</b><button class="r-ib" aria-label="Fermer">${ic('more')}</button></div><div class="r-stack"><button class="r-btn r-btn--full">${ic('check')}Valider l’appel</button></div></div>`]
-    ])),
-    sec('Carte héros et publication', demo([
-      ['Héros avec chiffres', `<div class="r-hero cat-col"><div class="r-row-wrap"><span class="r-surtitre">Tournoi en cours</span><span class="r-tag r-tag--live">En direct</span></div><h3 class="r-titre">Open de printemps</h3><div class="r-hero__stats"><div><b>24</b><span>paires</span></div><div><b>18/31</b><span>matchs joués</span></div><div><b>58 %</b><span>avancement</span></div></div><span class="r-gauge"><i style="width:58%"></i></span></div>`],
-      ['Publication', `<article class="r-post cat-col"><div class="r-post__who"><span class="r-av">TPC</span><span><b>Bureau du club</b><small>il y a 2 h</small></span><span class="r-tag r-tag--tennis">Tennis</span></div><div class="r-poster"><span class="r-etiquette">Événement</span><h3>Soirée padel vendredi</h3></div><p style="margin:0">Matchs à la mêlée de 19 h à 22 h, puis apéro à la buvette.</p><div class="r-post__acts"><button class="r-btn">Je m’inscris</button><button class="r-btn r-btn--sec">Peut-être</button></div></article>`]
-    ])),
+    sec(
+      'États et listes',
+      demo([
+        ['Bouton appuyé', `<button class="r-btn is-pressed">Nouveau tournoi</button>`],
+        ['Bouton au clavier (focus)', `<button class="r-btn r-btn--sec is-focus">Voir l’agenda</button>`],
+        [
+          'Champ en saisie (focus)',
+          `<div class="r-field cat-col"><label for="c5">Nom du tournoi</label><input class="r-input is-focus" id="c5" value="Open de printemps 2027"></div>`
+        ],
+        [
+          'Liste ouverte',
+          `<div class="r-field cat-col"><label>Catégorie</label><span class="r-selectw is-open"><button class="r-select" style="text-align:left">P500</button></span><div class="r-menu" role="listbox"><button role="option" aria-selected="false">P250</button><button role="option" aria-selected="true">P500</button><button role="option" aria-selected="false">P1000</button></div></div>`
+        ],
+        [
+          'Ligne choisie',
+          `<div class="r-card r-card--flush cat-col" style="padding:0 14px"><div class="r-list"><button class="r-row"><span class="r-av r-av--sm">IF</span><span class="r-row__txt"><b>Inès Faure</b><small>Padel loisirs · 12 séances</small></span></button><button class="r-row" aria-current="true"><span class="r-av r-av--sm r-av--pink">TL</span><span class="r-row__txt"><b>Thomas Leroy</b><small>Padel compétition · 20 séances</small></span></button></div></div>`
+        ],
+        [
+          'Fenêtre du bas',
+          `<div class="r-sheet cat-col"><div class="r-card__head"><b>Appel</b><button class="r-ib" aria-label="Fermer">${ic('more')}</button></div><div class="r-stack"><button class="r-btn r-btn--full">${ic('check')}Valider l’appel</button></div></div>`
+        ]
+      ])
+    ),
+    sec(
+      'Carte héros et publication',
+      demo([
+        [
+          'Héros avec chiffres',
+          `<div class="r-hero cat-col"><div class="r-row-wrap"><span class="r-surtitre">Tournoi en cours</span><span class="r-tag r-tag--live">En direct</span></div><h3 class="r-titre">Open de printemps</h3><div class="r-hero__stats"><div><b>24</b><span>paires</span></div><div><b>18/31</b><span>matchs joués</span></div><div><b>58 %</b><span>avancement</span></div></div><span class="r-gauge"><i style="width:58%"></i></span></div>`
+        ],
+        [
+          'Publication',
+          `<article class="r-post cat-col"><div class="r-post__who"><span class="r-av">TPC</span><span><b>Bureau du club</b><small>il y a 2 h</small></span><span class="r-tag r-tag--tennis">Tennis</span></div><div class="r-poster"><span class="r-etiquette">Événement</span><h3>Soirée padel vendredi</h3></div><p style="margin:0">Matchs à la mêlée de 19 h à 22 h, puis apéro à la buvette.</p><div class="r-post__acts"><button class="r-btn">Je m’inscris</button><button class="r-btn r-btn--sec">Peut-être</button></div></article>`
+        ]
+      ])
+    ),
     sec(
       'Navigation',
       demo([

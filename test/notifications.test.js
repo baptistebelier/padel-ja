@@ -1,4 +1,4 @@
-/* /RAM Club — notifications sur le téléphone : les bonnes personnes sont prévenues, jamais l'auteur,
+/* /Buvette — notifications sur le téléphone : les bonnes personnes sont prévenues, jamais l'auteur,
    et chacun peut couper un type de notification ou mettre un groupe en sourdine */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -67,7 +67,7 @@ test('notifications : publications, groupes, commentaires, réglages', async () 
   await settle();
   assert.deepEqual(to(), []);
 
-  // tournoi /RAM JA publié par le serveur : l'inscrit est prévenu, puis de l'horaire de son match
+  // tournoi /Pista publié par le serveur : l'inscrit est prévenu, puis de l'horaire de son match
   const ja = list => ({ by: 'club', kind: 'jatour', title: 'Open TCN', d: '2026-11-08', ja: { status: 'open', list } });
   await ram.serverPut(club.id, 'post', 'ja-t1', ja([]));
   await settle(); sent.length = 0;
@@ -100,7 +100,7 @@ test('pastilles : nouveautés de mes autres clubs depuis ma dernière visite', a
   assert.equal(b[c1.id], undefined, 'adhésion pas encore validée : rien');
 });
 
-test('/RAM Coach : réservation, inscrit de plus et annulation, prévenus dans l’appli Coach', async () => {
+test('/Dojo : réservation, inscrit de plus et annulation, prévenus dans l’appli Coach', async () => {
   const club = await ram.create({ id: 'K', name: 'Baptiste Coach' }, { name: 'Padel Résa', short: 'PR' });
   const key = (await ram.myClubs('K'))[0].key;
   await settle(); sent.length = 0;
@@ -129,7 +129,7 @@ async function clubCours(n) {
 const D = '2031-03-04', D2 = '2031-03-11';
 const dernier = () => sent.map(x => [x[0], x[1].app || 'club', x[1].body]);
 
-test('absence : un élève l’annonce sur son cours réservé, l’enseignant est prévenu dans /RAM Coach', async () => {
+test('absence : un élève l’annonce sur son cours réservé, l’enseignant est prévenu dans /Dojo', async () => {
   const { coach, club, key, el, ek } = await clubCours(1);
   await ram.ops(coach, club.id, [{ coll: 'cours', id: 'r1', op: 'put', data: { type: 'train', name: 'Cours individuel', once: D, h: '9 h', dur: '1 h', coach: key, mem: [ek], cal: 'ram:r1' } }], { client: true });
   await settle(); sent.length = 0;
@@ -507,7 +507,7 @@ test('cycle : nouvel enseignant, nouveau thème, bilan de fin de cycle : les él
   assert.match(corps(l), /bilan de fin de cycle « Automne »/);
 });
 
-test('appel fait depuis /RAM Club : il compte pour les paiements comme celui de /RAM Coach', async () => {
+test('appel fait depuis /Buvette : il compte pour les paiements comme celui de /Dojo', async () => {
   const { coach, club, key, ek } = await clubDeux(31);
   await ops(coach, club, [
     { coll: 'group', id: 'g1', op: 'put', data: { type: 'train', name: 'Cours', day: 1, h: '9 h', dur: '1 h', sport: 'Padel', coach: key, mem: [ek], att: { '2026-01-05': { [ek]: true } }, cycles: [{ id: 'c1', dates: ['2026-01-05', '2026-01-12'] }] } },

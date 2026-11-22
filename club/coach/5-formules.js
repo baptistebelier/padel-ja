@@ -1,6 +1,6 @@
-/* /RAM Coach — coach/5-formules.js : formules, packs et abonnements de l'enseignant, et ce que chaque élève a acheté.
+/* /Dojo — coach/5-formules.js : formules, packs et abonnements de l'enseignant, et ce que chaque élève a acheté.
    Les formules sont rangées sur le compte /RAM de l'enseignant (lib/formules.js, /api/coach/formules), les mêmes dans
-   tous ses clubs ; elles s'affichent sur sa fiche enseignant de /RAM Club et serviront à la prise de rendez-vous.
+   tous ses clubs ; elles s'affichent sur sa fiche enseignant de /Buvette et serviront à la prise de rendez-vous.
    Un achat (formule à la séance, pack ou abonnement) est noté dans la fiche de l'élève (e.achats) : les séances
    d'un pack se décomptent toutes seules avec les séances où l'élève est venu, de la même durée et du même format. */
 /* formules de démonstration ; remplacées par celles du compte au démarrage */
@@ -34,7 +34,7 @@ const foPrice = f =>
     ? `${eur(f.prix)} par personne (${eur(f.prix * f.joueurs)} la séance)`
     : `${eur(f.prix)} la séance${f.joueurs > 1 ? ' (' + eur(f.prix / f.joueurs) + ' par personne)' : ''}`;
 const pkPrice = p => `${p.seances} séances · ${eur(p.prix)} (${eur(p.prix / p.seances)} la séance)`;
-/* abPer et abEng : ui/13-suivi.js, les mêmes mots que sur la fiche enseignant de /RAM Club */
+/* abPer et abEng : ui/13-suivi.js, les mêmes mots que sur la fiche enseignant de /Buvette */
 const abPrice = a =>
   `${eur(a.prix)} ${abPer(a)}${abEng(a) ? ' · ' + abEng(a) : ''}${REGLES.parMoisDef(a) ? ' · ' + plural(REGLES.parMoisDef(a), 'séance') + ' par mois' : ''}`;
 /* le libellé d'un produit, pour un achat ou une liste */
@@ -105,7 +105,7 @@ function coFormules() {
       })
       .join(''),
     ab = OFFRES.abos.filter(a => !a.ens).map(abRow);
-  return `<div class="pad"><div class="card"><p class="muted small">Tes formules, pour tous tes clubs. Elles s'affichent sur ta fiche enseignant dans /RAM Club et serviront à la prise de rendez-vous. Pour chaque formule, crée des packs de plusieurs séances : le prix de la séance se calcule tout seul.</p></div>${hd('Formules · à la séance')}${fo.join('') || none('ball', 'Aucune formule', 'Une formule : un nombre de joueurs, une durée, un prix.')}<div class="card"><button class="btn full" data-a="coFoEdit" data-id="new">${ic('plus')}Ajouter une formule</button></div>${hd('Abonnements')}${abEns}${ab.length ? list(ab.join('')) : abEns ? '' : none('cal', 'Aucun abonnement', 'Un prix par mois, par trimestre ou à l’année, avec un engagement si tu veux.')}<div class="card"><button class="btn full ghost" data-a="coAbEdit" data-id="new">${ic('plus')}Ajouter un abonnement</button></div></div>`;
+  return `<div class="pad"><div class="card"><p class="muted small">Tes formules, pour tous tes clubs. Elles s'affichent sur ta fiche enseignant dans /Buvette et serviront à la prise de rendez-vous. Pour chaque formule, crée des packs de plusieurs séances : le prix de la séance se calcule tout seul.</p></div>${hd('Formules · à la séance')}${fo.join('') || none('ball', 'Aucune formule', 'Une formule : un nombre de joueurs, une durée, un prix.')}<div class="card"><button class="btn full" data-a="coFoEdit" data-id="new">${ic('plus')}Ajouter une formule</button></div>${hd('Abonnements')}${abEns}${ab.length ? list(ab.join('')) : abEns ? '' : none('cal', 'Aucun abonnement', 'Un prix par mois, par trimestre ou à l’année, avec un engagement si tu veux.')}<div class="card"><button class="btn full ghost" data-a="coAbEdit" data-id="new">${ic('plus')}Ajouter un abonnement</button></div></div>`;
 }
 V.formules = coFormules;
 TITLES.formules = () => ['Formules et tarifs', 'Séances, packs et abonnements'];
@@ -117,7 +117,7 @@ TITLES.formules = () => ['Formules et tarifs', 'Séances, packs et abonnements']
    séance (« payé au mois ») la compte aussi : jusqu'à 14 jours avant la date d'achat. La règle est dans regles.js
    (REGLES.couverture), la même que celle du serveur et du chiffre d'affaires. */
 /* séances faites où l'élève était présent : { d, min, n (inscrits : le format), sport } */
-/* une seule source de présence (regles.js presDe) : l'appel fait dans /RAM Club (g.att) compte comme celui de Coach ;
+/* une seule source de présence (regles.js presDe) : l'appel fait dans /Buvette (g.att) compte comme celui de Coach ;
    chaque venue dit son groupe (gid) et son cycle (cy) : une attribution du groupe s'y rattache */
 const coVenues = id => {
   const out = [],
@@ -156,7 +156,8 @@ function coPacks(id) {
 }
 /* « En activité » : l'élève a un pack ou un cycle en cours, c'est-à-dire une attribution dont l'état est « En cours » (des séances restent à consommer :
    REGLES.etatAchat, le même calcul que la carte « Formules achetées » et les jauges de cycle). Un abonnement n'y figure que s'il porte un cycle. */
-const coEnActivite = id => coPacks(id).some(a => REGLES.etatAchat(a, TODAY) === 'encours' && (a.t === 'pack' || (a.t === 'abo' && a.cycle)));
+const coEnActivite = id =>
+  coPacks(id).some(a => REGLES.etatAchat(a, TODAY) === 'encours' && (a.t === 'pack' || (a.t === 'abo' && a.cycle)));
 /* état d'une attribution (regles.js etatAchat) : En cours, Utilisé, Terminé */
 const coEtatTag = (et, plus) =>
   `<span class="tag coetat ${et}${et === 'encours' ? ' copink' : ''}">${REGLES.ETATS[et]}${plus || ''}</span>`;
@@ -171,7 +172,21 @@ const coAboJauge = m =>
     ? `<span class="coabm${m.depasse ? ' depasse' : ''}"><span class="cobarre" role="img" aria-label="${m.fait} séances sur ${m.quota} ce mois-ci"><i style="width:${Math.min(100, Math.round((m.fait * 100) / m.quota))}%"></i></span><span class="small">${m.fait}/${m.quota} ce mois-ci</span></span>`
     : '';
 /* jauge sectionnée du mois : un segment par séance du quota, les séances faites remplies ; au-delà du quota tout est rempli et passe en alerte */
-const coMoisNom = d => ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'][+String(d).slice(5, 7) - 1] || '';
+const coMoisNom = d =>
+  [
+    'janvier',
+    'février',
+    'mars',
+    'avril',
+    'mai',
+    'juin',
+    'juillet',
+    'août',
+    'septembre',
+    'octobre',
+    'novembre',
+    'décembre'
+  ][+String(d).slice(5, 7) - 1] || '';
 const coAboSegs = m =>
   m && m.quota
     ? `<div class="coabsg${m.depasse ? ' depasse' : ''}"><div class="coabs" role="img" aria-label="${m.fait} séances sur ${m.quota} en ${coMoisNom(TODAY)}">${Array.from({ length: Math.min(m.quota, 31) }, (_, i) => `<i${i < m.fait ? ' class="on"' : ''}></i>`).join('')}</div><b class="coabt">${m.fait}/${m.quota} ce mois-ci</b> <span class="muted small">${coMoisNom(TODAY)}</span></div>`

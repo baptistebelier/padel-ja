@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#120A0C">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja3">
-<title>Championnats par équipes — /RAM JA</title>
+<title>Championnats par équipes — /Pista</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
@@ -52,7 +52,7 @@
   const FORMATS = ['2 sets gagnants, super tie-break au 3e', '2 sets gagnants, 3e set classique', '1 set de 9 jeux', 'Format court (sets de 4 jeux)', 'Autre (voir le règlement)'];
   const AGES = ['Adultes', 'Jeunes', '+35', '+45', '+55'];
   let clubs = [], club = null, items = new Map(), sel = { c: null, t: null, r: null }, vue = 'home';
-  /* liste déroulante « Ajouter un joueur » : adhérents pas encore dans l'équipe, puis joueurs de la base /RAM JA */
+  /* liste déroulante « Ajouter un joueur » : adhérents pas encore dans l'équipe, puis joueurs de la base /Pista */
   (window.RamSuggQ = window.RamSuggQ || []).push({
     match: el => el.hasAttribute('data-ch-joueur'),
     filtre: false,
@@ -61,7 +61,7 @@
       const l = membres().filter(m => !dans.has(m.k) && (!t || f(m.n).includes(f(t)))).map(m => ({ id: 'k:' + m.k, v: m.n, l: 'Adhérent · ' + [m.compte ? 'Compte /RAM' : 'Fiche sans compte', m.niv, m.lic ? 'lic. ' + m.lic : ''].filter(Boolean).join(' · '), d: { k: m.k }, pp: 1, ph: m.ph, ml: m.ml }));
       if (t.length >= 2) {
         const d = await fetch('/api/players?q=' + encodeURIComponent(t)).then(r => r.json()).catch(() => ({}));
-        (d.players || []).filter(p => p.source !== 'club' && !(p.membres || []).some(x => x.c === club.id)).forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /RAM JA', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p }, pp: 1, ph: p.photo, ml: p.mail }));
+        (d.players || []).filter(p => p.source !== 'club' && !(p.membres || []).some(x => x.c === club.id)).forEach(p => l.push({ id: 'p:' + p.id, v: [p.first, p.last].filter(Boolean).join(' '), l: ['Joueur /Pista', p.club, p.rank, p.licence ? 'lic. ' + p.licence : ''].filter(Boolean).join(' · '), d: { p }, pp: 1, ph: p.photo, ml: p.mail }));
       }
       return l;
     },
@@ -120,7 +120,7 @@
       <section class="card"><span class="eyebrow">Joueurs · ${mem.length}</span><h2>Effectif</h2>
       <label>Capitaine<select id="t-cap"><option value="">—</option>${mem.map(k => `<option value="${k}" ${t.cap === k ? 'selected' : ''}>${esc(nom(k))}</option>`).join('')}</select></label>
       ${mem.map(k => `<div class="ch-p"><span class="n">${esc(nom(k))}</span><select data-ros="${k}" aria-label="Rôle de ${esc(nom(k))}"><option value="T" ${ros[k] !== 'R' ? 'selected' : ''}>Titulaire</option><option value="R" ${ros[k] === 'R' ? 'selected' : ''}>Remplaçant</option></select><button class="ib2" data-out="${k}">Retirer</button></div>`).join('') || '<p class="ch-empty">Ajoute les joueurs de l’équipe.</p>'}
-      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" data-ch-joueur placeholder="Tape un nom : adhérents du club, joueurs /RAM JA" required autocomplete="off"></label><button class="btn">Ajouter</button></form><p class="muted small">Un joueur qui n’est pas encore dans /Buvette y reçoit une fiche du club (sans compte) : il apparaît dans l’équipe et ses statistiques.</p></section>`;
+      <form id="t-add" class="ch-row" style="margin-top:10px"><label>Ajouter un joueur<input name="n" data-ch-joueur placeholder="Tape un nom : adhérents du club, joueurs /Pista" required autocomplete="off"></label><button class="btn">Ajouter</button></form><p class="muted small">Un joueur qui n’est pas encore dans /Buvette y reçoit une fiche du club (sans compte) : il apparaît dans l’équipe et ses statistiques.</p></section>`;
   }
   const score = r => { if (r.fin) return r.fin; let a = 0, b = 0; (r.ms || []).forEach(m => { if (m.st === 'done') m.w === 0 ? a++ : b++; }); return [a, b]; };
   function recPart(r, t, c) {
@@ -230,9 +230,9 @@
         const m = it && it.d && it.d.k ? membres().find(x => x.k === it.d.k) : it ? null : memes[0];
         if (m) return ops([{ coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: m.k }, { p: ['roster', m.k], t: 'set', v: 'T' }] }], m.n + ' ajouté · il est prévenu');
         if (!n) return;
-        // pas encore dans /Buvette : une fiche du club sans compte, reprise de la base /RAM JA si on l'y a choisi
+        // pas encore dans /Buvette : une fiche du club sans compte, reprise de la base /Pista si on l'y a choisi
         const p = it && it.d && it.d.p, k = 'm' + Date.now().toString(36), conf = get('conf', 'main') || {};
-        const fiche = Object.assign({ n, r: (p && /^\d|NC|^-/.test(p.rank || '') ? p.rank : '') || 'NC', g: 'H', via: '/RAM JA', valid: conf.season || '' }, p && p.licence ? { lic: p.licence } : {}, p && p.id ? { ficheJa: p.id } : {});   // sa fiche /RAM JA, que le serveur vérifie puis rattache
+        const fiche = Object.assign({ n, r: (p && /^\d|NC|^-/.test(p.rank || '') ? p.rank : '') || 'NC', g: 'H', via: '/Pista', valid: conf.season || '' }, p && p.licence ? { lic: p.licence } : {}, p && p.id ? { ficheJa: p.id } : {});   // sa fiche /Pista, que le serveur vérifie puis rattache
         if (!confirm(n + ' n’est pas encore dans /Buvette. Lui créer une fiche du club (sans compte) et l’ajouter à l’équipe ?')) return;
         await ops([{ coll: 'member', id: k, op: 'put', data: fiche }, { coll: 'group', id: t.id, op: 'patch', patch: [{ p: ['mem'], t: 'add', v: k }, { p: ['roster', k], t: 'set', v: 'T' }] }], n + ' ajouté à l’équipe');
       });

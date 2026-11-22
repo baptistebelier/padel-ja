@@ -1,4 +1,4 @@
-/* /RAM Club : la page d'un tournoi interne dessinée à partir de sa vraie publication (poules, arbre des tableaux,
+/* /Buvette : la page d'un tournoi interne dessinée à partir de sa vraie publication (poules, arbre des tableaux,
    programmation, classement du TMC), sans erreur et avec les branches de l'arbre */
 const test = require('node:test');
 const assert = require('node:assert/strict');

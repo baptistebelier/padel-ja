@@ -1,4 +1,4 @@
-/* /RAM Club : une file d'écriture par club — un club lent ne fait pas attendre les autres,
+/* /Buvette : une file d'écriture par club — un club lent ne fait pas attendre les autres,
    et dans un même club les écritures restent une par une */
 const test = require('node:test');
 const assert = require('node:assert/strict');

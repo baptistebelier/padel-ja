@@ -1,8 +1,8 @@
-/* /RAM Coach — coach/4-finitions.js : ce qui se branche sur les derniers fichiers du Club (favoris, aide),
+/* /Dojo — coach/4-finitions.js : ce qui se branche sur les derniers fichiers du Club (favoris, aide),
    chargé en dernier (voir coach.html). */
-/* pas de favoris dans /RAM Coach (un logiciel de gestion, pas un réseau social) : pas d'étoile en haut des pages */
+/* pas de favoris dans /Dojo (un logiciel de gestion, pas un réseau social) : pas d'étoile en haut des pages */
 favHere = () => null;
-/* ---------- Aide : le guide de /RAM Coach (même page que l'aide du Club, autres rubriques) ---------- */
+/* ---------- Aide : le guide de /Dojo (même page que l'aide du Club, autres rubriques) ---------- */
 AIDE.splice(
   0,
   AIDE.length,
@@ -12,12 +12,12 @@ AIDE.splice(
     i: 'home',
     q: [
       [
-        'Entrer dans /RAM Coach',
+        'Entrer dans /Dojo',
         'Connecte-toi sur ' +
           (typeof RAM_NOMS === 'object'
             ? RAM_NOMS.urlDepuis('coach', location.hostname).slice(8)
             : 'coach.riseandmove.fr') +
-          ' avec ton compte /RAM (le même que pour /RAM Club et /RAM JA). Le bureau de chaque club où tu enseignes te donne le rôle <b>Enseignant</b> : tes groupes et tes élèves de tous tes clubs sont alors réunis, sans jamais changer de club.'
+          ' avec ton compte /RAM (le même que pour /Buvette et /Pista). Le bureau de chaque club où tu enseignes te donne le rôle <b>Enseignant</b> : tes groupes et tes élèves de tous tes clubs sont alors réunis, sans jamais changer de club.'
       ],
       [
         "Installer l'appli sur mon téléphone",
@@ -40,11 +40,11 @@ AIDE.splice(
     q: [
       [
         'Préparer le thème',
-        'Dans une séance, ou pour les cinq prochaines dans la page du groupe (École, Groupes). Les élèves voient le thème dans /RAM Club.'
+        'Dans une séance, ou pour les cinq prochaines dans la page du groupe (École, Groupes). Les élèves voient le thème dans /Buvette.'
       ],
       [
         "Faire l'appel",
-        'Touche P (présent), E (excusé) ou A (absent) pour chaque élève, ou « Tout le monde présent ». L’appel est aussi celui du club dans /RAM Club.'
+        'Touche P (présent), E (excusé) ou A (absent) pour chaque élève, ou « Tout le monde présent ». L’appel est aussi celui du club dans /Buvette.'
       ],
       [
         'Annuler un cours, changer de lieu',
@@ -52,7 +52,7 @@ AIDE.splice(
       ],
       [
         'Écrire le bilan',
-        'Un texte pour tout le groupe, et si tu veux un commentaire personnel pour chaque élève. Ils le reçoivent dans /RAM Club, École, Mon espace.'
+        'Un texte pour tout le groupe, et si tu veux un commentaire personnel pour chaque élève. Ils le reçoivent dans /Buvette, École, Mon espace.'
       ],
       ['Minuteur', 'Travail, repos et nombre de séries, avec des bips : depuis Aujourd’hui ou une séance.']
     ]
@@ -72,7 +72,7 @@ AIDE.splice(
       ],
       [
         'Un élève sans compte',
-        'Élèves, « Ajouter un élève sans compte ». Le jour où il crée son compte /RAM Club, ouvre sa fiche et « Relier à un compte /RAM » (même si son compte est dans un autre de tes clubs) : il retrouve tout.'
+        'Élèves, « Ajouter un élève sans compte ». Le jour où il crée son compte /Buvette, ouvre sa fiche et « Relier à un compte /RAM » (même si son compte est dans un autre de tes clubs) : il retrouve tout.'
       ]
     ]
   },
@@ -83,14 +83,14 @@ AIDE.splice(
     q: [
       [
         'Écrire à un élève',
-        'Messages, « Nouveau message ». Toi seul ouvres la conversation ; l’élève (ou son parent) répond ensuite dans /RAM Club.'
+        'Messages, « Nouveau message ». Toi seul ouvres la conversation ; l’élève (ou son parent) répond ensuite dans /Buvette.'
       ],
       [
         'Analyser une vidéo',
         'L’élève t’envoie le lien de sa vidéo avec sa question. Dans la conversation, « Répondre par une analyse ».'
       ],
       ['Envoyer un contenu', 'Dans la fiche élève, Suivi : un exercice, un conseil, un lien.'],
-      ['Les groupes', 'Messages, Groupes : les discussions de tes groupes, les mêmes que dans /RAM Club.']
+      ['Les groupes', 'Messages, Groupes : les discussions de tes groupes, les mêmes que dans /Buvette.']
     ]
   },
   {
@@ -112,7 +112,7 @@ AIDE.splice(
       ],
       [
         'Ma fiche enseignant',
-        'Profil, « Ma fiche enseignant » : diplôme, début d’activité, coordonnées, site, lien de réservation, tarifs. Elle apparaît dans /RAM Club, École, Enseignants.'
+        'Profil, « Ma fiche enseignant » : diplôme, début d’activité, coordonnées, site, lien de réservation, tarifs. Elle apparaît dans /Buvette, École, Enseignants.'
       ]
     ]
   },
@@ -129,7 +129,7 @@ AIDE.splice(
   }
 );
 /* ---------- plusieurs clubs, sans jamais changer de club ----------
-   Un enseignant (souvent en libéral) exerce dans un ou plusieurs clubs. /RAM Coach ouvre son club principal
+   Un enseignant (souvent en libéral) exerce dans un ou plusieurs clubs. /Dojo ouvre son club principal
    (synchronisé par ram-sync.js) et charge à côté chaque autre club où il enseigne : groupes, séances, fiches,
    suivi et adhérents sont rangés dans les mêmes listes, marqués _club. Chaque modification part vers son club
    (différences envoyées après l'affichage) ; ce que les autres changent revient toutes les 25 secondes. */
@@ -298,7 +298,7 @@ async function coPush() {
           }
         })
       );
-      // fiche /RAM Club d'un adhérent de ce club (niveau padel ou tennis donné dans /RAM Coach)
+      // fiche /Buvette d'un adhérent de ce club (niveau padel ou tennis donné dans /Dojo)
       Object.keys(c.members || {}).forEach(k => {
         const m = M[k],
           b = c.base.get('member/' + k);
@@ -409,7 +409,7 @@ if (
     ELEVES.push({ id: k, _club: 'arena', n: names[i], sport: 'Padel', lvl: 4 + (i % 3), parents: [] })
   );
 }
-/* ---------- téléphone : la navigation de /RAM JA ----------
+/* ---------- téléphone : la navigation de /Pista ----------
    un bandeau en haut (menu à gauche, logo /RAM COACH au centre, notifications à droite), toujours visible,
    et un volet qui glisse depuis la gauche : les pages, puis en bas le profil, le mode jour / nuit et la sortie.
    La barre d'onglets du bas n'existe plus sur téléphone ; l'ordinateur garde son menu latéral. */
@@ -421,7 +421,7 @@ function coDrawerHTML() {
     dk = effDark(),
     it = (a, attrs, icon, label, on) =>
       `<button class="cdr-it${on ? ' on' : ''}" data-a="${a}" ${attrs} ${on ? 'aria-current="page"' : ''}>${icon}<span>${label}</span>${a === 'coNav' && attrs.includes('"msgs"') && coUnread() ? `<span class="cnt">${coUnread()}</span>` : ''}${a === 'coNav' && attrs.includes('"asuivi"') && coSuiviN() ? `<span class="cnt">${coSuiviN()}</span>` : ''}</button>`;
-  return `<div class="cdr-logo"><img src="img/dojo-detoure-blanc.png" alt="/RAM Coach"></div><nav class="cdr-group" aria-label="Pages">${TABBAR.filter(
+  return `<div class="cdr-logo"><img src="img/dojo-detoure-blanc.png" alt="/Dojo"></div><nav class="cdr-group" aria-label="Pages">${TABBAR.filter(
     t => t[0] !== 'me'
   )
     .map(t => it('coNav', `data-t="${t[0]}"`, ic(t[1]), t[2], cur === t[0]))
@@ -523,7 +523,7 @@ render = function () {
       bell = top.querySelector('[data-a="notifs"]');
     top.insertAdjacentHTML(
       'afterbegin',
-      `<div class="cobar"><button class="cobar-btn" data-a="coDrawer" aria-label="Ouvrir le menu">${ic('menu')}</button><span class="cobar-logo"><img src="img/dojo-detoure-${dk ? 'blanc' : 'noir'}.png" alt="/RAM Coach"></span>${bell ? bell.outerHTML.replace('class="ib', 'class="ib cobar-bell') : '<span></span>'}</div>`
+      `<div class="cobar"><button class="cobar-btn" data-a="coDrawer" aria-label="Ouvrir le menu">${ic('menu')}</button><span class="cobar-logo"><img src="img/dojo-detoure-${dk ? 'blanc' : 'noir'}.png" alt="/Dojo"></span>${bell ? bell.outerHTML.replace('class="ib', 'class="ib cobar-bell') : '<span></span>'}</div>`
     );
     if (coMobile() && typeof topPad === 'function') topPad();
   }
@@ -635,7 +635,7 @@ document.addEventListener('change', e => {
   });
   document.addEventListener('touchcancel', () => (g = null));
 })();
-/* téléphone : le même geste que /RAM JA (public/js/rail.js). Glisser du bord gauche vers la droite ouvre le volet,
+/* téléphone : le même geste que /Pista (public/js/rail.js). Glisser du bord gauche vers la droite ouvre le volet,
    vers la gauche le ferme ; le volet suit le doigt, puis s'ouvre ou se referme au relâcher.
    Le geste du bord gauche ouvre uniquement le menu : on bloque le « retour à la page précédente » du navigateur (iPhone). */
 (function () {
@@ -714,8 +714,8 @@ addEventListener('load', () =>
 );
 
 /* ---------- notifications : seulement celles de l'enseignement ----------
-   /RAM Coach est un logiciel de gestion : réservations, messages et vidéos des élèves, discussions de mes groupes.
-   Le reste (publications, parties, trophées, tournois, bar) reste dans /RAM Club. */
+   /Dojo est un logiciel de gestion : réservations, messages et vidéos des élèves, discussions de mes groupes.
+   Le reste (publications, parties, trophées, tournois, bar) reste dans /Buvette. */
 (() => {
   const KEEP = { suivi: 1, resa: 1, chan: 1 },
     base = notify,

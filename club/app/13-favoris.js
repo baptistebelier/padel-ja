@@ -1,4 +1,4 @@
-/* /RAM Club — app/13-favoris.js : mes favoris, la frise de raccourcis personnelle en haut du mur.
+/* /Buvette — app/13-favoris.js : mes favoris, la frise de raccourcis personnelle en haut du mur.
    L'étoile en haut d'une page (une discussion, une équipe, le bar, mes cours…) l'ajoute à mes favoris ;
    la frise du mur les montre dans mon ordre. Tant que je n'en ai pas, la frise propose les pages que
    j'ouvre le plus souvent (comptées sur cet appareil), puis les raccourcis habituels.

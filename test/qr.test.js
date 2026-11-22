@@ -75,7 +75,7 @@ function read(mod) {
 }
 
 test('QR code : relu à l’identique, toutes tailles de texte', () => {
-  const texts = ['x', 'Bonjour', 'https://ja.riseandmove.fr/t/abc123/remote?pin=4821', 'é à ç — /RAM Club, saisie des scores',
+  const texts = ['x', 'Bonjour', 'https://ja.riseandmove.fr/t/abc123/remote?pin=4821', 'é à ç — /Buvette, saisie des scores',
     'https://club.riseandmove.fr/#/post/ja-x?club=c1234567890abcdef', 'y'.repeat(150), 'z'.repeat(300)];
   for (const t of texts) {
     const m = QR.encode(t);

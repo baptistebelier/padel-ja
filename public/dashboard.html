@@ -10,7 +10,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/img/app-icon-180.png?v=ja3">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja3">
-<title>Tableau de bord — /RAM JA</title>
+<title>Tableau de bord — /Pista</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
@@ -86,7 +86,7 @@
     // importer un tournoi exporté : un nouveau tournoi reçoit le fichier, puis s'ouvre
     q.querySelector('input[type=file]').onchange = async e => {
       const file = e.target.files[0]; e.target.value = ''; if (!file) return;
-      let st; try { st = JSON.parse(await file.text()); if (!st.tournament) throw 0; } catch (_) { alert('Ce fichier n’est pas un tournoi exporté depuis /RAM JA.'); return; }
+      let st; try { st = JSON.parse(await file.text()); if (!st.tournament) throw 0; } catch (_) { alert('Ce fichier n’est pas un tournoi exporté depuis /Pista.'); return; }
       const r = await fetch('/api/tournaments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: st.tournament.name || 'Tournoi importé' }) }).then(x => x.json()).catch(() => ({}));
       if (!r.id) { alert(r.error || 'Création impossible pour l’instant.'); return; }
       await fetch('/api/t/' + r.id + '/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'state/replace', payload: { state: st } }) });

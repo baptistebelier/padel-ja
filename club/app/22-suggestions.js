@@ -1,22 +1,22 @@
-/* /RAM Club et /RAM Coach — app/22-suggestions.js : liste déroulante sous les champs de noms.
+/* /Buvette et /Dojo — app/22-suggestions.js : liste déroulante sous les champs de noms.
    Chaque champ qui demande un adhérent, un joueur ou un club propose ce que l'appli connaît :
-   - adhérents du club (fiches /RAM Club) ;
-   - joueurs de la base /RAM JA (recherche au fil de la frappe, 2 lettres au moins) ;
-   - annuaire des clubs commun à /RAM JA et /RAM Club.
+   - adhérents du club (fiches /Buvette) ;
+   - joueurs de la base /Pista (recherche au fil de la frappe, 2 lettres au moins) ;
+   - annuaire des clubs commun à /Pista et /Buvette.
    La liste s'ouvre juste sous le champ (au-dessus s'il n'y a pas la place) ; le champ reste libre. */
 const SUGG = {
-  'co-n': ['membres'], // /RAM Coach : nouvel élève (souvent déjà adhérent)
-  'co-pn': ['membres'], // /RAM Coach : parent de l'élève
+  'co-n': ['membres'], // /Dojo : nouvel élève (souvent déjà adhérent)
+  'co-pn': ['membres'], // /Dojo : parent de l'élève
   'ev-ens-nom': ['membres', 'joueurs'], // stage : intervenant qui n'est pas enseignant du club
   'pr-ext': ['membres', 'joueurs'], // résultat de padel : partenaire extérieur
   'r-opp': ['membres', 'joueurs'], // résultat : adversaire
-  'ja-last': ['joueurs'], // inscription à un tournoi /RAM JA : partenaire hors du club (nom)
+  'ja-last': ['joueurs'], // inscription à un tournoi /Pista : partenaire hors du club (nom)
   'ja-first': ['joueurs'], // … son prénom
   'ja-club': ['clubs'], // … son club
   'pr-club': ['clubs'], // résultat de padel : club organisateur
   'a-opp': ['clubs'], // rencontre par équipes : club adverse
   'l-q': ['membres'], // annuaire des adhérents : recherche
-  'co-q': ['eleves', 'membres'] // /RAM Coach : rechercher un élève
+  'co-q': ['eleves', 'membres'] // /Dojo : rechercher un élève
 };
 const sgEsc = s =>
   String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -95,7 +95,7 @@ async function sgAnnuaire() {
           v: c.name,
           l: [
             c.city,
-            c.ramClub ? '/RAM Club' : c.tournaments ? c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '') : ''
+            c.ramClub ? '/Buvette' : c.tournaments ? c.tournaments + ' tournoi' + (c.tournaments > 1 ? 's' : '') : ''
           ]
             .filter(Boolean)
             .join(' · ')
@@ -121,7 +121,7 @@ async function sgJoueurs(t, champ) {
             ? p.first || ''
             : [p.first, p.last].filter(Boolean).join(' '),
       l: [
-        champ === 'ja-last' ? p.first : champ === 'ja-first' ? String(p.last || '').toUpperCase() : 'Joueur /RAM JA',
+        champ === 'ja-last' ? p.first : champ === 'ja-first' ? String(p.last || '').toUpperCase() : 'Joueur /Pista',
         p.club,
         p.rank,
         p.licence ? 'lic. ' + p.licence : ''
@@ -221,7 +221,7 @@ function sgPick(i) {
   inp._sugg = it; // la personne choisie reste attachée au champ tant qu'on ne retape pas
   ['input', 'change'].forEach(t => inp.dispatchEvent(new Event(t, { bubbles: true })));
   sgSkip = false;
-  // un joueur /RAM JA choisi pour un partenaire hors du club : nom, prénom, licence et club complétés
+  // un joueur /Pista choisi pour un partenaire hors du club : nom, prénom, licence et club complétés
   const p = it.d && it.d.p;
   if (p && (inp.id === 'ja-last' || inp.id === 'ja-first')) {
     const met = (id, v) => {

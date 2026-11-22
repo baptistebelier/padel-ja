@@ -1,4 +1,4 @@
-/* /RAM Club — ui/6-profil.js : Profil : palmarès, coordonnées, espace parent.
+/* /Buvette — ui/6-profil.js : Profil : palmarès, coordonnées, espace parent.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- profil ---------- */
 const PLACES = Array.from({ length: 24 }, (_, i) => (i ? i + 1 + 'e' : '1er'));
@@ -115,7 +115,7 @@ function profile(id) {
       h +
       meTabBody(T, id, m, kid) +
       (window.RAM && RAM.user
-        ? `<button class="btn ghost full logout" data-a="logout">${ic('logout')}Se déconnecter de /RAM Club</button>`
+        ? `<button class="btn ghost full logout" data-a="logout">${ic('logout')}Se déconnecter de /Buvette</button>`
         : '') +
       '</div>'
     );
@@ -212,7 +212,7 @@ function meTabBody(T, id, m, kid) {
   <div class="card"><span class="kicker">Démo · les couleurs du club</span><div class="sw">${CLUBS.map((c, i) => `<button data-a="theme" data-i="${i}" aria-pressed="${S.club === i}"><i><span style="background:${c.bg || (c.dark ? '#0B0B0B' : '#F3F5FA')}"></span><span style="background:${c.accent}"></span></i>${c.label}</button>`).join('')}</div>${isAdmin() ? `<button class="btn sm ghost" data-a="look">Personnaliser nom, logo et couleur</button>` : ''}</div>`
   }
   <div class="menu"><button data-a="open" data-v="aide">${ic('info')}Aide : tout savoir sur l’appli</button><button data-a="open" data-v="legal">${ic('shield')}Conditions et confidentialité</button>${kid ? '' : `<button class="danger" data-a="delAccount">${ic('trash')}Supprimer mon compte</button>`}</div>${kid ? '<p class="muted small">Seul ton parent peut supprimer ton compte.</p>' : ''}
-  <div class="powered"><span>Propulsé par</span><img src="${ramLogo()}" alt="/RAM Club"></div>`;
+  <div class="powered"><span>Propulsé par</span><img src="${ramLogo()}" alt="/Buvette"></div>`;
   return h;
 }
 /* Espace parent : prochains cours de l'enfant, absences, autorisation photo, second parent */

@@ -1,4 +1,4 @@
-/* /RAM Club — ui/7-ecole.js : École : séances, présences, premiers pas du bureau, compte en attente.
+/* /Buvette — ui/7-ecole.js : École : séances, présences, premiers pas du bureau, compte en attente.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- école : séances datées, lieu, présences ---------- */
 function sessions(g, days) {
@@ -10,7 +10,7 @@ function sessions(g, days) {
   }
   return out;
 }
-/* élèves d'un groupe : adhérents de l'appli et élèves sans compte /RAM Club (ajoutés dans /RAM Coach) */
+/* élèves d'un groupe : adhérents de l'appli et élèves sans compte /Buvette (ajoutés dans /Dojo) */
 const grpN = g => g.mem.length + (g.ext || []).length;
 const grpFull = g => !!g.max && grpN(g) >= g.max;
 /* un vrai groupe, en cours : ni une séance ponctuelle (cours individuel), ni un cycle terminé */
@@ -177,9 +177,9 @@ function ecoleBody(t) {
           "Tu n'es inscrit à aucun groupe d'entraînement. Les formules sont dans Club, Le club."
         );
   }
-  // messages, bilans, analyses vidéo et contenus de l'enseignant (/RAM Coach), historique des séances
+  // messages, bilans, analyses vidéo et contenus de l'enseignant (/Dojo), historique des séances
   if (t === 'perso') b = (typeof resaMine === 'function' ? resaMine() : '') + persoBody();
-  // l'équipe pédagogique : fiche de chaque enseignant (remplie dans /RAM Coach)
+  // l'équipe pédagogique : fiche de chaque enseignant (remplie dans /Dojo)
   if (t === 'profs') b = profsBody();
   if (t === 'stages') {
     const st = posts.filter(p => p.stage && !p.arch);
@@ -233,7 +233,7 @@ function ecoleBody(t) {
         : empty(
             'users',
             'Aucun groupe en cours',
-            'Les cours individuels et les cycles terminés sont dans l’historique de /RAM Coach.'
+            'Les cours individuels et les cycles terminés sont dans l’historique de /Dojo.'
           ));
   }
   return b;

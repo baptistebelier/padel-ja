@@ -1,4 +1,4 @@
-/* /RAM Club — app/21-equipes.js : championnats par équipes (gérés dans /RAM JA, page « Équipes »).
+/* /Buvette — app/21-equipes.js : championnats par équipes (gérés dans /Pista, page « Équipes »).
    - fiche de l'équipe : format des rencontres, règlement, titulaires et remplaçants
    - profil de chaque adhérent : ses rencontres jouées, victoires et défaites, en simple et en double,
      à domicile et à l'extérieur (rencontres de la saison et des saisons archivées présentes dans l'appli) */

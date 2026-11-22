@@ -414,3 +414,7 @@
   #phone .tabs > button { min-height: calc(62px + env(safe-area-inset-bottom, 0px)) !important; padding: 10px 2px calc(10px + env(safe-area-inset-bottom, 0px)) !important; justify-content: center !important; }
   #phone .tabs > button, #phone .tabs > button[aria-current="page"] { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; outline: 0 !important; }
 }
+
+/* bloc « Lien d’inscription public » des parties par niveau : icône à taille fixe (elle prenait toute la largeur) */
+.nv-lien { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.nv-lien .row > svg, .nv-lien .btn svg { width: 20px; height: 20px; flex: none; }

@@ -1,4 +1,4 @@
-/* /RAM Club — app/2-couleurs.js : Couleurs du club (lisibilité, contraste) et notifications.
+/* /Buvette — app/2-couleurs.js : Couleurs du club (lisibilité, contraste) et notifications.
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* Couleurs : le club choisit une seule couleur ; l'appli l'ajuste pour qu'elle reste lisible sur le fond et choisit le texte noir ou blanc au meilleur contraste. Le rouge d'alerte et le bleu padel sont fixes. */
 function lum(hex) {

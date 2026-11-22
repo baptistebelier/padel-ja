@@ -1,4 +1,4 @@
-/* Juges-arbitres /RAM JA : titres (un pour le tennis, un pour le padel) et suggestions dans les tournois */
+/* Juges-arbitres /Pista : titres (un pour le tennis, un pour le padel) et suggestions dans les tournois */
 const test = require('node:test');
 const assert = require('node:assert');
 const { freePort, serverReady } = require('./helpers');

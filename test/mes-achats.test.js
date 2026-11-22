@@ -1,4 +1,4 @@
-/* /RAM Club : un élève voit ses propres achats (lib/mes-achats.js, route /api/ram/c/:club/achats).
+/* /Buvette : un élève voit ses propres achats (lib/mes-achats.js, route /api/ram/c/:club/achats).
    Il ne voit jamais ceux d'un autre adhérent, ni la note de l'enseignant, ni le prix, ni le moyen de paiement ;
    un parent voit aussi ceux de son enfant. Les fiches élèves restent fermées à la synchronisation. */
 const test = require('node:test');

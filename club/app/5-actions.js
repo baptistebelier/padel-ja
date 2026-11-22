@@ -1,4 +1,4 @@
-/* /RAM Club — app/5-actions.js : Table des actions (A) : chaque bouton data-a="…" de l'appli.
+/* /Buvette — app/5-actions.js : Table des actions (A) : chaque bouton data-a="…" de l'appli.
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- actions ---------- */
 /* agenda : changer de vue ou d'agenda fait remonter la page en défilant, comme retoucher un onglet */
@@ -390,7 +390,7 @@ const A = {
     const body = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//RAM Club//FR',
+      'PRODID:-//Buvette//FR',
       'BEGIN:VEVENT',
       'UID:' + p.id + '@appli-club',
       'DTSTAMP:' + dt(TODAY) + 'T000000Z',
@@ -552,7 +552,7 @@ const A = {
     );
   },
   att(d) {
-    // le même appel que /RAM Coach (data.js appelNote) : il compte pour les jauges, les cycles et les paiements
+    // le même appel que /Dojo (data.js appelNote) : il compte pour les jauges, les cycles et les paiements
     const g = grp(d.id),
       cur = REGLES.presDe(sesDu(g, d.d), g, d.d)[d.u],
       v = d.s === '1' ? 'P' : 'A';
@@ -1330,7 +1330,7 @@ const A = {
       sx = me.g === 'F' ? 'Femme' : 'Homme';
     sheet(
       'Mes informations',
-      `<form class="body" id="me-form">${F('e-name', 'Prénom et nom', '', me.n)}<div class="fld"><label for="e-lic">Numéro de licence FFT</label><input id="e-lic" autocapitalize="characters" autocorrect="off" spellcheck="false" value="${esc(me.lic || '')}" placeholder="Facultatif" autocomplete="off"><span class="muted small">Il relie ton profil à tes tournois /RAM JA.</span></div><div class="two">${Sel('e-g', 'Sexe', ['Homme', 'Femme'], sx)}${Dt('e-bd', 'Date de naissance', 1, me.bd)}</div><div class="fld"><label for="e-tel">Téléphone</label><input id="e-tel" inputmode="tel" value="${esc(MYCT.tel[2])}" autocomplete="off"></div><div class="fld"><label for="e-mail">E-mail</label><input id="e-mail" type="email" value="${esc(MYCT.mail[2])}" autocomplete="off"></div><div class="two">${Sel('e-net', 'Réseau social', ['Instagram', 'Facebook', 'TikTok'], MYCT.soc[1])}${O('e-soc', 'Identifiant', '', MYCT.soc[2])}</div><p class="muted small">Téléphone, e-mail et réseau social ne sont visibles que si leur interrupteur est activé dans ton profil.</p><button class="btn full">Enregistrer</button></form>`
+      `<form class="body" id="me-form">${F('e-name', 'Prénom et nom', '', me.n)}<div class="fld"><label for="e-lic">Numéro de licence FFT</label><input id="e-lic" autocapitalize="characters" autocorrect="off" spellcheck="false" value="${esc(me.lic || '')}" placeholder="Facultatif" autocomplete="off"><span class="muted small">Il relie ton profil à tes tournois /Pista.</span></div><div class="two">${Sel('e-g', 'Sexe', ['Homme', 'Femme'], sx)}${Dt('e-bd', 'Date de naissance', 1, me.bd)}</div><div class="fld"><label for="e-tel">Téléphone</label><input id="e-tel" inputmode="tel" value="${esc(MYCT.tel[2])}" autocomplete="off"></div><div class="fld"><label for="e-mail">E-mail</label><input id="e-mail" type="email" value="${esc(MYCT.mail[2])}" autocomplete="off"></div><div class="two">${Sel('e-net', 'Réseau social', ['Instagram', 'Facebook', 'TikTok'], MYCT.soc[1])}${O('e-soc', 'Identifiant', '', MYCT.soc[2])}</div><p class="muted small">Téléphone, e-mail et réseau social ne sont visibles que si leur interrupteur est activé dans ton profil.</p><button class="btn full">Enregistrer</button></form>`
     );
   },
   addKid() {

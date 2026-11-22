@@ -1,4 +1,4 @@
-/* /RAM Coach — coach/7-refonte.js : refonte de l'agencement (maquette Figma « Refonte /Dojo », 11/2026).
+/* /Dojo — coach/7-refonte.js : refonte de l'agencement (maquette Figma « Refonte /Dojo », 11/2026).
    Navigation à deux niveaux comme /Buvette : en-tête (surtitre + grand titre + actions de la page), menu principal,
    sous-menu ; au téléphone, barre du bas à 5 entrées (Accueil, Planning, Élèves, Messages, Plus).
    Les pages gardent leurs fonctions : seul leur agencement change. */

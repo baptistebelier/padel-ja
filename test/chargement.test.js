@@ -1,4 +1,4 @@
-/* /RAM Club : clubs chargés à la demande — la recherche des joueurs et les recopies au démarrage
+/* /Buvette : clubs chargés à la demande — la recherche des joueurs et les recopies au démarrage
    ne gardent aucun club en mémoire ; un club ouvert l'est, puis libéré */
 const test = require('node:test');
 const assert = require('node:assert');

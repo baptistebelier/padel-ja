@@ -152,7 +152,7 @@
   Donnees.lire('/api/me').then(d => { showUser(d.user); loadClubs(); }).catch(e => { if (!e.expiree) Donnees.ui.erreur(document.querySelector('main'), e, () => location.reload()); });
   // mes clubs : une ligne par club et par saison, avec ses rôles (bureau, enseignant, adhérent, joueur)
   const ROLE = { bureau: 'Bureau', coach: 'Enseignant', adherent: 'Adhérent', joueur: 'Joueur' };
-  const SRC = { ramclub: '/Buvette', compte: 'mon compte', tournoi: 'tournois /RAM JA' };
+  const SRC = { ramclub: '/Buvette', compte: 'mon compte', tournoi: 'tournois /Pista' };
   function loadClubs() {
     if (me && me.guest) { $('#myClubs').innerHTML = '<p class="empty">Créez un compte pour rejoindre un club.</p>'; return; }
     fetch('/api/me/clubs').then(r => r.json()).then(d => {
@@ -352,12 +352,12 @@
 })();
 </script>
 <script>
-/* notifications de /RAM JA : l'abonnement de cet appareil, rattaché au compte connecté */
+/* notifications de /Pista : l'abonnement de cet appareil, rattaché au compte connecté */
 (function () {
   const btn = document.getElementById('notifOn'), txt = document.getElementById('notifTxt'), card = document.getElementById('notifCard');
   const dit = (m, fini) => { txt.textContent = m; if (fini) btn.hidden = true; };
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-    return dit(/iPhone|iPad|iPod/.test(navigator.userAgent) ? "Sur iPhone et iPad, ajoutez d'abord /RAM JA à l'écran d'accueil pour recevoir les notifications." : 'Ce navigateur ne gère pas les notifications.', true);
+    return dit(/iPhone|iPad|iPod/.test(navigator.userAgent) ? "Sur iPhone et iPad, ajoutez d'abord /Pista à l'écran d'accueil pour recevoir les notifications." : 'Ce navigateur ne gère pas les notifications.', true);
   }
   if (Notification.permission === 'granted') dit('Les notifications sont activées sur cet appareil.', false), (btn.textContent = 'Renouveler');
   if (Notification.permission === 'denied') dit('Les notifications sont bloquées pour ce site : autorisez-les dans les réglages de votre navigateur.', true);

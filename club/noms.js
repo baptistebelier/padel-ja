@@ -12,9 +12,9 @@
   const DOMAINE = 'riseandmove.fr';
   // appli → premier mot du nom de domaine, par famille
   const APPS = {
-    ja: { anciens: 'ja', nouveaux: 'pista' }, // /RAM JA (/Pista)
-    club: { anciens: 'club', nouveaux: 'buvette' }, // /RAM Club (/Buvette)
-    coach: { anciens: 'coach', nouveaux: 'dojo' } // /RAM Coach (/Dojo)
+    ja: { anciens: 'ja', nouveaux: 'pista' }, // /Pista
+    club: { anciens: 'club', nouveaux: 'buvette' }, // /Buvette
+    coach: { anciens: 'coach', nouveaux: 'dojo' } // /Dojo
   };
   const FAMILLES = ['anciens', 'nouveaux'];
   const premier = h =>

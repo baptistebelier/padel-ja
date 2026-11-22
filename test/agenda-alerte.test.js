@@ -1,4 +1,4 @@
-/* /RAM Coach : alerte dans la cloche quand un agenda relié devient illisible */
+/* /Dojo : alerte dans la cloche quand un agenda relié devient illisible */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createAgendaAlerte, SEUIL } = require('../lib/agenda-alerte');
@@ -47,7 +47,7 @@ test('agenda illisible : alerte au bout de plusieurs échecs de suite, une seule
   }
   await w.alerte.tous();
   let l = await w.cloche('prof1');
-  assert.equal(l.length, 1, 'alerte dans la cloche de /RAM Coach');
+  assert.equal(l.length, 1, 'alerte dans la cloche de /Dojo');
   assert.match(l[0].body, /agenda 1 est illisible/);
   assert.match(l[0].body, /Adresse secrète au format iCal/, 'adresse privée : la bonne explication');
   assert.equal(l[0].url, '#/me');

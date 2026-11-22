@@ -1,6 +1,6 @@
 /* =========================================================================
    /RAM — règles communes de l'enseignement, écrites une seule fois
-   Chargées par le serveur (connecteur, Calendly : require) et par l'appli (/RAM Club et /RAM Coach :
+   Chargées par le serveur (connecteur, Calendly : require) et par l'appli (/Buvette et /Dojo :
    variable REGLES), pour que l'écran et le serveur donnent toujours le même résultat :
    - trainOn : ce groupe a-t-il cours ce jour-là ? (créneau chaque semaine, cycle, séances déplacées,
      vacances, une semaine sur deux, séance ponctuelle) ;
@@ -244,8 +244,8 @@
   /* l'achat auquel une séance (cours particulier) est rattachée pour l'élève k : g.achatPar[k] (cours de plusieurs élèves), sinon g.achat ;
      un achat qui n'est pas à l'élève est simplement ignoré (couverture) */
   const achatDe = (g, k) => ((g && g.achatPar) || {})[k] || (g && g.achat) || undefined;
-  /* les séances faites par un élève (présent à l'appel de /RAM Coach ou de /RAM Club), pour la couverture ;
-     seances : [{ g, d, pres }], groupes : groupes et cours du club (avec leur id). Même calcul que /RAM Coach (coVenues). */
+  /* les séances faites par un élève (présent à l'appel de /Dojo ou de /Buvette), pour la couverture ;
+     seances : [{ g, d, pres }], groupes : groupes et cours du club (avec leur id). Même calcul que /Dojo (coVenues). */
   function venuesDe(k, seances, groupes, today) {
     const out = [],
       vu = new Set(),
@@ -283,8 +283,8 @@
     );
     return out;
   }
-  /* ce que l'élève (ou son parent) voit de ses achats dans /RAM Club : séances faites sur ses packs et son abonnement,
-     ce qui est à payer maintenant (paiements atteints, comme « À encaisser » de /RAM Coach) et ce qui reste à régler.
+  /* ce que l'élève (ou son parent) voit de ses achats dans /Buvette : séances faites sur ses packs et son abonnement,
+     ce qui est à payer maintenant (paiements atteints, comme « À encaisser » de /Dojo) et ce qui reste à régler.
      Jamais la note de l'enseignant, ni le moyen de paiement. Les achats terminés ne sont que comptés. */
   function resumeAchats(k, achats, seances, groupes, offres, today) {
     const vs = venuesDe(k, seances, groupes, today),
@@ -337,9 +337,9 @@
     return { achats: out, termines };
   }
 
-  /* Une seule source de présence : l'appel de /RAM Coach (s.pres : P présent, E excusé, A absent) et celui de
-     /RAM Club (g.att[date][clé] : true présent, false absent) comptent pareil. Les deux applis écrivent désormais
-     les deux ; pour un ancien appel fait seulement dans /RAM Club, g.att suffit. s.pres prime quand les deux existent. */
+  /* Une seule source de présence : l'appel de /Dojo (s.pres : P présent, E excusé, A absent) et celui de
+     /Buvette (g.att[date][clé] : true présent, false absent) comptent pareil. Les deux applis écrivent désormais
+     les deux ; pour un ancien appel fait seulement dans /Buvette, g.att suffit. s.pres prime quand les deux existent. */
   function presDe(s, g, d) {
     const out = {},
       att = ((g && g.att) || {})[d] || {};
@@ -588,7 +588,7 @@
   }
   /* ce qu'il reste à faire sur un cycle : 'obj' (objectifs à fixer : il commence dans les 14 jours ou a commencé,
      sans objectifs) ou 'bilan' (bilan de fin de cycle à écrire : toutes ses dates sont passées depuis moins de 60
-     jours, sans bilan) ; null sinon. c.obj et c.bilan s'écrivent dans les réglages du cycle (/RAM Coach). */
+     jours, sans bilan) ; null sinon. c.obj et c.bilan s'écrivent dans les réglages du cycle (/Dojo). */
   function cycleTodo(g, c, today) {
     const l = (c.dates || []).filter(d => !(g.cancel || []).includes(d)).sort();
     if (!l.length) return null;

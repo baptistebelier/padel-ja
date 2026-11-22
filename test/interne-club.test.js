@@ -1,4 +1,4 @@
-/* Tournoi interne : créé dans /RAM JA, publié sur /RAM Club, résultats saisis et confirmés par les joueurs */
+/* Tournoi interne : créé dans /Pista, publié sur /Buvette, résultats saisis et confirmés par les joueurs */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { freePort, until, serverReady } = require('./helpers');
@@ -25,7 +25,7 @@ test('tournoi interne : publication, participants du club, résultat d’un joue
     const s0 = await bur(`/api/ram/c/${space.id}/sync?since=0`), season = s0.items.find(i => i.coll === 'conf').data.season;
     await bur(`/api/ram/c/${space.id}/ops`, { ops: [j1, j2].map(j => ({ coll: 'member', id: j.key, op: 'patch', patch: [{ p: ['valid'], t: 'set', v: season }, { p: ['req'], t: 'unset' }] })) });
 
-    // le bureau (juge-arbitre) crée le tournoi interne : la page /RAM JA est celle du tournoi interne
+    // le bureau (juge-arbitre) crée le tournoi interne : la page /Pista est celle du tournoi interne
     const { id: tid } = await bur('/api/tournaments', { kind: 'interne', sport: 'Tennis', name: 'Interne d’hiver' });
     assert.ok(tid);
     const act = (type, payload) => bur(`/api/t/${tid}/action`, { type, payload });

@@ -7,10 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="/RAM Club">
+<meta name="apple-mobile-web-app-title" content="/Buvette">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Connexion — /RAM Club</title>
+<title>Connexion — /Buvette</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="stylesheet" href="/css/ram.css">
 <link rel="stylesheet" href="/css/site.css">
@@ -19,9 +19,9 @@
   .auth-box .club-note { margin: 18px 0 0; font-size: 13px; opacity: .75; line-height: 1.5; }
 </style>
 </head>
-<!-- Connexion à /RAM Club : le même compte /RAM que /RAM JA ; après connexion, retour dans l'appli du club -->
+<!-- Connexion à /Buvette : le même compte /RAM que /Pista ; après connexion, retour dans l'appli du club -->
 <body class="auth-page">
-<header class="nav"><a href="presentation" class="logo"><img src="img/buvette-detoure-blanc.png" alt="/RAM Club"></a><a href="presentation" class="btn ghost">Découvrir /RAM Club</a></header>
+<header class="nav"><a href="presentation" class="logo"><img src="img/buvette-detoure-blanc.png" alt="/Buvette"></a><a href="presentation" class="btn ghost">Découvrir /Buvette</a></header>
 <main class="auth">
   <div class="auth-box">
     <div class="tabs"><button data-m="login">Connexion</button><button data-m="signup">Créer un compte</button></div>
@@ -39,23 +39,23 @@
       <p class="alt" data-only="login"><a href="mot-de-passe-oublie">Mot de passe oublié ?</a></p>
       <p class="alt" data-only="forgot"><a href="connexion">Retour à la connexion</a></p>
     </form>
-    <p class="club-note">Un seul compte /RAM pour /RAM Club et /RAM JA, le logiciel du juge-arbitre.</p>
+    <p class="club-note">Un seul compte /RAM pour /Buvette et /Pista, le logiciel du juge-arbitre.</p>
   </div>
 </main>
 <script src="noms.js"></script>
 <script>
 (function () {
   const qs = new URLSearchParams(location.search);
-  // sur coach. ou dojo.riseandmove.fr : la même page, aux couleurs de /RAM Coach
+  // sur coach. ou dojo.riseandmove.fr : la même page, aux couleurs de /Dojo
   const coach = RAM_NOMS.appOf(location.hostname) === 'coach';
   if (coach) {
-    document.title = 'Connexion — /RAM Coach';
+    document.title = 'Connexion — /Dojo';
     document.querySelector('.nav .logo img').src = 'img/dojo-detoure-blanc.png';
-    document.querySelector('.nav .logo img').alt = '/RAM Coach';
+    document.querySelector('.nav .logo img').alt = '/Dojo';
     document.querySelector('link[rel="icon"]').href = 'img/dojo-favicon.png';
-    document.querySelector('.nav .btn').textContent = 'Découvrir /RAM Coach';
+    document.querySelector('.nav .btn').textContent = 'Découvrir /Dojo';
     document.querySelector('.hint[data-only="signup"]').textContent = '8 caractères minimum. Ensuite, tu retrouves les clubs où tu enseignes.';
-    document.querySelector('.club-note').textContent = 'Un seul compte /RAM pour /RAM Coach, /RAM Club et /RAM JA.';
+    document.querySelector('.club-note').textContent = 'Un seul compte /RAM pour /Dojo, /Buvette et /Pista.';
   }
   const base = location.pathname.startsWith('/club/') ? '/club/' : '/';   // ja.riseandmove.fr/club/ ou club.riseandmove.fr/
   const page = location.pathname.slice(base.length);

@@ -1,5 +1,5 @@
-/* /RAM Club — ui/11-tournois.js : tournois et animations /RAM JA publiés sur le mur du club (post.kind 'jatour').
-   La publication est écrite et tenue à jour par le serveur /RAM JA : inscrits, tirage, en cours, résultats.
+/* /Buvette — ui/11-tournois.js : tournois et animations /Pista publiés sur le mur du club (post.kind 'jatour').
+   La publication est écrite et tenue à jour par le serveur /Pista : inscrits, tirage, en cours, résultats.
    Les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* heure d'un match prévu : « 14 h 30 » */
 const jaHour = at => {
@@ -32,7 +32,7 @@ function jaMine(ja) {
 const jaPostBody = postBody;
 postBody = p => (p.kind === 'jatour' && p.ja ? jaBody(p) : jaPostBody(p));
 
-/* le direct du tournoi (ou de l'animation), tenu à jour par /RAM JA : en cours, à venir, derniers résultats */
+/* le direct du tournoi (ou de l'animation), tenu à jour par /Pista : en cours, à venir, derniers résultats */
 function jaDirect(ja) {
   const d = ja.direct;
   if (!d) return '';
@@ -140,8 +140,8 @@ function jaBody(p) {
     mine = jaMine(ja),
     dates = p.d ? (p.d2 ? `Du ${fmtD(p.d)} au ${fmtD(p.d2)}` : fmtD(p.d)) + (ja.time ? ' · ' + esc(ja.time) : '') : '';
   const kicker = ja.ani
-    ? `Animation /RAM JA · ${esc(ja.fmt || '')}`
-    : `Tournoi /RAM JA · ${esc(ja.cat || '')}${ja.gender ? ' · ' + esc(ja.gender) : ''}`;
+    ? `Animation /Pista · ${esc(ja.fmt || '')}`
+    : `Tournoi /Pista · ${esc(ja.cat || '')}${ja.gender ? ' · ' + esc(ja.gender) : ''}`;
   const who = ja.ani ? `${ja.count} joueur${ja.count > 1 ? 's' : ''}` : `${ja.count} paire${ja.count > 1 ? 's' : ''}`;
   const meta = `<div class="meta">${dates ? `<span>${ic('cal')}${dates}</span>` : ''}${p.place || ja.address ? `<span>${ic('pin')}${esc([p.place, ja.address].filter(Boolean).join(' · '))}</span>` : ''}${ja.jaName ? `<span>${ic('user')}JA : ${esc(ja.jaName)}${ja.jaTitle ? ' (' + esc(ja.jaTitle) + ')' : ''}</span>` : ''}</div>`;
   const status = `<div class="row" style="gap:8px;flex-wrap:wrap"><span class="tag ${ja.status === 'live' ? 'hot' : ja.status === 'open' ? 'lime' : 'ghost'}">${JA_STATUS[ja.status] || ''}</span><span class="muted small">${who} inscrit${ja.ani ? '' : 'e'}${ja.count > 1 ? 's' : ''}${ja.max && !ja.ani ? ' · ' + ja.max + ' places' : ''}${ja.deadline && ja.status === 'open' ? ' · jusqu’au ' + fmtD(ja.deadline.slice(0, 10)) : ''}</span></div>`;

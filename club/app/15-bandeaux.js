@@ -1,4 +1,4 @@
-/* /RAM Club — app/15-bandeaux.js : la frise des bandeaux partenaires.
+/* /Buvette — app/15-bandeaux.js : la frise des bandeaux partenaires.
    Les logos entrent par la droite, depuis l'extérieur du bandeau, et défilent vers la gauche sans trou :
    la suite de logos est répétée jusqu'à couvrir toute la largeur, puis doublée pour boucler.
    Chaque bandeau garde son horloge : un nouvel affichage de la page reprend la frise où elle en était. */

@@ -1,4 +1,4 @@
-/* /RAM Club — app/1-affichage.js : Affichage : rendu de l'écran, titres, confirmations, volets.
+/* /Buvette — app/1-affichage.js : Affichage : rendu de l'écran, titres, confirmations, volets.
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* Rendu, actions, formulaires et simulation du direct */
 let lastKey = '',
@@ -125,7 +125,7 @@ function subNav() {
 /* en passant du téléphone à la tablette (rotation de l'iPad), le sous-menu change de place */
 matchMedia('(min-width: 1024px)').addEventListener('change', () => typeof S !== 'undefined' && S.tab && render(true));
 function render(keep) {
-  // un onglet qui n'existe pas dans cette appli (le mur dans /RAM Coach) : le premier de la barre
+  // un onglet qui n'existe pas dans cette appli (le mur dans /Dojo) : le premier de la barre
   if (!TABBAR.some(x => x[0] === S.tab)) S.tab = TABBAR[0][0];
   const v = view(),
     key = v.v + (v.id || ''),
@@ -190,7 +190,7 @@ function render(keep) {
     liveRec = v.v === 'rec' && recs.find(r => r.id === v.id).st === 'live',
     fk = key + (liveRec ? 'L' : '');
   /* menu de navigation : caché dans une discussion sur téléphone (la barre de saisie prend sa place), toujours visible avec le menu latéral (ordinateur) */
-  // conversation privée avec un enseignant (/RAM Coach) : même barre de saisie que les groupes
+  // conversation privée avec un enseignant (/Dojo) : même barre de saisie que les groupes
   const dmv = v.v === 'dm' && typeof dmCanWrite === 'function' && dmCanWrite(v.id);
   const showTabs = !(v.v === 'chan' || liveRec || dmv) || sideNav();
   if (v.v === 'chan' || liveRec || dmv) {

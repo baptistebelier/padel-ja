@@ -1,5 +1,5 @@
-/* /RAM Club — app/16-suivi.js : conversation privée avec l'enseignant et envoi de vidéos à analyser
-   (écrans dans ui/13-suivi.js ; /RAM Coach utilise les mêmes). */
+/* /Buvette — app/16-suivi.js : conversation privée avec l'enseignant et envoi de vidéos à analyser
+   (écrans dans ui/13-suivi.js ; /Dojo utilise les mêmes). */
 V.dm = dmView;
 TITLES.dm = () => {
   const id = view().id;

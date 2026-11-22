@@ -1,4 +1,4 @@
-/* /RAM Club — publications par niveaux des enseignants : chacun s'inscrit lui-même dans sa fourchette,
+/* /Buvette — publications par niveaux des enseignants : chacun s'inscrit lui-même dans sa fourchette,
    personne ne touche aux fourchettes ni aux inscriptions des autres ; la première fourchette complète est validée */
 const test = require('node:test');
 const assert = require('node:assert/strict');

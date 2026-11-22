@@ -1,4 +1,4 @@
-/* /RAM Club — app/6-gestes.js : Événements du navigateur : clics, appui long, clavier, zoom photo, glissés.
+/* /Buvette — app/6-gestes.js : Événements du navigateur : clics, appui long, clavier, zoom photo, glissés.
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- événements du navigateur ---------- */
 document.addEventListener('click', e => {
@@ -388,8 +388,8 @@ document.addEventListener('change', e => {
     const pad = $('tr-sport').value === 'Padel';
     $('tr-tennis').hidden = pad;
     $('tr-padel').hidden = !pad;
-    // tournoi organisé avec /RAM JA : pas de lien Ten'Up (inscriptions dans l'appli)
-    if ($('tr-ext')) $('tr-ext').hidden = pad && /RAM JA/.test($('tr-mgr').value);
+    // tournoi organisé avec /Pista : pas de lien Ten'Up (inscriptions dans l'appli)
+    if ($('tr-ext')) $('tr-ext').hidden = pad && /Pista|Pista/.test($('tr-mgr').value);
   }
   if (el.id === 'tr-pub') {
     $('tr-jeunes').hidden = el.value !== 'Jeunes';
@@ -495,7 +495,7 @@ document.addEventListener('change', e => {
     });
 });
 
-/* /RAM Club : glisser à gauche ou à droite sur une page principale passe à la section voisine de la barre du bas.
+/* /Buvette : glisser à gauche ou à droite sur une page principale passe à la section voisine de la barre du bas.
    Sauf là où le doigt a déjà un rôle : ce qui défile sur les côtés, l'agenda (il change de semaine), les messages, les champs */
 (function () {
   if (window.RAM_APP === 'coach') return;

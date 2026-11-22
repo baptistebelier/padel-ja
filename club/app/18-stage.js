@@ -1,4 +1,4 @@
-/* /RAM Club — app/18-stage.js : tarif des événements, enseignant et déroulé des stages.
+/* /Buvette — app/18-stage.js : tarif des événements, enseignant et déroulé des stages.
    - tarif : « Gratuit » ou un montant, toujours affiché (mur, agenda)
    - stage : enseignant du club, ou une autre personne (nom écrit à la main)
    - déroulé (facultatif) : des étapes avec leur heure (« 9 h · Sur le terrain », « 12 h – 13 h 30 · Déjeuner au club-house »),

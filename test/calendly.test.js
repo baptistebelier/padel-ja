@@ -1,5 +1,5 @@
 /* Réservations Calendly : signature du webhook, lecture de la réservation (heure de Paris),
-   séance posée dans le planning /RAM Coach, inscrit de plus sur un collectif, annulation. */
+   séance posée dans le planning /Dojo, inscrit de plus sur un collectif, annulation. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
@@ -41,7 +41,7 @@ test('Calendly : réservation lue à l’heure de Paris, avec objectif et partic
   assert.equal(Calendly.booking({ event: 'routing_form_submission.created', payload: {} }).type, null);
 });
 
-test('Calendly : la séance arrive dans le planning /RAM Coach, puis l’annulation', async () => {
+test('Calendly : la séance arrive dans le planning /Dojo, puis l’annulation', async () => {
   const coach = { id: 'C1', email: 'coach@test.fr', pass_hash: 'h' };
   await store.saveUser(coach);
   // ses formules : le tarif d'une réservation vient de la formule correspondante (plus d'une grille fixe)
@@ -76,7 +76,7 @@ test('Calendly : la séance arrive dans le planning /RAM Coach, puis l’annulat
   assert.equal((await mcp.calendly.cancel(coach, Object.assign(Calendly.booking(hook('invitee.canceled')), { cal: 'inconnu' }))).introuvable, true);
 });
 
-test('Calendly : annuler depuis /RAM Coach appelle Calendly', async () => {
+test('Calendly : annuler depuis /Dojo appelle Calendly', async () => {
   const { annuler } = require('../lib/calendly.js'), real = global.fetch, appels = [];
   global.fetch = async (u, o) => { appels.push([String(u), o.method, JSON.parse(o.body).reason]); return { ok: true, status: 201, json: async () => ({}) }; };
   try {

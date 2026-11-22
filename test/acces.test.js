@@ -59,14 +59,14 @@ test('en lecture seule, seul l\'affichage TV reste pilotable', () => {
   assert.ok(!READONLY_OK.has('draw/create'));
 });
 
-test('compte créé ailleurs : ni offre ni essai avant la première venue sur /RAM JA ; offre attribuée : pas d’essai', () => {
+test('compte créé ailleurs : ni offre ni essai avant la première venue sur /Pista ; offre attribuée : pas d’essai', () => {
   const u = { id: 'u2', plan: 'essai', created_at: now - 100 * DAY };
   assert.equal(accessOf(u, { noTrial: true }, [], false, now).state, 'sans');
   assert.equal(accessOf(u, { noTrial: true }, [], false, now).canCreate, false);
   assert.ok(startsTrial({ noTrial: true }, false));
   assert.equal(startsTrial({ noTrial: true }, true), false, 'accès offert');
   assert.equal(startsTrial({ noTrial: true, until: now + DAY }, false), false, 'accès payé');
-  assert.equal(startsTrial(null, false), false, 'compte /RAM JA existant : rien ne change');
+  assert.equal(startsTrial(null, false), false, 'compte /Pista existant : rien ne change');
   const a = accessOf(u, { noTrial: false, trial: now - DAY }, [], false, now);
   assert.equal(a.state, 'trial');
   assert.equal(a.daysLeft, 13);

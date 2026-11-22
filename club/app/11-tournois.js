@@ -1,5 +1,5 @@
-/* /RAM Club — app/11-tournois.js : s'inscrire à un tournoi ou une animation /RAM JA depuis le club.
-   L'inscription part au serveur /RAM JA, qui ajoute la paire au tournoi et met à jour la publication.
+/* /Buvette — app/11-tournois.js : s'inscrire à un tournoi ou une animation /Pista depuis le club.
+   L'inscription part au serveur /Pista, qui ajoute la paire au tournoi et met à jour la publication.
    Les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 async function jaCall(path, body) {
   const r = await fetch(path, {
@@ -53,10 +53,10 @@ Object.assign(A, {
       'Classement des clubs',
       `<div class="body"><div class="chips">${chips}</div><p class="muted small">${
         tab === 'activity'
-          ? 'Points d’investissement moyens par adhérent dans /RAM Club, saison ' +
+          ? 'Points d’investissement moyens par adhérent dans /Buvette, saison ' +
             esc(data.season) +
             ' (clubs d’au moins 3 adhérents).'
-          : 'Points gagnés en tournoi /RAM JA par les joueurs de chaque club, saison ' + esc(data.season) + '.'
+          : 'Points gagnés en tournoi /Pista par les joueurs de chaque club, saison ' + esc(data.season) + '.'
       }</p>${rows || '<p class="muted small">Pas encore de classement cette saison.</p>'}</div>`
     );
   },
@@ -65,7 +65,7 @@ Object.assign(A, {
     const L = jaLeague();
     sheet(
       'Ligue des animations',
-      `<div class="body"><p class="muted small">${L.count} animation${L.count > 1 ? 's' : ''} /RAM JA terminée${L.count > 1 ? 's' : ''} cette saison. Points selon la place : ${LIGUE_PTS.join(', ')} du 1er au 8e, plus 1 point par participation.</p>${leagueRows(L.rows)}</div>`
+      `<div class="body"><p class="muted small">${L.count} animation${L.count > 1 ? 's' : ''} /Pista terminée${L.count > 1 ? 's' : ''} cette saison. Points selon la place : ${LIGUE_PTS.join(', ')} du 1er au 8e, plus 1 point par participation.</p>${leagueRows(L.rows)}</div>`
     );
   },
   /* s'inscrire : seul (animation) ou avec un partenaire du club, ou extérieur (tournoi) */
@@ -147,8 +147,8 @@ document.addEventListener('submit', async e => {
     toast(x.message);
   }
 });
-/* « Nouveau tournoi » du club, organisé avec /RAM JA : création dans /RAM JA (même compte /RAM) ;
-   /RAM JA le publie ensuite sur le mur, avec les inscriptions dans l'appli */
+/* « Nouveau tournoi » du club, organisé avec /Pista : création dans /Pista (même compte /RAM) ;
+   /Pista le publie ensuite sur le mur, avec les inscriptions dans l'appli */
 async function jaCreateTournament(o) {
   try {
     const r = await fetch('/api/tournaments', {
@@ -158,9 +158,9 @@ async function jaCreateTournament(o) {
       body: JSON.stringify({ name: o.name })
     });
     const d = await r.json().catch(() => ({}));
-    // essai ou pass /RAM JA épuisé : on explique pourquoi, et quoi faire, plutôt qu'une simple erreur
+    // essai ou pass /Pista épuisé : on explique pourquoi, et quoi faire, plutôt qu'une simple erreur
     if (r.status === 402) return jaAccessBlocked(d, o);
-    if (!r.ok || !d.id) throw new Error(d.error || 'Création impossible dans /RAM JA');
+    if (!r.ok || !d.id) throw new Error(d.error || 'Création impossible dans /Pista');
     await jaCall('/api/t/' + d.id + '/action', {
       type: 'tournament/update',
       payload: {
@@ -180,30 +180,30 @@ async function jaCreateTournament(o) {
     S.stack = [];
     render();
     sheet(
-      'Tournoi créé dans /RAM JA',
-      `<div class="body"><div class="note ok">${ic('check')}<span><b>${esc(o.name)}</b> est créé dans /RAM JA et sera publié sur le mur dans un instant, avec les inscriptions dans l’appli.</p><p class="muted small">Le juge-arbitre gère ensuite le tirage, la programmation et les scores dans /RAM JA.</p><a class="btn full" href="${RAM_NOMS.appOf(location.hostname) === 'club' ? RAM_NOMS.urlDepuis('ja', location.hostname) : ''}/t/${d.id}" target="_blank" rel="noopener">Ouvrir dans /RAM JA ${ic('link')}</a></div>`
+      'Tournoi créé dans /Pista',
+      `<div class="body"><div class="note ok">${ic('check')}<span><b>${esc(o.name)}</b> est créé dans /Pista et sera publié sur le mur dans un instant, avec les inscriptions dans l’appli.</p><p class="muted small">Le juge-arbitre gère ensuite le tirage, la programmation et les scores dans /Pista.</p><a class="btn full" href="${RAM_NOMS.appOf(location.hostname) === 'club' ? RAM_NOMS.urlDepuis('ja', location.hostname) : ''}/t/${d.id}" target="_blank" rel="noopener">Ouvrir dans /Pista ${ic('link')}</a></div>`
     );
   } catch (e) {
     toast(e.message);
   }
 }
-/* création refusée par /RAM JA (essai gratuit ou pass déjà utilisé, accès terminé) : explication et solutions */
+/* création refusée par /Pista (essai gratuit ou pass déjà utilisé, accès terminé) : explication et solutions */
 function jaAccessBlocked(d, o) {
   const a = d.access || {},
     shop = /^https:\/\//.test(a.shop || '') ? a.shop : '',
     why =
       a.state === 'trial'
-        ? 'L’essai gratuit de /RAM JA comprend un seul tournoi, et il est déjà utilisé sur ton compte.'
+        ? 'L’essai gratuit de /Pista comprend un seul tournoi, et il est déjà utilisé sur ton compte.'
         : a.state === 'pass'
-          ? 'Ton pass tournoi /RAM JA est déjà utilisé.'
-          : 'Ton accès /RAM JA est terminé : tes tournois restent consultables, mais tu ne peux plus en créer.';
+          ? 'Ton pass tournoi /Pista est déjà utilisé.'
+          : 'Ton accès /Pista est terminé : tes tournois restent consultables, mais tu ne peux plus en créer.';
   closeSheet();
   sheet(
     'Tournoi non créé',
-    `<div class="body"><div class="note"><span><b>${esc(o.name)}</b> n’a pas été créé. Les tournois du club sont organisés avec /RAM JA, sur le compte de la personne qui les crée. ${why}</span></div>
+    `<div class="body"><div class="note"><span><b>${esc(o.name)}</b> n’a pas été créé. Les tournois du club sont organisés avec /Pista, sur le compte de la personne qui les crée. ${why}</span></div>
  <span class="kicker">Pour l’organiser quand même</span>
- <p>1. Prendre une offre /RAM JA (pass tournoi ou abonnement du club), puis recommencer ici.</p>
- <p>2. Ou demander au juge-arbitre du club de le créer dans /RAM JA avec le nom du club : il apparaîtra tout seul sur le mur, avec les inscriptions dans l’appli.</span></div>
- ${shop ? `<a class="btn full" href="${esc(shop)}" target="_blank" rel="noopener">Voir les offres /RAM JA ${ic('link')}</a>` : ''}<button class="btn ghost full" data-a="close">Fermer</button></div>`
+ <p>1. Prendre une offre /Pista (pass tournoi ou abonnement du club), puis recommencer ici.</p>
+ <p>2. Ou demander au juge-arbitre du club de le créer dans /Pista avec le nom du club : il apparaîtra tout seul sur le mur, avec les inscriptions dans l’appli.</span></div>
+ ${shop ? `<a class="btn full" href="${esc(shop)}" target="_blank" rel="noopener">Voir les offres /Pista ${ic('link')}</a>` : ''}<button class="btn ghost full" data-a="close">Fermer</button></div>`
   );
 }

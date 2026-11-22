@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>/RAM Club</title>
+<title>/Buvette</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="/RAM Club">
+<meta name="apple-mobile-web-app-title" content="/Buvette">
 <meta name="theme-color" content="#0B0B0B">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -76,7 +76,7 @@
 <script src="ram-sync.js"></script>
 <script>
 /* Service worker : appli hors connexion + notifications push (voir sw.js). Sans support, l'appli marche normalement. */
-/* écran de lancement /RAM Club : retiré dès que l'appli est prête */
+/* écran de lancement /Buvette : retiré dès que l'appli est prête */
 /* il attend aussi le chargement du club (4 s au plus) pour ne pas montrer la démo avant le vrai club */
 Promise.all([new Promise(r=>setTimeout(r,700)),Promise.race([window.ramReady||Promise.resolve(),new Promise(r=>setTimeout(r,4000))])]).then(()=>{const s=document.getElementById('ramSplash');if(s){s.classList.add('out');setTimeout(()=>s.remove(),400)}});
 /* Mises à jour : l'appli vérifie s'il existe une nouvelle version à chaque retour au premier plan, et se recharge d'elle-même dès qu'elle est installée (une fois, jamais pendant une saisie) */

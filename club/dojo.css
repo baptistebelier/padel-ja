@@ -2205,3 +2205,12 @@ select option { background: var(--c-surface); color: var(--c-text); }
    nuit : menu olive foncé ; jour : menu olive franc (remplacent les bordeaux /RAM) */
 :root { --co-side: linear-gradient(180deg, #1B2206 0%, #141905 100%); --co-side-tx: #DDE3BF; --co-rail: #1B2206; --co-rail-tx: #F4F8DC; --co-lime: #E0F50A; --dj-rail: #1B2206; --dj-sub: #141905; }
 :root[style*='color-scheme: light'] { --co-side: linear-gradient(180deg, #4F6200 0%, #3E4D00 100%); --co-side-tx: #EEF3C8; --co-rail: #4F6200; --co-rail-tx: #F4F8DC; --co-lime: #E0F50A; --dj-rail: #4F6200; --dj-sub: #3E4D00; }
+
+/* bloc « Lien d’inscription public » des parties par niveau : icône à taille fixe (elle prenait toute la largeur) */
+.nv-lien { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.nv-lien .row > svg, .nv-lien .btn svg { width: 20px; height: 20px; flex: none; }
+/* élément actif du bas du menu (Réglages, Mode jour…) : texte et icône foncés sur le citron, ombre noire */
+@media (min-width: 768px) {
+  .rbot button[aria-current="page"], .rbot button[aria-current="page"] svg { color: var(--on-accent); }
+  .tabs button[aria-current="page"], .rbot button[aria-current="page"] { box-shadow: 3px 3px 0 #000000; }
+}

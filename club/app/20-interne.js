@@ -1,7 +1,7 @@
-/* /RAM Club — app/20-interne.js : tournoi interne du club (créé et géré dans /RAM JA, post.kind 'jaint').
+/* /Buvette — app/20-interne.js : tournoi interne du club (créé et géré dans /Pista, post.kind 'jaint').
    Pour les adhérents : le tableau en direct, le règlement, les participants (leur fiche du club),
    « mon prochain match » (adversaire, date limite, contact), saisir le résultat quand on a joué,
-   confirmer ou contester celui que l'adversaire a saisi. Le serveur /RAM JA vérifie qu'on joue bien le match. */
+   confirmer ou contester celui que l'adversaire a saisi. Le serveur /Pista vérifie qu'on joue bien le match. */
 const INT_TOURS = [
   'Finale',
   'Demi-finales',
@@ -256,7 +256,7 @@ function intView(id) {
 const intEnvoi = async (body, ok) => {
   try {
     await jaCall('/api/ja/interne', body);
-    toast(ok); // la publication du tournoi est mise à jour par le serveur /RAM JA, et arrive en direct
+    toast(ok); // la publication du tournoi est mise à jour par le serveur /Pista, et arrive en direct
   } catch (e) {
     toast(e.message);
   }
@@ -285,7 +285,7 @@ Object.assign(A, {
   intContest(d) {
     sheet(
       'Contester le résultat',
-      `<form class="body" id="int-contest" data-tid="${esc(d.tid)}" data-m="${d.m}"${d.kid ? ` data-kid="${d.kid}"` : ''}>${O('int-why', 'Ce qui ne va pas (facultatif)', 'Le score réel, un match pas encore joué…')}<p class="muted small">Le juge-arbitre est prévenu et tranche dans /RAM JA.</p><button class="btn full">Contester</button></form>`
+      `<form class="body" id="int-contest" data-tid="${esc(d.tid)}" data-m="${d.m}"${d.kid ? ` data-kid="${d.kid}"` : ''}>${O('int-why', 'Ce qui ne va pas (facultatif)', 'Le score réel, un match pas encore joué…')}<p class="muted small">Le juge-arbitre est prévenu et tranche dans /Pista.</p><button class="btn full">Contester</button></form>`
     );
   }
 });

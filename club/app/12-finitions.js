@@ -1,4 +1,4 @@
-/* /RAM Club — app/12-finitions.js : petites animations qui rendent l'appli agréable à utiliser.
+/* /Buvette — app/12-finitions.js : petites animations qui rendent l'appli agréable à utiliser.
    Cœurs qui jaillissent sur un like, confettis quand on s'inscrit (événement, partie, cours),
    cloche qui s'agite à l'arrivée d'une notification, icône d'onglet qui rebondit, vibration légère
    (seulement si « Sons et vibrations » est activé dans le profil et que le téléphone sait vibrer).

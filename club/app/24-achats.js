@@ -1,6 +1,6 @@
 /* =========================================================================
    École, Mon espace : mes séances et ce qui reste à payer
-   Ce que mon enseignant a noté dans /RAM Coach (packs, abonnement, paiements), en lecture seule, pour moi et
+   Ce que mon enseignant a noté dans /Dojo (packs, abonnement, paiements), en lecture seule, pour moi et
    mes enfants. En ligne : lu sur le serveur (/api/ram/c/:club/achats, lib/mes-achats.js), qui n'en renvoie
    qu'un résumé ; en démonstration : même calcul (regles.js resumeAchats) sur les fiches de démo.
    Aucune facture, aucune relance : seulement de quoi savoir où l'on en est.
@@ -56,7 +56,11 @@ function mesAchatLigne(a) {
             ? 'Faite'
             : 'À venir',
     mq = a.t === 'abo' && a.mois && a.mois.quota ? a.mois : null,
-    pct = mq ? Math.min(100, Math.round((mq.fait / mq.quota) * 100)) : a.n ? Math.min(100, Math.round((a.used / a.n) * 100)) : 0,
+    pct = mq
+      ? Math.min(100, Math.round((mq.fait / mq.quota) * 100))
+      : a.n
+        ? Math.min(100, Math.round((a.used / a.n) * 100))
+        : 0,
     pay = a.aPayer
       ? `<span class="tag mesach-due">À payer : ${maEur(a.aPayer)}</span>`
       : a.reste

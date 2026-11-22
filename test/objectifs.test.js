@@ -1,4 +1,4 @@
-/* Objectifs et compétences : règles partagées (regles.js) et accès dans /RAM Club (lib/ramclub.js, collection « objectif »).
+/* Objectifs et compétences : règles partagées (regles.js) et accès dans /Buvette (lib/ramclub.js, collection « objectif »).
    Pure logique : aucun service réseau ni base (les variables SUPABASE_* ne servent à rien ici). */
 const test = require('node:test');
 const assert = require('node:assert/strict');

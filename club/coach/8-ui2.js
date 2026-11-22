@@ -1,4 +1,4 @@
-/* /RAM Coach — coach/8-ui2.js : nouvelle organisation de /Dojo (maquette Figma « /Dojo · Nouvelle interface », 11/2026).
+/* /Dojo — coach/8-ui2.js : nouvelle organisation de /Dojo (maquette Figma « /Dojo · Nouvelle interface », 11/2026).
    À l'essai derrière l'interrupteur ?ui=2 (coach.html) : sans lui, rien ne change.
    Étape 1 — navigation : 5 rubriques partout (Aujourd'hui, Planning, Élèves, Groupes, Messages) ;
    Statistiques devient un sous-onglet d'Aujourd'hui ; Suivi sort du menu (joignable depuis « À traiter ») ;
@@ -845,7 +845,7 @@ if (UI2) {
               .join('')}</div>`
           : none('cal', 'Aucune séance', ''));
     }
-    return `<div class="pad u2f"><div class="card u2fiche"><div class="u2fh">${coAv(id, 'lg')}<div class="u2fn"><span class="u2fp">${esc(fn)}</span><b class="u2fl">${esc(ln)}</b><span class="tag">${M[id] ? 'Compte /RAM Club' : 'Sans compte'}</span></div><div class="u2fc">${cell('phone', 'Téléphone', tel, 'tel:' + esc(String(tel).replace(/[^+\d]/g, '')))}${cell('mail', 'E-mail', mail, 'mailto:' + esc(mail))}</div><div class="u2fa"><button class="btn" data-a="u2Prog" data-id="${id}">${ic('cal')}Programmer une séance</button><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte /RAM</button>`}</div></div></div><div class="u2boite">${tabs}<div class="card u2fb">${body}</div></div></div>`;
+    return `<div class="pad u2f"><div class="card u2fiche"><div class="u2fh">${coAv(id, 'lg')}<div class="u2fn"><span class="u2fp">${esc(fn)}</span><b class="u2fl">${esc(ln)}</b><span class="tag">${M[id] ? 'Compte /Buvette' : 'Sans compte'}</span></div><div class="u2fc">${cell('phone', 'Téléphone', tel, 'tel:' + esc(String(tel).replace(/[^+\d]/g, '')))}${cell('mail', 'E-mail', mail, 'mailto:' + esc(mail))}</div><div class="u2fa"><button class="btn" data-a="u2Prog" data-id="${id}">${ic('cal')}Programmer une séance</button><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte /RAM</button>`}</div></div></div><div class="u2boite">${tabs}<div class="card u2fb">${body}</div></div></div>`;
   };
 
   /* Fiche de groupe : le cycle en cours et sa progression en haut, les élèves tout de suite (ajout et retrait), puis les
@@ -959,8 +959,8 @@ if (UI2) {
       'Discussion du groupe',
       '',
       ch
-        ? `${ch.ext ? `<div class="item"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(ch.name)}</span><br><span class="muted small">Dans /RAM Club, ${esc(coClubName(g))}</span></span></div>` : `<button class="item" data-a="open" data-v="chan" data-id="${ch.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(ch.name)}</span><br><span class="muted small">Dans /RAM Club pour les élèves et les parents</span></span></button>`}<button class="item" data-a="coChanDel" data-id="${g.id}"><span class="tile">${ic('x')}</span><span class="grow"><span class="nm">Supprimer la discussion</span><br><span class="muted small">Le groupe et ses séances restent</span></span></button>`
-        : `<p class="muted small">Ce groupe n'a pas de discussion dans /RAM Club.</p><button class="btn sm full ghost" data-a="coChanNew" data-id="${g.id}">${ic('plus')}Créer la discussion du groupe</button>`
+        ? `${ch.ext ? `<div class="item"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(ch.name)}</span><br><span class="muted small">Dans /Buvette, ${esc(coClubName(g))}</span></span></div>` : `<button class="item" data-a="open" data-v="chan" data-id="${ch.id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">${esc(ch.name)}</span><br><span class="muted small">Dans /Buvette pour les élèves et les parents</span></span></button>`}<button class="item" data-a="coChanDel" data-id="${g.id}"><span class="tile">${ic('x')}</span><span class="grow"><span class="nm">Supprimer la discussion</span><br><span class="muted small">Le groupe et ses séances restent</span></span></button>`
+        : `<p class="muted small">Ce groupe n'a pas de discussion dans /Buvette.</p><button class="btn sm full ghost" data-a="coChanNew" data-id="${g.id}">${ic('plus')}Créer la discussion du groupe</button>`
     );
     const themes = next.length
       ? `<details class="card cothm"><summary><b>Thèmes des prochaines séances</b><span class="muted small"> · les élèves les voient dans leurs cours</span></summary><form id="co-themes" data-id="${g.id}">${next.map(d => `<div class="fld"><label for="co-t-${d}">${fmtD(d)}${isCx(g, d) ? ' · annulé' : ''}</label><input id="co-t-${d}" data-d="${d}" class="co-t" autocomplete="off" placeholder="Thème" value="${esc((sesFind(g, d) || {}).theme || '')}"></div>`).join('')}<button class="btn full">Enregistrer les thèmes</button></form></details>`

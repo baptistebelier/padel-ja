@@ -61,7 +61,7 @@
     liste = l;
     document.querySelectorAll('.ps-jseg [data-l]').forEach(b => b.setAttribute('aria-selected', b.dataset.l === l));
     $('#plist').hidden = l !== 'mine'; $('#pres').hidden = l !== 'base';
-    if (l === 'base' && !$('#pres').innerHTML) $('#pres').innerHTML = '<p class="muted small">Tapez au moins 2 lettres pour chercher dans toute la base /RAM JA (tous clubs).</p>';
+    if (l === 'base' && !$('#pres').innerHTML) $('#pres').innerHTML = '<p class="muted small">Tapez au moins 2 lettres pour chercher dans toute la base /Pista (tous clubs).</p>';
   }
   document.querySelector('.ps-jseg').onclick = e => { const b = e.target.closest('[data-l]'); if (b) setListe(b.dataset.l); };
   let qt = null;

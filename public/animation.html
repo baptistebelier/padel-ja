@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#120A0C">
 <link rel="icon" type="image/png" href="/img/favicon.png?v=ja3">
-<title>Animation — /RAM JA</title>
+<title>Animation — /Pista</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/club/ds.css">
 <link rel="stylesheet" href="/css/pista.css">
@@ -132,7 +132,7 @@ body.an-remote { margin: 0; background: var(--c-bg); color: var(--c-text); font-
   let pin = qs.get('pin') || (() => { try { return localStorage.getItem(pinKey) || ''; } catch (e) { return ''; } })();
   const base = '/api/t/' + tid;
   let S = null, info = null, es = null, draft = {};
-  // le menu de /RAM JA seulement sur la page du juge-arbitre (pas sur l'écran TV ni chez les joueurs)
+  // le menu de /Pista seulement sur la page du juge-arbitre (pas sur l'écran TV ni chez les joueurs)
   if (mode !== 'ja') document.body.className = 'an-' + mode;
   else document.head.appendChild(Object.assign(document.createElement('script'), { src: '/js/rail.js', defer: true }));
 
@@ -285,7 +285,7 @@ body.an-remote { margin: 0; background: var(--c-bg); color: var(--c-text); font-
     document.querySelectorAll('[data-sex]').forEach(b => b.onclick = () => { const p = A().players.find(x => x.id === b.dataset.sex); send('ani/player/update', { id: p.id, sex: p.sex === 'H' ? 'F' : 'H' }); });
     const f = $('#an-add');
     if (f) {
-      // joueurs de la base /RAM JA proposés pendant la saisie
+      // joueurs de la base /Pista proposés pendant la saisie
       let tm = null, found = [];
       f.n.oninput = () => { clearTimeout(tm); const q = f.n.value.trim(); if (q.length < 2) return; tm = setTimeout(() => fetch('/api/players?q=' + encodeURIComponent(q)).then(r => r.json()).then(d => { found = d.players || []; $('#an-base').innerHTML = found.map(p => `<option value="${esc(p.first + ' ' + p.last)}">${esc([p.licence && 'Lic. ' + p.licence, p.club].filter(Boolean).join(' · '))}</option>`).join(''); }).catch(() => {}), 200); };
       f.onsubmit = async e => {
@@ -341,7 +341,7 @@ body.an-remote { margin: 0; background: var(--c-bg); color: var(--c-text); font-
     const ae = document.activeElement, focusKey = ae && (ae.dataset.sa || ae.dataset.sb) ? (ae.dataset.sa ? 'sa:' : 'sb:') + (ae.dataset.sa || ae.dataset.sb) : ae && ae.name === 'n' ? 'add' : '';
     const typed = {}; document.querySelectorAll('[data-sa],[data-sb]').forEach(i => { typed[(i.dataset.sa ? 'sa:' : 'sb:') + (i.dataset.sa || i.dataset.sb)] = i.value; });
     const addVal = $('#an-add') ? $('#an-add').n.value : '';
-    document.title = S.tournament.name + ' — /RAM JA';
+    document.title = S.tournament.name + ' — /Pista';
     $('#app').innerHTML = mode === 'tv' ? tvHTML() : mode === 'remote' ? remoteHTML() : jaHTML();
     // ce qui était en cours de saisie reste en place après une mise à jour venue d'ailleurs
     Object.entries(typed).forEach(([k, v]) => { const [w, id] = [k.slice(0, 2), k.slice(3)]; const el = document.querySelector(`[data-${w}="${id}"]`); if (el && v !== '') el.value = v; });

@@ -1,7 +1,7 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-22-couleurs-buvette';
-/* /RAM Coach (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
+const VERSION = '2026-11-22-noms-et-correctifs';
+/* /Dojo (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
 const CACHE = 'appli-' + APP + '-' + VERSION;
@@ -161,7 +161,7 @@ self.addEventListener('fetch', e => {
   }
   const asset = url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
   if (!asset) return;
-  // dans le cache de cette appli seulement : une autre appli du même site (/RAM JA) peut garder une vieille copie du fichier
+  // dans le cache de cette appli seulement : une autre appli du même site (/Pista) peut garder une vieille copie du fichier
   e.respondWith(
     caches.open(CACHE).then(c =>
       c.match(req, { ignoreSearch: url.origin === location.origin }).then(
@@ -202,7 +202,7 @@ async function montrer(d) {
   const f = self.FIL_NOTIF
     ? self.FIL_NOTIF.filNotif(prev, d)
     : { body: d.body || '', data: { url: d.url || '' }, renotify: !!d.tag };
-  return self.registration.showNotification(d.title || (APP === 'coach' ? '/RAM Coach' : '/RAM Club'), {
+  return self.registration.showNotification(d.title || (APP === 'coach' ? '/Dojo' : '/Buvette'), {
     body: f.body,
     icon: APP === 'coach' ? 'dojo-icon-180.png' : 'icon-180.png',
     badge: APP === 'coach' ? 'dojo-icon-180.png' : 'icon-180.png',

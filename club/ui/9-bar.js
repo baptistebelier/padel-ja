@@ -1,4 +1,4 @@
-/* /RAM Club — ui/9-bar.js : Bar et club-house (onglet Club › Bar).
+/* /Buvette — ui/9-bar.js : Bar et club-house (onglet Club › Bar).
    En haut, « Mes points bar » (dès qu'on en a) ; puis la Carte, côté adhérent : réserver, prendre avec ses points ;
    et, pour le bureau, l'onglet Gestion : bons à remettre, commandes du jour, produits de la carte.
    Les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */

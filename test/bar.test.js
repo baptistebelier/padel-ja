@@ -1,4 +1,4 @@
-/* /RAM Club — bar et club-house : la carte est tenue par le bureau ; chacun réserve pour lui,
+/* /Buvette — bar et club-house : la carte est tenue par le bureau ; chacun réserve pour lui,
    avant la veille au soir, sans pouvoir changer le prix ni se marquer servi ; personne ne voit les réservations des autres */
 const test = require('node:test');
 const assert = require('node:assert/strict');

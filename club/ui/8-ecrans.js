@@ -1,4 +1,4 @@
-/* /RAM Club — ui/8-ecrans.js : Table des écrans (V) : chaque écran de l'appli et son contenu.
+/* /Buvette — ui/8-ecrans.js : Table des écrans (V) : chaque écran de l'appli et son contenu.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- colonne de droite du mur (ordinateur, iPad en paysage) ----------
    Ce qui est à suivre, sans quitter le mur : le direct, ma prochaine séance, les prochains événements

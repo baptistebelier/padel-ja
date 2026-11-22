@@ -1,4 +1,4 @@
-/* /RAM Club — app/23-refonte.js : refonte de l'agencement (maquette Figma « Refonte /Buvette », 10/11/2026).
+/* /Buvette — app/23-refonte.js : refonte de l'agencement (maquette Figma « Refonte /Buvette », 10/11/2026).
    Sur iPad paysage et ordinateur, certaines pages passent en deux colonnes (bento) :
    - Groupes : la liste et la discussion ouverte côte à côte ;
    - Agenda : la liste ou la grille, avec le mois et les filtres toujours visibles à droite.

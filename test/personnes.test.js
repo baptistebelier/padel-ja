@@ -1,4 +1,4 @@
-/* Fiche personne commune : chaque adhérent (avec ou sans compte) et chaque élève /RAM Coach a sa fiche ;
+/* Fiche personne commune : chaque adhérent (avec ou sans compte) et chaque élève /Dojo a sa fiche ;
    même licence = même personne ; un niveau donné dans un club (Coach) suit la personne dans les autres clubs */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -40,7 +40,7 @@ test('une seule fiche par personne, reliée dans le Club, Coach et JA ; le nivea
     await coach(`/api/ram/c/${A.id}/ops`, { ops: [{ coll: 'eleve', id: 'e1', op: 'patch', patch: [{ p: ['lvl'], t: 'set', v: 6 }] }] });
     await until(async () => (await items(Bc, 'eleve')).find(i => i.id === 'e9').data.lvl === 6, { timeout: 20000, msg: 'niveau jamais recopié dans l’autre club' });
     await until(async () => (await coach('/api/players/' + fInes)).player.padelLevel === 6, { msg: 'niveau jamais recopié sur la fiche' });
-    // dans /RAM JA, l'élève sans compte se trouve par sa fiche pour une inscription
+    // dans /Pista, l'élève sans compte se trouve par sa fiche pour une inscription
     const trouves = (await coach('/api/players?q=durand')).players;
     assert.ok(trouves.some(p => p.id === fInes), 'élève sans compte trouvé dans la base JA');
   } finally { srv.kill(); }

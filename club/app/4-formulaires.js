@@ -1,4 +1,4 @@
-/* /RAM Club — app/4-formulaires.js : Formulaires : champs, visibilité, fenêtres de saisie.
+/* /Buvette — app/4-formulaires.js : Formulaires : champs, visibilité, fenêtres de saisie.
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* ---------- formulaires ---------- */
 const F = (id, l, ph, v) =>
@@ -160,7 +160,7 @@ function forms(k, cid) {
           '12 ans'
         )}</div>` +
         `<div id="tr-tennis" class="stack">${Sel('tr-fmt', 'Format', ['Traditionnel', 'TMC (multi-chances)'])}<div class="fld"><label class="chk" for="tr-open"><input type="checkbox" id="tr-open" checked data-hide="tr-range">Open : tous classements</label></div><div class="two" id="tr-range" hidden>${Sel('tr-lo', 'Classement de', RANKS, '30/2')}${Sel('tr-hi', 'à', RANKS, '15/1')}</div></div>` +
-        `<div id="tr-padel" hidden>${Sel('tr-cat', 'Catégorie de tournoi', ['P25', 'P50', 'P100', 'P250', 'P500', 'P1000'], 'P100')}${Sel('tr-mgr', 'Organisation', ['Avec /RAM JA : inscriptions dans l’appli, tirage, scores en direct', 'Ailleurs (Ten’Up…)'])}<p class="muted small">Avec /RAM JA, le tournoi est créé dans /RAM JA (même compte) et publié ici automatiquement : les adhérents s’inscrivent dans l’appli, voient le tirage, leurs horaires et les résultats.</p></div>` +
+        `<div id="tr-padel" hidden>${Sel('tr-cat', 'Catégorie de tournoi', ['P25', 'P50', 'P100', 'P250', 'P500', 'P1000'], 'P100')}${Sel('tr-mgr', 'Organisation', ['Avec /Pista : inscriptions dans l’appli, tirage, scores en direct', 'Ailleurs (Ten’Up…)'])}<p class="muted small">Avec /Pista, le tournoi est créé dans /Pista (même compte) et publié ici automatiquement : les adhérents s’inscrivent dans l’appli, voient le tirage, leurs horaires et les résultats.</p></div>` +
         Sel('tr-max', 'Nombre de participants maximum', [
           'Sans limite',
           '8',

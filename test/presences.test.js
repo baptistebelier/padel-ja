@@ -1,5 +1,5 @@
 /* Présences aux cours enregistrées en base (club_attendance) : annoncée par l'élève ou ses parents,
-   relevée à l'appel par l'enseignant, cours annulé — recopiées depuis l'espace /RAM Club */
+   relevée à l'appel par l'enseignant, cours annulé — recopiées depuis l'espace /Buvette */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs'), os = require('os'), path = require('path');

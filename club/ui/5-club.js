@@ -1,4 +1,4 @@
-/* /RAM Club — ui/5-club.js : Onglet Club : actus, archives, équipes, commissions.
+/* /Buvette — ui/5-club.js : Onglet Club : actus, archives, équipes, commissions.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* équipe du club : toutes les étiquettes d'une personne (fonction, bureau, enseignant, capitaine, juge-arbitre), sur plusieurs lignes si besoin */
 function teamRoles(id) {

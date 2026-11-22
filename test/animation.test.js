@@ -1,4 +1,4 @@
-/* /RAM JA — animations : americano, mexicano, americano par équipes, montée-descente */
+/* /Pista — animations : americano, mexicano, americano par équipes, montée-descente */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Ani = require('../public/js/animation.js');

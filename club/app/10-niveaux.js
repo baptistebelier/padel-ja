@@ -1,12 +1,12 @@
-/* /RAM Club — app/10-niveaux.js : publications par niveaux des enseignants : formulaire (fourchettes de niveau,
+/* /Buvette — app/10-niveaux.js : publications par niveaux des enseignants : formulaire (fourchettes de niveau,
    date unique ou chaque semaine) et inscriptions.
    Les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 const NV_MAX = 6;
 const NV_PLACES = ['1', '2', '3', '4', '5', '6', '7', '8', '10', '12', '16'];
 /* Modèles de fourchettes : enregistrés une fois, rechargés d'un toucher à chaque partie ou séance.
-   Gardés dans mes réglages (synchronisés entre mes appareils, /RAM Club et /RAM Coach), 20 au plus. */
+   Gardés dans mes réglages (synchronisés entre mes appareils, /Buvette et /Dojo), 20 au plus. */
 const NV_MOD_MAX = 20;
-// aussi gardés sur l'appareil : /RAM Coach ne synchronise pas ces réglages
+// aussi gardés sur l'appareil : /Dojo ne synchronise pas ces réglages
 const nvMods = () => {
   if (!Array.isArray(S.nvModeles))
     try {
@@ -262,7 +262,7 @@ document.addEventListener('submit', e => {
   const n = adults().filter(k => k !== ME() && tiers.some(t => nvFits(t, k, sport))).length;
   closeSheet();
   S.stack = [];
-  // /RAM Coach : retour au planning ; /RAM Club : sa page, avec le bouton pour la promouvoir
+  // /Dojo : retour au planning ; /Buvette : sa page, avec le bouton pour la promouvoir
   if (typeof coPlanning === 'function') S.tab = 'planning';
   else {
     S.tab = 'ecole';
@@ -313,7 +313,9 @@ const nvTok = () => {
 };
 const nvLienUrl = p => {
   if (!(window.RAM && RAM.live && RAM.club) || !p.nv.lien || !p.nv.lien.t) return '';
-  const h = /riseandmove\.fr$/.test(location.hostname) ? RAM_NOMS.urlDepuis('coach', location.hostname) : location.origin;
+  const h = /riseandmove\.fr$/.test(location.hostname)
+    ? RAM_NOMS.urlDepuis('coach', location.hostname)
+    : location.origin;
   return h + '/i/' + encodeURIComponent(RAM.club) + '/' + encodeURIComponent(p.id) + '/' + p.nv.lien.t;
 };
 const nvLienEnsure = p => {
