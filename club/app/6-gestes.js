@@ -357,7 +357,7 @@ document.addEventListener('input', e => {
     i.focus();
     i.setSelectionRange(i.value.length, i.value.length);
   }
-  if (e.target.id === 'lk-acc' || e.target.id === 'lk-acc2') lookPrev();
+  if (e.target.id === 'lk-acc' || e.target.id === 'lk-main') lookPrev();
 });
 document.addEventListener('change', e => {
   const el = e.target,

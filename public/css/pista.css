@@ -53,6 +53,7 @@
   --muted: #595D66;
 }
 :root[data-mode='nuit'] {
+  --menu: #4A0A1B; --menu2: #2E0914; /* menu plus sombre la nuit (demande de Baptiste, 22/11/2026) */
   --bg: color-mix(in srgb, var(--menu) 2.5%, #18181A);
   --card: color-mix(in srgb, var(--menu) 2.5%, #232326);
   --card2: color-mix(in srgb, var(--menu) 3%, #2C2C30);

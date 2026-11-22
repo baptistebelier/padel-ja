@@ -73,15 +73,23 @@ const TEINTE = {
   off: [0.08, 0.035],
   line: [0.08, 0.035]
 };
-/* couleur du menu : la couleur principale du club si elle est assez foncée pour un texte blanc, sinon le rouge /RAM */
-const menuOf = main => (main && lum(main) < 0.2 ? main : '#74102A');
+/* couleurs de base de /Buvette (logo validé le 22/11/2026) : bleu /RAM pour le menu et les fonds, bleu ciel pour l’accent */
+const BUV_MAIN = '#2467D6',
+  BUV_ACC = '#6FB7FF';
+/* couleur principale et couleur d’accent d’un club : celles qu’il a réglées, sinon les bleus de /Buvette.
+   Un ancien club sans couleur principale réglée garde sa « couleur du club » comme principale ; le citron d’origine compte comme non réglé. */
+const clubCouleurs = c => {
+  const vierge = !c.main && (!c.accent || c.accent.toUpperCase() === '#E0F50A');
+  return vierge ? { main: BUV_MAIN, accent: BUV_ACC } : { main: c.main || c.accent, accent: c.accent || BUV_ACC };
+};
+/* couleur du menu : la couleur principale du club si elle est assez foncée pour un texte blanc, sinon le bleu /Buvette */
+const menuOf = main => (main && lum(main) < 0.2 ? main : BUV_MAIN);
 const fondsTeintes = (menu, dk) =>
   Object.fromEntries(
     Object.entries(BASE[dk]).map(([k, v]) => [k, TEINTE[k] ? mix(v, menu, TEINTE[k][dk ? 1 : 0]) : v])
   );
 /* héros et surtitres sans couleur de club réglée */
-const HERO_BASE = { true: '#74102A', false: '#2A2F38' },
-  KICK_BASE = { true: '#FF6B8E', false: '#B0123F' };
+const HERO_BASE = { true: '#74102A', false: '#2A2F38' };
 // rose /RAM (maquette Figma) pour le direct et le danger, texte foncé dessus ; vert pour le padel
 const HOT = '#FF3D6B',
   PADEL = '#9BD43C';
@@ -96,24 +104,25 @@ function setTheme(i) {
         ? c0
         : Object.assign({}, c0, { dark: dk, bg: null, card: null, card2: null, line: null, fg: null, muted: null }),
     r = document.documentElement.style,
-    main = c.main || c.accent,
+    cc = clubCouleurs(c),
+    main = cc.main,
     // base neutre teintée par la couleur du menu ; une couleur réglée par le club garde la priorité
     b = fondsTeintes(menuOf(main), dk),
-    acc = derive(c.accent, c.bg || b.bg).col;
+    acc = derive(cc.accent, c.bg || b.bg).col;
   Object.keys(b).forEach(k => r.setProperty('--' + k, c[k] || b[k]));
   r.setProperty('--accent', acc);
   // carte héros à la couleur principale du club (texte au meilleur contraste), ombre de l'autre accent ;
   // surtitres à la couleur du club rendue lisible sur le fond
   const hero = main || HERO_BASE[dk],
-    accs = [c.accent, c.accent2, HOT].filter(Boolean);
+    accs = [cc.accent, HOT].filter(Boolean);
   r.setProperty('--hero', hero);
   r.setProperty('--on-hero', onColor(hero));
   r.setProperty('--hero-sh', accs.find(x => x.toLowerCase() !== hero.toLowerCase()) || '#E0F50A');
-  r.setProperty('--kick', main && !dk ? derive(main, c.bg || b.bg).col : KICK_BASE[dk]);
+  r.setProperty('--kick', derive(main, c.bg || b.bg).col);
   /* menus (refonte Figma) : couleur principale du club si elle est foncée, bordeaux /RAM sinon ;
      sous-menu plus sombre ; élément actif à la couleur d'accent, citron si elle se confond avec le menu */
   const menu = menuOf(main),
-    act = contrast(c.accent, menu) >= 2.5 ? c.accent : '#E0F50A';
+    act = contrast(cc.accent, menu) >= 2.5 ? cc.accent : onColor(menu);
   r.setProperty('--menu', menu);
   r.setProperty('--menu2', mix(menu, '#000000', 0.38));
   r.setProperty('--on-menu', onColor(menu));
@@ -131,10 +140,10 @@ function setTheme(i) {
   r.setProperty('--hot-tx', ht);
   r.setProperty('--on-accent', onColor(acc));
   // couleur du club telle quelle pour les fonds (boutons, onglet actif, pastilles), la version ajustée restant celle du texte
-  r.setProperty('--accent-bg', c.accent);
-  r.setProperty('--on-accent-bg', onColor(c.accent));
+  r.setProperty('--accent-bg', cc.accent);
+  r.setProperty('--on-accent-bg', onColor(cc.accent));
   r.setProperty('--hot', HOT);
-  r.setProperty('--accent2', c.accent2 || HOT);
+  r.setProperty('--accent2', cc.accent);
   const rl = clubLogo(c);
   r.setProperty(
     '--rail-logo',
@@ -158,12 +167,12 @@ function lookPrev() {
   const dark = $('lk-bg').value === 'Sombre',
     b = BASE[dark],
     acc = $('lk-acc').value,
-    acc2 = $('lk-acc2').value,
+    main = menuOf($('lk-main').value),
     dv = derive(acc, b.bg),
     on = onColor(dv.col),
     cr = contrast(dv.col, b.bg).toFixed(1),
     lg = dark ? S.logoL || club().logoL || S.logoD || club().logoD : S.logoD || club().logoD || S.logoL || club().logoL;
-  p.innerHTML = `${dv.adj ? `<div class="lkadj"><span class="sw2" style="background:${acc}"></span><span class="arrow"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><span class="sw2" style="background:${dv.col}"></span><span class="grow small">Ta couleur sera légèrement ${lum(dv.col) > lum(acc) ? 'éclaircie' : 'assombrie'} pour rester lisible sur ce fond.</span></div>` : ''}<div class="lkp" style="background:${b.bg};color:${b.fg}">${lg ? `<img src="${lg}" alt="" style="height:34px;max-width:140px;object-fit:contain;object-position:left">` : ''}<span style="font-family:var(--f-display);font-style:italic;font-size:22px;text-transform:uppercase">Doubles <span style="color:${dv.col}">et barbecue</span></span><span style="background:${dv.col};color:${on};padding:8px 14px;font-weight:700;box-shadow:4px 4px 0 ${acc2}">Je m'inscris</span><span style="color:${dv.col};font-family:var(--f-display);font-size:26px">6 · 4</span></div><p class="muted small" style="margin-top:6px">${dv.adj ? `Aperçu : ta couleur est ajustée en ${dv.col} pour rester lisible sur ce fond (contraste ${cr}:1).` : `Aperçu : contraste ${cr}:1, lisible.`}</p>`;
+  p.innerHTML = `${dv.adj ? `<div class="lkadj"><span class="sw2" style="background:${acc}"></span><span class="arrow"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><span class="sw2" style="background:${dv.col}"></span><span class="grow small">Ta couleur sera légèrement ${lum(dv.col) > lum(acc) ? 'éclaircie' : 'assombrie'} pour rester lisible sur ce fond.</span></div>` : ''}<div class="lkp" style="background:${mix(b.bg, main, dark ? 0.06 : 0.08)};color:${b.fg};border-top:14px solid ${main}">${lg ? `<img src="${lg}" alt="" style="height:34px;max-width:140px;object-fit:contain;object-position:left">` : ''}<span style="font-family:var(--f-display);font-style:italic;font-size:22px;text-transform:uppercase">Doubles <span style="color:${dv.col}">et barbecue</span></span><span style="background:${acc};color:${onColor(acc)};padding:8px 14px;font-weight:700;box-shadow:4px 4px 0 #0B0B0B">Je m'inscris</span><span style="color:${dv.col};font-family:var(--f-display);font-size:26px">6 · 4</span></div><p class="muted small" style="margin-top:6px">${dv.adj ? `Aperçu : ta couleur est ajustée en ${dv.col} pour rester lisible sur ce fond (contraste ${cr}:1).` : `Aperçu : contraste ${cr}:1, lisible.`}</p>`;
 }
 
 function notify(type, by, txt, go, quiet) {

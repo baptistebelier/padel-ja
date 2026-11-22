@@ -224,14 +224,15 @@ document.addEventListener('submit', e => {
     (S.setup = S.setup || {}).look = true;
     const c = club(),
       acc = $('lk-acc').value,
+      main = $('lk-main').value,
       dark = val('lk-bg') === 'Sombre',
       dv = derive(acc, BASE[dark].bg);
     ['bg', 'card', 'card2', 'line', 'fg', 'muted'].forEach(k => delete c[k]);
     Object.assign(c, {
       name: val('lk-name') || c.name,
       short: (val('lk-short') || c.short).slice(0, 4).toUpperCase(),
-      accent: dv.col,
-      accent2: $('lk-acc2').value,
+      main,
+      accent: acc,
       dark
     });
     if (S.img) c.logo = S.img;

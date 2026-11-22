@@ -273,7 +273,7 @@ button.copp:hover span:last-child { text-decoration: underline; }
   :root { --side: 92px; --sub: 224px; }
   .phone.subfold { --sub: 52px; }
   #phone .tabs, :root[style*='color-scheme: light'] #phone .tabs { background: var(--dj-rail); border-right: var(--bw, 2px) solid #000000; padding-top: calc(78px + env(safe-area-inset-top, 0px)); gap: 6px; }
-  #phone .tabs::before { content: '/Dojo'; background: none; display: block; position: absolute; left: 0; right: 0; top: calc(18px + env(safe-area-inset-top, 0px)); width: auto; height: auto; text-align: center; color: var(--c-lime); font-family: var(--f-display); font-size: 22px; line-height: 1; }
+  #phone .tabs::before { content: ''; background: url('img/dojo-picto-blanc.png') center / contain no-repeat; display: block; position: absolute; left: 0; right: 0; top: calc(16px + env(safe-area-inset-top, 0px)); width: auto; height: 46px; } /* logo détouré de /Dojo, sans le nom (colonne étroite) */
   #phone .tabs > button[data-t] { width: 74px; min-height: 56px; color: var(--b-creme); background: transparent; border: var(--bw, 2px) solid transparent; box-shadow: none; font-family: var(--f-sub); font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
   #phone .tabs > button[data-t] svg { color: var(--b-creme); }
   #phone .tabs > button[data-t]::before { display: none; }
