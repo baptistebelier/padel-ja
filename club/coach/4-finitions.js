@@ -421,7 +421,7 @@ function coDrawerHTML() {
     dk = effDark(),
     it = (a, attrs, icon, label, on) =>
       `<button class="cdr-it${on ? ' on' : ''}" data-a="${a}" ${attrs} ${on ? 'aria-current="page"' : ''}>${icon}<span>${label}</span>${a === 'coNav' && attrs.includes('"msgs"') && coUnread() ? `<span class="cnt">${coUnread()}</span>` : ''}${a === 'coNav' && attrs.includes('"asuivi"') && coSuiviN() ? `<span class="cnt">${coSuiviN()}</span>` : ''}</button>`;
-  return `<div class="cdr-logo"><img src="img/coach-v2-logo-blanc.png" alt="/RAM Coach"></div><nav class="cdr-group" aria-label="Pages">${TABBAR.filter(
+  return `<div class="cdr-logo"><img src="img/dojo-logo-blanc.png" alt="/RAM Coach"></div><nav class="cdr-group" aria-label="Pages">${TABBAR.filter(
     t => t[0] !== 'me'
   )
     .map(t => it('coNav', `data-t="${t[0]}"`, ic(t[1]), t[2], cur === t[0]))
@@ -523,7 +523,7 @@ render = function () {
       bell = top.querySelector('[data-a="notifs"]');
     top.insertAdjacentHTML(
       'afterbegin',
-      `<div class="cobar"><button class="cobar-btn" data-a="coDrawer" aria-label="Ouvrir le menu">${ic('menu')}</button><span class="cobar-logo"><img src="img/coach-v2-logo-${dk ? 'blanc' : 'noir'}.png" alt="/RAM Coach"></span>${bell ? bell.outerHTML.replace('class="ib', 'class="ib cobar-bell') : '<span></span>'}</div>`
+      `<div class="cobar"><button class="cobar-btn" data-a="coDrawer" aria-label="Ouvrir le menu">${ic('menu')}</button><span class="cobar-logo"><img src="img/dojo-logo-${dk ? 'blanc' : 'noir'}.png" alt="/RAM Coach"></span>${bell ? bell.outerHTML.replace('class="ib', 'class="ib cobar-bell') : '<span></span>'}</div>`
     );
     if (coMobile() && typeof topPad === 'function') topPad();
   }

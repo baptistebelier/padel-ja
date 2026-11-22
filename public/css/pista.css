@@ -1547,3 +1547,11 @@ body.editor-page .top { top: 0; z-index: 30; padding-top: calc(var(--s5) + env(s
 .fic-btns button[disabled] { opacity: .55; cursor: not-allowed; }
 .fic-tag { white-space: nowrap; }
 @media (max-width: 480px) { .fic-btns, .fic-btns button { width: 100%; } .fic-btns button { justify-content: center; } }
+
+/* logo du menu : icône seule dans la colonne étroite, logo et nom dans le volet du téléphone */
+.rail-logo .rl-ic { width: 48px; height: 48px; border-radius: 11px; }
+.rail-logo .rl-full { display: none; }
+@media (max-width: 720px) {
+  .rail-logo .rl-ic { display: none; }
+  .rail-logo .rl-full { display: block; width: auto; height: 52px; }
+}

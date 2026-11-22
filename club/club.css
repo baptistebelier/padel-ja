@@ -86,7 +86,7 @@ input::placeholder, textarea::placeholder { color: var(--c-muted); opacity: 1; }
 @media (min-width: 1024px) {
   body { display: block; padding: 0; }
   .tabs, :root[style*="color-scheme: light"] .tabs { position: absolute; top: 0; flex-direction: column; justify-content: flex-start; transform: none; touch-action: auto; }
-  .tabs::before { content: ""; position: absolute; background: url("img/ram-club-blanc.png") center / contain no-repeat; left: calc(10px + env(safe-area-inset-left, 0px)); top: calc(16px + env(safe-area-inset-top, 0px)); width: 64px; height: 60px; }
+  .tabs::before { content: ""; position: absolute; background: url("img/buvette-logo-blanc.png") center / contain no-repeat; left: calc(10px + env(safe-area-inset-left, 0px)); top: calc(16px + env(safe-area-inset-top, 0px)); width: 64px; height: 60px; }
   .tabs button { flex: none; }
   .tabs button:hover { color: #FFFFFF; background: color-mix(in srgb, #FFFFFF 6%, transparent); }
   .tabs .pill { left: 14px; right: 14px; top: 0; bottom: auto; width: auto; }

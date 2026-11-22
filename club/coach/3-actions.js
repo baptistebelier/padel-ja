@@ -662,7 +662,7 @@ setTheme = function (i) {
   Object.entries(CO_THEME[dk]).forEach(([k, v]) => r.setProperty('--' + k, v));
   Object.entries(fondsTeintes('#74102A', dk)).forEach(([k, v]) => r.setProperty('--' + k, v));
   r.setProperty('--stage', dk ? '#121214' : '#E2E2E2');
-  r.setProperty('--rail-logo', `url("img/coach-v2-logo-${dk ? 'blanc' : 'noir'}.png")`);
+  r.setProperty('--rail-logo', `url("img/dojo-logo-${dk ? 'blanc' : 'noir'}.png")`);
   r.colorScheme = dk ? 'dark' : 'light';
   const m = document.querySelector('meta[name="theme-color"]');
   if (m) m.content = dk ? '#1F171B' : '#74102A';

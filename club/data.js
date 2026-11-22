@@ -1313,7 +1313,7 @@ const effDark = c => (
         ? !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches)
         : !!c.dark
 );
-const ramLogo = () => (effDark() ? 'img/ram-club-blanc.png' : 'img/ram-club-noir.png');
+const ramLogo = () => (effDark() ? 'img/buvette-logo-blanc.png' : 'img/buvette-logo-noir.png');
 const ME = () =>
   window.RAM_KEY || (S.role === 'wait' ? 'lucas' : S.role === 'kid' ? 'leo' : S.role === 'coach' ? 'sarah' : 'me');
 /* L'enseignant a les pouvoirs du bureau, sauf les commissions ; le bureau seul gère les commissions */

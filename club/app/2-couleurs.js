@@ -138,7 +138,7 @@ function setTheme(i) {
   const rl = clubLogo(c);
   r.setProperty(
     '--rail-logo',
-    rl ? `url("${rl}")` : `url("${c.dark ? 'img/ram-club-blanc.png' : 'img/ram-club-noir.png'}")`
+    rl ? `url("${rl}")` : `url("${c.dark ? 'img/buvette-logo-blanc.png' : 'img/buvette-logo-noir.png'}")`
   );
   r.setProperty('--on-hot', '#1A0509');
   // encre des traits et des ombres dures, et couleur « éteinte » (désactivé, interrupteur coupé)
