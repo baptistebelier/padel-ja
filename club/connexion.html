@@ -21,7 +21,7 @@
 </head>
 <!-- Connexion à /RAM Club : le même compte /RAM que /RAM JA ; après connexion, retour dans l'appli du club -->
 <body class="auth-page">
-<header class="nav"><a href="presentation" class="logo"><img src="img/buvette-logo-blanc.png" alt="/RAM Club"></a><a href="presentation" class="btn ghost">Découvrir /RAM Club</a></header>
+<header class="nav"><a href="presentation" class="logo"><img src="img/buvette-detoure-blanc.png" alt="/RAM Club"></a><a href="presentation" class="btn ghost">Découvrir /RAM Club</a></header>
 <main class="auth">
   <div class="auth-box">
     <div class="tabs"><button data-m="login">Connexion</button><button data-m="signup">Créer un compte</button></div>
@@ -50,7 +50,7 @@
   const coach = RAM_NOMS.appOf(location.hostname) === 'coach';
   if (coach) {
     document.title = 'Connexion — /RAM Coach';
-    document.querySelector('.nav .logo img').src = 'img/dojo-logo-blanc.png';
+    document.querySelector('.nav .logo img').src = 'img/dojo-detoure-blanc.png';
     document.querySelector('.nav .logo img').alt = '/RAM Coach';
     document.querySelector('link[rel="icon"]').href = 'img/coach-v2-favicon.png';
     document.querySelector('.nav .btn').textContent = 'Découvrir /RAM Coach';

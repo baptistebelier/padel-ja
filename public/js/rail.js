@@ -33,7 +33,7 @@
     if (mine) return;
     const top = document.createElement('header'); top.className = 'mtop mtop-rail';
     top.innerHTML = `<button type="button" class="mtop-btn" data-drawer-open aria-label="Ouvrir le menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h12"/></svg></button>
-        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/pista-logo-blanc.png" alt="/RAM JA"><img class="lg-j" src="/img/pista-logo-noir.png" alt="/RAM JA"></a><span class="mtop-sp"></span>`;
+        <a class="mtop-logo" href="/dashboard"><img class="lg-n" src="/img/pista-detoure-blanc.png" alt="/RAM JA"><img class="lg-j" src="/img/pista-detoure-noir.png" alt="/RAM JA"></a><span class="mtop-sp"></span>`;
     nav.after(top);
   }
   function build() {
@@ -41,7 +41,7 @@
     const nav = document.createElement('aside');
     nav.className = 'rail r-rail'; nav.setAttribute('role', 'navigation'); nav.setAttribute('aria-label', 'Navigation principale');
     // le nom de l'appli en Anton citron (maquette « Refonte /Pista ») et « Accueil » pour le tableau de bord
-    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="/Pista — tableau de bord"><img class="rl-ic" src="/img/app-icon-192.png?v=ja3" alt="/Pista"><img class="rl-full" src="/img/pista-logo-blanc.png?v=ja3" alt="/Pista"></a>
+    nav.innerHTML = `<a class="rail-logo" href="/dashboard" title="/Pista — tableau de bord"><img class="rl-ic" src="/img/pista-picto-blanc.png" alt="/Pista"><img class="rl-full" src="/img/pista-detoure-blanc.png?v=ja3" alt="/Pista"></a>
       <div class="rail-group">${ITEMS.map(([k, href, label, title]) =>
         `<a href="${href}" data-r="${k}" class="r-rail__it${page === k ? ' on' : ''}"${page === k ? ' aria-current="page"' : ''} title="${title}" ${k === 'admin' ? 'hidden' : ''}>${ICONS[k]}<span class="r-sh">${k === 'dashboard' ? 'Accueil' : label}</span><span class="r-lg">${title}</span></a>`).join('')}</div>
       <div class="rail-group rail-bottom"><i class="sep"></i>

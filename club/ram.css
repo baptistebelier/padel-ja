@@ -93,7 +93,7 @@
   :root[style*="color-scheme: light"] .tabs { background: color-mix(in srgb, var(--card) 90%, var(--fg)); }
   .tabs::before {
     content: ""; position: absolute; left: 22px; top: calc(26px + env(safe-area-inset-top, 0px)); width: 176px; height: 80px;
-    background: var(--rail-logo, url("img/buvette-logo-blanc.png")) left center / contain no-repeat;
+    background: var(--rail-logo, url("img/buvette-detoure-blanc.png")) left center / contain no-repeat;
   }
   
   .tabs button {
@@ -386,7 +386,7 @@ html, body { background: var(--bg); }
     align-items: center; gap: 4px; border: 0 !important; box-shadow: none !important; background: color-mix(in srgb, var(--bg) 35%, #000);
   }
   :root[style*="color-scheme: light"] .tabs { background: #14161C; }
-  .tabs::before { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(22px + env(safe-area-inset-top, 0px)); width: 68px; height: 62px; background: url("img/buvette-logo-blanc.png") center / contain no-repeat !important; }
+  .tabs::before { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(22px + env(safe-area-inset-top, 0px)); width: 68px; height: 62px; background: url("img/buvette-detoure-blanc.png") center / contain no-repeat !important; }
   .tabs .pill { display: none !important; }
   .tabs button {
     flex-direction: column; justify-content: center; gap: 5px; width: 72px; min-height: 60px; padding: 8px 2px; position: relative;

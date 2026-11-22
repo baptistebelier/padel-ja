@@ -18,7 +18,7 @@
   var d = document.createElement('div');
   d.className = 'ja-splash';
   d.setAttribute('aria-hidden', 'true');
-  d.innerHTML = '<img src="/img/pista-logo-blanc.png" alt="">';
+  d.innerHTML = '<img src="/img/pista-detoure-blanc.png" alt="">';
   document.documentElement.appendChild(css);
   document.documentElement.appendChild(d);
   var start = Date.now(), done = false;
