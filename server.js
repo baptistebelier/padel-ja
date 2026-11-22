@@ -54,7 +54,9 @@ const push = require('./lib/webpush.js').createWebPush({ store, log: m => consol
 const taches = require('./lib/taches.js').createTaches({ store, log: m => console.warn(m) });   // notifications, e-mails et réservations : écrits en base avant d'être faits
 // une notification passe par la file : un redémarrage du serveur ne la perd pas
 const mesAchats = require('./lib/mes-achats.js').createMesAchats({ ram, formules: u => Formules.get(store, u) });   // /RAM Club : un élève voit ses propres achats
-const notifier = require('./lib/pushnotif.js').createNotifier({ ram, formules: u => require('./lib/formules.js').get(store, u), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Club : ' + m) });
+const notifier = require('./lib/pushnotif.js').createNotifier({ ram, formules: u => require('./lib/formules.js').get(store, u), push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) },
+  mail: m => ResaMails.seanceChange(Object.assign({ lien: ONLINE ? Noms.urlApp('club', nomsOfficiels()) + '/' : '' }, m)),   // cours annulé, déplacé : aussi par e-mail aux élèves
+  log: m => console.warn('/RAM Club : ' + m) });
 taches.on('push', p => (p.uids ? push.sendMany(p.uids, p.msg) : push.send(p.uid, p.msg)));   // (uid : tâches d'avant le regroupement)
 taches.on('push-reveil', p => push.reveil(p.uid));
 taches.on('shopify-achat', o => reservation.achatShopify(o));

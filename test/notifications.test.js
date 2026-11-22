@@ -193,6 +193,30 @@ test('l’enseignant annule, rétablit, déplace, change le lieu : les élèves 
   assert.match(l[0][2], /Collectif : la séance du .* passe au /);
 });
 
+test('séance annulée ou reportée par l’enseignant : le même avis part aussi par e-mail aux élèves (pas le changement de lieu)', async () => {
+  const mails = [], n2 = createNotifier({ ram, push: { send: async () => 1 }, mail: m => mails.push(m) });
+  const { coach, club, key, ek } = await clubCours(5);
+  await ram.ops(coach, club.id, [{ coll: 'group', id: 'g5', op: 'put', data: { type: 'train', name: 'Groupe ado', day: 2, h: '17 h', dur: '1 h', coach: key, mem: [ek], ext: ['x1'] } }], { client: true });
+  await settle(); await n2.calme();
+  const patch = async p => { mails.length = 0; await ram.ops(coach, club.id, [{ coll: 'group', id: 'g5', op: 'patch', patch: p }], { client: true }); await settle(); await n2.calme(); return mails; };
+  let m = await patch([{ p: ['cancel'], t: 'add', v: D }]);
+  assert.equal(m.length, 1);
+  assert.deepEqual(m[0].keys, [ek, 'x1'], 'inscrits et élèves sans compte');
+  assert.equal(m[0].coach, key);
+  assert.match(m[0].lignes[0], /^Cours annulé : Groupe ado/);
+  assert.ok(m[0].skip.size, 'l’auteur du changement est écarté');
+  m = await patch([{ p: ['skip'], t: 'add', v: D2 }]);
+  assert.match(m[0].lignes[0], /Groupe ado : pas de séance le/);
+  m = await patch([{ p: ['loc', D2], t: 'set', v: 'Extérieur' }]);
+  assert.equal(m.length, 0, 'le lieu : notification seulement');
+  // l'e-mail lui-même
+  const Mail = require('../lib/mail.js'), e = Mail.seanceChangeMail({ first: 'Léa', coach: 'Sarah', lignes: ['Cours annulé : Groupe ado, mardi 24 novembre à 17 h'], lien: 'https://exemple.test/#/agenda' });
+  assert.equal(e.subject, 'Cours annulé : Groupe ado, mardi 24 novembre à 17 h');
+  assert.match(e.html, /Sarah a modifié ton cours/);
+  assert.match(e.text, /Voir mon agenda/);
+  assert.equal(Mail.seanceChangeMail({ lignes: ['a', 'b'] }).subject, 'Changements dans tes cours');
+});
+
 test('un cours posé par l’enseignant : l’élève est prévenu ; une date passée : personne', async () => {
   const { coach, club, key, el, ek } = await clubCours(5);
   await ram.ops(coach, club.id, [{ coll: 'cours', id: 'n1', op: 'put', data: { type: 'train', name: 'Cours duo', once: D, h: '9 h', coach: key, mem: [ek] } }], { client: true });
