@@ -71,7 +71,11 @@ taches.on('veille', p => notifier.veille(p.d));
 setInterval(() => {
   const [d, h] = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).format(new Date()).split(' ');
   if (+h === 18) taches.enqueue('veille', { d }, { key: 'veille:' + d });
+  // chaque heure : rappel par e-mail aux élèves des séances qui commencent dans 24 h (une fois par créneau horaire)
+  const de = Math.floor(Date.now() / 3600000) * 3600000;
+  taches.enqueue('rappels24', { de }, { key: 'rappels24:' + de });
 }, 600000).unref();
+taches.on('rappels24', p => ResaMails.rappels24({ de: p.de, lien: ONLINE ? Noms.urlApp('club', nomsOfficiels()) + '/' : '' }));
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
 const agendaLu = Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) });
 const NomsResa = require('./lib/noms-resa.js').createNoms({ store });   // adresses /reservation/<nom>
@@ -1843,7 +1847,8 @@ const server = http.createServer(async (req, res) => {
           if (cu && !cu.guest && cu.email && (await AccesResa.adresseVerifiee(store, cu))) b.verifie = String(cu.email).toLowerCase(); else delete b.verifie;
           const r =await reservation.pubReserver(String(b.c || ''), String(b.k || ''), b), lien = appUrl(req) + r.annuler;
           const jour = new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), lieu = 'En salle';
-          taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour, heure: r.h, duree: r.dur, lieu, coach: r.coach, prix: r.prix, couvert: r.couvert, lien, page: appUrl(req) + '/r/' + encodeURIComponent(String(b.c || '')) + '/' + encodeURIComponent(String(b.k || '')) })));
+          taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour, heure: r.h, duree: r.dur, lieu, coach: r.coach, prix: r.prix, couvert: r.couvert, lien, page: appUrl(req) + '/r/' + encodeURIComponent(String(b.c || '')) + '/' + encodeURIComponent(String(b.k || '')),
+            cal: { titre: `${r.nom} avec ${r.coach}`, d: r.d, h: r.h, dur: r.dur, lieu, details: 'Annuler ce cours : ' + lien, uid: 'resa-' + r.id } })));
           ResaMails.reservation({ clubId: String(b.c || ''), key: String(b.k || ''), r, eleve: [r.prenom, String(b.nom || '').trim().slice(0, 40)].filter(Boolean).join(' '), tel: String(b.tel || '').trim().slice(0, 30), lieu, lienPlanning: coachUrl(req) });
           return json(res, 200, { id: r.id, d: r.d, h: r.h, dur: r.dur, nom: r.nom, mail: r.mail, coach: r.coach, couvert: r.couvert, prix: r.prix, annuler: r.annuler });
         }
@@ -1855,7 +1860,8 @@ const server = http.createServer(async (req, res) => {
           // même règle de preuve que la réservation : la fiche d'un compte n'est utilisée que si son adresse est PROUVÉE
           if (cu && !cu.guest && cu.email && (await AccesResa.adresseVerifiee(store, cu))) b.verifie = String(cu.email).toLowerCase(); else delete b.verifie;
           const r = await reservation.pubNvInscrire(String(b.c || ''), String(b.p || ''), String(b.t || ''), b);
-          taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.inscriptionMail({ first: r.prenom, titre: r.titre, coach: r.coach, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, statut: r.statut, lien: appUrl(req) + r.annuler })));
+          taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.inscriptionMail({ first: r.prenom, titre: r.titre, coach: r.coach, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, duree: r.dur, statut: r.statut, lien: appUrl(req) + r.annuler,
+            cal: { titre: `${r.titre} avec ${r.coach}`, d: r.d, h: r.h, dur: r.dur, details: 'Me désinscrire : ' + appUrl(req) + r.annuler, uid: 'nv-' + String(b.p || '') + '-' + r.d } })));
           ResaMails.inscription({ clubId: String(b.c || ''), postId: String(b.p || ''), r, eleve: [r.prenom, String(b.nom || '').trim().slice(0, 40)].filter(Boolean).join(' '), tel: String(b.tel || '').trim().slice(0, 30), lienCoach: coachUrl(req) });
           return json(res, 200, { statut: r.statut, d: r.d, h: r.h, titre: r.titre, coach: r.coach, mail: r.mail, annuler: r.annuler });
         }
