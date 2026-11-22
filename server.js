@@ -74,6 +74,8 @@ taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'
 const agendaLu = Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) });
 const NomsResa = require('./lib/noms-resa.js').createNoms({ store });   // adresses /reservation/<nom>
 const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
+/* e-mails de réservation vers l'enseignant, annulations et listes d'attente (le courrier de l'élève à la réservation part des routes) */
+const ResaMails = require('./lib/resa-mails.js').createResaMails({ ram, store, taches, Mail, nvEtat: require('./lib/reservation.js').nvEtat, log: m => console.warn(m) });
 const agendaAlerte = require('./lib/agenda-alerte.js').createAgendaAlerte({ store, agenda: agendaLu, push, Formules, log: m => console.warn('/RAM Coach : ' + m) });   // agenda relié devenu illisible : alerte dans la cloche
 const googleAgenda = require('./lib/google-agenda.js').createGoogleAgenda({ ram, store, coachTables, taches, log: m => console.warn('/RAM Coach : ' + m) });   // les séances écrites dans Google Agenda, en temps réel
 /* titres de juge-arbitre des adhérents d'un espace (clé → [« JAP2 »…]), gardés 10 minutes */
@@ -280,6 +282,8 @@ function lanAddresses() {
 // adresse publique du logiciel pour les liens envoyés par e-mail (jamais déduite de l'en-tête Host en ligne)
 const appUrl = req => process.env.APP_URL || (ONLINE ? Noms.urlApp('ja', nomsOfficiels()) : origin(req));
 const origin = req => `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers['x-forwarded-host'] || req.headers.host}`;
+// l'appli de l'enseignant (/Dojo) pour les liens des e-mails qui lui sont adressés : le nom officiel (NOMS_OFFICIELS), ou /coach/ en local
+const coachUrl = req => (ONLINE ? Noms.urlApp('coach', nomsOfficiels()) + '/' : origin(req) + '/coach/');
 /* administrateurs : e-mails listés dans ADMIN_EMAILS (Render), ou offre « admin » */
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'baptiste.belier@gmail.com').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
 const isAdmin = u => !!(u && !u.guest && (ADMIN_EMAILS.includes(String(u.email || '').toLowerCase()) || u.plan === 'admin'));
@@ -1836,7 +1840,9 @@ const server = http.createServer(async (req, res) => {
           // adresse vérifiée : celle du compte connecté seulement si elle est PROUVÉE par un lien reçu dans sa boîte, jamais celle du formulaire
           if (cu && !cu.guest && cu.email && (await AccesResa.adresseVerifiee(store, cu))) b.verifie = String(cu.email).toLowerCase(); else delete b.verifie;
           const r =await reservation.pubReserver(String(b.c || ''), String(b.k || ''), b), lien = appUrl(req) + r.annuler;
-          taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, coach: r.coach, lien })));
+          const jour = new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), lieu = 'En salle';
+          taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.resaMail({ first: r.prenom, nom: r.nom, jour, heure: r.h, duree: r.dur, lieu, coach: r.coach, prix: r.prix, couvert: r.couvert, lien, page: appUrl(req) + '/r/' + encodeURIComponent(String(b.c || '')) + '/' + encodeURIComponent(String(b.k || '')) })));
+          ResaMails.reservation({ clubId: String(b.c || ''), key: String(b.k || ''), r, eleve: [r.prenom, String(b.nom || '').trim().slice(0, 40)].filter(Boolean).join(' '), tel: String(b.tel || '').trim().slice(0, 30), lieu, lienPlanning: coachUrl(req) });
           return json(res, 200, { id: r.id, d: r.d, h: r.h, dur: r.dur, nom: r.nom, mail: r.mail, coach: r.coach, couvert: r.couvert, prix: r.prix, annuler: r.annuler });
         }
         /* inscription sans compte à une séance collective ou une partie dirigée, par son lien (jeton propre à la publication) */
@@ -1848,9 +1854,16 @@ const server = http.createServer(async (req, res) => {
           if (cu && !cu.guest && cu.email && (await AccesResa.adresseVerifiee(store, cu))) b.verifie = String(cu.email).toLowerCase(); else delete b.verifie;
           const r = await reservation.pubNvInscrire(String(b.c || ''), String(b.p || ''), String(b.t || ''), b);
           taches.enqueue('mail', Object.assign({ to: r.mail }, Mail.inscriptionMail({ first: r.prenom, titre: r.titre, coach: r.coach, jour: new Date(r.d + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), heure: r.h, statut: r.statut, lien: appUrl(req) + r.annuler })));
+          ResaMails.inscription({ clubId: String(b.c || ''), postId: String(b.p || ''), r, eleve: [r.prenom, String(b.nom || '').trim().slice(0, 40)].filter(Boolean).join(' '), tel: String(b.tel || '').trim().slice(0, 30), lienCoach: coachUrl(req) });
           return json(res, 200, { statut: r.statut, d: r.d, h: r.h, titre: r.titre, coach: r.coach, mail: r.mail, annuler: r.annuler });
         }
-        if (p === '/api/public/resa/desinscrire' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.pubNvDesinscrire(String(b.c || ''), String(b.p || ''), String(b.k || ''), String(b.d || ''), String(b.t || ''))); }
+        if (p === '/api/public/resa/desinscrire' && req.method === 'POST') {
+          const b = await readBody(req), c = String(b.c || ''), pid = String(b.p || ''), k = String(b.k || ''), d = String(b.d || '');
+          const avant = await ResaMails.avantDesinscription(c, pid, k, d).catch(() => null);   // le lien n'est vérifié que par pubNvDesinscrire ci-dessous
+          const r = await reservation.pubNvDesinscrire(c, pid, k, d, String(b.t || ''));
+          if (!r.deja) ResaMails.desinscription(avant, { lienCoach: coachUrl(req) });
+          return json(res, 200, r);
+        }
         /* /reservation/<nom>[/<club>] : de quel enseignant et de quel club s'agit-il ? Un ancien nom renvoie le nouveau ; une page fermée reste fermée */
         if (p === '/api/public/resa/nom' && req.method === 'GET') {
           if (limite('resa-nom|' + clientIp(req), 60, 60000)) return json(res, 429, { error: 'Trop de demandes : réessaie dans une minute.' });
@@ -1870,7 +1883,12 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(200, { 'Content-Type': ph.mime, 'Cache-Control': 'public, max-age=300' });
           return res.end(ph.buf);
         }
-        if (p === '/api/public/resa/annuler' && req.method === 'POST') { const b = await readBody(req); return json(res, 200, await reservation.pubAnnuler(String(b.c || ''), String(b.id || ''), String(b.t || ''))); }
+        if (p === '/api/public/resa/annuler' && req.method === 'POST') {
+          const b = await readBody(req), avant = await ResaMails.avantAnnulation(String(b.c || ''), String(b.id || '')).catch(() => null);   // le lien n'est vérifié que par pubAnnuler ci-dessous
+          const r = await reservation.pubAnnuler(String(b.c || ''), String(b.id || ''), String(b.t || ''));
+          if (!r.deja) ResaMails.annulation(avant, coachUrl(req));
+          return json(res, 200, r);
+        }
       } catch (e) { return refus(e); }
       return json(res, 404, { error: 'Introuvable' });
     }

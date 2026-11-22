@@ -3516,9 +3516,13 @@ test('Liste déroulante : largeur et style de la boîte, choix pris en compte, �
 });
 
 /* ---------- Dojo, Aujourd'hui : l'appel sur la carte de la séance ; intercalaires collés sur téléphone ; onglet Abonnés ---------- */
+/* le mercredi le plus récent à 10 h : l'horloge de la page y est fixée pour que ces tests ne dépendent ni du jour (les cours de démonstration
+   tombent en semaine) ni de l'heure */
+const mercredi10h = () => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 4) % 7)); d.setHours(10, 0, 0, 0); return d; };
 test('Dojo Aujourd’hui : appel direct sur la carte (Présent / Absent enregistrés aussitôt), intercalaires de classeur sur téléphone, onglet Abonnés', async () => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
+  await page.clock.setFixedTime(mercredi10h());
   await page.goto(JA + '/club/coach.html');
   await page.waitForSelector('#tabs button[data-t]', { timeout: 8000 });
   await page.evaluate(() => { S.tab = 'today'; S.stack = []; render(); });
@@ -3603,7 +3607,9 @@ test('Historique d’un élève : glissement vers la gauche pour supprimer, déf
   const preparer = async page => page.evaluate(() => {
     document.querySelector('.ram-splash')?.remove();
     const k = ELEVES[0].id;
-    for (const [i, d] of [[1, isoIn(-3)], [2, isoIn(-6)]]) {
+    // les deux séances de test portent la date du jour : elles passent toujours avant les séances de démonstration (semaine passée),
+    // quel que soit le jour du test ; sinon la première carte touchée pouvait être une séance de démonstration (suppression partielle)
+    for (const [i, d] of [[1, isoIn(0)], [2, isoIn(0)]]) {
       GROUPS.push({ id: 'gsw' + i, type: 'train', name: 'Cours test ' + i, once: d, day: 1, h: '18 h', dur: '1 h', sport: 'Padel', coach: ME(), mem: M[k] ? [k] : [], ext: M[k] ? [] : [k] });
       SEANCES.push({ id: 'gsw' + i + '.' + d, g: 'gsw' + i, d, pres: { [k]: 'P' } });
     }
@@ -3613,6 +3619,7 @@ test('Historique d’un élève : glissement vers la gauche pour supprimer, déf
   // ---- téléphone : toucher réel (CDP)
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }), page = await ctx.newPage(), errs = [];
   page.on('pageerror', x => errs.push(x.message));
+  // pas d'horloge figée ici : l'appli ignore les clics pendant 350 ms après un glissement (Date.now() − vu), ce qui suppose une horloge qui avance
   await page.goto(JA + '/club/coach.html');
   await page.waitForFunction(() => typeof S !== 'undefined' && typeof coGroups === 'function', null, { timeout: 8000 });
   await page.waitForTimeout(1500);
