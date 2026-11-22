@@ -298,6 +298,8 @@ const PLANS = { essai: 'Essai', actif: 'Abonné', offert: 'Accès offert', admin
 const freeAccess = u => isAdmin(u) || (u && u.plan === 'offert');
 const { splitName } = require('./lib/names');
 const AccesResa = require('./lib/acces-resa.js');
+/* fichiers de public/ servis aussi sur les adresses de /Buvette et /Dojo : styles, polices, et le script de connexion des pages publiques de réservation */
+const PARTAGES_PUBLICS = /^\/(css|fonts)\/|^\/js\/compte-public\.js$/;
 /* titres de juge-arbitre reconnus, par sport */
 const JA_TITLES = { tennis: ['JAT1', 'JAT2', 'JAT3'], padel: ['JAP1', 'JAP2', 'JAP3'] };
 let refDir = null;   // juges-arbitres /RAM JA proposés dans les tournois, recalculés toutes les 2 minutes
@@ -924,7 +926,7 @@ const server = http.createServer(async (req, res) => {
     }
     // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html, sur coach.riseandmove.fr :
     // l'appli pour un compte connecté, sinon la présentation ; /presentation, /demo, /connexion, /inscription
-    if (appHote === 'coach' && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) {
+    if (appHote === 'coach' && !p.startsWith('/api/') && !PARTAGES_PUBLICS.test(p)) {
       if (p === '/') return sendClub(res, await clubLogged() ? '/coach.html' : '/coach-presentation.html', true);
       return sendClub(res, p === '/demo' ? '/coach.html' : p === '/presentation' ? '/coach-presentation.html' : p, true);
     }
@@ -934,7 +936,7 @@ const server = http.createServer(async (req, res) => {
       if (p === '/coach') return redirect(res, '/coach/');
       return sendClub(res, p === '/coach/' ? '/coach.html' : p.slice(6), true);
     }
-    if (appHote === 'club' && !p.startsWith('/api/') && !/^\/(css|fonts)\//.test(p)) return sendClub(res, p, p === '/' && await clubLogged());
+    if (appHote === 'club' && !p.startsWith('/api/') && !PARTAGES_PUBLICS.test(p)) return sendClub(res, p, p === '/' && await clubLogged());
     if (p === '/club') return redirect(res, '/club/');
     if (p.startsWith('/club/')) return sendClub(res, p.slice(5), p === '/club/' && await clubLogged());
 

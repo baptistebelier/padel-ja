@@ -117,3 +117,17 @@ test('connexion partagée : le cookie de session vaut pour tout riseandmove.fr, 
     }
   } finally { srv.kill(); }
 });
+
+test('pages publiques de réservation : chaque script qu’elles chargent répond sur les six noms (pas de 404 sur /Dojo ni /Buvette)', async () => {
+  const { srv, get } = await serveur();
+  try {
+    const srcs = new Set();
+    for (const f of ['reserver.html', 'inscrire.html']) for (const m of fs.readFileSync(path.join(__dirname, '..', 'public', f), 'utf8').matchAll(/src="(\/[^"?]+\.js)/g)) srcs.add(m[1]);
+    assert.ok(srcs.size, 'les pages chargent au moins un script');
+    for (const h of TOUS) for (const s of srcs) {
+      const r = await get(s, h);
+      assert.equal(r.status, 200, h + s);
+      assert.match(r.headers.get('content-type') || '', /javascript/, h + s + ' : type JavaScript');
+    }
+  } finally { srv.kill(); }
+});
