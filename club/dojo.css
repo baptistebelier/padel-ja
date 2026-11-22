@@ -2200,3 +2200,8 @@ select option { background: var(--c-surface); color: var(--c-text); }
   #phone .tabs > button { min-height: calc(62px + env(safe-area-inset-bottom, 0px)); padding: 10px 2px calc(10px + env(safe-area-inset-bottom, 0px)); justify-content: center; }
   #phone .tabs > button, #phone .tabs > button[aria-current="page"] { border: 0; border-radius: 0; box-shadow: none; outline: 0; }
 }
+
+/* ---------- couleurs du logo /Dojo (validées le 22/11/2026) : menus olive, accent citron ----------
+   nuit : menu olive foncé ; jour : menu olive franc (remplacent les bordeaux /RAM) */
+:root { --co-side: linear-gradient(180deg, #1B2206 0%, #141905 100%); --co-side-tx: #DDE3BF; --co-rail: #1B2206; --co-rail-tx: #F4F8DC; --co-lime: #E0F50A; --dj-rail: #1B2206; --dj-sub: #141905; }
+:root[style*='color-scheme: light'] { --co-side: linear-gradient(180deg, #4F6200 0%, #3E4D00 100%); --co-side-tx: #EEF3C8; --co-rail: #4F6200; --co-rail-tx: #F4F8DC; --co-lime: #E0F50A; --dj-rail: #4F6200; --dj-sub: #3E4D00; }

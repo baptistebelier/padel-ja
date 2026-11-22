@@ -635,23 +635,46 @@ Object.assign(A, {
   }
 });
 /* logo /RAM Coach (au lieu de /RAM Club) dans le menu latéral, quand le club n'a pas de logo à lui */
-/* couleurs propres à /Dojo ; les fonds (page, cartes, champs) et le texte viennent de fondsTeintes : gris clair ou foncé teinté du rouge du menu */
+/* couleurs du logo /Dojo (validées le 22/11/2026) : citron et olive ; les fonds (page, cartes, champs) viennent de fondsTeintes,
+   gris clair ou foncé légèrement teinté de l’olive du menu. accent : couleur de texte lisible ; accent-bg : fond des boutons et pastilles */
 const CO_THEME = {
   true: {
     accent: '#E0F50A',
-    'on-accent': '#1A0509',
+    'on-accent': '#0E1104',
+    'accent-bg': '#E0F50A',
+    'on-accent-bg': '#0E1104',
     accent2: '#FF3D6B',
     hot: '#FF3D6B',
     'hot-tx': '#FF94AD',
-    'on-hot': '#FFFFFF'
+    'on-hot': '#FFFFFF',
+    kick: '#E0F50A',
+    menu: '#1B2206',
+    menu2: '#141905',
+    'on-menu': '#F4F8DC',
+    'menu-act': '#E0F50A',
+    'on-menu-act': '#0E1104',
+    hero: '#1B2206',
+    'on-hero': '#F4F8DC',
+    'hero-sh': '#E0F50A'
   },
   false: {
-    accent: '#A30F35',
+    accent: '#4F6200',
     'on-accent': '#FFFFFF',
+    'accent-bg': '#E0F50A',
+    'on-accent-bg': '#1A1F05',
     accent2: '#D0103A',
     hot: '#D0103A',
     'hot-tx': '#B3123D',
-    'on-hot': '#FFFFFF'
+    'on-hot': '#FFFFFF',
+    kick: '#4F6200',
+    menu: '#4F6200',
+    menu2: '#3E4D00',
+    'on-menu': '#F4F8DC',
+    'menu-act': '#E0F50A',
+    'on-menu-act': '#1A1F05',
+    hero: '#4F6200',
+    'on-hero': '#F4F8DC',
+    'hero-sh': '#E0F50A'
   }
 };
 const coSetTheme = setTheme;
@@ -660,12 +683,12 @@ setTheme = function (i) {
   const r = document.documentElement.style,
     dk = effDark();
   Object.entries(CO_THEME[dk]).forEach(([k, v]) => r.setProperty('--' + k, v));
-  Object.entries(fondsTeintes('#74102A', dk)).forEach(([k, v]) => r.setProperty('--' + k, v));
+  Object.entries(fondsTeintes('#4F6200', dk)).forEach(([k, v]) => r.setProperty('--' + k, v));
   r.setProperty('--stage', dk ? '#121214' : '#E2E2E2');
-  r.setProperty('--rail-logo', `url("img/dojo-detoure-${dk ? 'blanc' : 'noir'}.png")`);
+  r.setProperty('--rail-logo', 'url("img/dojo-detoure-blanc.png")'); // le menu est sombre (nuit) ou olive (jour)
   r.colorScheme = dk ? 'dark' : 'light';
   const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.content = dk ? '#1F171B' : '#74102A';
+  if (m) m.content = dk ? '#1B2206' : '#4F6200';
 };
 /* ma fiche enseignant : rangée dans mon profil du club, visible de tous les adhérents (École, Enseignants) */
 A.coPro = () => {

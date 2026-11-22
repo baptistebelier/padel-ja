@@ -32,6 +32,11 @@
   --p-papier: #FCFCFC; --p-encre: #0B0B0B; --p-bleu: #7FD1FF;
 }
 :root[data-mode='nuit'] { color-scheme: dark; }
+/* ---------- couleurs du logo /Pista (validées le 22/11/2026) : le rose du P remplace le citron ---------- */
+:root {
+  --c-lime: #FF3D6B; --accent-bg: #FF3D6B; --on-accent-bg: #1A0509;
+  --menu-act: #FF3D6B; --on-menu-act: #1A0509; --hero-sh: #FF3D6B; --kick: #A30F35;
+}
 :root:not([data-mode='nuit']) { color-scheme: light; }
 
 /* ---------- fonds teintés et en-tête fixe (demande de Baptiste, novembre 2026) ----------
@@ -1424,9 +1429,9 @@ button.row.ps-recrow { width: 100%; border: 0; background: none; box-shadow: non
 .ps-conv + .ps-conv { border-top: var(--bw) solid color-mix(in srgb, var(--c-ink) 14%, transparent); }
 .ps-luseg button { padding: 0 12px; min-height: 40px; font-size: 15px; }
 .ch-tag { border: var(--bw) solid var(--c-ink); border-radius: 0; font-size: 12px; }
-.ch-tag.ok { background: var(--c-green); color: var(--c-dark); } .ch-tag.no { background: var(--c-pink); color: var(--c-dark); } .ch-tag.wait { background: var(--c-lime); color: var(--c-dark); }
+.ch-tag.ok { background: var(--c-green); color: var(--c-dark); } .ch-tag.no { background: var(--c-pink); color: var(--c-dark); } .ch-tag.wait { background: var(--c-orange); color: var(--c-dark); }
 .ps-reps .ps-mstat i { display: block; width: 28px; height: 8px; margin-bottom: 6px; border: var(--bw) solid var(--c-ink); }
-.ps-rep-ok i { background: var(--c-green); } .ps-rep-no i { background: var(--c-pink); } .ps-rep-wait i { background: var(--c-lime); }
+.ps-rep-ok i { background: var(--c-green); } .ps-rep-no i { background: var(--c-pink); } .ps-rep-wait i { background: var(--c-orange); }
 @media (min-width: 1024px) {
   .ch-ecran:not(.ps-wide) { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); align-items: start; }
   .ch-ecran:not(.ps-wide) > * { grid-column: 1; }

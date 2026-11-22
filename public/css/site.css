@@ -24,6 +24,11 @@
   --off: color-mix(in srgb, var(--menu) 3.5%, #3A3A3F);
   --ink: #000000; --fg: #F4F4F5; --muted: #C8C8CE; --kick: #FF94AD;
 }
+/* ---------- couleurs du logo /Pista (validées le 22/11/2026) : le rose du P remplace le citron (pages de /Pista seulement) ---------- */
+:root[data-app='pista'] {
+  --c-lime: #FF3D6B; --accent-bg: #FF3D6B; --on-accent-bg: #1A0509;
+  --menu-act: #FF3D6B; --on-menu-act: #1A0509; --hero-sh: #FF3D6B; --kick: #A30F35;
+}
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -162,3 +167,6 @@ code { font-size: 13px; }
 }
 /* zoom autorisé partout : au téléphone, les champs restent en 16 px (sinon iPhone zoome tout seul) */
 @media (max-width: 820px) { input { font-size: max(16px, 1em); } }
+/* logo détouré (sans fond) dans l'en-tête, le pied de page et la page de connexion */
+.logo .logo-img { display: block; height: 40px; width: auto; }
+.auth-hero .logo .logo-img { height: 56px; }

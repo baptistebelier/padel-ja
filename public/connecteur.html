@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-app="pista">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,7 +14,7 @@
 </head>
 <!-- Mode d'emploi du connecteur MCP /RAM (lib/mcp.js) : à quoi il sert, comment l'ajouter à Claude, ce qu'il lit -->
 <body class="landing">
-<header class="nav"><div class="wrap"><a href="/" class="logo" aria-label="/Pista, accueil">/Pista</a><nav class="nav-r"><a href="/connexion" class="btn sm">Se connecter</a></nav></div></header>
+<header class="nav"><div class="wrap"><a href="/" class="logo" aria-label="/Pista, accueil"><img src="/img/pista-detoure-blanc.png" alt="/Pista" class="logo-img"></a><nav class="nav-r"><a href="/connexion" class="btn sm">Se connecter</a></nav></div></header>
 <main class="doc">
   <div><span class="eyebrow">Connecteur /RAM pour Claude</span><h1>Claude connecté à /Pista</h1>
     <p class="muted">Demandez à Claude le classement de votre dernier tournoi, le planning de votre semaine d’enseignant ou l’agenda de votre club : il lit vos données /Pista, /Buvette et /Dojo avec votre compte /RAM, et ne voit que ce que votre compte voit.</p></div>
@@ -34,7 +34,7 @@
   <section class="card"><h2><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Votre compte garde la main</h2>
     <ul><li>Connexion avec votre compte /RAM : votre mot de passe n’est jamais transmis à Claude.</li><li>Mêmes droits que dans les applis : les fiches élèves restent à l’équipe pédagogique, le suivi d’un élève à lui, ses parents et ses enseignants.</li><li>Pour couper l’accès : retirez le connecteur dans Claude, ou changez votre mot de passe /RAM.</li></ul></section>
 </main>
-<footer class="foot"><div class="wrap"><a href="/" class="logo">/Pista</a><p>Des outils <a href="https://riseandmove.fr">/RiseAndMove</a>, dessinés en Corrèze.</p></div></footer>
+<footer class="foot"><div class="wrap"><a href="/" class="logo"><img src="/img/pista-detoure-blanc.png" alt="/Pista" class="logo-img"></a><p>Des outils <a href="https://riseandmove.fr">/RiseAndMove</a>, dessinés en Corrèze.</p></div></footer>
 <script>
 document.getElementById('mcpCopy').onclick = () => { const i = document.getElementById('mcpUrl'), b = document.getElementById('mcpCopy'), done = () => { b.lastChild.textContent = 'Adresse copiée'; setTimeout(() => { b.lastChild.textContent = 'Copier l’adresse'; }, 2500); };
   (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.reject()).then(done).catch(() => { i.select(); try { document.execCommand('copy'); done(); } catch (e) { /* l'adresse reste sélectionnée */ } }); };
