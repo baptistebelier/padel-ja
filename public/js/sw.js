@@ -24,7 +24,7 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(d.title || '/RAM JA', { body: d.body || '', icon: '/img/app-icon-180.png?v=ja2', badge: '/img/app-icon-180.png?v=ja2', tag: d.tag, data: { url: d.url || '/app' }, renotify: !!d.tag }));
+  e.waitUntil(self.registration.showNotification(d.title || '/RAM JA', { body: d.body || '', icon: '/img/app-icon-180.png?v=ja3', badge: '/img/app-icon-180.png?v=ja3', tag: d.tag, data: { url: d.url || '/app' }, renotify: !!d.tag }));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
