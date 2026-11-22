@@ -936,8 +936,14 @@ const server = http.createServer(async (req, res) => {
     }
     // /RAM Coach : la même appli que /RAM Club (dossier club/), ouverte sur coach.html, sur coach.riseandmove.fr :
     // l'appli pour un compte connecté, sinon la présentation ; /presentation, /demo, /connexion, /inscription
+    /* icônes demandées d'office à la racine par Safari (favoris, écran d'accueil) et les navigateurs : celles de l'appli du domaine */
+    if (/^\/(apple-touch-icon(-precomposed)?\.png|favicon\.ico)$/.test(p) && (appHote === 'coach' || appHote === 'club')) {
+      const fav = p === '/favicon.ico';
+      return sendClub(res, appHote === 'coach' ? (fav ? '/img/dojo-favicon.png' : '/dojo-icon-180.png') : (fav ? '/img/favicon.png' : '/icon-180.png'), true);
+    }
+    if (/^\/apple-touch-icon(-precomposed)?\.png$/.test(p)) return sendFile(res, '/img/app-icon-180.png');
     if (appHote === 'coach' && !p.startsWith('/api/') && !PARTAGES_PUBLICS.test(p)) {
-      if (p === '/') return sendClub(res, await clubLogged() ? '/coach.html' : '/coach-presentation.html', true);
+      if (p === '/')return sendClub(res, await clubLogged() ? '/coach.html' : '/coach-presentation.html', true);
       return sendClub(res, p === '/demo' ? '/coach.html' : p === '/presentation' ? '/coach-presentation.html' : p, true);
     }
     // ailleurs, /coach/ : renvoyé sur coach.riseandmove.fr dès que ce domaine répond ; la démo en attendant
