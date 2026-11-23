@@ -589,7 +589,7 @@ if (UI2) {
       fam = el => {
         const h = el.querySelector && el.querySelector('.coh2') ? el.querySelector('.coh2').textContent : '';
         if (/^Formules et tarifs$/.test(h)) return 'offres';
-        if (/^(Mes disponibilités|Mes outils de réservation|Mes vacances)$/.test(h)) return 'agenda';
+        if (/^(Mes disponibilités|Mes outils de réservation|Mes vacances|Vacances des clubs)$/.test(h)) return 'agenda';
         return 'profil';
       },
       bloc = { profil: [], offres: [], agenda: [] };

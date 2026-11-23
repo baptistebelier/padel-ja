@@ -80,7 +80,8 @@ taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'
 const agendaLu = Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) });
 const NomsResa = require('./lib/noms-resa.js').createNoms({ store });   // adresses /reservation/<nom>
 /* offres des applis : limites de /Buvette Découverte et de /Dojo gratuit, contrôlées pour chaque opération et chaque sauvegarde des formules */
-const Offres = require('./lib/offres.js'), offres = Offres.createOffres({ store, ram, admins: () => [...superIds] });   // superIds : plus bas, rempli au démarrage
+const VacScol = require('./lib/vacances-scolaires.js');
+const Offres = require('./lib/offres.js'),offres = Offres.createOffres({ store, ram, admins: () => [...superIds] });   // superIds : plus bas, rempli au démarrage
 ram.setGarde(offres.garde);
 Formules.setGarde(offres.gardeFormules);
 const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, dojoPro: offres.dojoPro, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
@@ -1807,6 +1808,14 @@ const server = http.createServer(async (req, res) => {
       const c = url.searchParams.get('c') || '';
       if (!(await ram.myClubs(u.id)).some(x => x.id === c)) return json(res, 403, { error: 'Club introuvable.' });
       return json(res, 200, await offres.etatClub(c));
+    }
+    /* ---------- vacances scolaires d'une zone (A, B ou C), pour les vacances d'un club dans /Dojo ---------- */
+    if (p === '/api/vacances-scolaires' && req.method === 'GET') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      const zone = String(url.searchParams.get('zone') || '').toUpperCase();
+      if (!/^[ABC]$/.test(zone)) return json(res, 400, { error: 'Zone A, B ou C.' });
+      try { return json(res, 200, { zone, periodes: await VacScol.periodes(zone) }); }
+      catch (e) { return json(res, 502, { error: 'Le calendrier scolaire n’a pas pu être lu. Réessaie plus tard.' }); }
     }
     /* ---------- /RAM Réservation : la page publique, sans compte ---------- */
     if (p.startsWith('/api/public/resa/')) {

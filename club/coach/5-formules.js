@@ -98,29 +98,116 @@ addEventListener('load', () =>
   })
 );
 
-/* ---------- page « Formules et tarifs » ---------- */
-function coFormules() {
-  const fo = OFFRES.formules.map(f => {
-    const pk = OFFRES.packs.filter(p => p.formule === f.id);
-    return `<div class="card cofo"><div class="row" style="gap:10px;align-items:flex-start"><span class="tile">${ic(f.joueurs > 1 ? 'users' : 'user')}</span><div class="grow"><span class="h3" style="font-size:18px">${esc(f.nom)}</span><br><span class="muted small">${foKind(f)} · ${minTxt(f.duree)} · ${f.sport}</span><p class="cofop">${foPrice(f)}</p></div><button class="ib" data-a="coFoEdit" data-id="${f.id}" aria-label="Modifier la formule">${ic('edit')}</button></div>${
-      pk.length
-        ? `<div class="copk">${pk.map(p => `<button class="copki" data-a="coPkEdit" data-id="${p.id}"><span class="grow"><b>${esc(p.nom || 'Pack ' + p.seances + ' séances')}</b><br><span class="muted small">${pkPrice(p)}</span></span>${ic('edit')}</button>`).join('')}</div>`
-        : ''
-    }<button class="btn sm ghost full" data-a="coPkEdit" data-f="${f.id}">${ic('plus')}Créer un pack de séances</button></div>`;
-  });
-  const abRow = a =>
-      `<button class="item" data-a="coAbEdit" data-id="${a.id}"><span class="tile">${ic('cal')}</span><span class="grow"><span class="nm">${esc(a.nom)}</span><br><span class="muted small">${abPrice(a)}${a.formule && foOf(a.formule) ? ' · ' + esc(ofLabel('f', a.formule)) : ''}${a.moyen ? ' · ' + esc(a.moyen) : ''}</span></span>${ic('edit')}</button>`,
-    ens = [...new Set(OFFRES.abos.map(a => a.ens).filter(Boolean))],
-    // un ensemble : une seule ligne, ses variantes à la demande
-    abEns = ens
-      .map(n => {
-        const l = OFFRES.abos.filter(a => a.ens === n),
-          px = l.map(a => +a.prix || 0);
-        return `<details class="card coens"><summary><span class="tile">${ic('cal')}</span><span class="grow"><span class="nm">${esc(n)}</span><br><span class="muted small">${plural(l.length, 'variante')} · ${Math.min(...px) === Math.max(...px) ? eur(px[0]) : 'de ' + eur(Math.min(...px)) + ' à ' + eur(Math.max(...px))}</span></span><span class="chev" aria-hidden="true">${ic('back')}</span></summary><div class="list">${l.map(abRow).join('')}</div><button class="btn sm ghost full" data-a="coAbEdit" data-id="${l[0].id}" data-plus="1">${ic('plus')}Ajouter une variante</button></details>`;
+/* ---------- page « Formules et tarifs » (maquette validée le 23/11/2026) ----------
+   Chiffres clés, puis deux intercalaires collés à la carte : « À la séance et packs » (les formules à gauche, la
+   formule choisie à droite avec ses packs en tableau) et « Abonnements » (chaque abonnement en grille : une ligne
+   par formule comprise, une colonne par engagement, une case par variante). */
+if (!I.pack) I.pack = '<rect x="4" y="7" width="16" height="13"/><path d="M9 7V4h6v3M4 12h16"/>';
+/* les abonnements, une entrée par abonnement : ses variantes (une seule pour un abonnement simple) */
+const abGroupes = () => {
+  const vus = {};
+  return OFFRES.abos
+    .filter(a => !a.ens || (vus[a.ens] ? false : (vus[a.ens] = 1)))
+    .map(a => (a.ens ? OFFRES.abos.filter(x => x.ens === a.ens) : [a]));
+};
+const abParCourt = a => '/ ' + (a.periode || 'mois');
+const abMoisDe = a => ({ mois: 1, trimestre: 3, '6 mois': 6, an: 12 })[a.periode] || 1;
+const abColTxt = a => {
+  const e = abEng(a);
+  return (
+    (e ? e.charAt(0).toUpperCase() + e.slice(1) : 'Sans engagement') + (a.periode !== 'mois' ? ' · ' + abPer(a) : '')
+  );
+};
+const foParTxt = f => (f.par === 'personne' && f.joueurs > 1 ? 'par pers.' : 'la séance');
+function coFoSeance(sel) {
+  const pk = OFFRES.packs.filter(p => p.formule === sel.id),
+    ab = OFFRES.abos.filter(a => a.formule === sel.id),
+    u = foSeance(sel),
+    rows = pk.map(p => {
+      const nom = esc(p.nom || 'Pack ' + p.seances + ' séances'),
+        x = p.prix / p.seances,
+        r = u > 0 ? Math.round((1 - x / u) * 100) : 0,
+        n = (p.ech || []).length;
+      return `<tr><td><b>${nom}</b></td><td>${p.seances}</td><td>${eur(p.prix)}</td><td class="foacc">${eur(x)}</td><td>${r > 0 ? `<span class="tag">−${r} %</span>` : '—'}</td><td class="muted">${n > 1 ? 'en ' + n + ' fois' : 'en 1 fois'}</td><td><button class="ib" data-a="coPkEdit" data-id="${p.id}" aria-label="Modifier ${nom}">${ic('edit')}</button></td></tr>`;
+    });
+  return `<div class="fod"><div class="fodh"><span class="tile">${ic(sel.joueurs > 1 ? 'users' : 'user')}</span><div class="grow"><h2 class="foh">${esc(sel.nom)}</h2><span class="muted small">${sel.sport} · ${plural(sel.joueurs, 'joueur')} · ${minTxt(sel.duree)}</span></div><div class="fobig"><b>${eur(sel.prix)}</b><span class="muted small">${foParTxt(sel)}${sel.par === 'personne' && sel.joueurs > 1 ? ' · ' + eur(sel.prix * sel.joueurs) + ' la séance' : ''}</span></div><button class="ib" data-a="coFoEdit" data-id="${sel.id}" aria-label="Modifier la formule">${ic('edit')}</button></div>${
+    rows.length
+      ? `<div class="fotw"><table class="fot"><thead><tr><th>Pack</th><th>Séances</th><th>Prix</th><th>La séance</th><th>Remise</th><th>Paiement</th><th><span class="sr">Modifier</span></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+      : '<p class="muted small">Aucun pack pour cette formule : plusieurs séances à un prix d’ensemble, le prix de la séance se calcule tout seul.</p>'
+  }<div class="cotools"><button class="btn sm" data-a="coPkEdit" data-f="${sel.id}">${ic('plus')}Créer un pack de séances</button></div>${ab.length ? `<p class="muted small folien">${ic('cal')}<span>Comprise dans : ${ab.map(a => esc((a.ens ? a.ens + ' · ' : '') + a.nom)).join(', ')}</span></p>` : ''}</div>`;
+}
+/* un abonnement en grille : lignes = formule comprise (et séances par mois si elles varient), colonnes = engagement */
+function coAbGrille(l) {
+  const nom = l[0].ens || l[0].nom,
+    pms = [...new Set(l.map(a => REGLES.parMoisDef(a)))],
+    rk = a => (a.formule || '') + '|' + (pms.length > 1 ? REGLES.parMoisDef(a) : ''),
+    ck = a => a.periode + '|' + a.duree,
+    rows = [...new Set(l.map(rk))],
+    cols = [...new Set(l.map(ck))].sort((x, y) => {
+      const a = l.find(v => ck(v) === x),
+        b = l.find(v => ck(v) === y);
+      return abMoisDe(a) * a.duree - abMoisDe(b) * b.duree || abMoisDe(a) - abMoisDe(b);
+    }),
+    min = l.reduce((m, a) => (+a.prix < +m.prix ? a : m), l[0]),
+    body = rows
+      .map(r => {
+        const dans = l.filter(a => rk(a) === r),
+          f = foOf(dans[0].formule),
+          pm = REGLES.parMoisDef(dans[0]),
+          tete = `<th scope="row"><span class="fogf">${ic(f && f.joueurs > 1 ? 'users' : 'user')}<span><b>${f ? esc(f.nom) : 'Sans formule précise'}</b><span class="muted small">${f ? foKind(f) + ' · ' + minTxt(f.duree) : 'Toute formule'}${pms.length > 1 ? ' · ' + (pm ? plural(pm, 'séance') + ' par mois' : 'sans limite') : ''}</span></span></span></th>`;
+        return `<tr>${tete}${cols
+          .map(c => {
+            const v = dans.filter(a => ck(a) === c);
+            if (!v.length) return '<td class="muted">—</td>';
+            return `<td>${v
+              .map(a => {
+                const max = Math.max(...dans.filter(x => x.periode === a.periode).map(x => +x.prix || 0)),
+                  eco = max - (+a.prix || 0),
+                  p = REGLES.parMoisDef(a);
+                return `<button class="foc" data-a="coAbEdit" data-id="${a.id}" data-v="${a.id}" aria-label="Modifier ${esc(a.nom)}"><span class="focp"><b>${eur(a.prix)}</b><span class="muted">${abParCourt(a)}</span>${eco > 0 ? `<span class="tag">−${eur(eco)} ${abParCourt(a).slice(2) === 'mois' ? 'par mois' : abParCourt(a)}</span>` : ''}</span><span class="muted small">${a.periode === 'mois' && p ? eur(a.prix / p) + ' la séance' : esc(a.nom)}</span></button>`;
+              })
+              .join('')}</td>`;
+          })
+          .join('')}</tr>`;
       })
-      .join(''),
-    ab = OFFRES.abos.filter(a => !a.ens).map(abRow);
-  return `<div class="pad"><div class="card"><p class="muted small">Tes formules, pour tous tes clubs. Elles s'affichent sur ta fiche enseignant dans /Buvette et serviront à la prise de rendez-vous. Pour chaque formule, crée des packs de plusieurs séances : le prix de la séance se calcule tout seul.</p></div>${hd('Formules · à la séance')}${fo.join('') || none('ball', 'Aucune formule', 'Une formule : un nombre de joueurs, une durée, un prix.')}<div class="card"><button class="btn full" data-a="coFoEdit" data-id="new">${ic('plus')}Ajouter une formule</button></div>${hd('Abonnements')}${abEns}${ab.length ? list(ab.join('')) : abEns ? '' : none('cal', 'Aucun abonnement', 'Un prix par mois, par trimestre ou à l’année, avec un engagement si tu veux.')}<div class="card"><button class="btn full ghost" data-a="coAbEdit" data-id="new">${ic('plus')}Ajouter un abonnement</button></div></div>`;
+      .join('');
+  return `<section class="foab"><div class="fodh"><span class="tile">${ic('cal')}</span><div class="grow"><h2 class="foh">${esc(nom)}</h2><span class="muted small">${plural(l.length, 'variante')}${pms.length === 1 && pms[0] ? ' · ' + plural(pms[0], 'séance') + ' par mois' : ''}${l[0].moyen ? ' · ' + esc(l[0].moyen) : ''}</span></div><div class="fobig"><b>${l.length > 1 && l.some(a => +a.prix !== +min.prix) ? 'dès ' : ''}${eur(min.prix)}</b><span class="muted small">${abPer(min)}</span></div><button class="ib" data-a="coAbEdit" data-id="${l[0].id}" aria-label="Modifier ${esc(nom)}">${ic('edit')}</button></div><div class="fotw"><table class="fog"><thead><tr><th>Formule comprise</th>${cols.map(c => `<th>${abColTxt(l.find(a => ck(a) === c))}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div><div class="cotools"><button class="btn sm ghost" data-a="coAbEdit" data-id="${l[0].id}" data-plus="1" data-pp="${l[0].periode}" data-pd="${l[0].duree}">${ic('plus')}Ajouter une formule à l’abonnement</button><button class="btn sm ghost" data-a="coAbEdit" data-id="${l[0].id}" data-plus="1" data-pf="${esc(l[0].formule || '')}" data-pp="${l[0].periode}">${ic('plus')}Ajouter un engagement</button></div></section>`;
+}
+function coFormules() {
+  const tab = S.foTab === 'abo' ? 'abo' : 'seance',
+    grs = abGroupes(),
+    px = OFFRES.formules.map(f => +f.prix).filter(n => n > 0),
+    mn = Math.min(...px),
+    mx = Math.max(...px),
+    kpi = [
+      [OFFRES.formules.length, (OFFRES.formules.length > 1 ? 'formules' : 'formule') + ' à la séance', 'user'],
+      [OFFRES.packs.length, (OFFRES.packs.length > 1 ? 'packs' : 'pack') + ' de séances', 'pack'],
+      [
+        grs.length,
+        (grs.length > 1 ? 'abonnements' : 'abonnement') +
+          (OFFRES.abos.length > grs.length ? ' · ' + plural(OFFRES.abos.length, 'variante') : ''),
+        'cal'
+      ],
+      [px.length ? (mn === mx ? eur(mn) : mn + ' à ' + eur(mx)) : '—', 'la séance', 'euro']
+    ],
+    tabs = [
+      ['seance', 'À la séance et packs', 'user', OFFRES.formules.length],
+      ['abo', 'Abonnements', 'cal', grs.length]
+    ];
+  let corps;
+  if (tab === 'seance') {
+    const sel = OFFRES.formules.find(f => f.id === S.foSel) || OFFRES.formules[0];
+    corps = `<div class="fos"><div class="fol"><span class="kicker">Mes formules</span>${OFFRES.formules
+      .map(f => {
+        const n = OFFRES.packs.filter(p => p.formule === f.id).length;
+        return `<button class="foi${f === sel ? ' on' : ''}" data-a="coFoSel" data-id="${f.id}" aria-pressed="${f === sel}"><span class="foit">${ic(f.joueurs > 1 ? 'users' : 'user')}</span><span class="grow"><b>${esc(f.nom)}</b><span class="small">${foKind(f)} · ${minTxt(f.duree)}${n ? ' · ' + plural(n, 'pack') : ''}</span></span><span class="foip"><b>${eur(f.prix)}</b><span class="small">${foParTxt(f)}</span></span></button>`;
+      })
+      .join(
+        ''
+      )}<button class="codadd foadd" data-a="coFoEdit" data-id="new">${ic('plus')}Ajouter une formule</button></div>${sel ? coFoSeance(sel) : `<div class="fod">${none('ball', 'Aucune formule', 'Une formule : un nombre de joueurs, une durée, un prix.')}</div>`}</div>`;
+  } else
+    corps = `${grs.map(coAbGrille).join('') || none('cal', 'Aucun abonnement', 'Un prix par mois, par trimestre ou à l’année, avec un engagement si tu veux.')}${grs.length ? `<p class="muted small folien">${ic('edit')}<span>Touche un prix pour modifier sa variante : formule, séances par mois, prix, engagement, vente sur Shopify.</span></p>` : ''}<button class="codadd foadd" data-a="coAbEdit" data-id="new">${ic('plus')}${grs.length ? 'Créer un autre abonnement' : 'Créer un abonnement'}</button>`;
+  return `<div class="pad fopage u2f"><div class="fokpi">${kpi.map(([n, l, i]) => `<div class="fok">${ic(i)}<span><b>${n}</b><span class="muted small">${l}</span></span></div>`).join('')}</div><div class="fotabs" role="tablist" aria-label="Formules et tarifs">${tabs.map(([k, l, i, n]) => `<button role="tab" aria-selected="${k === tab}" data-a="coFoTab" data-k="${k}">${ic(i)}<span>${l}</span><span class="fon">${n}</span></button>`).join('')}</div><div class="card fobox">${corps}</div></div>`;
 }
 V.formules = coFormules;
 TITLES.formules = () => ['Formules et tarifs', 'Séances, packs et abonnements'];
@@ -675,12 +762,31 @@ Object.assign(A, {
       ens = (a0 ? a0.ens : d.ens) || '',
       l = ens ? OFFRES.abos.filter(x => x.ens === ens) : a0 ? [a0] : [],
       base = l[0] || { formule: '', moyen: '' },
-      vide = { periode: 'mois', duree: 1, parMois: 4, prix: '' },
+      // une variante ajoutée depuis la grille : la formule (pf), la période (pp) ou l'engagement (pd) d'une ligne ou d'une colonne
+      vide = { periode: d.pp || 'mois', duree: d.pd ? +d.pd : 1, parMois: 4, prix: '', formule: d.pf || '' },
       rows = (l.length ? l : [vide]).concat(d.plus ? [vide] : []);
     sheet(
       l.length ? 'Abonnement' : 'Nouvel abonnement',
       `<form class="body" id="co-ab" data-ids="${l.map(x => x.id).join(',')}">${F('co-an', 'Nom de l’abonnement', 'Academy, abonnement performance…', ens || base.nom || '')}${O('co-amy', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify', base.moyen)}<span class="kicker">Variantes</span><p class="muted small">Une ou plusieurs : individuel ou duo, 1 h ou 1 h 30, 6 ou 12 mois… Chacune a sa formule et son prix ; l’engagement se compte en périodes (6 par mois : 6 mois).</p><div id="co-avl">${rows.map((x, i) => coAbVRow(x, rows.length > 1 || l.length > 1 ? x.nom : '')).join('')}</div><button type="button" class="btn sm ghost full" data-a="coAbVAdd">${ic('plus')}Ajouter une variante</button><div class="cotools"><button class="btn">Enregistrer</button>${l.length ? `<button type="button" class="btn ghost" data-a="coAbDel" data-ids="${l.map(x => x.id).join(',')}">${ic('trash')}Supprimer</button>` : ''}</div></form>`
     );
+    // la variante touchée dans la grille (ou la nouvelle) : à l'écran, son prix prêt à changer
+    const v = d.plus
+      ? [...document.querySelectorAll('#co-avl .coabv')].pop()
+      : d.v && document.querySelector(`#co-avl .coabv[data-id="${d.v}"]`);
+    if (v) {
+      v.classList.add('coabv-on');
+      v.scrollIntoView({ block: 'center' });
+      const p = v.querySelector('.co-avp');
+      if (p) p.focus({ preventScroll: true });
+    }
+  },
+  coFoTab(d) {
+    S.foTab = d.k;
+    render(true);
+  },
+  coFoSel(d) {
+    S.foSel = d.id;
+    render(true);
   },
   coAbVAdd() {
     const der = [...document.querySelectorAll('#co-avl .co-avf')].pop();

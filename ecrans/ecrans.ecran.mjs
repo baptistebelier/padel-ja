@@ -572,10 +572,12 @@ test('Coach : statistiques sans chiffre d’affaires, paiements à régulariser,
   await page.evaluate(() => A.tab({ t: 'today' }));
   await page.waitForFunction(() => document.body.innerText.includes('à régulariser'));
   // ensemble d'abonnements : une ligne, ses variantes à la demande
-  await page.evaluate(() => { OFFRES.abos = [{ id: 'a1', nom: '1 fois par semaine', ens: 'Academy', periode: 'mois', duree: 6, prix: 120, parSemaine: 1 }, { id: 'a2', nom: '2 fois par semaine', ens: 'Academy', periode: 'mois', duree: 6, prix: 200, parSemaine: 2 }]; A.open({ v: 'formules' }); });
-  await page.waitForSelector('.coens');
-  assert.equal(await page.locator('.coens').count(), 1);
-  assert.equal(await page.locator('.coens summary').innerText().then(t => /2 variantes/.test(t)), true);
+  await page.evaluate(() => { OFFRES.abos = [{ id: 'a1', nom: '1 fois par semaine', ens: 'Academy', periode: 'mois', duree: 6, prix: 120, parSemaine: 1 }, { id: 'a2', nom: '2 fois par semaine', ens: 'Academy', periode: 'mois', duree: 6, prix: 200, parSemaine: 2 }]; S.foTab = 'abo'; A.open({ v: 'formules' }); });
+  await page.waitForSelector('.foab');
+  assert.equal(await page.locator('.foab').count(), 1);
+  assert.equal(await page.locator('.foab .fodh').innerText().then(t => /2 variantes/.test(t)), true);
+  assert.equal(await page.locator('.foab .foc').count(), 2);
+  assert.ok(await large(), 'la grille défile dans sa boîte, pas la page');
   // vacances : une séance programmée est signalée, jamais retirée d'office ; le groupe choisit de suivre ou non
   const r = await page.evaluate(() => { const g = coGroups('', true).find(x => coIsGrp(x) && !coOver(x)), d = coDates(g, isoIn(1), isoIn(40))[0]; OFFRES.vacClubs = { [coClubOf(g)]: [{ nom: 'Noël', du: d, au: d }] }; OFFRES.conges = []; delete g.vacClub; A.open({ v: 'cgroupe', id: g.id }); return { id: g.id, d }; });
   await page.waitForSelector('[data-a="coVacFollow"]');
@@ -951,7 +953,11 @@ test('Coach : mes disponibilités, ce qui reste libre s’affiche au planning', 
   await page.fill('.codic .codia', '08:00');
   await page.fill('#co-di-l', 'Site test');
   await page.click('#co-dispo > .btn.full');
-  await page.waitForSelector('[data-a="coDispoDel"]');
+  await page.waitForSelector('.codp');
+  // une période se modifie : la fenêtre s'ouvre sur ses heures
+  await page.click('.codp');
+  assert.equal(await page.inputValue('#co-de-d'), '06:00');
+  await page.evaluate(() => closeSheet());
   await page.evaluate(() => { S.stack = []; S.pl.w = coDow(TODAY) === 0 ? 1 : 0; A.tab({ t: 'planning' }); });
   await page.waitForFunction(() => document.querySelector('.cowf') && /Libre 6 h – 8 h · Site test/.test(document.querySelector('.cowf').title));
   // en vacances : plus rien de libre
@@ -3141,7 +3147,7 @@ test('Coach : un abonnement et ses variantes, dans une seule fenêtre', async ()
   await v2.locator('.co-avp').fill('200');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'la fenêtre tient à 360 px');
   await page.click('#co-ab .cotools .btn:not(.ghost)');
-  await page.waitForSelector('.coens');
+  await page.waitForFunction(() => OFFRES.abos.length === 2);
   const l = await page.evaluate(() => OFFRES.abos.map(a => [a.id === 'a1', a.nom, a.ens, a.prix, a.parMois]));
   assert.deepEqual(l, [[true, '4 séances par mois', 'Academy', 120, 4], [false, '2 fois par semaine', 'Academy', 200, 2]], 'la première garde son identifiant (achats des élèves), libellé tout fait');
   // l'ensemble s'ouvre en entier, une variante se retire : il redevient un abonnement simple
