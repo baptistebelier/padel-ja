@@ -2214,6 +2214,10 @@ select option { background: var(--c-surface); color: var(--c-text); }
   .rbot button[aria-current="page"], .rbot button[aria-current="page"] svg { color: var(--on-accent); }
   .tabs button[aria-current="page"], .rbot button[aria-current="page"] { box-shadow: 3px 3px 0 #000000; }
 }
+/* élément actif du menu, de jour comme de nuit : fond citron du logo, texte foncé (de jour, la couleur d'accent est
+   l'olive du menu : Réglages actif ne se voyait plus) */
+.tabs button[aria-current="page"], .tabs button[aria-current="page"]:hover, .rbot button[aria-current="page"] { background: var(--co-lime); }
+.tabs button[aria-current="page"], .tabs button[aria-current="page"] svg, .rbot button[aria-current="page"], .rbot button[aria-current="page"] svg { color: #0E1104; }
 
 /* courbe du mois de /Dojo : pastilles de la légende et de l'infobulle à taille fixe (la classe .coprev d'une autre carte leur donnait
    18 px de marge, d'où le gros carré gris) ; prévision jusqu'à la fin du mois en pointillés de la couleur d'accent */
