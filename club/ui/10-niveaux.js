@@ -112,7 +112,7 @@ function nvBody(p) {
   if (nv.complet) {
     // complet dès le départ : pas d'inscription, la séance est au planning avec les élèves choisis
     const mem = nv.membres || [];
-    body = `<div class="note ok">${ic('check')}<span>Complet dès le départ : pas d’inscription.${mem.length ? ' ' + mem.length + ' élève' + (mem.length > 1 ? 's' : '') + ' inscrit' + (mem.length > 1 ? 's' : '') + ' par l’enseignant.' : ''}</span></div>${staff && mem.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${mem.map(k => `<span class="row nv-who ok" style="gap:6px">${nvWho(k, nv)}</span>`).join('')}</div>` : ''}`;
+    body = `${staff ? nvModifierBtn(p) : ''}<div class="note ok">${ic('check')}<span>Complet dès le départ : pas d’inscription.${mem.length ? ' ' + mem.length + ' élève' + (mem.length > 1 ? 's' : '') + ' inscrit' + (mem.length > 1 ? 's' : '') + ' par l’enseignant.' : ''}</span></div>${staff && mem.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${mem.map(k => `<span class="row nv-who ok" style="gap:6px">${nvWho(k, nv)}</span>`).join('')}</div>` : ''}`;
   } else if (staff) {
     // l'enseignant voit toutes les fourchettes, leurs inscrits et celle qui est validée
     body = nv.tiers
@@ -128,6 +128,7 @@ function nvBody(p) {
         return `<div class="nv-tier${st.win === t.id ? ' win' : ''}"><div class="row" style="gap:8px;flex-wrap:wrap"><b class="grow">${nvRange(t, nv.sport)}</b>${tag}</div><div class="row">${dots(Math.min(ok, nvCap(t)), nvCap(t))}<span class="muted small">${Math.min(l.length, nvCap(t))} / ${nvCap(t)}${nvCapTxt(t)}${l.length > nvCap(t) || (st.win && st.win !== t.id && l.length) ? ' · ' + l.filter(k => st.status[t.id + '|' + k] === 'wait').length + ' en attente' : ''}</span></div>${l.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${l.map(k => `<span class="row nv-who ${st.status[t.id + '|' + k]}" style="gap:6px">${nvWho(k, nv)}</span>`).join('')}</div>` : ''}</div>`;
       })
       .join('');
+    body = nvModifierBtn(p) + body;
     body += `<span class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première fourchette complète valide ${nv.mode === 'cours' ? 'la séance' : 'la partie'} ; les autres passent en liste d'attente.</span>${nvLienBloc(p)}`;
   } else {
     const t = nvMyTier(nv, me),
@@ -149,4 +150,10 @@ function nvBody(p) {
       : '';
   }
   return head + `<div class="ev">${meta}${pick}${body}</div>`;
+}
+/* l'enseignant modifie son collectif sans passer par le menu « … » : dates de début et de fin, récurrence, vacances, inscriptions */
+function nvModifierBtn(p) {
+  return p.nv.mode === 'cours'
+    ? `<button class="btn ghost full" data-a="pedit" data-id="${p.id}">${ic('edit')}Modifier le collectif · dates, récurrence, vacances</button>`
+    : '';
 }

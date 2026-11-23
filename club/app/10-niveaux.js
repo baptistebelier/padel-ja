@@ -64,16 +64,18 @@ function nvTiers(sport, list) {
    sautées ou non, et des inscriptions ouvertes par niveau ou un groupe complet dès le départ */
 const NV_REP = ['Une seule fois', 'Chaque semaine', 'Une semaine sur deux'],
   NV_INS = ['Ouvertes aux adhérents, par niveau', 'Complet dès le départ'];
-/* vacances de l'enseignant et du club en cours (réglées dans /Dojo) */
-const nvVacances = () =>
+/* vacances réglées dans /Dojo, choisies séparément : celles de l'enseignant (OFFRES.conges), celles du club (OFFRES.vacClubs) */
+const nvVacances = (moi, club) =>
   typeof OFFRES === 'undefined'
     ? []
-    : (OFFRES.conges || []).concat((OFFRES.vacClubs || {})[(window.RAM && RAM.club) || ''] || []);
-/* les dates d'une séance : la première, puis chaque semaine ou une sur deux jusqu'à la date de fin, sans les vacances si demandé */
-function nvDates(d0, rep, fin, vac) {
+    : (moi ? OFFRES.conges || [] : []).concat(
+        club ? (OFFRES.vacClubs || {})[(window.RAM && RAM.club) || ''] || [] : []
+      );
+/* les dates d'une séance : la première, puis chaque semaine ou une sur deux jusqu'à la date de fin, sans les vacances choisies */
+function nvDates(d0, rep, fin, vacMoi, vacClub) {
   if (rep === NV_REP[0] || !fin || fin < d0) return [d0];
   const pas = rep === NV_REP[2] ? 14 : 7,
-    off = vac ? nvVacances() : [],
+    off = nvVacances(vacMoi, vacClub),
     out = [];
   for (let d = d0, i = 0; d <= fin && i < 60; d = isoIn(pas, d), i++)
     if (!off.some(p => d >= p.du && d <= p.au)) out.push(d);
@@ -111,7 +113,7 @@ Object.assign(A, {
       `<form class="body" id="nv-form" data-m="${cours ? 'cours' : 'partie'}">${cours ? F('nv-theme', 'Thème de la séance', 'Service et retour, jeu au filet…') : ''}${O('nv-body', 'Précisions (facultatif)', cours ? 'Ce que l’on travaille, matériel…' : 'Format, court…')}
  <div class="two">${Sel('nv-sport', 'Sport', ['Tennis', 'Padel'])}${cours ? '' : Sel('nv-fmt', 'Format', ['Double', 'Simple'], 'Double')}</div>
  ${Dt('a-d1', cours ? 'Date (première séance)' : 'Date', 1)}<div class="two">${Sel('a-h1', 'Heure', HOURS, '18 h')}${Sel('a-dur', 'Durée', ['1 h', '1 h 30', '2 h'], '1 h 30')}</div>${O('nv-place', 'Lieu (facultatif)', 'Court 3, salle…')}${typeof prixChoix === 'function' ? prixChoix('nv-price', '', cours ? '15 € par séance' : '10 € par joueur') : O('nv-price', 'Tarif', cours ? '15 € par séance' : '10 € par joueur')}
- ${cours ? `${Sel('nv-rep', 'Récurrence', NV_REP)}<div id="nv-rec" hidden>${Dt('nv-fin', 'Dernière séance (date de fin)', false, isoIn(70))}<div class="fld"><label class="chk" for="nv-vac"><input type="checkbox" id="nv-vac" checked>Pas de séance pendant mes vacances et celles du club</label></div></div>${Sel('nv-ins', 'Inscriptions', NV_INS)}<div id="nv-mem" class="fld" hidden><span class="lb">Élèves du groupe (facultatif)</span>${nvMemHtml([])}</div>` : ''}
+ ${cours ? `${Sel('nv-rep', 'Récurrence', NV_REP)}<div id="nv-rec" hidden>${Dt('nv-fin', 'Dernière séance (date de fin)', false, isoIn(70))}<div class="fld"><label class="chk" for="nv-vac"><input type="checkbox" id="nv-vac" checked>Pas de séance pendant mes vacances</label></div><div class="fld"><label class="chk" for="nv-vacc"><input type="checkbox" id="nv-vacc" checked>Pas de séance pendant les vacances du club</label></div></div>${Sel('nv-ins', 'Inscriptions', NV_INS)}<div id="nv-mem" class="fld" hidden><span class="lb">Élèves du groupe (facultatif)</span>${nvMemHtml([])}</div>` : ''}
  <div id="nv-niv"><div class="fld"><span class="lb">Fourchettes de niveau</span><p class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première à atteindre son minimum valide ${cours ? 'la séance' : 'la partie'}, qui arrive alors au planning ; les inscrits des autres passent en liste d'attente. Avant, rien n'est bloqué.</p></div>
  <div id="nv-mods-box">${nvModsHtml()}</div><div id="nv-tiers" class="stack"></div><button type="button" class="btn ghost full" id="nv-add" data-a="nvRowAdd">${ic('plus')}Ajouter une fourchette</button>${nvSaveHtml()}</div>
  <button class="btn full">${cours ? 'Proposer la séance' : 'Publier la recherche'}</button></form>`
@@ -233,9 +235,14 @@ document.addEventListener('submit', e => {
     // récurrence jusqu'à une date de fin, vacances sautées ou non ; groupe complet dès le départ ou inscriptions ouvertes
     rec =
       cours && val('nv-rep') !== NV_REP[0]
-        ? { pas: val('nv-rep') === NV_REP[2] ? 14 : 7, fin: val('nv-fin'), vac: !!($('nv-vac') && $('nv-vac').checked) }
+        ? {
+            pas: val('nv-rep') === NV_REP[2] ? 14 : 7,
+            fin: val('nv-fin'),
+            vacMoi: !!($('nv-vac') && $('nv-vac').checked),
+            vacClub: !!($('nv-vacc') && $('nv-vacc').checked)
+          }
         : null,
-    lesDates = cours ? nvDates(d0, val('nv-rep'), val('nv-fin'), rec && rec.vac) : [d0],
+    lesDates = cours ? nvDates(d0, val('nv-rep'), val('nv-fin'), rec && rec.vacMoi, rec && rec.vacClub) : [d0],
     complet = cours && val('nv-ins') === NV_INS[1],
     membres = complet ? [...document.querySelectorAll('input[name="nv-mem"]:checked')].map(x => x.value) : [],
     extra = Object.assign(
@@ -359,8 +366,10 @@ function nvEdit(p) {
     const r = nv.rec || { pas: 7, fin: nv.dates[nv.dates.length - 1], vac: false };
     put('nv-rep', r.pas === 14 ? NV_REP[2] : NV_REP[1]);
     put('nv-fin', r.fin);
-    if ($('nv-vac')) $('nv-vac').checked = !!r.vac;
-  }
+    // vacances : les deux réglages séparés ; l'ancien réglage commun (vac) vaut pour les deux
+    if ($('nv-vac')) $('nv-vac').checked = r.vacMoi != null ? !!r.vacMoi : !!r.vac;
+    if ($('nv-vacc')) $('nv-vacc').checked = r.vacClub != null ? !!r.vacClub : !!r.vac;
+  } else if (cours) put('nv-rep', NV_REP[0]);
   if (cours && nv.complet) {
     put('nv-ins', NV_INS[1]);
     if ($('nv-mem'))
