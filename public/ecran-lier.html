@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr" data-app="pista">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0B0B">
+<title>Relier un écran TV — /Pista</title>
+<link rel="icon" type="image/png" href="/img/favicon.png?v=ja3">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/club/ds.css">
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/theme.js"></script>
+<style>
+  .el { box-sizing: border-box; width: 100%; max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 16px; }
+  .el .card { min-width: 0; box-sizing: border-box; }
+  .el h1 { margin: 0; }
+  .el-logo { height: 34px; }
+  .el-code { display: flex; gap: 8px; }
+  .el-code input { flex: 1; font-size: 28px; letter-spacing: .3em; text-transform: uppercase; text-align: center; font-family: 'Anton', Impact, sans-serif; padding: 10px; }
+  .el-list { display: grid; gap: 8px; }
+  .el-t { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px; border: 2px solid currentColor; background: none; color: inherit; font: inherit; cursor: pointer; }
+  .el-t:disabled { opacity: .5; cursor: default; }
+  .el-t b { display: block; }
+  .el-t small { opacity: .75; }
+  .el-t .grow { flex: 1; min-width: 0; }
+  .el-t svg { width: 22px; height: 22px; flex: none; }
+  .el-ok { text-align: center; display: grid; gap: 10px; justify-items: center; }
+  .el-ok svg { width: 56px; height: 56px; }
+  .el-msg { min-height: 1.4em; }
+  .el-msg.err { color: #FF3D6B; }
+</style>
+</head>
+<body>
+<main class="el" id="app">
+  
+  <h1>Relier un écran TV</h1>
+  <section class="card">
+    <label for="code">Code affiché sur la TV</label>
+    <div class="el-code"><input id="code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABCD"></div>
+    <p class="hint">Sur la TV, ouvrez l'adresse <b id="adr"></b> : un code de 4 lettres et un QR code s'affichent.</p>
+  </section>
+  <section class="card">
+    <h2>Tournoi à afficher</h2>
+    <div class="el-list" id="list"><p class="muted">Chargement…</p></div>
+    <p class="el-msg" id="msg" role="status"></p>
+  </section>
+</main>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const TV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/></svg>';
+  const OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+  const qs = new URLSearchParams(location.search);
+  $('adr').textContent = location.host + '/ecran';
+  $('code').value = (qs.get('c') || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+  $('code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); });
+  const msg = (t, err) => { $('msg').textContent = t || ''; $('msg').className = 'el-msg' + (err ? ' err' : ''); };
+  const quand = t => (t.dateStart ? new Date(t.dateStart).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'sans date');
+  fetch('/api/tournaments').then(r => r.json()).then(d => {
+    const today = new Date().toISOString().slice(0, 10);
+    // tournois ouverts (pas les tournois internes, qui n'ont pas d'écran TV), le tournoi en cours d'abord, puis le plus proche
+    const l = (d.tournaments || []).filter(t => !t.closed && t.type !== 'interne')
+      .sort((a, b) => ((b.drawn ? 1 : 0) - (a.drawn ? 1 : 0)) || Math.abs(Date.parse(a.dateStart || today) - Date.parse(today)) - Math.abs(Date.parse(b.dateStart || today) - Date.parse(today)));
+    $('list').innerHTML = l.map(t => `<button class="el-t" data-id="${esc(t.id)}">${TV}<span class="grow"><b>${esc(t.name || 'Sans nom')}</b><small>${esc([t.kind === 'animation' ? 'Animation' : [t.category, t.gender].filter(Boolean).join(' '), quand(t), t.drawn ? 'en cours' : 'inscriptions'].filter(Boolean).join(' · '))}</small></span></button>`).join('')
+      || '<p class="muted">Aucun tournoi ouvert. Créez-en un dans /Pista, puis revenez ici.</p>';
+  }).catch(() => { $('list').innerHTML = '<p class="muted">Liste des tournois indisponible : vérifiez votre connexion.</p>'; });
+  $('list').addEventListener('click', e => {
+    const b = e.target.closest('[data-id]'); if (!b) return;
+    const code = $('code').value;
+    if (code.length !== 4) { msg('Tapez d’abord le code de 4 lettres affiché sur la TV.', true); $('code').focus(); return; }
+    document.querySelectorAll('.el-t').forEach(x => { x.disabled = true; });
+    msg('Envoi à la TV…');
+    fetch('/api/ecran/lier', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, tid: b.dataset.id }) })
+      .then(r => r.json().then(d => ({ ok: r.ok, d })))
+      .then(({ ok, d }) => {
+        if (!ok) { msg(d.error || 'Échec de la liaison.', true); document.querySelectorAll('.el-t').forEach(x => { x.disabled = false; }); return; }
+        $('app').innerHTML = `<section class="card el-ok">${OK}<h1>C'est relié</h1><p>La TV affiche maintenant <b>${esc(d.nom)}</b>, en lecture seule. Vous pouvez fermer cette page.</p><a class="btn primary" href="/ecran/lier">Relier un autre écran</a></section>`;
+      })
+      .catch(() => { msg('Connexion perdue : réessayez.', true); document.querySelectorAll('.el-t').forEach(x => { x.disabled = false; }); });
+  });
+})();
+</script>
+</body>
+</html>

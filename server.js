@@ -454,6 +454,14 @@ const VIEW_ACTIONS = new Set(['noop', 'draw/flip', 'draw/flipRandom']);
 const SCORE_ACTIONS = new Set(['noop', 'match/point', 'match/undoPoint', 'match/game', 'match/set', 'match/ungame', 'match/server', 'match/start', 'display/set', 'ani/score']);
 // anti-force brute : au-delà de 10 codes PIN / clés faux en 15 min, l'appareil est bloqué pour ce tournoi
 const accessFails = new Map();
+/* écrans TV appairés par QR code (lib/ecrans.js) : codes en mémoire, limites par adresse IP et par compte */
+const ecrans = require('./lib/ecrans.js').createEcrans();
+const ecranLimites = new Map();
+function ecranLimite(k, max, ms) {
+  const t = Date.now(), e = ecranLimites.get(k);
+  if (!e || t > e.until) { ecranLimites.set(k, { n: 1, until: t + ms }); if (ecranLimites.size > 20000) ecranLimites.clear(); return false; }
+  return ++e.n > max;
+}
 const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
 /* « Déjà élève ? » depuis un lien d'inscription (corps avec p et t) : la même brique, branchée sur la publication au lieu de la page de réservation */
 const resaDe = b => b && b.p ? { pubConnu: (c, k, e) => reservation.pubConnuNv(String(c), String(b.p), String(b.t || ''), e), pubCreneaux: async () => ({ coach: await reservation.pubNvCoach(String(b.c || ''), String(b.p), String(b.t || '')) }) } : reservation;
@@ -975,7 +983,32 @@ const server = http.createServer(async (req, res) => {
 
     /* ---------- pages ---------- */
     if (p === '/') return sendFile(res, '/landing.html');
-    if (p === '/connecteur') return sendFile(res, '/connecteur.html');   // mode d'emploi du connecteur MCP /RAM pour Claude
+    if (p === '/connecteur') return sendFile(res, '/connecteur.html');
+    // écran TV appairé par QR code : la TV ouvre /ecran, le téléphone du juge-arbitre /ecran/lier
+    if (p === '/ecran' || p === '/tv-code') return sendFile(res, '/ecran.html');
+    if (p === '/ecran/lier') {   // le QR code de la TV mène ici
+      const u0 = await currentUser(req);
+      if (!u0) return redirect(res, '/connexion?retour=' + encodeURIComponent(p + url.search));
+      return sendFile(res, '/ecran-lier.html');
+    }
+    if (p === '/api/ecran/nouveau' && req.method === 'POST') {
+      if (ecranLimite('n|' + clientIp(req), 40, 10 * 60000)) return json(res, 429, { error: 'Trop de codes demandés : réessayez dans quelques minutes.' });
+      try { return json(res, 200, ecrans.nouveau()); } catch (e) { return json(res, 503, { error: e.message }); }
+    }
+    if (p === '/api/ecran/etat' && req.method === 'GET') {
+      const e = ecrans.etat(url.searchParams.get('c'), url.searchParams.get('s'));
+      return e ? json(res, 200, e) : json(res, 404, { error: 'Code expiré' });
+    }
+    if (p === '/api/ecran/lier' && req.method === 'POST') {
+      const u = await currentUser(req); if (!u) return json(res, 401, { error: 'Connexion requise' });
+      if (ecranLimite('l|' + u.id, 20, 15 * 60000)) return json(res, 429, { error: 'Trop d’essais : réessayez dans 15 minutes.' });
+      const b = await readBody(req);
+      const room = await getRoom(String(b.tid || '')).catch(() => null);
+      if (!room || !peutGerer(u, room.row) || !room.row.key || Int.isInterne(room.row.state)) return json(res, 404, { error: 'Tournoi introuvable.' });
+      const nom = ((room.row.state || {}).tournament || {}).name || 'Tournoi';
+      if (!ecrans.lier(b.code, '/t/' + room.row.id + '/tv?k=' + room.row.key, nom)) return json(res, 404, { error: 'Code inconnu ou expiré : regardez le code affiché sur la TV.' });
+      return json(res, 200, { ok: true, nom });
+    }   // mode d'emploi du connecteur MCP /RAM pour Claude
     if (p === '/mot-de-passe-oublie' || p === '/reinitialiser') return sendFile(res, '/auth.html');
     if (p === '/connexion' || p === '/inscription') {
       const u = await currentUser(req);

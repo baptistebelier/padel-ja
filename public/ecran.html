@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2E0914">
+<title>/Pista — Relier cet écran</title>
+<link rel="icon" type="image/png" href="/img/favicon.png?v=ja3">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+  /* écran TV : tout se lit de loin, tailles en fonction de la largeur de l'écran */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: #2E0914; color: #fff; font-family: 'Inter', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .ec { display: flex; align-items: center; gap: 5vw; padding: 4vw; max-width: 1600px; width: 100%; }
+  .ec-qr { flex: 0 0 auto; width: min(32vw, 62vh); background: #fff; padding: 1.4vw; border: .5vw solid #E0F50A; }
+  .ec-qr svg { display: block; width: 100%; height: auto; }
+  .ec-txt { flex: 1; min-width: 0; }
+  .ec-logo { height: 5vw; max-height: 72px; display: block; margin-bottom: 3vh; }
+  h1 { font-family: 'Anton', 'Bebas Neue', Impact, sans-serif; font-weight: 400; text-transform: uppercase; font-size: 4.4vw; line-height: 1; margin: 0 0 2.4vh; letter-spacing: .01em; }
+  ol { margin: 0 0 3vh; padding-left: 2.2vw; font-size: 1.7vw; line-height: 1.5; color: #f3d9e0; }
+  .ec-code { display: inline-flex; gap: .8vw; margin: .4vh 0 2vh; }
+  .ec-code b { display: inline-block; min-width: 6vw; padding: .6vw 0; text-align: center; font-family: 'Anton', Impact, sans-serif; font-weight: 400; font-size: 5.6vw; line-height: 1; background: #E0F50A; color: #0E1104; }
+  .ec-url { font-size: 1.6vw; color: #f3d9e0; }
+  .ec-url strong { color: #fff; }
+  .ec-etat { margin-top: 3vh; font-size: 1.4vw; color: #FF3D6B; min-height: 2em; }
+  @media (max-aspect-ratio: 1/1) {   /* écran vertical ou téléphone */
+    .ec { flex-direction: column; text-align: center; }
+    .ec-qr { width: min(70vw, 45vh); }
+    h1 { font-size: 9vw; } ol { font-size: 4vw; text-align: left; padding-left: 6vw; } .ec-code b { font-size: 12vw; min-width: 14vw; } .ec-url, .ec-etat { font-size: 3.6vw; }
+    .ec-logo { height: 10vw; margin: 0 auto 2vh; }
+  }
+</style>
+</head>
+<body>
+<main class="ec">
+  <div class="ec-qr" id="qr" aria-hidden="true"></div>
+  <div class="ec-txt">
+    <img src="/img/pista-detoure-blanc.png" alt="/Pista" class="ec-logo">
+    <h1>Relier cet écran à un tournoi</h1>
+    <ol>
+      <li>Scannez le QR code avec le téléphone du juge-arbitre.</li>
+      <li>Choisissez le tournoi : il s'affiche aussitôt ici.</li>
+    </ol>
+    <div class="ec-url">Sans QR code : ouvrez <strong id="url"></strong> et tapez le code</div>
+    <div class="ec-code" id="code" aria-live="polite"></div>
+    <div class="ec-etat" id="etat"></div>
+  </div>
+</main>
+<script src="/js/qr.js"></script>
+<script>
+/* écrit sans syntaxe récente : beaucoup de navigateurs de TV sont anciens */
+(function () {
+  var cur = null, timer = null, fails = 0;
+  function $(id) { return document.getElementById(id); }
+  function req(method, url, cb) {
+    var x = new XMLHttpRequest();
+    x.open(method, url, true);
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) return;
+      var d = null; try { d = JSON.parse(x.responseText); } catch (e) { d = null; }
+      cb(x.status, d || {});
+    };
+    x.send(method === 'POST' ? '{}' : null);
+  }
+  function lien(code) { return location.origin + '/ecran/lier?c=' + code; }
+  function montre(code) {
+    $('url').textContent = location.host + '/ecran/lier';
+    $('code').innerHTML = code.split('').map(function (c) { return '<b>' + c + '</b>'; }).join('');
+    try { $('qr').innerHTML = QR.svg(lien(code), { label: 'QR code pour relier cet écran' }); } catch (e) { $('qr').innerHTML = ''; }
+  }
+  function nouveau() {
+    clearTimeout(timer);
+    req('POST', '/api/ecran/nouveau', function (st, d) {
+      if (st !== 200 || !d.code) { $('etat').textContent = d.error || 'Connexion au serveur /Pista impossible : nouvel essai dans 10 secondes.'; timer = setTimeout(nouveau, 10000); return; }
+      cur = d; fails = 0; $('etat').textContent = '';
+      montre(d.code);
+      timer = setTimeout(sonde, 2000);
+    });
+  }
+  function sonde() {
+    req('GET', '/api/ecran/etat?c=' + encodeURIComponent(cur.code) + '&s=' + encodeURIComponent(cur.s), function (st, d) {
+      if (st === 200 && d.url) { $('etat').textContent = 'Ouverture de « ' + (d.nom || 'votre tournoi') + ' »…'; location.replace(d.url); return; }
+      if (st === 404) return nouveau();   // code expiré (15 min) ou serveur redémarré : un nouveau code
+      if (st !== 200) { fails++; $('etat').textContent = fails > 2 ? 'Connexion perdue, nouvel essai…' : ''; }
+      else fails = 0;
+      timer = setTimeout(sonde, st === 200 ? 2000 : 5000);
+    });
+  }
+  nouveau();
+})();
+</script>
+</body>
+</html>

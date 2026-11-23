@@ -1453,7 +1453,9 @@
     if (info && info.key) {
       const bases = [info.origin].concat(info.online ? [] : info.lan.map(ip => `http://${ip}:${info.port}`));
       const link = (label, path, note) => `<div><b>${label}</b>${note ? ` <span class="muted small">${note}</span>` : ''}<br>${bases.map(b => `<code>${esc(b + A.page + path)}</code>`).join(' ')}</div>`;
-      $('#urls').innerHTML = `<h4>Liens à ouvrir sur un autre appareil</h4>
+      $('#urls').innerHTML = `<div class="ecqr"><h4>Relier une TV sans câble, par QR code</h4>
+        <p class="small">1. Sur la TV (smart TV, Chromecast, Fire TV…), ouvrez <code>${esc(info.origin + '/ecran')}</code>.<br>2. Scannez le QR code affiché avec votre téléphone, ou <a href="/ecran/lier" target="_blank" rel="noopener">tapez le code ici</a>, et choisissez ce tournoi.</p></div>
+        <h4>Liens à ouvrir sur un autre appareil</h4>
         ${link('Écran TV', '/tv?k=' + info.key, '(smart TV, PC branché à la télé…)')}
         ${link('Overlay OBS', '/overlay?k=' + info.key + '&bg=transparent', '(source navigateur, fond transparent)')}
         ${link('Overlay d\'un terrain', '/overlay?k=' + info.key + '&court=' + (S.courts[0] ? S.courts[0].id : 'c1'))}
