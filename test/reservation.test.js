@@ -193,6 +193,21 @@ test('collectif modifié : le cours change d’heure, une date retirée ne reste
   assert.ok(l.find(c => c.data.once === d2), 'la nouvelle est au planning');
 });
 
+test('collectif complet dès le départ : chaque date au planning avec les élèves choisis, sans inscription', async () => {
+  const { coach, club, key, d } = await monte(33);
+  const j = await ram.join({ id: 'Z33', name: 'Joueur Z' }, club.code);
+  await ram.ops(coach, club.id, [{ coll: 'member', id: j.key, op: 'put', data: { n: 'Joueur Z', valid: 'S', pl: 5 } }, { coll: 'eleve', id: 'f33', op: 'put', data: { n: 'Fiche Sans Compte' } }]);
+  const d2 = REGLES.addDays(d, 7);
+  const nv = { mode: 'cours', sport: 'Padel', theme: 'Groupe fermé', time: '18 h', dur: '1 h', dates: [d, d2], tiers: [], ins: {}, at: {}, complet: true, membres: [j.key, 'f33'], rec: { pas: 7, fin: d2, vac: true } };
+  await ram.ops(coach, club.id, [{ coll: 'post', id: 'pf', op: 'put', data: { by: key, kind: 'niveaux', nv } }]);
+  const cours = async () => (await ram.itemsOf(club.id, 'cours')).filter(c => c.data.nv === 'pf');
+  for (let i = 0; i < 40 && (await cours()).length < 2; i++) await new Promise(r => setTimeout(r, 25));
+  const l = await cours();
+  assert.deepEqual(l.map(c => c.data.once).sort(), [d, d2], 'les deux dates, sans attendre d’inscription');
+  assert.deepEqual(l[0].data.mem, [j.key]);
+  assert.deepEqual(l[0].data.ext, ['f33'], 'la fiche sans compte est rangée à part');
+});
+
 test('annuler : l’élève qui annule est noté, pour dire à l’enseignant de qui ça vient', async () => {
   const { club, key, d, a, ka } = await monte(31);
   const r = await resa.reserver(a, club.id, key, { d, t: 570, formule: 'f1', objectif: 'Volée' });

@@ -109,7 +109,11 @@ function nvBody(p) {
     `<span class="dots" aria-hidden="true">${Array.from({ length: places }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
   const past = iso < TODAY;
   let body;
-  if (staff) {
+  if (nv.complet) {
+    // complet dès le départ : pas d'inscription, la séance est au planning avec les élèves choisis
+    const mem = nv.membres || [];
+    body = `<div class="note ok">${ic('check')}<span>Complet dès le départ : pas d’inscription.${mem.length ? ' ' + mem.length + ' élève' + (mem.length > 1 ? 's' : '') + ' inscrit' + (mem.length > 1 ? 's' : '') + ' par l’enseignant.' : ''}</span></div>${staff && mem.length ? `<div class="row" style="flex-wrap:wrap;gap:6px 12px">${mem.map(k => `<span class="row nv-who ok" style="gap:6px">${nvWho(k, nv)}</span>`).join('')}</div>` : ''}`;
+  } else if (staff) {
     // l'enseignant voit toutes les fourchettes, leurs inscrits et celle qui est validée
     body = nv.tiers
       .map(t => {

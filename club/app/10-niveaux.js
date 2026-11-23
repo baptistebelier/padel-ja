@@ -60,6 +60,46 @@ function nvTiers(sport, list) {
   const add = $('nv-add');
   if (add) add.hidden = list.length >= NV_MAX;
 }
+/* séance collective récurrente (demande de Baptiste, 23/11/2026) : une date de fin, les vacances de l'enseignant et du club
+   sautées ou non, et des inscriptions ouvertes par niveau ou un groupe complet dès le départ */
+const NV_REP = ['Une seule fois', 'Chaque semaine', 'Une semaine sur deux'],
+  NV_INS = ['Ouvertes aux adhérents, par niveau', 'Complet dès le départ'];
+/* vacances de l'enseignant et du club en cours (réglées dans /Dojo) */
+const nvVacances = () =>
+  typeof OFFRES === 'undefined'
+    ? []
+    : (OFFRES.conges || []).concat((OFFRES.vacClubs || {})[(window.RAM && RAM.club) || ''] || []);
+/* les dates d'une séance : la première, puis chaque semaine ou une sur deux jusqu'à la date de fin, sans les vacances si demandé */
+function nvDates(d0, rep, fin, vac) {
+  if (rep === NV_REP[0] || !fin || fin < d0) return [d0];
+  const pas = rep === NV_REP[2] ? 14 : 7,
+    off = vac ? nvVacances() : [],
+    out = [];
+  for (let d = d0, i = 0; d <= fin && i < 60; d = isoIn(pas, d), i++)
+    if (!off.some(p => d >= p.du && d <= p.au)) out.push(d);
+  return out.length ? out : [d0];
+}
+/* élèves que l'enseignant peut mettre dans un groupe complet */
+function nvMemHtml(sel) {
+  const l = (typeof coStudents === 'function' ? coStudents() : adults())
+    .filter(k => k !== ME())
+    .sort((a, b) => svName(a).localeCompare(svName(b)));
+  if (!l.length) return '<p class="muted small">Aucun élève pour l’instant : tu pourras les ajouter au planning.</p>';
+  return `<div class="stack nv-mem">${l.map(k => `<label class="chk"><input type="checkbox" name="nv-mem" value="${esc(k)}" ${sel.includes(k) ? 'checked' : ''}>${esc(svName(k))}</label>`).join('')}</div>`;
+}
+/* ce qui s'affiche selon les choix : la date de fin pour une récurrence, les élèves ou les fourchettes */
+function nvVisibles() {
+  const rec = $('nv-rec'),
+    rep = $('nv-rep'),
+    ins = $('nv-ins');
+  if (rec && rep) rec.hidden = rep.value === NV_REP[0];
+  const complet = !!ins && ins.value === NV_INS[1];
+  if ($('nv-mem')) $('nv-mem').hidden = !complet;
+  if ($('nv-niv')) $('nv-niv').hidden = complet;
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 'nv-rep' || e.target.id === 'nv-ins') nvVisibles();
+});
 Object.assign(A, {
   /* créer une partie dirigée ou une séance collective (enseignants et bureau) */
   nvNew(d) {
@@ -71,12 +111,13 @@ Object.assign(A, {
       `<form class="body" id="nv-form" data-m="${cours ? 'cours' : 'partie'}">${cours ? F('nv-theme', 'Thème de la séance', 'Service et retour, jeu au filet…') : ''}${O('nv-body', 'Précisions (facultatif)', cours ? 'Ce que l’on travaille, matériel…' : 'Format, court…')}
  <div class="two">${Sel('nv-sport', 'Sport', ['Tennis', 'Padel'])}${cours ? '' : Sel('nv-fmt', 'Format', ['Double', 'Simple'], 'Double')}</div>
  ${Dt('a-d1', cours ? 'Date (première séance)' : 'Date', 1)}<div class="two">${Sel('a-h1', 'Heure', HOURS, '18 h')}${Sel('a-dur', 'Durée', ['1 h', '1 h 30', '2 h'], '1 h 30')}</div>${O('nv-place', 'Lieu (facultatif)', 'Court 3, salle…')}${typeof prixChoix === 'function' ? prixChoix('nv-price', '', cours ? '15 € par séance' : '10 € par joueur') : O('nv-price', 'Tarif', cours ? '15 € par séance' : '10 € par joueur')}
- ${cours ? Sel('nv-rep', 'Récurrence', ['Une seule fois', 'Chaque semaine · 4 semaines', 'Chaque semaine · 6 semaines', 'Chaque semaine · 8 semaines', 'Chaque semaine · 10 semaines', 'Chaque semaine · 12 semaines']) : ''}
- <div class="fld"><span class="lb">Fourchettes de niveau</span><p class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première à atteindre son minimum valide ${cours ? 'la séance' : 'la partie'}, qui arrive alors au planning ; les inscrits des autres passent en liste d'attente. Avant, rien n'est bloqué.</p></div>
- <div id="nv-mods-box">${nvModsHtml()}</div><div id="nv-tiers" class="stack"></div><button type="button" class="btn ghost full" id="nv-add" data-a="nvRowAdd">${ic('plus')}Ajouter une fourchette</button>${nvSaveHtml()}
+ ${cours ? `${Sel('nv-rep', 'Récurrence', NV_REP)}<div id="nv-rec" hidden>${Dt('nv-fin', 'Dernière séance (date de fin)', false, isoIn(70))}<div class="fld"><label class="chk" for="nv-vac"><input type="checkbox" id="nv-vac" checked>Pas de séance pendant mes vacances et celles du club</label></div></div>${Sel('nv-ins', 'Inscriptions', NV_INS)}<div id="nv-mem" class="fld" hidden><span class="lb">Élèves du groupe (facultatif)</span>${nvMemHtml([])}</div>` : ''}
+ <div id="nv-niv"><div class="fld"><span class="lb">Fourchettes de niveau</span><p class="muted small">Chaque adhérent ne voit que la fourchette de son niveau. La première à atteindre son minimum valide ${cours ? 'la séance' : 'la partie'}, qui arrive alors au planning ; les inscrits des autres passent en liste d'attente. Avant, rien n'est bloqué.</p></div>
+ <div id="nv-mods-box">${nvModsHtml()}</div><div id="nv-tiers" class="stack"></div><button type="button" class="btn ghost full" id="nv-add" data-a="nvRowAdd">${ic('plus')}Ajouter une fourchette</button>${nvSaveHtml()}</div>
  <button class="btn full">${cours ? 'Proposer la séance' : 'Publier la recherche'}</button></form>`
     );
     nvTiers('Tennis', [null, null]);
+    nvVisibles();
   },
   /* modèles de fourchettes */
   nvModSave() {
@@ -188,15 +229,28 @@ document.addEventListener('submit', e => {
         t.max > t.places ? { max: t.max } : {}
       );
     }),
-    weeks = cours ? +(val('nv-rep').match(/(\d+) semaines/) || [0, 1])[1] : 1,
-    d0 = val('a-d1') || isoIn(1);
-  if (!tiers.length) return toast('Ajoute au moins une fourchette de niveau');
+    d0 = val('a-d1') || isoIn(1),
+    // récurrence jusqu'à une date de fin, vacances sautées ou non ; groupe complet dès le départ ou inscriptions ouvertes
+    rec =
+      cours && val('nv-rep') !== NV_REP[0]
+        ? { pas: val('nv-rep') === NV_REP[2] ? 14 : 7, fin: val('nv-fin'), vac: !!($('nv-vac') && $('nv-vac').checked) }
+        : null,
+    lesDates = cours ? nvDates(d0, val('nv-rep'), val('nv-fin'), rec && rec.vac) : [d0],
+    complet = cours && val('nv-ins') === NV_INS[1],
+    membres = complet ? [...document.querySelectorAll('input[name="nv-mem"]:checked')].map(x => x.value) : [],
+    extra = Object.assign(
+      { rec: rec || undefined },
+      complet ? { complet: true, membres } : { complet: undefined, membres: undefined }
+    );
+  if (rec && (!rec.fin || rec.fin < d0)) return toast('Choisis une date de fin après la première séance');
+  if (!complet && !tiers.length) return toast('Ajoute au moins une fourchette de niveau');
   if (typeof prixOk === 'function' && !prixOk('nv-price')) return;
   if (f.dataset.edit) {
     const p = posts.find(x => x.id === f.dataset.edit),
       o = p.nv,
-      dates = Array.from({ length: weeks }, (_, i) => isoIn(7 * i, d0)),
+      dates = lesDates,
       prises = Object.entries(o.ins || {}).filter(([, l]) => (l || []).length);
+    if (complet && prises.length) return toast('Il y a des inscrits : la séance reste ouverte aux inscriptions');
     // une fourchette ou une date qui a des inscrits ne disparaît pas ; une date déplacée les garde
     if (prises.some(([q]) => !tiers.some(t => t.id === q.split('|')[1])))
       return toast('Une fourchette retirée a des inscrits : garde-la');
@@ -224,9 +278,10 @@ document.addEventListener('submit', e => {
       place: val('nv-place'),
       price: typeof prixLu === 'function' ? prixLu('nv-price') : val('nv-price'),
       dates,
-      tiers,
+      tiers: complet ? [] : tiers,
       ins,
-      at
+      at,
+      ...extra
     });
     closeSheet();
     render(true);
@@ -252,11 +307,12 @@ document.addEventListener('submit', e => {
       dur: val('a-dur'),
       place: val('nv-place'),
       price: typeof prixLu === 'function' ? prixLu('nv-price') : val('nv-price'),
-      dates: Array.from({ length: weeks }, (_, i) => isoIn(7 * i, d0)),
-      tiers,
+      dates: lesDates,
+      tiers: complet ? [] : tiers,
       ins: {},
       at: {},
-      lien: { t: nvTok() }
+      lien: { t: nvTok() },
+      ...extra
     }
   });
   const n = adults().filter(k => k !== ME() && tiers.some(t => nvFits(t, k, sport))).length;
@@ -270,6 +326,10 @@ document.addEventListener('submit', e => {
     S.stack.push({ v: 'post', id: newId });
   }
   render();
+  if (complet)
+    return toast(
+      `Séance programmée · ${lesDates.length} date${lesDates.length > 1 ? 's' : ''} au planning, complète dès le départ`
+    );
   if (nvLienUrl(posts.find(x => x.id === newId))) setTimeout(() => nvLienSheet(newId), 0);
   toast(
     `${cours ? 'Séance proposée' : 'Partie proposée'} · visible par ${n} adhérent${n > 1 ? 's' : ''} des fourchettes choisies, à toi de la promouvoir sur le mur`
@@ -294,7 +354,19 @@ function nvEdit(p) {
   put('nv-place', nv.place);
   if (typeof prixSet === 'function') prixSet('nv-price', nv.price);
   else put('nv-price', nv.price);
-  if (cours && (nv.dates || []).length > 1) put('nv-rep', 'Chaque semaine · ' + nv.dates.length + ' semaines');
+  if (cours && (nv.dates || []).length > 1) {
+    // récurrence : celle notée (date de fin, vacances), sinon déduite des dates (anciennes séances : chaque semaine)
+    const r = nv.rec || { pas: 7, fin: nv.dates[nv.dates.length - 1], vac: false };
+    put('nv-rep', r.pas === 14 ? NV_REP[2] : NV_REP[1]);
+    put('nv-fin', r.fin);
+    if ($('nv-vac')) $('nv-vac').checked = !!r.vac;
+  }
+  if (cours && nv.complet) {
+    put('nv-ins', NV_INS[1]);
+    if ($('nv-mem'))
+      $('nv-mem').innerHTML = '<span class="lb">Élèves du groupe (facultatif)</span>' + nvMemHtml(nv.membres || []);
+  }
+  nvVisibles();
   nvTiers(nv.sport, nv.tiers);
   if (Object.values(nv.ins || {}).some(l => (l || []).length)) $('nv-sport').disabled = true;
   f.querySelector('button:not([type=button])').textContent = 'Enregistrer';
