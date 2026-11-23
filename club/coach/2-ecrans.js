@@ -1073,8 +1073,17 @@ function coQuarters() {
   });
 }
 /* courbe du mois : séances cumulées jour après jour, le mois précédent en arrière-plan. L'axe montre tout le mois ;
-   la courbe s'arrête aujourd'hui, les séances prévues ne sont pas dessinées. On compare le 12 avec le 12. */
+   la courbe pleine s'arrête aujourd'hui, puis la prévision (séances déjà au planning, non annulées) continue en pointillés
+   jusqu'à la fin du mois (demande de Baptiste, 23/11/2026). On compare le 12 avec le 12. */
 function coMonthCurve(histo) {
+  const finMois = (() => {
+      const [a, b] = TODAY.split('-').map(Number);
+      return TODAY.slice(0, 8) + String(new Date(a, b, 0).getDate()).padStart(2, '0');
+    })(),
+    prevues = TODAY < finMois ? coSessions(isoIn(1), finMois).filter(x => !isCx(x.g, x.d)) : [];
+  return coMonthCurveDe(histo, prevues);
+}
+function coMonthCurveDe(histo, prevues) {
   const [y, m] = TODAY.split('-').map(Number),
     nD = new Date(y, m, 0).getDate(),
     pD = new Date(y, m - 1, 0).getDate(),
@@ -1091,7 +1100,18 @@ function coMonthCurve(histo) {
     cur = cum(TODAY.slice(0, 8), nD),
     prev = cum(prevKey, pD),
     last = Math.min(nD, pD),
-    max = Math.max(1, cur[now], prev[last]),
+    // prévision : à partir du total d'aujourd'hui, chaque séance prévue s'ajoute à son jour
+    fut = (() => {
+      const by = Array(nD + 1).fill(0);
+      prevues.forEach(x => {
+        if (x.d.startsWith(TODAY.slice(0, 8)) && +x.d.slice(8) > now) by[+x.d.slice(8)]++;
+      });
+      const out = [];
+      let c = cur[now];
+      for (let d = now; d <= nD; d++) out.push(d === now ? c : (c += by[d]));
+      return out;
+    })(),
+    max = Math.max(1, cur[now], prev[last], fut[fut.length - 1]),
     W = 420,
     H = 190,
     L = 30,
@@ -1102,7 +1122,8 @@ function coMonthCurve(histo) {
     Y = v => +(H - B - (v * (H - T - B)) / max).toFixed(1),
     line = (l, n) => Array.from({ length: n }, (_, i) => X(i + 1) + ',' + Y(l[i + 1])).join(' '),
     ticks = [1, 8, 15, 22, nD];
-  return `<div class="cocurvew" data-c="${cur.slice(1, now + 1).join()}" data-p="${prev.slice(1, last + 1).join()}" data-n="${nD}" data-max="${max}" data-g="${[W, H, L, R, T, B].join()}"><svg class="cocurve" viewBox="0 0 ${W} ${H}" role="img" aria-label="${cur[now]} séances ce mois à ce jour, ${prev[Math.min(now, pD)]} à la même date le mois dernier">${[
+  const futLine = now < nD ? fut.map((v, i) => X(now + i) + ',' + Y(v)).join(' ') : '';
+  return `<div class="cocurvew" data-c="${cur.slice(1, now + 1).join()}" data-p="${prev.slice(1, last + 1).join()}" data-f="${fut.join()}" data-now="${now}" data-n="${nD}" data-max="${max}" data-g="${[W, H, L, R, T, B].join()}"><svg class="cocurve" viewBox="0 0 ${W} ${H}" role="img" aria-label="${cur[now]} séances ce mois à ce jour, ${prev[Math.min(now, pD)]} à la même date le mois dernier">${[
     0,
     Math.round(max / 2),
     max
@@ -1113,7 +1134,7 @@ function coMonthCurve(histo) {
     )
     .join(
       ''
-    )}${ticks.map(d => `<text x="${X(d)}" y="${H - 8}" text-anchor="middle">${d}</text>`).join('')}<line class="conow" x1="${X(now)}" x2="${X(now)}" y1="${T}" y2="${H - B}"/><polyline class="coprev" points="${line(prev, last)}"/><polyline class="cocur" points="${line(cur, now)}"/><g class="coscrub" hidden><line y1="${T}" y2="${H - B}"/><circle class="coprev" r="4"/><circle class="cocur" r="5"/></g></svg><div class="cotip" hidden></div></div><div class="cocycl"><span><i class="cocur"></i>Ce mois : ${plural(cur[now], 'séance')}</span><span><i class="coprev"></i>Le mois dernier à la même date : ${prev[Math.min(now, pD)]}</span></div>`;
+    )}${ticks.map(d => `<text x="${X(d)}" y="${H - 8}" text-anchor="middle">${d}</text>`).join('')}<line class="conow" x1="${X(now)}" x2="${X(now)}" y1="${T}" y2="${H - B}"/><polyline class="coprev" points="${line(prev, last)}"/>${futLine ? `<polyline class="cofut" points="${futLine}"/>` : ''}<polyline class="cocur" points="${line(cur, now)}"/><g class="coscrub" hidden><line y1="${T}" y2="${H - B}"/><circle class="coprev" r="4"/><circle class="cocur" r="5"/></g></svg><div class="cotip" hidden></div></div><div class="cocycl"><span><i class="cocur"></i>Ce mois : ${plural(cur[now], 'séance')}</span><span><i class="coprev"></i>Le mois dernier à la même date : ${prev[Math.min(now, pD)]}</span>${now < nD ? `<span><i class="cofut"></i>Prévu fin du mois : ${plural(fut[fut.length - 1], 'séance')}</span>` : ''}</div>`;
 }
 /* une ligne d'activité avec sa barre : le graphique dit la part de chacun */
 const coActRows = (rows, sort) => {

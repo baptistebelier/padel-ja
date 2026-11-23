@@ -562,7 +562,11 @@ document.addEventListener('change', e => {
       g = svg.querySelector('.coscrub'),
       tip = w.querySelector('.cotip'),
       vu = v => (v === undefined ? '–' : v),
-      a = cur[j - 1],
+      // après aujourd'hui : la prévision (séances déjà au planning) à la place de la courbe réalisée
+      fut = (w.dataset.f || '').split(',').filter(Boolean).map(Number),
+      auj = +w.dataset.now || cur.length,
+      prevu = j > auj ? fut[j - auj] : undefined,
+      a = j > auj ? prevu : cur[j - 1],
       b = prev[j - 1];
     g.removeAttribute('hidden');
     g.querySelector('line').setAttribute('x1', X);
@@ -579,7 +583,7 @@ document.addEventListener('change', e => {
       }
     });
     tip.hidden = false;
-    tip.innerHTML = `<b>Le ${j}</b><span><i class="cocur"></i>Ce mois : ${vu(a)}</span><span><i class="coprev"></i>Mois dernier : ${vu(b)}</span>`;
+    tip.innerHTML = `<b>Le ${j}</b>${prevu !== undefined ? `<span><i class="cofut"></i>Prévu : ${vu(a)}</span>` : `<span><i class="cocur"></i>Ce mois : ${vu(a)}</span>`}<span><i class="coprev"></i>Mois dernier : ${vu(b)}</span>`;
     const lt = (X / W) * r.width,
       tw = tip.offsetWidth;
     tip.style.left = Math.max(0, Math.min(r.width - tw, lt - tw / 2)) + 'px';

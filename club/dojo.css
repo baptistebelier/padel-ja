@@ -2214,3 +2214,10 @@ select option { background: var(--c-surface); color: var(--c-text); }
   .rbot button[aria-current="page"], .rbot button[aria-current="page"] svg { color: var(--on-accent); }
   .tabs button[aria-current="page"], .rbot button[aria-current="page"] { box-shadow: 3px 3px 0 #000000; }
 }
+
+/* courbe du mois de /Dojo : pastilles de la légende et de l'infobulle à taille fixe (la classe .coprev d'une autre carte leur donnait
+   18 px de marge, d'où le gros carré gris) ; prévision jusqu'à la fin du mois en pointillés de la couleur d'accent */
+.cotip i.cocur, .cotip i.coprev, .cotip i.cofut, .cocycl i.cofut { display: inline-block; flex: none; width: 10px; height: 10px; padding: 0; gap: 0; margin: 0 6px 0 0; border: 0; }
+.cotip i.cofut, .cocycl i.cofut { background: transparent; box-shadow: inset 0 0 0 2px var(--accent); }
+#main .cocycl i.cofut { width: 14px; height: 14px; margin: 0; border: var(--bw) solid var(--c-ink); background: repeating-linear-gradient(90deg, var(--accent) 0 3px, transparent 3px 6px); box-shadow: none; }
+.cocurve .cofut { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 2 5; stroke-linecap: round; opacity: 0.9; }
