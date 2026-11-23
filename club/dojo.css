@@ -1631,11 +1631,14 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .cogauge { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }
 .cogauge button { height: 24px; background: var(--c-surface-2); }
 .cogauge button.on { background: var(--accent); }
-.cobars { flex-direction: row; align-items: flex-end; gap: 6px; height: 170px; }
-.cobars div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; min-width: 0; }
-.cobars i { display: block; width: 100%; max-width: 34px; min-height: 2px; background: var(--accent); }
-.cobars span { font-size: 12px; color: var(--c-muted); }
-.cobars b { font-size: 12px; font-variant-numeric: tabular-nums; order: -1; }
+/* bâtons : la zone des bâtons (em) est séparée des libellés, la hauteur est donc vraiment proportionnelle à la valeur */
+.cobars { display: flex; flex-direction: row; align-items: stretch; gap: 6px; height: 260px; }
+.cobars > div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.cobars em { flex: 1; min-height: 0; width: 100%; display: flex; justify-content: center; align-items: flex-end; padding-top: 22px; font-style: normal;
+  background: repeating-linear-gradient(to top, color-mix(in srgb, var(--c-muted) 22%, transparent) 0 1px, transparent 1px 25%) content-box; }
+.cobars i { position: relative; display: block; width: 100%; max-width: 40px; min-height: 2px; background: var(--accent); }
+.cobars b { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 4px; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cobars span { font-size: 12px; color: var(--c-muted); white-space: nowrap; }
 .cosearch { display: flex; gap: 8px; align-items: stretch; }
 .cosq { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; box-shadow: none; padding: 0; }
 .cosq svg { width: 18px; height: 18px; flex: none; color: var(--c-muted); }
@@ -1673,8 +1676,9 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .coseg button[aria-pressed='true'] { border-color: var(--accent); background: var(--co-lime, var(--c-lime)); color: var(--c-dark); }
 .codash { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 .codash b { font-size: 22px; }
-.comonths { height: 200px; }
-.comonths small { font-size: 12px; color: var(--c-muted); }
+.comonths small { font-size: 12px; color: var(--c-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cobarsleg { margin: 10px 0 0; font-size: 12px; color: var(--c-muted); }
+@media (max-width: 600px) { .cobars { gap: 3px; height: 220px; } .cobars b, .cobars span, .comonths small { font-size: 10px; } }
 .coclubc { text-align: left; width: 100%; color: inherit; }
 .cobar, .cdr, .cdr-veil { display: none; }
 .costack { display: flex; flex: none; align-items: center; }
