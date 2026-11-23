@@ -46,7 +46,10 @@ function ofLabel(t, id) {
       ? `${p.nom || 'Pack ' + p.seances + ' séances'}${f ? ' · ' + foKind(f) + ' ' + minTxt(f.duree) : ''}`
       : 'Pack';
   }
-  if (t === 'abo') return (OFFRES.abos.find(x => x.id === id) || {}).nom || 'Abonnement';
+  if (t === 'abo') {
+    const a = OFFRES.abos.find(x => x.id === id) || {};
+    return (a.ens ? a.ens + ' · ' : '') + (a.nom || 'Abonnement');
+  }
   const f = foOf(id);
   return f ? `${f.nom} · ${minTxt(f.duree)}` : 'Séance';
 }
@@ -586,11 +589,17 @@ document.addEventListener('submit', e => {
 /* ---------- fenêtres de saisie ---------- */
 /* une variante d'abonnement (libellé, fréquence, prix, période, engagement, vente en ligne) */
 let coAbN = 0;
+const ofFoOpts = () =>
+  [['', 'Aucune en particulier']].concat(OFFRES.formules.map(f => [f.id, ofLabel('f', f.id) + ' · ' + foKind(f)]));
 function coAbVRow(a, nom) {
   const k = 'co-av' + ++coAbN,
     f = (c, l, v, step, req) =>
       `<div class="fld"><label for="${k}-${c}">${l}</label><input id="${k}-${c}" class="co-av${c}" type="number" inputmode="decimal" min="0" step="${step || 'any'}" value="${v == null ? '' : v}"${req ? ' required' : ''}></div>`;
-  return `<div class="card coabv" data-id="${a.id || ''}"><div class="row" style="gap:8px;align-items:flex-end"><div class="fld grow"><label for="${k}-n">Libellé de la variante</label><input id="${k}-n" class="co-avn" maxlength="60" placeholder="1 fois par semaine, formule annuelle…" value="${esc(nom || '')}"></div><button type="button" class="ib" data-a="coAbVDel" aria-label="Retirer cette variante">${ic('x')}</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0 8px">${f('w', 'Séances par mois', REGLES.parMoisDef(a), 1)}${f('p', 'Prix en euros', a.prix, 0, 1)}<div class="fld"><label for="${k}-e">Par</label><select id="${k}-e" class="co-ave">${PERIODES.map(x => `<option ${x === a.periode ? 'selected' : ''}>${x}</option>`).join('')}</select></div>${f('d', 'Engagement', a.duree, 1)}</div><details class="coabvs"${a.sku || a.url ? ' open' : ''}><summary class="muted small">Vente sur Shopify (facultatif)</summary><div class="fld"><label for="${k}-s">Référence Shopify (SKU)</label><input id="${k}-s" class="co-avs" value="${esc(a.sku || '')}" placeholder="ABO-1"></div><div class="fld"><label for="${k}-u">Lien d’achat Shopify</label><input id="${k}-u" class="co-avu" value="${esc(a.url || '')}" placeholder="https://…"></div></details></div>`;
+  return `<div class="card coabv" data-id="${a.id || ''}"><div class="row" style="gap:8px;align-items:flex-end"><div class="fld grow"><label for="${k}-n">Libellé de la variante</label><input id="${k}-n" class="co-avn" maxlength="60" placeholder="1 fois par semaine, formule annuelle…" value="${esc(nom || '')}"></div><button type="button" class="ib" data-a="coAbVDel" aria-label="Retirer cette variante">${ic('x')}</button></div><div class="fld"><label for="${k}-f">Formule comprise</label><select id="${k}-f" class="co-avf">${ofFoOpts()
+    .map(([v, t]) => `<option value="${esc(v)}" ${v === (a.formule || '') ? 'selected' : ''}>${esc(t)}</option>`)
+    .join(
+      ''
+    )}</select></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0 8px">${f('w', 'Séances par mois', REGLES.parMoisDef(a), 1)}${f('p', 'Prix en euros', a.prix, 0, 1)}<div class="fld"><label for="${k}-e">Par</label><select id="${k}-e" class="co-ave">${PERIODES.map(x => `<option ${x === a.periode ? 'selected' : ''}>${x}</option>`).join('')}</select></div>${f('d', 'Engagement', a.duree, 1)}</div><details class="coabvs"${a.sku || a.url ? ' open' : ''}><summary class="muted small">Vente sur Shopify (facultatif)</summary><div class="fld"><label for="${k}-s">Référence Shopify (SKU)</label><input id="${k}-s" class="co-avs" value="${esc(a.sku || '')}" placeholder="ABO-1"></div><div class="fld"><label for="${k}-u">Lien d’achat Shopify</label><input id="${k}-u" class="co-avu" value="${esc(a.url || '')}" placeholder="https://…"></div></details></div>`;
 }
 const ofSel = (id, l, opts, sel) =>
   `<div class="fld"><label for="${id}">${l}</label><select id="${id}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
@@ -670,11 +679,15 @@ Object.assign(A, {
       rows = (l.length ? l : [vide]).concat(d.plus ? [vide] : []);
     sheet(
       l.length ? 'Abonnement' : 'Nouvel abonnement',
-      `<form class="body" id="co-ab" data-ids="${l.map(x => x.id).join(',')}">${F('co-an', 'Nom de l’abonnement', 'Academy, abonnement performance…', ens || base.nom || '')}${ofSel('co-af', 'Formule comprise', [['', 'Aucune en particulier']].concat(OFFRES.formules.map(f => [f.id, ofLabel('f', f.id) + ' · ' + foKind(f)])), base.formule)}${O('co-amy', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify', base.moyen)}<span class="kicker">Variantes</span><p class="muted small">Une ou plusieurs : 1 ou 2 fois par semaine, au mois ou à l’année… Chacune a son prix ; l’engagement se compte en périodes (6 par mois : 6 mois).</p><div id="co-avl">${rows.map((x, i) => coAbVRow(x, rows.length > 1 || l.length > 1 ? x.nom : '')).join('')}</div><button type="button" class="btn sm ghost full" data-a="coAbVAdd">${ic('plus')}Ajouter une variante</button><div class="cotools"><button class="btn">Enregistrer</button>${l.length ? `<button type="button" class="btn ghost" data-a="coAbDel" data-ids="${l.map(x => x.id).join(',')}">${ic('trash')}Supprimer</button>` : ''}</div></form>`
+      `<form class="body" id="co-ab" data-ids="${l.map(x => x.id).join(',')}">${F('co-an', 'Nom de l’abonnement', 'Academy, abonnement performance…', ens || base.nom || '')}${O('co-amy', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify', base.moyen)}<span class="kicker">Variantes</span><p class="muted small">Une ou plusieurs : individuel ou duo, 1 h ou 1 h 30, 6 ou 12 mois… Chacune a sa formule et son prix ; l’engagement se compte en périodes (6 par mois : 6 mois).</p><div id="co-avl">${rows.map((x, i) => coAbVRow(x, rows.length > 1 || l.length > 1 ? x.nom : '')).join('')}</div><button type="button" class="btn sm ghost full" data-a="coAbVAdd">${ic('plus')}Ajouter une variante</button><div class="cotools"><button class="btn">Enregistrer</button>${l.length ? `<button type="button" class="btn ghost" data-a="coAbDel" data-ids="${l.map(x => x.id).join(',')}">${ic('trash')}Supprimer</button>` : ''}</div></form>`
     );
   },
   coAbVAdd() {
-    $('co-avl').insertAdjacentHTML('beforeend', coAbVRow({ periode: 'mois', duree: 1, parMois: 4, prix: '' }, ''));
+    const der = [...document.querySelectorAll('#co-avl .co-avf')].pop();
+    $('co-avl').insertAdjacentHTML(
+      'beforeend',
+      coAbVRow({ periode: 'mois', duree: 1, parMois: 4, prix: '', formule: der ? der.value : '' }, '')
+    );
     const l = document.querySelectorAll('#co-avl .coabv');
     l[l.length - 1].querySelector('.co-avn').focus();
   },
@@ -778,7 +791,7 @@ document.addEventListener('submit', e => {
       neuf = vs.map(r => {
         const w = Math.round(num(r, 'w')),
           x = {
-            formule: v('co-af'),
+            formule: r.querySelector('.co-avf').value,
             moyen: v('co-amy'),
             parMois: w,
             parSemaine: 0,
