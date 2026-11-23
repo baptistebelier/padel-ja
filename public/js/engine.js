@@ -905,6 +905,21 @@
       if (n >= 7 && c('CD') > 2) msg.push('2 matchs max. en C/D (E/F conseillés)');
       if (msg.length) W.push({ lvl: 'err', pair, day, n, msg: `${name(pair)} — ${n} matchs le ${new Date(day).toLocaleDateString('fr-FR')} : ${msg.join(', ')}.` });
     });
+    // 12 h de repos au minimum entre deux matchs disputés sur deux journées différentes
+    const byPair = {};
+    T.matches.forEach(m => {
+      const r = R[m.id]; if (r.staticBye || r.state === 'bye' || !r.A || !r.B || r.woTeam) return;
+      const s = m.startedAt || (tl[m.id] && tl[m.id].start), e = m.endedAt || (tl[m.id] && tl[m.id].end); if (!s || !e) return;
+      [r.A, r.B].forEach(p => (byPair[p] = byPair[p] || []).push({ m, s, e }));
+    });
+    Object.keys(byPair).forEach(p => {
+      const l = byPair[p].sort((a, b) => a.s - b.s);
+      for (let i = 1; i < l.length; i++) {
+        const a = l[i - 1], b = l[i];
+        if (dayKey(a.s) !== dayKey(b.s) && b.s - a.e < 12 * 60 * MIN)
+          W.push({ lvl: 'err', pair: p, msg: `${name(p)} — M${b.m.num} commence moins de 12 h après la fin de M${a.m.num} (la veille) : 12 h de repos minimum entre deux journées.` });
+      }
+    });
     T.matches.forEach(m => {
       const t = tl[m.id]; if (!t || R[m.id].state === 'done') return;
       const s = new Date(t.start), e = new Date(t.end);
@@ -934,6 +949,15 @@
     }
     if (f.startsWith('poules')) check(t.formatPoule || t.formatMain, 'les poules', cat.formats);
     if (f === 'qualif_tf') check(t.formatQualif || t.formatMain, 'les qualifications', cat.formats);
+    // Guide 2027 (MAJ novembre 2026) : les compétitions jeunes n'utilisent que des formats avec point décisif, sauf le format E
+    if (t.age === 'Jeunes') {
+      const used = [t.formatMain];
+      if (f !== 'poules') used.push(t.formatQuarter, t.formatSemi, t.formatFinal, t.drawMode === 'tmc' && t.formatClass);
+      if (f.startsWith('poules')) used.push(t.formatPoule);
+      if (f === 'qualif_tf') used.push(t.formatQualif);
+      const sans = [...new Set(used.filter(fk => FORMATS[fk] && fk !== 'E' && !FORMATS[fk].decisive))];
+      if (sans.length) W.push({ lvl: 'err', msg: `Tournoi jeunes : formats avec point décisif uniquement (A2, B2, C2, D2, F) ou format E. À changer : ${sans.join(', ')}.` });
+    }
     const P = plan(T, sel.main.length);
     const minMatches = ['E', 'F'].includes(letter(t.formatMain)) ? 5 : 3;
     if (f === 'tf' && t.drawMode !== 'tmc') W.push({ lvl: 'warn', msg: `Élimination directe : une paire peut ne jouer qu'un match. Le minimum est de ${minMatches} matchs par paire (TMC ou poules recommandés).` });
@@ -954,7 +978,7 @@
   /* ---------------------------------------------------------------------
      MODÈLES DE TOURNOI (formats préenregistrés)
      --------------------------------------------------------------------- */
-  const TEMPLATE_FIELDS = ['category', 'gender', 'maxPairs', 'formula', 'drawMode', 'thirdPlace', 'pouleSize', 'pouleQualif', 'pouleMethod',
+  const TEMPLATE_FIELDS = ['category', 'gender', 'age', 'maxPairs', 'formula', 'drawMode', 'thirdPlace', 'pouleSize', 'pouleQualif', 'pouleMethod',
     'tfDirect', 'qualifCount', 'formatMain', 'formatQuarter', 'formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif', 'startTime', 'durations', 'balls'];
 
   const courtsOf = (n, start) => Array.from({ length: n }, (_, i) => ({ name: `Terrain ${i + 1}`, start }));

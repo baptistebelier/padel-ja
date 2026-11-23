@@ -530,6 +530,8 @@
         ${cat.note ? `<li>${cat.note}</li>` : ''}
         <li><b>Têtes de série :</b> TS1 en bas, TS2 en haut, puis chapeaux 3-4 / 5-8 / 9-16. Poules : 1 TS par poule. Qualifs : autant de TS que de qualifiés.</li>
         <li><b>Minimum 3 matchs par paire</b> (5 en formats E/F).</li>
+        ${t.age === 'Jeunes' ? '<li><b>Tournoi jeunes :</b> formats avec point décisif uniquement (A2, B2, C2, D2, F), ou format E.</li>' : ''}
+        <li><b>Repos :</b> 1h30 après A, 1h après B, 30 min après C/D, 15 min après F ou 3 matchs E · 12 h entre deux journées · aucun match après minuit ni avant 7h.</li>
       </ul>
       ${warn.map(w => `<div class="alert ${w.lvl}">${esc(w.msg)}</div>`).join('') || '<div class="alert ok">Configuration conforme aux règles saisies.</div>'}
       <p class="muted small">Résumé du Guide de la compétition padel 2027 — en cas de doute, le guide fait foi.</p>`;
