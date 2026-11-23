@@ -574,7 +574,7 @@ if (UI2) {
       nf = ['formules', 'packs', 'abos'].reduce((n, k) => n + ((OFFRES && OFFRES[k]) || []).length, 0),
       ligne = (n, m, l) => `<div class="corow"><span class="grow">${l}</span><b>${n} / ${m}</b></div>`;
     if (o.offre === 'pro')
-      return `<section class="card copc"><span class="coey">Mon offre</span><h2 class="coh2">/Dojo Pro</h2><p class="muted small">${o.offertParClub ? 'Offert par ton club (offre /Buvette Club +).' : 'Actif jusqu’au ' + new Date(o.until).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + '.'} Élèves, groupes et formules illimités, réservation en ligne et suivi des élèves.</p></section>`;
+      return `<section class="card copc"><span class="coey">Mon offre</span><h2 class="coh2">/Dojo Pro</h2><p class="muted small">${o.admin ? 'Compte administrateur : toutes les options, sans abonnement.' : o.offertParClub ? 'Offert par ton club (offre /Buvette Club +).' : 'Actif jusqu’au ' + new Date(o.until).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + '.'} Élèves, groupes et formules illimités, réservation en ligne et suivi des élèves.</p></section>`;
     return `<section class="card copc"><span class="coey">Mon offre</span><h2 class="coh2">/Dojo gratuit</h2>${ligne(o.eleves, L.eleves, 'Élèves')}${ligne(o.groupes, L.groupes, 'Groupes')}${ligne(nf, L.formules, 'Formules, packs et abonnements')}<p class="muted small">La réservation en ligne et le suivi des élèves font partie de /Dojo Pro : élèves, groupes et formules illimités.</p><a class="btn full" href="${esc(o.boutique)}" target="_blank" rel="noopener">${ic('star')}Passer à /Dojo Pro · 15 € par mois</a></section>`;
   };
   V.me = id => {

@@ -93,3 +93,18 @@ test('Shopify : /Dojo Pro prolongé sur le compte ; offre /Buvette rendue au ser
   assert.deepEqual(r.buvette.map(x => [x.niveau, x.months]), [['clubplus', 1]]);
   assert.ok(applyOrder(null, order(4, 'RAM-PISTA-PRO-MOIS'), now).billing.until > now);
 });
+
+test('administrateur de l’appli : /Dojo Pro et /Buvette Club + dans les clubs dont il est au bureau, sans abonnement', async () => {
+  const conf = { coll: 'conf', id: 'main', data: { season: '2026' } };
+  const ram = {
+    myClubs: async id => (id === 'adm' ? [{ id: 'c1', role: 'bureau', key: 'a' }] : id === 'u1' ? [{ id: 'c1', role: 'coach', key: 'k' }, { id: 'c2', role: 'coach', key: 'k' }] : []),
+    itemsOf: async (id, coll) => (coll === 'conf' ? [{ id: 'main', data: conf.data }] : [])
+  };
+  const o = createOffres({ store: { getBilling: async () => null }, ram, admins: () => ['adm'] });
+  assert.equal(await o.dojoPro('adm'), true);
+  assert.equal((await o.etatDojo('adm')).admin, true);
+  assert.equal((await o.etatClub('c1')).niveau, 'clubplus');
+  assert.equal((await o.etatClub('c2')).niveau, 'decouverte');
+  assert.equal(await o.dojoPro('u1'), true);   // enseignant d'un club de l'administrateur : Club + offre /Dojo Pro
+  assert.equal(await o.dojoPro('autre'), false);
+});

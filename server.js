@@ -80,7 +80,7 @@ taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'
 const agendaLu = Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) });
 const NomsResa = require('./lib/noms-resa.js').createNoms({ store });   // adresses /reservation/<nom>
 /* offres des applis : limites de /Buvette Découverte et de /Dojo gratuit, contrôlées pour chaque opération et chaque sauvegarde des formules */
-const Offres = require('./lib/offres.js'), offres = Offres.createOffres({ store, ram });
+const Offres = require('./lib/offres.js'), offres = Offres.createOffres({ store, ram, admins: () => [...superIds] });   // superIds : plus bas, rempli au démarrage
 ram.setGarde(offres.garde);
 Formules.setGarde(offres.gardeFormules);
 const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, dojoPro: offres.dojoPro, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
