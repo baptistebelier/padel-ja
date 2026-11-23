@@ -85,6 +85,12 @@
 
   /* cartes de formule : à comparer d'un coup d'œil */
   .fos{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+  /* abonné ou pack en cours : bloc mis en avant, jauge de consommation */
+  .incl{margin-bottom:var(--s4,16px);box-shadow:6px 6px 0 var(--c-lime)}
+  .fo-incl .jg{display:block;height:10px;border:var(--bw) solid var(--c-ink);background:var(--c-bg)}
+  .fo-incl .jg i{display:block;height:100%;background:var(--c-kick)}
+  .fo-incl[aria-pressed=true] .jg i{background:var(--c-dark)}
+  .fo-incl:disabled{opacity:.6;cursor:not-allowed}
   .fo{display:flex;flex-direction:column;gap:10px;min-width:0;padding:14px;background:var(--c-surface-2);border:var(--bw) solid var(--c-ink);color:var(--c-text)}
   .fo[aria-pressed=true]{background:var(--c-lime);color:var(--c-dark);box-shadow:var(--sh-sm)}
   .fo .fh{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
@@ -288,6 +294,44 @@
     }); });
     return out;
   }
+  /* abonnements et packs en cours de l'élève connecté (adresse prouvée) : ce qu'il peut réserver sans rien régler, avec sa consommation */
+  var plur = function (n, m) { return n + ' ' + m + (n > 1 ? 's' : ''); };
+  function couvertures() {
+    var ch = ficheChoisie(), out = [];
+    (ch ? [ch] : fichesMoi().length === 1 ? fichesMoi() : []).forEach(function (f) { (f.achats || []).forEach(function (a) {
+      if (!a.encours) return;
+      if (a.t === 'abo') {
+        var q = +a.quotaMois || 0, fait = +a.faitMois || 0, prev = +a.prevuesMois || 0;
+        out.push({ t: 'abo', k: 'a:' + a.ref, nom: a.nom || 'Mon abonnement', conso: (q ? (fait + prev) + ' sur ' + q + ' séances ce mois' : plur(fait, 'séance') + ' ce mois') + ' · ' + plur(fait, 'faite') + (prev ? ', ' + plur(prev, 'prévue') : ''),
+          apres: q ? (fait + prev + 1) + ' sur ' + q + ' ce mois' + (fait + prev + 1 > q ? ' (au-delà du quota)' : '') : '', fin: a.fin, jauge: q ? Math.min(1, (fait + prev) / q) : 0 });
+      } else if (a.t === 'pack') {
+        var r = +a.restantes || 0, prv = Math.min(r, +a.prevues || 0), libre = r - prv;
+        out.push({ t: 'pack', k: 'p:' + a.ref, nom: a.nom || 'Mon pack', conso: plur(r, 'séance') + ' restante' + (r > 1 ? 's' : '') + ' sur ' + a.total + (prv ? ' · ' + plur(prv, 'déjà réservée') : ''),
+          apres: libre > 0 ? 'il en restera ' + (libre - 1) + ' à réserver' : 'plus de séance libre dans le pack', jauge: a.total ? (a.total - r) / a.total : 0, vide: libre <= 0 });
+      }
+    }); });
+    return out;
+  }
+  var couvChoisie = function () { return S.couvK ? couvertures().filter(function (x) { return x.k === S.couvK; })[0] || null : null; };
+  /* bloc « Avec ton abonnement » en tête des formules : la séance incluse se choisit d'un geste, sans prix */
+  function blocInclus() {
+    var l = couvertures();
+    if (!l.length) return '';
+    return '<section class="r-card incl" aria-label="Inclus dans tes formules">' + head('check', l.length > 1 ? 'Avec tes formules' : l[0].t === 'abo' ? 'Avec ton abonnement' : 'Avec ton pack') + '<div class="fos">' + l.map(function (x) {
+      return '<button type="button" class="fo fo-incl" data-incl="' + e(x.k) + '" aria-pressed="' + (S.couvK === x.k) + '"' + (x.vide ? ' disabled' : '') + '><span class="fh"><span class="nm">' + e(x.nom) + '</span><span class="r-tag r-tag--accent">' + (x.t === 'abo' ? 'Abonné' : 'Pack') + '</span></span>' +
+        '<span class="jg" aria-hidden="true"><i style="width:' + Math.round(x.jauge * 100) + '%"></i></span><span class="ps">' + e(x.conso) + (x.fin ? ' · jusqu’au ' + e(jour(x.fin, { day: 'numeric', month: 'short' })) : '') + '</span>' +
+        '<span class="pp"><span class="pr">Inclus</span><span class="ps">' + (x.vide ? 'Toutes les séances du pack sont déjà réservées' : 'Rien à régler pour cette séance') + '</span></span></button>';
+    }).join('') + '</div></section>';
+  }
+  /* la formule à réserver avec un abonnement ou un pack : celle de l'offre si elle est encore proposée, sinon le premier cours individuel */
+  function choisitInclus(k) {
+    var x = couvertures().filter(function (c) { return c.k === k; })[0];
+    if (!x) return;
+    var l = offres(), o = l.filter(function (y) { return y.k === k; })[0] || l.filter(function (y) { return y.t === 'f' && y.joueurs === 1; })[0] || l.filter(function (y) { return y.t === 'f'; })[0];
+    if (!o) return;
+    if (S.f !== o.k) { S.jour = null; S.pick = null; }
+    S.f = o.k; S.couvK = k; S.v.cv = x.t;
+  }
   /* sous l'en-tête : la ligne « adresse à confirmer », puis, pour un compte prouvé, pour qui on réserve et ce qui est en cours */
   function accesBloc() {
     var m = CPm(), note = window.ComptePublic ? window.ComptePublic.note() : '';
@@ -299,7 +343,7 @@
     return note + '<section class="r-card" aria-label="Mon compte">' + head('user', 'Mon compte') + qui + (ach.length ? '<ul class="ach" aria-label="Mes formules en cours">' + ach.join('') + '</ul>' : '') + '</section>';
   }
   function branche(re) {
-    root.querySelectorAll('[data-fiche]').forEach(function (b) { b.onclick = function () { S.fiche = b.dataset.fiche; re(); }; });
+    root.querySelectorAll('[data-fiche]').forEach(function (b) { b.onclick = function () { S.fiche = b.dataset.fiche; if (S.couvK) { S.couvK = ''; S.v.cv = ''; } re(); }; });
   }
   function demarreCompte() {
     if (S.compteLu || !window.ComptePublic) return;
@@ -308,7 +352,7 @@
       moiUrl: function () { return '/api/public/resa/moi?c=' + encodeURIComponent(c) + '&k=' + encodeURIComponent(k); },
       corps: function () { return { c: c, k: k }; },
       chemin: function () { return parts[0] === 'reservation' ? location.pathname : ''; },
-      onMoi: function (m) { if (m && m.fiches && m.fiches.length === 1) S.fiche = m.fiches[0].id; if (!m) { S.fiche = ''; S.prefill = ''; } },
+      onMoi: function (m) { if (m && m.fiches && m.fiches.length === 1) S.fiche = m.fiches[0].id; if (!m) { S.fiche = ''; S.prefill = ''; } if (S.couvK) { S.couvK = ''; S.v.cv = ''; } },
       onChange: function () { if (S.data && S.etape !== 'fait') dessine(); }
     });
   }
@@ -375,6 +419,7 @@
       (p ? '<p class="rc2">' + e(court(p.d)) + ' · ' + H(p.t) + ' – ' + H(p.t + f.duree) + '</p>' : '<p class="rc2" style="color:var(--c-muted)">' + (S.jour ? 'Choisissez un horaire.' : 'Choisissez un jour, puis un horaire.') + '</p>') +
       '<p class="rc3">' + ic('pin', 16) + '<span>' + e(d.club) + '</span></p><hr class="hr">' +
       '<p class="tot"><b>Total</b><b>' + e(prixTxt(f)) + '</b></p>' +
+      (couvChoisie() ? '<p class="note">' + ic('check', 16) + '<span>' + e(couvChoisie().nom) + ' · ' + e(couvChoisie().conso) + (couvChoisie().apres ? '. Avec cette séance : ' + e(couvChoisie().apres) : '') + '.</span></p>' : '') +
       (mode === 'continuer' ? '<button type="button" class="r-btn r-btn--full" data-a="suite"' + (p ? '' : ' disabled') + '>' + ic('chev', 18) + 'Continuer</button><p class="note">' + ic('shield', 16) + '<span>Annulation gratuite jusqu’à 24 h avant.</span></p>' :
         '<button type="button" class="r-btn r-btn--sec r-btn--full" data-a="change">' + ic('edit', 18) + 'Changer de créneau</button>') + '</section>';
   }
@@ -400,7 +445,7 @@
         '<span class="pp"><span class="pr">' + e(x.pn) + (x.un ? ' <small>' + e(x.un) + '</small>' : '') + '</span><span class="ps">' + e(x.ps) + '</span></span></button>';
     }).join('') + '</div>' : '<div class="vide" role="status"><b>Aucune formule ne correspond</b><span>Aucune formule n’a ces critères à la fois. Retirez un filtre pour voir les autres.</span><button type="button" class="r-btn r-btn--sec r-btn--sm" data-fl-clear>' + ic('x', 18) + 'Tout effacer</button></div>';
     var cmpt = '<span class="cmpt" role="status">' + res.length + ' sur ' + all.length + ' formule' + (all.length > 1 ? 's' : '') + '</span>' + (n ? '<button type="button" class="r-btn r-btn--sec r-btn--sm" data-fl-clear>' + ic('x', 16) + 'Tout effacer</button>' : '');
-    return '<div class="bf">' + onglets + '<section class="r-card" aria-label="Formules">' + head('ball', 'Formule', fl.length || all.length > 1 ? cmpt : '') + sel + masque + cartes + plus + '</section></div>';
+    return blocInclus() + '<div class="bf">' + onglets + '<section class="r-card" aria-label="Formules">' + head('ball', 'Formule', fl.length || all.length > 1 ? cmpt : '') + sel + masque + cartes + plus + '</section></div>';
   }
 
   function dessine() {
@@ -452,7 +497,8 @@
     var nvb = root.querySelector('.bande'); if (nvb) nvb.scrollLeft = sx;
     window.scrollTo(0, sy);
     branche(dessine);
-    root.querySelectorAll('.fo').forEach(function (b) { b.onclick = function () { if (S.f !== b.dataset.f) { S.f = b.dataset.f; S.jour = null; S.pick = null; } dessine(); }; });
+    root.querySelectorAll('.fo[data-f]').forEach(function (b) { b.onclick = function () { if (S.f !== b.dataset.f) { S.f = b.dataset.f; S.jour = null; S.pick = null; } if (S.couvK) { S.couvK = ''; S.v.cv = ''; } dessine(); }; });
+    root.querySelectorAll('.fo[data-incl]').forEach(function (b) { b.onclick = function () { choisitInclus(b.dataset.incl); dessine(); }; });
     root.querySelectorAll('button[data-fl]').forEach(function (b) { b.onclick = function () { S.fl[b.dataset.fl] = b.dataset.v; S.tout = false; dessine(); }; });
     root.querySelectorAll('[data-fl-plus]').forEach(function (b) { b.onclick = function () { S.tout = true; dessine(); }; });
     root.querySelectorAll('select[data-fl]').forEach(function (s) { s.onchange = function () { S.fl[s.dataset.fl] = s.value; S.tout = false; dessine(); var n = document.getElementById(s.id); if (n && n.focus && !matchMedia('(pointer:coarse)').matches) n.focus(); }; });
@@ -479,7 +525,8 @@
       '<div class="r-field w"><label for="o">Objectif de la séance</label><textarea class="r-textarea" id="o" required rows="2" placeholder="Ce que tu veux travailler">' + e(v.o) + '</textarea></div>' +
       seg('nvl', 'Niveau', 'niv', [['Débutant', 'Débutant'], ['Loisir', 'Loisir'], ['Compétition', 'Compétition']], v.niv) +
       (f.joueurs > 1 ? '<div class="r-field w"><label for="pa">Partenaire' + (f.joueurs > 2 ? 's' : '') + '<small>facultatif</small></label><input class="r-input" id="pa" autocomplete="off" placeholder="' + (f.joueurs > 2 ? 'Prénoms des autres joueurs' : 'Prénom de ton partenaire') + '" value="' + e(v.pa) + '"></div>' : '') +
-      seg('cvl', 'Déjà client ?', 'cv', [['abo', 'Je suis abonné(e)'], ['pack', 'J’ai un pack en cours']], v.cv).replace('</div></div>', '</div>' + (v.cv ? '<p class="dg">' + (v.cv === 'abo' ? 'La séance est rattachée à ton abonnement : rien à régler en plus.' : 'La séance est décomptée de ton pack : rien à régler en plus.') + ' ' + e(d.coach) + ' le vérifie.</p>' : '<p class="dg">Si tu as déjà un compte client, ton abonnement est reconnu avec ton e-mail.</p>') + '</div>') +
+      (couvChoisie() ? '<div class="r-field w"><span class="lbl">Ta formule</span><p class="dg">Séance réservée avec <b>' + e(couvChoisie().nom) + '</b> : rien à régler. ' + e(couvChoisie().conso) + '.</p></div>' :
+      seg('cvl', 'Déjà client ?', 'cv', [['abo', 'Je suis abonné(e)'], ['pack', 'J’ai un pack en cours']], v.cv).replace('</div></div>', '</div>' + (v.cv ? '<p class="dg">' + (v.cv === 'abo' ? 'La séance est rattachée à ton abonnement : rien à régler en plus.' : 'La séance est décomptée de ton pack : rien à régler en plus.') + ' ' + e(d.coach) + ' le vérifie.</p>' : '<p class="dg">Connecte-toi avec ton compte client : ton abonnement ou ton pack est reconnu et proposé directement.</p>') + '</div>')) +
       '<div class="pot" aria-hidden="true"><label for="site">Site</label><input id="site" tabindex="-1" autocomplete="off"></div>' +
       '<label class="chk w"><input type="checkbox" class="r-check" id="ac" required><span>J’accepte que ' + e(d.coach) + ' conserve ces informations pour organiser mes cours. Je peux demander leur suppression à tout moment.</span></label>' +
       '<div class="w"><button class="r-btn r-btn--full" id="go" type="submit">' + ic('check', 18) + 'Réserver mon cours</button></div><p class="err w" id="er" role="alert"></p></div></form>';

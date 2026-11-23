@@ -1,29 +1,29 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-app="buvette">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0B0B">
+<meta name="theme-color" content="#2467D6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="/Buvette">
+<!-- sur coach. ou dojo.riseandmove.fr : la même page aux couleurs de /Dojo, posées avant l'affichage -->
+<script>if (/^(coach|dojo)\./i.test(location.hostname)) document.documentElement.dataset.app = 'dojo';</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Connexion — /Buvette</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
-<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="ds.css">
 <link rel="stylesheet" href="/css/site.css">
-<style>
-  .auth-page .nav .logo img { height: 44px; }
-  .auth-box .club-note { margin: 18px 0 0; font-size: 13px; opacity: .75; line-height: 1.5; }
-</style>
+<style>.auth-box .club-note { margin: 18px 0 0; font-size: 13px; color: var(--c-muted); line-height: 1.5; }</style>
 </head>
-<!-- Connexion à /Buvette : le même compte /RAM que /Pista ; après connexion, retour dans l'appli du club -->
+<!-- Connexion à /Buvette (et /Dojo) : le même compte /RAM que /Pista ; mise en page de la connexion de /Pista ; après connexion, retour dans l'appli -->
 <body class="auth-page">
-<header class="nav"><a href="presentation" class="logo"><img src="img/buvette-detoure-blanc.png" alt="/Buvette"></a><a href="presentation" class="btn ghost">Découvrir /Buvette</a></header>
 <main class="auth">
-  <div class="auth-box">
+  <section class="auth-hero"><a href="presentation" class="logo" aria-label="/Buvette, présentation"><img src="img/buvette-detoure-blanc.png" alt="/Buvette" class="logo-img"></a><h2 id="heroT">L'appli de votre club.</h2><p id="heroP">Le mur, les groupes, l'agenda, les parties et les équipes, aux couleurs du club.</p><a href="demo" class="btn dark"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>Essayer la démo</a></section>
+  <section class="auth-side"><div class="auth-box card">
     <div class="tabs"><button data-m="login">Connexion</button><button data-m="signup">Créer un compte</button></div>
     <h1 id="title"></h1>
     <form id="f" autocomplete="on">
@@ -39,8 +39,8 @@
       <p class="alt" data-only="login"><a href="mot-de-passe-oublie">Mot de passe oublié ?</a></p>
       <p class="alt" data-only="forgot"><a href="connexion">Retour à la connexion</a></p>
     </form>
-    <p class="club-note">Un seul compte /RAM pour /Buvette et /Pista, le logiciel du juge-arbitre.</p>
-  </div>
+    <p class="club-note">Un seul compte /RAM pour /Buvette, /Dojo et /Pista.</p>
+  </div></section>
 </main>
 <script src="noms.js"></script>
 <script>
@@ -49,13 +49,20 @@
   // sur coach. ou dojo.riseandmove.fr : la même page, aux couleurs de /Dojo
   const coach = RAM_NOMS.appOf(location.hostname) === 'coach';
   if (coach) {
+    document.documentElement.dataset.app = 'dojo';
     document.title = 'Connexion — /Dojo';
-    document.querySelector('.nav .logo img').src = 'img/dojo-detoure-blanc.png';
-    document.querySelector('.nav .logo img').alt = '/Dojo';
+    const logo = document.querySelector('.auth-hero .logo');
+    logo.setAttribute('aria-label', '/Dojo, présentation');
+    logo.querySelector('img').src = 'img/dojo-detoure-blanc.png';
+    logo.querySelector('img').alt = '/Dojo';
     document.querySelector('link[rel="icon"]').href = 'img/dojo-favicon.png';
-    document.querySelector('.nav .btn').textContent = 'Découvrir /Dojo';
+    document.querySelector('link[rel="apple-touch-icon"]').href = 'dojo-icon-180.png';
+    document.querySelector('link[rel="manifest"]').href = 'coach.webmanifest';
+    document.querySelector('meta[name="theme-color"]').content = '#4F6200';
+    document.querySelector('meta[name="apple-mobile-web-app-title"]').content = '/Dojo';
+    document.getElementById('heroT').textContent = "L'appli des enseignants.";
+    document.getElementById('heroP').textContent = 'Planning, appel, bilans, fiches élèves et réservation en ligne, relié au club où tu enseignes.';
     document.querySelector('.hint[data-only="signup"]').textContent = '8 caractères minimum. Ensuite, tu retrouves les clubs où tu enseignes.';
-    document.querySelector('.club-note').textContent = 'Un seul compte /RAM pour /Dojo, /Buvette et /Pista.';
   }
   const base = location.pathname.startsWith('/club/') ? '/club/' : '/';   // ja.riseandmove.fr/club/ ou club.riseandmove.fr/
   const page = location.pathname.slice(base.length);
@@ -68,7 +75,7 @@
     document.querySelectorAll('[data-hide]').forEach(el => { el.hidden = el.dataset.hide === m; el.querySelectorAll('input').forEach(i => { i.required = el.dataset.hide !== m; }); });
     document.querySelector('.tabs').hidden = m === 'forgot';
     document.getElementById('ok').hidden = true;
-    document.getElementById('title').innerHTML = { signup: coach ? 'Créer mon <span class="band lime">compte</span>' : 'Rejoindre <span class="band lime">mon club</span>', forgot: 'Mot de passe <span class="band lime">oublié</span>' }[m] || (coach ? 'Mon espace <span class="band lime">coach</span>' : 'Mon <span class="band lime">club</span>');
+    document.getElementById('title').textContent = { signup: coach ? 'Créer mon compte' : 'Rejoindre mon club', forgot: 'Mot de passe oublié' }[m] || (coach ? 'Mon espace enseignant' : 'Mon club');
     document.getElementById('go').textContent = { signup: 'Créer mon compte', forgot: 'Recevoir le lien' }[m] || 'Se connecter';
     f.password.autocomplete = m === 'login' ? 'current-password' : 'new-password';
     if (m === 'login' || m === 'signup') history.replaceState(null, '', base + (m === 'signup' ? 'inscription' : 'connexion') + location.search);
@@ -90,7 +97,7 @@
     }
     // après connexion : la page de l'appli d'où l'on venait, sinon l'accueil du club
     const back = qs.get('retour') || '';
-    location.href = /^\/(?!\/)/.test(back) || /^https:\/\/(club|coach)\.riseandmove\.fr\//.test(back) ? back : base;
+    location.href = /^\/(?!\/)/.test(back) || /^https:\/\/(club|coach|buvette|dojo)\.riseandmove\.fr\//.test(back) ? back : base;
   };
 })();
 </script>

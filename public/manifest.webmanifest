@@ -1,7 +1,7 @@
 {
   "name": "/Pista",
   "short_name": "/Pista",
-  "description": "Le logiciel du juge-arbitre de padel",
+  "description": "L’appli des événements de tennis et de padel",
   "lang": "fr",
   "start_url": "/dashboard",
   "scope": "/",

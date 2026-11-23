@@ -30,6 +30,19 @@
   --c-lime: #FF3D6B; --accent-bg: #FF3D6B; --on-accent-bg: #1A0509;
   --menu-act: #FF3D6B; --on-menu-act: #1A0509; --hero-sh: #FF3D6B; --kick: #A30F35;
 }
+/* ---------- /Buvette et /Dojo (pages de présentation et de connexion, 23/11/2026) : couleurs de leur logo ---------- */
+:root[data-app='buvette'] {
+  --menu: #2467D6; --menu2: #0F2A5C; --c-lime: #6FB7FF; --accent-bg: #6FB7FF; --on-accent-bg: #0B0B0B;
+  --menu-act: #6FB7FF; --on-menu-act: #0B0B0B; --hero-sh: #6FB7FF; --kick: #1C4FA8;
+  --site-dark: #0F2A5C; --site-band: #2467D6; --site-kick-dark: #6FB7FF; --site-cell: #0B1F45;
+}
+:root[data-app='buvette'][data-mode='nuit'] { --menu: #173F8A; --kick: #6FB7FF; }
+:root[data-app='dojo'] {
+  --menu: #4F6200; --menu2: #26300A; --c-lime: #E0F50A; --accent-bg: #E0F50A; --on-accent-bg: #1A1F05;
+  --menu-act: #E0F50A; --on-menu-act: #1A1F05; --hero-sh: #E0F50A; --kick: #4F6200;
+  --site-dark: #1B2206; --site-band: #4F6200; --site-kick-dark: #E0F50A; --site-cell: #26300A;
+}
+:root[data-app='dojo'][data-mode='nuit'] { --menu: #1B2206; --kick: #E0F50A; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -65,12 +78,12 @@ img { max-width: 100%; }
 .hero h1 mark { display: inline-block; padding: 0 8px; border: var(--bw) solid var(--c-ink); background: var(--c-lime); color: var(--c-dark); }
 .lede { margin: 22px 0 26px; font-size: 18px; line-height: 1.55; max-width: 560px; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
-.board { padding: 24px; background: #3A0C1B; color: #fff; border: var(--bw) solid var(--c-ink); box-shadow: 8px 8px 0 var(--c-ink); }
-.board-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; font: 700 13px var(--f-label); letter-spacing: .14em; text-transform: uppercase; color: #FF94AD; }
+.board { padding: 24px; background: var(--site-dark, #3A0C1B); color: #fff; border: var(--bw) solid var(--c-ink); box-shadow: 8px 8px 0 var(--c-ink); }
+.board-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; font: 700 13px var(--f-label); letter-spacing: .14em; text-transform: uppercase; color: var(--site-kick-dark, #FF94AD); }
 .board-h .tag { background: var(--c-pink); color: var(--c-dark); }
 .board-r { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
 .board-r b { flex: 1; font: 700 32px/1.1 var(--f-label); }
-.board-r i { display: grid; place-items: center; width: 48px; height: 48px; border: var(--bw) solid #000; background: #2E0914; font: 400 28px var(--f-display); font-style: normal; }
+.board-r i { display: grid; place-items: center; width: 48px; height: 48px; border: var(--bw) solid #000; background: var(--site-cell, #2E0914); font: 400 28px var(--f-display); font-style: normal; }
 .board-r i.w { background: var(--c-lime); color: #000; }
 .board-f { margin-top: 14px; padding: 8px 12px; border: var(--bw) solid #000; background: var(--c-lime); color: #000; font: 700 14px var(--f-label); }
 section.block { padding: 72px 0; }
@@ -80,7 +93,7 @@ section.block h2 { font: 400 clamp(34px, 4vw, 52px)/1 var(--f-display); text-tra
 .feat i .pic { width: 22px; height: 22px; }
 .feat h3 { font: 700 20px/1.2 var(--f-label); margin-bottom: 6px; }
 .feat p { margin: 0; color: var(--c-muted); font-size: 14px; }
-.clubs { background: #C8214F; color: #fff; border-block: var(--bw) solid var(--c-ink); }
+.clubs { background: var(--site-band, #C8214F); color: #fff; border-block: var(--bw) solid var(--c-ink); }
 .clubs .eyebrow { color: #fff; }
 .checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 40px; margin: 0 0 32px; padding: 0; list-style: none; }
 .checks li { padding-left: 30px; position: relative; font-size: 14px; }
@@ -100,7 +113,7 @@ section.block h2 { font: 400 clamp(34px, 4vw, 52px)/1 var(--f-display); text-tra
 .plan.hi p { color: var(--c-dark); }
 .plan.hi .btn { background: var(--c-menu); color: var(--c-on-menu); }
 .plans-note { margin-top: 24px; font-size: 14px; }
-.foot { background: #3A0C1B; color: #fff; border-top: var(--bw) solid var(--c-ink); }
+.foot { background: var(--site-dark, #3A0C1B); color: #fff; border-top: var(--bw) solid var(--c-ink); }
 .foot .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; min-height: 96px; padding: 18px 0; }
 .foot nav { display: flex; gap: 18px; font: 700 14px var(--f-label); }
 .foot nav a { text-decoration: none; }

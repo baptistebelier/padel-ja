@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-app="buvette">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0B0B">
+<meta name="theme-color" content="#2467D6">
 <title>/Buvette — l'appli de votre club de padel et de tennis</title>
 <meta name="description" content="Le réseau social de votre club : mur, groupes de discussion, agenda, cours, équipes en direct, palmarès et trophées. Aux couleurs du club, sur téléphone et ordinateur.">
 <!-- référencement et partage (moteurs de recherche, réseaux sociaux, messageries) -->
@@ -23,95 +23,78 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"/Buvette","applicationCategory":"SocialNetworkingApplication","operatingSystem":"Web, iOS, Android, Windows, macOS","description":"Le réseau social de votre club : mur, groupes de discussion, agenda, cours, équipes en direct, palmarès et trophées. Aux couleurs du club, sur téléphone et ordinateur.","url":"https://club.riseandmove.fr/presentation","inLanguage":"fr","publisher":{"@type":"Organization","name":"/RiseAndMove","url":"https://riseandmove.fr"}}</script>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="stylesheet" href="/css/ram.css">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="ds.css">
 <link rel="stylesheet" href="/css/site.css">
-<style>
-  .landing .nav .logo img { height: 44px; }
-  .phone-v { width: min(300px, 80vw); margin: 0 auto; border: 3px solid #fff; border-radius: 34px; padding: 14px 12px 18px; background: #0B0B0B; box-shadow: 10px 10px 0 #E0F50A; }
-  .phone-v .ph-top { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-  .phone-v .ph-top img { height: 26px; }
-  .phone-v .ph-top b { font-family: var(--display, Anton, sans-serif); text-transform: uppercase; font-size: 18px; letter-spacing: .02em; }
-  .phone-v .msg { background: #1C1C1C; border-radius: 4px; padding: 10px 12px; margin: 0 0 8px; font-size: 13px; line-height: 1.4; }
-  .phone-v .msg small { display: block; opacity: .6; font-size: 11px; margin-bottom: 2px; }
-  .phone-v .msg.me { background: #E0F50A; color: #0B0B0B; margin-left: 34px; }
-  .phone-v .live { display: flex; justify-content: space-between; align-items: center; border: 2px solid #F5104C; padding: 8px 10px; margin-top: 12px; font-weight: 700; font-size: 13px; }
-  .phone-v .live em { font-style: normal; background: #F5104C; color: #fff; padding: 2px 6px; font-size: 11px; text-transform: uppercase; }
-</style>
 </head>
-<!-- Présentation de /Buvette, sur le modèle de celle de /Pista ; servie à club.riseandmove.fr/presentation -->
+<!-- Présentation de /Buvette, sur le modèle de celle de /Pista (mêmes composants, couleurs du logo de /Buvette) -->
 <body class="landing">
-<div class="annonce"><div class="annonce-in"><span>Mur du club ✦ Groupes de discussion ✦ Agenda et cours ✦ Équipes en direct ✦ Palmarès ✦ Trophées ✦ Aux couleurs du club ✦</span><span>Mur du club ✦ Groupes de discussion ✦ Agenda et cours ✦ Équipes en direct ✦ Palmarès ✦ Trophées ✦ Aux couleurs du club ✦</span><span>Mur du club ✦ Groupes de discussion ✦ Agenda et cours ✦ Équipes en direct ✦ Palmarès ✦ Trophées ✦ Aux couleurs du club ✦</span></div></div>
-<header class="nav"><a href="presentation" class="logo"><img src="img/buvette-detoure-blanc.png" alt="/Buvette"></a>
-  <nav class="nav-r"><a href="#fonctions">Fonctionnalités</a><a href="#bureau">Pour le bureau</a><a href="#offre">Offre</a><a href="demo" class="btn ghost sm">Voir la démo</a><a href="connexion" class="btn primary sm">Se connecter</a></nav></header>
+<header class="nav"><div class="wrap"><a href="presentation" class="logo" aria-label="/Buvette, accueil"><img src="img/buvette-detoure-blanc.png" alt="/Buvette" class="logo-img"></a>
+  <nav class="nav-l" aria-label="Sur cette page"><a href="#fonctions">Fonctionnalités</a><a href="#clubs">Pour les clubs</a><a href="#offre">Offre</a></nav>
+  <nav class="nav-r"><a href="demo" class="btn dark sm opt"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>Voir la démo</a><a href="connexion" class="btn sm">Se connecter</a><a href="inscription" class="btn primary sm">Créer un compte</a></nav></div></header>
 
-<section class="hero wrap">
-  <div class="hero-t">
-    <span class="tag">/RiseAndMove — /Buvette</span>
-    <h1>L'appli de <span class="band lime">votre club</span> de padel et de tennis.</h1>
-    <p class="lede">Le mur du club, les groupes de discussion, l'agenda, les cours et les stages, les rencontres par équipe en direct, le palmarès de chaque adhérent. Tout le club au même endroit, à ses couleurs, sur téléphone comme sur ordinateur.</p>
-    <div class="cta"><a href="inscription" class="btn primary big">Créer un compte</a><a href="connexion" class="btn ghost big">Se connecter</a><a href="demo" class="btn ghost big">Voir la démo</a></div>
-    <p class="muted small">Un seul compte /RAM pour /Buvette et /Pista · S'installe sur l'écran d'accueil du téléphone</p>
+<main>
+<section class="wrap hero">
+  <div>
+    <h1>L'appli de <mark>votre club</mark> de padel et de tennis.</h1>
+    <p class="lede">Le mur du club, les groupes de discussion, l'agenda, les cours et les stages, les parties par niveau, les rencontres par équipe en direct. Tout le club au même endroit, à ses couleurs.</p>
+    <div class="cta"><a href="inscription" class="btn primary big"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Créer un compte</a><a href="demo" class="btn big"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>Voir la démo</a></div>
+    <p class="muted small">Un seul compte /RAM pour /Buvette, /Dojo et /Pista · S'installe sur l'écran d'accueil du téléphone</p>
   </div>
-  <div class="hero-v" aria-hidden="true">
-    <div class="phone-v">
-      <div class="ph-top"><img src="img/buvette-detoure-blanc.png" alt=""><b>Padel du jeudi</b></div>
-      <div class="msg"><small>Léa</small>Qui est dispo jeudi 19 h pour un double ?</div>
-      <div class="msg me">Moi ! J'ai réservé le terrain 3.</div>
-      <div class="msg"><small>Karim</small>Je prends des balles neuves en passant.</div>
-      <div class="live"><span>Équipe 1 · 2 – 1</span><em>En direct</em></div>
-    </div>
+  <div class="board" aria-hidden="true">
+    <div class="board-h"><span>Équipe 1 · Championnat</span><span class="tag">En direct</span></div>
+    <div class="board-r"><b>TPC Les Tilleuls</b><i class="w">2</i></div>
+    <div class="board-r"><b>Padel Club Azur</b><i>1</i></div>
+    <div class="board-f">Partie du jeudi 19 h · niveau 4 à 6 · plus qu'une place</div>
   </div>
 </section>
 
-<div class="tear"></div>
-<section class="paper" id="fonctions">
-  <div class="wrap">
-    <span class="eyebrow">Fonctionnalités</span>
-    <h2>Tout le club, <span class="band pink">dans la poche.</span></h2>
-    <div class="feats">
-      <article><b>01</b><h3>Le mur du club</h3><p>Actus, événements, sondages et résultats publiés par le bureau et les adhérents. On aime, on commente, on s'inscrit en un geste.</p></article>
-      <article><b>02</b><h3>Groupes de discussion</h3><p>Un groupe par entraînement et par équipe, ouvert automatiquement selon l'inscription de chacun. Messages, photos, réactions, notifications instantanées.</p></article>
-      <article><b>03</b><h3>Agenda, cours et stages</h3><p>Les cours de la semaine, les stages, les événements du club. Confirmer sa présence, signaler une absence, s'inscrire comme bénévole.</p></article>
-      <article><b>04</b><h3>Équipes en direct</h3><p>Convocations, compositions, scores de chaque rencontre suivis en direct par tout le club, championnats et classements de la saison.</p></article>
-      <article><b>05</b><h3>Palmarès et classements</h3><p>Chaque adhérent tient son palmarès de tennis et de padel et son classement. Ses abonnés sont prévenus de ses victoires et de ses perfs.</p></article>
-      <article><b>06</b><h3>Trophées et investissement</h3><p>Participer à la vie du club rapporte des trophées et fait évoluer le cadre de son avatar. Un score unique, calculé par le serveur, identique pour tous.</p></article>
-    </div>
+<section class="block" id="fonctions"><div class="wrap">
+  <span class="eyebrow">Fonctionnalités</span>
+  <h2>Tout le club, dans la poche.</h2>
+  <div class="feats">
+    <article class="card feat"><i><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></i><h3>Le mur du club</h3><p>Actus, événements, sondages et résultats publiés par le bureau et les adhérents. On aime, on commente, on s'inscrit en un geste.</p></article>
+    <article class="card feat"><i><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></i><h3>Groupes de discussion</h3><p>Un groupe par entraînement et par équipe, ouvert tout seul selon l'inscription de chacun. Messages, photos, réactions.</p></article>
+    <article class="card feat"><i><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></i><h3>Agenda, cours et stages</h3><p>Les cours de la semaine, les stages et les événements. On confirme sa présence, on prévient d'une absence, on s'inscrit comme bénévole.</p></article>
+    <article class="card feat"><i><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 5c2.5 4 2.5 10 0 14M16 5c-2.5 4-2.5 10 0 14"/></svg></i><h3>Parties par niveau</h3><p>On propose une partie, chacun ne voit que la fourchette de son niveau. Un lien public l'ouvre aux joueurs sans compte.</p></article>
+    <article class="card feat"><i><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.6"/></svg></i><h3>Équipes en direct</h3><p>Convocations, compositions et scores de chaque rencontre suivis en direct par tout le club, avec les classements de la saison.</p></article>
+    <article class="card feat"><i><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 01-8 0zM5 5h3M16 5h3M5 5c0 3 1.5 4.5 3 4.5M19 5c0 3-1.5 4.5-3 4.5M12 13v4M8 20h8"/></svg></i><h3>Palmarès et trophées</h3><p>Chaque adhérent tient son palmarès de tennis et de padel. Participer à la vie du club rapporte des trophées.</p></article>
   </div>
-</section>
-<div class="tear flip"></div>
+</div></section>
 
-<section class="wrap clubs" id="bureau">
-  <span class="eyebrow">Pour le bureau</span>
-  <h2>Un club qui vit <span class="band lime">toute la semaine.</span></h2>
-  <div class="duo">
-    <ul class="checks">
-      <li><b>Aux couleurs du club</b> : logo, couleurs et mode jour ou nuit choisis par le bureau ; chaque adhérent garde son confort d'affichage.</li>
-      <li><b>Des adhésions maîtrisées</b> : on rejoint le club avec son code, le bureau valide chaque adhésion pour la saison.</li>
-      <li><b>Des rôles clairs</b> : bureau, enseignants, capitaines et adhérents, chacun avec ses droits ; comptes jeunes protégés et reliés aux parents.</li>
-      <li><b>Zéro installation</b> : une adresse web, l'appli s'installe sur le téléphone, les données sont sauvegardées d'une saison à l'autre.</li>
-    </ul>
-    <div class="steps">
-      <div><b>1</b><span>Le bureau crée le club</span></div>
-      <div><b>2</b><span>Il partage le code du club</span></div>
-      <div><b>3</b><span>Les adhérents rejoignent l'appli</span></div>
-      <div><b>4</b><span>Le club vit en direct</span></div>
-    </div>
+<section class="block clubs" id="clubs"><div class="wrap">
+  <span class="eyebrow">Pour les clubs</span>
+  <h2>Le bureau aux commandes.</h2>
+  <ul class="checks">
+    <li><b>Aux couleurs du club</b>Logo, couleur principale et couleur d'accent choisis par le bureau ; chaque adhérent garde son mode jour ou nuit.</li>
+    <li><b>Des adhésions maîtrisées</b>On rejoint le club avec son code, le bureau valide chaque adhésion pour la saison.</li>
+    <li><b>Des rôles clairs</b>Bureau, enseignants, capitaines et adhérents ; comptes jeunes protégés et reliés aux parents.</li>
+    <li><b>Zéro installation</b>Une adresse web, l'appli s'installe sur le téléphone ; les données sont gardées d'une saison à l'autre.</li>
+  </ul>
+  <div class="steps">
+    <div><b>1</b><span>Le bureau crée le club</span></div>
+    <div><b>2</b><span>Les adhérents rejoignent avec le code</span></div>
+    <div><b>3</b><span>Les groupes s'ouvrent tout seuls</span></div>
+    <div><b>4</b><span>Le club vit dans l'appli</span></div>
   </div>
-</section>
+</div></section>
 
-<section class="wrap tarifs" id="offre">
+<section class="block" id="offre"><div class="wrap">
   <span class="eyebrow">Offre</span>
-  <h2>Pour <span class="band pink">votre club.</span></h2>
+  <h2>Pour votre club.</h2>
   <div class="plans">
-    <div class="plan"><span class="tag ink">Adhérent</span><b>Gratuit</b><p>L'appli de son club, dès que le bureau a validé son adhésion.</p><a href="inscription" class="btn ghost">Rejoindre mon club</a></div>
-    <div class="plan hi"><span class="tag lime">Club</span><b>Saison</b><p>Toute l'appli pour le club et ses adhérents, à ses couleurs, avec la gestion du bureau, des cours et des équipes.</p><a href="https://riseandmove.fr" class="btn primary">Nous contacter</a></div>
-    <div class="plan"><span class="tag ink">Juge-arbitre</span><b>/Pista</b><p>Le logiciel du juge-arbitre de padel, avec le même compte /RAM.</p><a href="https://ja.riseandmove.fr" class="btn ghost">Découvrir /Pista</a></div>
+    <div class="card plan"><span class="tag">Adhérent</span><b>Gratuit</b><p>L'appli de son club, dès que le bureau a validé son adhésion.</p><a href="inscription" class="btn">Rejoindre mon club</a></div>
+    <div class="card plan hi"><span class="tag">Club</span><b>Saison</b><p>Toute l'appli pour le club et ses adhérents, à ses couleurs, avec la gestion du bureau, des cours et des équipes.</p><a href="https://riseandmove.fr" class="btn">Nous contacter</a></div>
+    <div class="card plan"><span class="tag">Enseignants</span><b>/Dojo</b><p>L'appli des enseignants du club : planning, appel, bilans et réservation en ligne, reliée à /Buvette.</p><a href="https://coach.riseandmove.fr/presentation" class="btn">Découvrir /Dojo</a></div>
   </div>
-</section>
+  <p class="plans-note">Des tournois au club ? <a href="https://ja.riseandmove.fr">/Pista, l’appli des événements de tennis et de padel</a>, avec le même compte /RAM.</p>
+</div></section>
+</main>
 
-<footer class="foot wrap">
-  <img src="img/buvette-detoure-blanc.png" alt="/Buvette">
-  <div><b>/Buvette</b> — un outil <a href="https://riseandmove.fr">/RiseAndMove</a>, dessiné en Corrèze.</div>
-</footer>
+<footer class="foot"><div class="wrap">
+  <a href="presentation" class="logo"><img src="img/buvette-detoure-blanc.png" alt="/Buvette" class="logo-img"></a>
+  <p>Un outil <a href="https://riseandmove.fr">/RiseAndMove</a>, dessiné en Corrèze.</p>
+  <nav><a href="connexion">Se connecter</a><a href="https://riseandmove.fr">Contact</a></nav>
+</div></footer>
 </body>
 </html>
