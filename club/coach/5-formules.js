@@ -63,6 +63,18 @@ function ofSave(msg) {
   })
     .then(r => r.json())
     .then(d => {
+      // limite de /Dojo gratuit (2 formules) : le message de l'offre, et les formules enregistrées reviennent
+      if (d.error && !d.formules) {
+        toast(d.error);
+        return fetch('/api/coach/formules', { credentials: 'include' })
+          .then(r => r.json())
+          .then(x => {
+            if (x.formules) {
+              ['formules', 'packs', 'abos'].forEach(k => (OFFRES[k] = x.formules[k] || []));
+              render(true);
+            }
+          });
+      }
       if (d.formules) Object.assign(OFFRES, d.formules);
       render(true);
       toast(msg || 'Formules enregistrées');

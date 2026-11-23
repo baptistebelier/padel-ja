@@ -1005,7 +1005,11 @@
         });
         if (bad.size) {
           console.warn('/Buvette : refusé ' + J(r.rejected));
-          toast("Une modification n'a pas été enregistrée : elle n'est pas autorisée pour ton compte");
+          // limite d'une offre (lib/offres.js) : son message dit quoi faire ; sinon le message général
+          const lim = (r.rejected || [])
+            .map(x => x.error || '')
+            .find(e => /Découverte|\/Dojo gratuit|\/Dojo Pro/.test(e));
+          toast(lim || "Une modification n'a pas été enregistrée : elle n'est pas autorisée pour ton compte");
           // on revient à la version du serveur pour ces éléments
           list
             .filter(o => bad.has(o.coll + '/' + o.id))
@@ -2375,9 +2379,7 @@
             .trim();
         inp.addEventListener('input', () => {
           const c = d.clubs.find(x => x.ramClub && fold(x.name) === fold(inp.value));
-          hint.textContent = c
-            ? `${c.name} est déjà sur /Buvette : demande son code au bureau pour le rejoindre.`
-            : '';
+          hint.textContent = c ? `${c.name} est déjà sur /Buvette : demande son code au bureau pour le rejoindre.` : '';
         });
       })
       .catch(() => {});

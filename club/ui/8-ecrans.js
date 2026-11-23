@@ -241,7 +241,7 @@ const V = {
       return `<div class="pad"><div class="note">En tant que capitaine, tu gères ton équipe : effectif, calendrier, convocations et scores en direct.</div><div class="card adm-sec"><span class="kicker">Mes équipes</span>${mine.map(g => it('open', 'users', teamName(g), g.sub, `data-v="team" data-id="${g.id}"`)).join('')}</div></div>`;
     }
     const nj = JOINREQ.length;
-    return `<div class="pad">${setupCard()}<div class="card adm-sec"><span class="kicker">Adhérents</span>${it('open', 'users', 'Faire entrer les adhérents', nj ? `${nj} demande${nj > 1 ? 's' : ''} à valider · code ${CLUBINFO.code}` : `Code du club ${CLUBINFO.code} · import d'une liste`, 'data-v="join"')}${pushSuiviLigne()}</div>
+    return `<div class="pad">${setupCard()}${offreClubCarte()}<div class="card adm-sec"><span class="kicker">Adhérents</span>${it('open', 'users', 'Faire entrer les adhérents', nj ? `${nj} demande${nj > 1 ? 's' : ''} à valider · code ${CLUBINFO.code}` : `Code du club ${CLUBINFO.code} · import d'une liste`, 'data-v="join"')}${pushSuiviLigne()}</div>
   <div class="card adm-sec"><span class="kicker">Publier sur le mur</span>${it('newPost', 'info', 'Annonce', 'Un message du club à tous les adhérents', 'data-k="annonce"')}${it('newPost', 'cal', 'Événement', "Avec inscription dans l'appli ou sur Ten'Up", 'data-k="event"')}${it('newPost', 'score', 'Tournoi', "Tennis ou padel, catégories, lien Ten'Up", 'data-k="tournoi"')}${it('newPost', 'poll', 'Sondage', "Jusqu'à six réponses, date de clôture", 'data-k="poll"')}${it('newPost', 'link', 'Publication avec lien', 'Un titre, un texte et un gros bouton vers un site', 'data-k="cta"')}${CLUBINFO.mods.actus ? it('newPost', 'news', 'Actu', 'Un récit, un portrait, un compte rendu', 'data-k="article"') : ''}</div>
   <div class="card adm-sec"><span class="kicker">Championnats et équipes</span>${CHAMPS.map(c => {
     const n = GROUPS.filter(g => g.champ === c.id).length;
@@ -445,3 +445,29 @@ const V = {
     return profile(ME());
   }
 };
+
+/* « Offre du club » pour le bureau (offres du 23/11/2026) : Découverte (50 adhérents validés), Club, Club + ; lue une fois sur le serveur */
+function offreClubCarte() {
+  if (!(window.RAM && RAM.live && RAM.club)) return '';
+  const o = S.offreClub && S.offreClub.club === RAM.club ? S.offreClub.d : null;
+  if (!o) {
+    if (S.offreClubLu !== RAM.club) {
+      S.offreClubLu = RAM.club;
+      fetch('/api/offres/club?c=' + encodeURIComponent(RAM.club), { credentials: 'include' })
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => {
+          if (d) {
+            S.offreClub = { club: RAM.club, d };
+            render(true);
+          }
+        })
+        .catch(() => {});
+    }
+    return '';
+  }
+  const date = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (o.niveau !== 'decouverte')
+    return `<div class="card adm-sec"><span class="kicker">Offre du club</span><p><b>/Buvette ${esc(o.nom)}</b> · active jusqu’au ${date(o.until)}</p><p class="muted small">${o.adherents} adhérents validés, sans limite.${o.niveau === 'clubplus' ? ' /Dojo Pro est offert à tous les enseignants du club.' : ''}</p></div>`;
+  const plein = o.adherents >= o.limites.adherents;
+  return `<div class="card adm-sec"><span class="kicker">Offre du club</span><p><b>/Buvette Découverte</b> · ${o.adherents} / ${o.limites.adherents} adhérents validés</p><p class="muted small">${plein ? 'Le club a atteint la limite de l’offre gratuite : passe à l’offre Club pour valider d’autres adhésions.' : 'Toutes les fonctions sont ouvertes jusqu’à ' + o.limites.adherents + ' adhérents.'} Club : adhérents illimités, 19 € par mois. Club + : en plus, /Dojo Pro pour tous les enseignants, 29 € par mois.</p><a class="btn full" href="${esc(o.boutique)}" target="_blank" rel="noopener">${ic('star')}Voir les offres Club et Club +</a></div>`;
+}

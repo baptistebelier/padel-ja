@@ -24,12 +24,20 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const freePort = () => new Promise((ok, ko) => { const s = net.createServer(); s.on('error', ko); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => ok(p)); }); });
 let PORT, JA;
 let server, demoServer, DEMO, dataDir, browser;
+/* offres (lib/offres.js) : un enseignant de test reçoit /Dojo Pro comme en vrai, par une commande Shopify payée et signée */
+const SECRET_SHOP = 'secret-essai-shopify';
+async function dojoPro(email) {
+  const { createHmac } = await import('node:crypto');
+  const body = JSON.stringify({ id: 'o' + Date.now() + Math.random(), email, line_items: [{ sku: 'RAM-DOJO-PRO-AN', quantity: 1 }] });
+  const r = await fetch(JA + '/api/shopify/webhook', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-shopify-topic': 'orders/paid', 'x-shopify-hmac-sha256': createHmac('sha256', SECRET_SHOP).update(body).digest('base64') }, body });
+  assert.equal(r.status, 200, '/Dojo Pro par Shopify');
+}
 
 /* ---------- démarrage : serveur JA (données jetables) + serveur statique pour la démo Club ---------- */
 before(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'ram-ecrans-'));
   PORT = await freePort(); JA = `http://127.0.0.1:${PORT}`;
-  const env = { ...process.env, PORT: String(PORT), DATA_DIR: dataDir };
+  const env = { ...process.env, PORT: String(PORT), DATA_DIR: dataDir, SHOPIFY_WEBHOOK_SECRET: SECRET_SHOP };
   ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY'].forEach(k => delete env[k]);
   server = spawn(process.execPath, [join(ROOT, 'server.js')], { env, stdio: 'ignore' });
   // prêt quand il répond, même lentement sur une machine chargée ; sinon on s'arrête net plutôt que d'échouer plus loin
@@ -411,8 +419,8 @@ test('Administration : liste courte, filtre par offre, fiche du compte, essai et
   await page.waitForSelector('#ufiche[open]');
   await page.click('#ufiche [data-essai]');
   await page.waitForSelector('#ufiche [data-sans]');
-  await page.selectOption('#ofilter', 'Essai');
-  assert.equal(await page.locator('button.urow', { hasText: mail }).count(), 1, 'essai attribué à la main');
+  await page.selectOption('#ofilter', 'Gratuit');
+  assert.equal(await page.locator('button.urow', { hasText: mail }).count(), 1, 'version gratuite attribuée à la main');
   // suppression : refusée avec un mauvais e-mail, faite avec le bon
   await page.click('#ufiche .udel summary');
   await page.fill('#ufiche .udel input', 'faux@exemple.test');
@@ -1073,6 +1081,7 @@ test('Coach : mes outils de réservation ; élève : chercher des partenaires ; 
   for (const x of [coachP, page, pp]) x.on('pageerror', e => errs.push(e.message));
   const post = async (c, url, data) => (await c.request.post(JA + url, { data })).json(), t = Date.now();
   await post(cc, '/api/auth/signup', { email: `out-c-${t}@exemple.test`, password: 'essai-' + t, first: 'Sarah', last: 'Coach' });
+  await dojoPro(`out-c-${t}@exemple.test`);   // la réservation en ligne fait partie de /Dojo Pro
   const club = await post(cc, '/api/ram/clubs', { name: 'Club Outils' });
   const now = new Date(), y = now.getFullYear(), saison = now.getMonth() >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
   await post(cc, '/api/coach/formules', { formules: { formules: [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35 }, { id: 'f3', nom: 'Duo', sport: 'Padel', joueurs: 2, duree: 60, prix: 30, par: 'personne' }], packs: [{ id: 'p1', formule: 'f1', nom: 'Pack 5', seances: 5, prix: 160, url: 'https://boutique.exemple.test/pack' }], dispos: [0, 1, 2, 3, 4, 5, 6].map(jour => ({ jour, du: '09:00', au: '11:00' })) } });
@@ -1727,6 +1736,7 @@ test('Réservation : l’élève voit la semaine de l’enseignant, réserve, et
   page.on('pageerror', x => errs.push(x.message));
   const post = async (c, url, data) => (await c.request.post(JA + url, { data })).json(), t = Date.now();
   await post(cc, '/api/auth/signup', { email: `resa-c-${t}@exemple.test`, password: 'essai-' + t, first: 'Sarah', last: 'Coach' });
+  await dojoPro(`resa-c-${t}@exemple.test`);   // la réservation en ligne fait partie de /Dojo Pro
   const club = await post(cc, '/api/ram/clubs', { name: 'Club Résa' });
   const now = new Date(), y = now.getFullYear(), saison = now.getMonth() >= 8 ? `${y}-${y + 1}` : `${y - 1}-${y}`;   // la saison du club à sa création
   await post(cc, '/api/coach/formules', { formules: { formules: [{ id: 'f1', nom: 'Cours individuel', sport: 'Padel', joueurs: 1, duree: 60, prix: 35 }], dispos: [0, 1, 2, 3, 4, 5, 6].map(jour => ({ jour, du: '09:00', au: '11:00' })) } });

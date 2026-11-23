@@ -132,7 +132,7 @@
     bar.className = 'acc-bar acc-bar-' + (a.state === 'trial' || a.state === 'pass' ? 'trial' : 'stop');
     const days = `encore ${a.daysLeft} jour${a.daysLeft > 1 ? 's' : ''}`;
     const txt = a.state === 'trial'
-      ? `<b>Essai gratuit</b> : ${days}${a.tournamentsLeft ? ` · ${a.tournamentsLeft} tournoi à créer` : ' · tournoi d\'essai utilisé'}`
+      ? `<b>Version gratuite</b> : ${a.tournamentsLeft ? 'un événement offert à créer' : 'événement offert utilisé · pass à 15 € ou /Pista Pro à 15 € par mois pour en créer d’autres'}`
       : a.state === 'pass' ? `<b>Pass tournoi</b> : ${days}${a.tournamentsLeft ? ` · ${a.tournamentsLeft} tournoi à créer` : ' · tournoi du pass créé'}`
       : a.state === 'expired' ? '<b>Lecture seule</b> : votre accès est terminé. Vos tournois restent consultables et exportables.'
       : '<b>Paiement en attente</b> : renouvelez votre abonnement pour garder l\'accès.';

@@ -110,7 +110,7 @@
   const ymd = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const fr = t => new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   const accTxt = a => ({
-    trial: `Essai : encore ${a.daysLeft} jour${a.daysLeft > 1 ? 's' : ''} (jusqu'au ${fr(a.until)}) · ${a.tournamentsLeft ? a.tournamentsLeft + ' tournoi possible' : 'tournoi d\'essai utilisé'}`,
+    trial: `Gratuit · ${a.tournamentsLeft ? a.tournamentsLeft + ' tournoi offert à créer' : 'tournoi offert utilisé'}`,
     pass: `Pass tournoi jusqu'au ${fr(a.until)} · ${a.tournamentsLeft ? a.tournamentsLeft + ' tournoi à créer' : 'tournoi du pass créé'}`,
     paid: a.grace ? `Paiement en retard : délai de grâce (accès payé jusqu'au ${fr(a.until)})` : `Abonné jusqu'au ${fr(a.until)}`,
     expired: `Accès terminé le ${fr(a.until)} : lecture seule`
@@ -126,9 +126,9 @@
   }
   /* la liste : nom, prénom, e-mail, offre ; le reste est dans la fiche */
   let users = [], plans = {}, filtre = '', openId = null;
-  const offre = u => u.admin ? 'Administrateur' : u.free ? 'Accès offert' : ({ trial: 'Essai', paid: 'Abonné', pass: 'Pass tournoi', expired: 'Terminé', sans: 'Sans offre' }[u.access.state] || 'Sans offre');
+  const offre = u => u.admin ? 'Administrateur' : u.free ? 'Accès offert' : ({ trial: 'Gratuit', paid: 'Pro', pass: 'Pass tournoi', expired: 'Terminé', sans: 'Sans offre' }[u.access.state] || 'Sans offre');
   function drawList() {
-    const kinds = ['Essai', 'Abonné', 'Pass tournoi', 'Accès offert', 'Administrateur', 'Terminé', 'Sans offre'];
+    const kinds = ['Gratuit', 'Pro', 'Pass tournoi', 'Accès offert', 'Administrateur', 'Terminé', 'Sans offre'];
     $('#ofilter').innerHTML = '<option value="">Toutes les offres (' + users.length + ')</option>' + kinds.map(k => { const n = users.filter(u => offre(u) === k).length; return `<option value="${k}" ${filtre === k ? 'selected' : ''}>${k} (${n})</option>`; }).join('');
     const l = users.filter(u => !filtre || offre(u) === filtre);
     $('#users').innerHTML = l.length ? `<div class="utable" role="table"><div class="urow uhead" role="row"><span>Nom</span><span>Prénom</span><span>E-mail</span><span>Offre</span></div>${l.map(u => `<button class="urow" type="button" role="row" data-open="${u.id}"><span>${esc(u.last || u.name || '—')}</span><span>${esc(u.first || '')}</span><span class="umail">${esc(u.email)}</span><span><span class="tag ${u.admin ? 'pink' : u.free ? 'lime' : 'ink'}">${esc(offre(u))}</span></span></button>`).join('')}</div>` : '<p class="muted">Aucun compte.</p>';

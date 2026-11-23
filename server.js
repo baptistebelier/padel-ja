@@ -79,7 +79,11 @@ taches.on('rappels24', p => ResaMails.rappels24({ de: p.de, lien: ONLINE ? Noms.
 taches.on('mail', p => Mail.send(p));   // qui prévenir à chaque changement d'un club
 const agendaLu = Agenda.createAgenda({ log: m => console.warn('/RAM Réservation : ' + m) });
 const NomsResa = require('./lib/noms-resa.js').createNoms({ store });   // adresses /reservation/<nom>
-const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
+/* offres des applis : limites de /Buvette Découverte et de /Dojo gratuit, contrôlées pour chaque opération et chaque sauvegarde des formules */
+const Offres = require('./lib/offres.js'), offres = Offres.createOffres({ store, ram });
+ram.setGarde(offres.garde);
+Formules.setGarde(offres.gardeFormules);
+const reservation = require('./lib/reservation.js').createReservation({ ram, store, coachTables, Formules, taches, dojoPro: offres.dojoPro, Mail, agenda: agendaLu, push: { sendMany: (uids, msg) => taches.enqueue('push', { uids, msg }) }, log: m => console.warn('/RAM Réservation : ' + m) });   // planning de l'enseignant lu dans les vraies tables
 /* e-mails de réservation vers l'enseignant, annulations et listes d'attente (le courrier de l'élève à la réservation part des routes) */
 const ResaMails = require('./lib/resa-mails.js').createResaMails({ ram, store, taches, Mail, nvEtat: require('./lib/reservation.js').nvEtat, log: m => console.warn(m) });
 const agendaAlerte = require('./lib/agenda-alerte.js').createAgendaAlerte({ store, agenda: agendaLu, push, Formules, log: m => console.warn('/Dojo : ' + m) });   // agenda relié devenu illisible : alerte dans la cloche
@@ -1095,9 +1099,23 @@ const server = http.createServer(async (req, res) => {
       if (!u.pass_hash) link = appUrl(req) + '/reinitialiser?t=' + encodeURIComponent(Auth.makeResetToken(u, Date.now(), 7 * 864e5));
       await store.saveBilling(u.id, r.billing);
       accessCache.delete(u.id);
-      console.log(`  Shopify : commande ${order.name || order.id} payée (${r.items.join(', ')}) → ${email}, accès jusqu'au ${new Date(r.billing.until).toISOString().slice(0, 10)}`);
+      /* /Buvette Club ou Club + : l'offre du club dont l'acheteur est au bureau (le club nommé dans la commande s'il en a plusieurs) */
+      let until = r.until;
+      for (const x of r.buvette || []) {
+        const bureau = (await ram.myClubs(u.id)).filter(c => c.role === 'bureau');
+        const note = [order.note || '', ...(order.note_attributes || []).map(a => a && a.value || '')].join(' ').toLowerCase();
+        const cible = bureau.length === 1 ? bureau[0] : bureau.find(c => c.name && note.includes(String(c.name).toLowerCase()));
+        if (!cible) { console.error(`Shopify : commande ${order.name || order.id} (${x.label}) : ${email} n'est au bureau d'aucun club${bureau.length > 1 ? ' identifiable (préciser le club dans la commande)' : ''}`); continue; }
+        const conf = ((await ram.itemsOf(cible.id, 'conf')).find(c => c.id === 'main') || {}).data || {}, cur = conf.offre || {};
+        const depuis = cur.niveau === x.niveau && +cur.until > Date.now() ? +cur.until : Date.now();   // même offre : prolongée ; autre offre : à partir d'aujourd'hui
+        const offre = { niveau: x.niveau, until: Shopify.addMonths(depuis, x.months), order: String(order.id || order.name || ''), at: Date.now() };
+        await ram.setOffre(cible.id, offre);
+        until = Math.max(until || 0, offre.until);
+        console.log(`  Shopify : ${x.label} pour le club ${cible.name || cible.id}, jusqu'au ${new Date(offre.until).toISOString().slice(0, 10)}`);
+      }
+      console.log(`  Shopify : commande ${order.name || order.id} payée (${r.items.join(', ')}) → ${email}${until ? `, jusqu'au ${new Date(until).toISOString().slice(0, 10)}` : ''}`);
       const id = await store.getIdentity(u.id).catch(() => null);
-      taches.enqueue('mail', Object.assign({ to: email }, Mail.accessMail({ first: (id && id.first) || first, items: r.items, until: r.billing.until, link, appUrl: appUrl(req) })));
+      taches.enqueue('mail', Object.assign({ to: email }, Mail.accessMail({ first: (id && id.first) || first, items: r.items, until: until || Date.now(), link, appUrl: appUrl(req) })));
       return json(res, 200, { ok: true });
     }
 
@@ -1766,14 +1784,29 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'POST') {
         const src = (await readBody(req)).formules || {}, prev = await Formules.get(store, u.id);
         if (prev.nom) src.nom = prev.nom; else delete src.nom;   // le nom de l'adresse /reservation/ ne se change que par /api/coach/nom-reservation (unicité)
-        return json(res, 200, { formules: await Formules.save(store, u.id, src) });
+        try { return json(res, 200, { formules: await Formules.save(store, u.id, src) }); }
+        catch (e) { if (e instanceof Offres.Limite) return json(res, 402, { error: e.message, offre: 'dojo' }); throw e; }
       }
       return json(res, 200, { formules: await Formules.get(store, u.id) });
     }
     // les tarifs d'un enseignant d'un club, pour sa fiche dans /Buvette (des prix publics : ni nom ni coordonnées)
     if (p === '/api/coach/formules/public') {
       const m = await ram.memberByKey(url.searchParams.get('c') || '', url.searchParams.get('k') || '').catch(() => null);
-      return json(res, 200, { formules: m && m.user_id ? Formules.publicOf(await Formules.get(store, m.user_id), url.searchParams.get('c') || '') : null });
+      if (!m || !m.user_id) return json(res, 200, { formules: null });
+      const pub = Formules.publicOf(await Formules.get(store, m.user_id), url.searchParams.get('c') || '');
+      if (!(await offres.dojoPro(m.user_id))) { pub.page = false; pub.resa = false; }   // réservation en ligne : /Dojo Pro
+      return json(res, 200, { formules: pub });
+    }
+    /* ---------- offres des applis (lib/offres.js) : l'offre, les compteurs et les limites ---------- */
+    if (p === '/api/offres/dojo' && req.method === 'GET') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      return json(res, 200, await offres.etatDojo(u.id));
+    }
+    if (p === '/api/offres/club' && req.method === 'GET') {
+      const u = await currentUser(req); if (!u || u.guest) return json(res, 401, { error: 'Connexion requise' });
+      const c = url.searchParams.get('c') || '';
+      if (!(await ram.myClubs(u.id)).some(x => x.id === c)) return json(res, 403, { error: 'Club introuvable.' });
+      return json(res, 200, await offres.etatClub(c));
     }
     /* ---------- /RAM Réservation : la page publique, sans compte ---------- */
     if (p.startsWith('/api/public/resa/')) {

@@ -551,6 +551,32 @@ if (UI2) {
       return null;
     }
   };
+  /* « Mon offre » (offres du 23/11/2026) : /Dojo gratuit (compteurs et limites) ou /Dojo Pro ; lue une fois sur le serveur */
+  const u2Offre = () => {
+    if (!(window.RAM && RAM.user)) return '';
+    const o = S.dojoOffre;
+    if (!o) {
+      if (!S.dojoOffreLu) {
+        S.dojoOffreLu = 1;
+        fetch('/api/offres/dojo', { credentials: 'include' })
+          .then(r => (r.ok ? r.json() : null))
+          .then(d => {
+            if (d) {
+              S.dojoOffre = d;
+              if (S.tab === 'me') render(true);
+            }
+          })
+          .catch(() => {});
+      }
+      return '';
+    }
+    const L = o.limites,
+      nf = ['formules', 'packs', 'abos'].reduce((n, k) => n + ((OFFRES && OFFRES[k]) || []).length, 0),
+      ligne = (n, m, l) => `<div class="corow"><span class="grow">${l}</span><b>${n} / ${m}</b></div>`;
+    if (o.offre === 'pro')
+      return `<section class="card copc"><span class="coey">Mon offre</span><h2 class="coh2">/Dojo Pro</h2><p class="muted small">${o.offertParClub ? 'Offert par ton club (offre /Buvette Club +).' : 'Actif jusqu’au ' + new Date(o.until).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + '.'} Élèves, groupes et formules illimités, réservation en ligne et suivi des élèves.</p></section>`;
+    return `<section class="card copc"><span class="coey">Mon offre</span><h2 class="coh2">/Dojo gratuit</h2>${ligne(o.eleves, L.eleves, 'Élèves')}${ligne(o.groupes, L.groupes, 'Groupes')}${ligne(nf, L.formules, 'Formules, packs et abonnements')}<p class="muted small">La réservation en ligne et le suivi des élèves font partie de /Dojo Pro : élèves, groupes et formules illimités.</p><a class="btn full" href="${esc(o.boutique)}" target="_blank" rel="noopener">${ic('star')}Passer à /Dojo Pro · 15 € par mois</a></section>`;
+  };
   V.me = id => {
     if (id) return u2Me(id);
     let k = S.meTab || u2MeLu();
@@ -568,6 +594,7 @@ if (UI2) {
       },
       bloc = { profil: [], offres: [], agenda: [] };
     [...base.children].forEach(el => bloc[fam(el)].push(el.outerHTML));
+    bloc.profil.unshift(u2Offre());
     bloc.offres.push(
       `<section class="card copc"><span class="coey">Techniques</span><h2 class="coh2">Échelles techniques</h2><button class="btn full" data-a="open" data-v="niveaux">${ic('ladder')}Mes échelles techniques</button></section>`
     );
