@@ -302,6 +302,12 @@ test('page publique : fermée par défaut, questionnaire, cours confirmé, annul
   await Formules.save(store, coach, Object.assign(await Formules.get(store, coach), { page: club.id }));
   const c = await resa.pubCreneaux(club.id, key, d);
   assert.deepEqual(c.formules.map(f => f.id), ['f1', 'f3'], 'toutes ses formules : individuel et duo');
+  // une formule masquée n'est plus proposée ni réservable ; visible de nouveau, elle revient
+  const o0 = await Formules.get(store, coach);
+  await Formules.save(store, coach, Object.assign({}, o0, { formules: o0.formules.map(f => (f.id === 'f3' ? Object.assign({}, f, { masque: true }) : f)) }));
+  assert.deepEqual((await resa.pubCreneaux(club.id, key, d)).formules.map(f => f.id), ['f1'], 'formule masquée : pas sur la page');
+  await assert.rejects(resa.pubReserver(club.id, key, { d, t: 540, formule: 'f3', prenom: 'Léa', nom: 'Roy', email: 'lea22@exemple.test', tel: '06 00 00 00 00', objectif: 'Volée', accord: true }), /pas réservable/);
+  await Formules.save(store, coach, o0);
   assert.equal(c.photo, false, 'pas de photo : la page garde les initiales');
   assert.equal(await resa.pubPhoto(club.id, key), null);
   assert.equal(JSON.stringify(c).includes('pris'), false);

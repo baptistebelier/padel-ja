@@ -2358,3 +2358,10 @@ select option { background: var(--c-surface); color: var(--c-text); }
   .fobig { order: 3; flex: 1 1 auto; align-items: flex-start; text-align: left; }
   .fodh .ib { order: 4; }
 }
+/* masqué sur la page de réservation : grisé, l'œil barré */
+.fooff > td:not(:nth-last-child(-n+2)), .foi.fooff .grow, td.fooff .foc { opacity: .5; }
+.fovis.off { color: var(--c-muted); }
+.focv { display: flex; justify-content: flex-end; padding: 0 10px 10px; }
+.focv .ib { width: 32px; height: 32px; }
+.fomasq { align-self: flex-start; margin-top: 4px; }
+.fovischk { margin: 4px 0; }

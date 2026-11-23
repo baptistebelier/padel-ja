@@ -102,6 +102,15 @@ addEventListener('load', () =>
    Chiffres clés, puis deux intercalaires collés à la carte : « À la séance et packs » (les formules à gauche, la
    formule choisie à droite avec ses packs en tableau) et « Abonnements » (chaque abonnement en grille : une ligne
    par formule comprise, une colonne par engagement, une case par variante). */
+if (!I.eyeOff)
+  I.eyeOff =
+    '<path d="M3 3l18 18"/><path d="M10.6 6.1A10 10 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-2.6 3.3M6.6 7.6C4 9.4 2.5 12 2.5 12s3.5 6 9.5 6a9.7 9.7 0 0 0 4.3-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>';
+/* visible ou non sur la page publique de réservation (masque : true) ; reste utilisable dans /Dojo */
+const ofVisChk = (id, x) =>
+  `<label class="chk fovischk" for="${id}"><input type="checkbox" id="${id}" class="co-vis"${x && x.masque ? '' : ' checked'}>Visible sur ma page de réservation</label>`;
+const ofVisBtn = (t, x) =>
+  `<button class="ib fovis${x.masque ? ' off' : ''}" data-a="coVis" data-t="${t}" data-id="${x.id}" aria-pressed="${!x.masque}" aria-label="${x.masque ? 'Masqué sur ta page de réservation : rendre visible' : 'Visible sur ta page de réservation : masquer'}" title="${x.masque ? 'Masqué sur ma page de réservation' : 'Visible sur ma page de réservation'}">${ic(x.masque ? 'eyeOff' : 'eye')}</button>`;
+const ofMasqueTag = x => (x.masque ? '<span class="tag fomasq">Masqué</span>' : '');
 if (!I.pack) I.pack = '<rect x="4" y="7" width="16" height="13"/><path d="M9 7V4h6v3M4 12h16"/>';
 /* les abonnements, une entrée par abonnement : ses variantes (une seule pour un abonnement simple) */
 const abGroupes = () => {
@@ -128,11 +137,11 @@ function coFoSeance(sel) {
         x = p.prix / p.seances,
         r = u > 0 ? Math.round((1 - x / u) * 100) : 0,
         n = (p.ech || []).length;
-      return `<tr><td><b>${nom}</b></td><td>${p.seances}</td><td>${eur(p.prix)}</td><td class="foacc">${eur(x)}</td><td>${r > 0 ? `<span class="tag">−${r} %</span>` : '—'}</td><td class="muted">${n > 1 ? 'en ' + n + ' fois' : 'en 1 fois'}</td><td><button class="ib" data-a="coPkEdit" data-id="${p.id}" aria-label="Modifier ${nom}">${ic('edit')}</button></td></tr>`;
+      return `<tr${p.masque ? ' class="fooff"' : ''}><td><b>${nom}</b></td><td>${p.seances}</td><td>${eur(p.prix)}</td><td class="foacc">${eur(x)}</td><td>${r > 0 ? `<span class="tag">−${r} %</span>` : '—'}</td><td class="muted">${n > 1 ? 'en ' + n + ' fois' : 'en 1 fois'}</td><td>${ofVisBtn('packs', p)}</td><td><button class="ib" data-a="coPkEdit" data-id="${p.id}" aria-label="Modifier ${nom}">${ic('edit')}</button></td></tr>`;
     });
-  return `<div class="fod"><div class="fodh"><span class="tile">${ic(sel.joueurs > 1 ? 'users' : 'user')}</span><div class="grow"><h2 class="foh">${esc(sel.nom)}</h2><span class="muted small">${sel.sport} · ${plural(sel.joueurs, 'joueur')} · ${minTxt(sel.duree)}</span></div><div class="fobig"><b>${eur(sel.prix)}</b><span class="muted small">${foParTxt(sel)}${sel.par === 'personne' && sel.joueurs > 1 ? ' · ' + eur(sel.prix * sel.joueurs) + ' la séance' : ''}</span></div><button class="ib" data-a="coFoEdit" data-id="${sel.id}" aria-label="Modifier la formule">${ic('edit')}</button></div>${
+  return `<div class="fod"><div class="fodh"><span class="tile">${ic(sel.joueurs > 1 ? 'users' : 'user')}</span><div class="grow"><h2 class="foh">${esc(sel.nom)}</h2>${ofMasqueTag(sel)}<span class="muted small">${sel.sport} · ${plural(sel.joueurs, 'joueur')} · ${minTxt(sel.duree)}</span></div><div class="fobig"><b>${eur(sel.prix)}</b><span class="muted small">${foParTxt(sel)}${sel.par === 'personne' && sel.joueurs > 1 ? ' · ' + eur(sel.prix * sel.joueurs) + ' la séance' : ''}</span></div>${ofVisBtn('formules', sel)}<button class="ib" data-a="coFoEdit" data-id="${sel.id}" aria-label="Modifier la formule">${ic('edit')}</button></div>${
     rows.length
-      ? `<div class="fotw"><table class="fot"><thead><tr><th>Pack</th><th>Séances</th><th>Prix</th><th>La séance</th><th>Remise</th><th>Paiement</th><th><span class="sr">Modifier</span></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+      ? `<div class="fotw"><table class="fot"><thead><tr><th>Pack</th><th>Séances</th><th>Prix</th><th>La séance</th><th>Remise</th><th>Paiement</th><th>Page</th><th><span class="sr">Modifier</span></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`
       : '<p class="muted small">Aucun pack pour cette formule : plusieurs séances à un prix d’ensemble, le prix de la séance se calcule tout seul.</p>'
   }<div class="cotools"><button class="btn sm" data-a="coPkEdit" data-f="${sel.id}">${ic('plus')}Créer un pack de séances</button></div>${ab.length ? `<p class="muted small folien">${ic('cal')}<span>Comprise dans : ${ab.map(a => esc((a.ens ? a.ens + ' · ' : '') + a.nom)).join(', ')}</span></p>` : ''}</div>`;
 }
@@ -159,12 +168,12 @@ function coAbGrille(l) {
           .map(c => {
             const v = dans.filter(a => ck(a) === c);
             if (!v.length) return '<td class="muted">—</td>';
-            return `<td>${v
+            return `<td class="${v.every(a => a.masque) ? 'fooff' : ''}">${v
               .map(a => {
                 const max = Math.max(...dans.filter(x => x.periode === a.periode).map(x => +x.prix || 0)),
                   eco = max - (+a.prix || 0),
                   p = REGLES.parMoisDef(a);
-                return `<button class="foc" data-a="coAbEdit" data-id="${a.id}" data-v="${a.id}" aria-label="Modifier ${esc(a.nom)}"><span class="focp"><b>${eur(a.prix)}</b><span class="muted">${abParCourt(a)}</span>${eco > 0 ? `<span class="tag">−${eur(eco)} ${abParCourt(a).slice(2) === 'mois' ? 'par mois' : abParCourt(a)}</span>` : ''}</span><span class="muted small">${a.periode === 'mois' && p ? eur(a.prix / p) + ' la séance' : esc(a.nom)}</span></button>`;
+                return `<button class="foc" data-a="coAbEdit" data-id="${a.id}" data-v="${a.id}" aria-label="Modifier ${esc(a.nom)}"><span class="focp"><b>${eur(a.prix)}</b><span class="muted">${abParCourt(a)}</span>${eco > 0 ? `<span class="tag">−${eur(eco)} ${abParCourt(a).slice(2) === 'mois' ? 'par mois' : abParCourt(a)}</span>` : ''}</span><span class="muted small">${a.periode === 'mois' && p ? eur(a.prix / p) + ' la séance' : esc(a.nom)}</span>${ofMasqueTag(a)}</button><span class="focv">${ofVisBtn('abos', a)}</span>`;
               })
               .join('')}</td>`;
           })
@@ -200,7 +209,7 @@ function coFormules() {
     corps = `<div class="fos"><div class="fol"><span class="kicker">Mes formules</span>${OFFRES.formules
       .map(f => {
         const n = OFFRES.packs.filter(p => p.formule === f.id).length;
-        return `<button class="foi${f === sel ? ' on' : ''}" data-a="coFoSel" data-id="${f.id}" aria-pressed="${f === sel}"><span class="foit">${ic(f.joueurs > 1 ? 'users' : 'user')}</span><span class="grow"><b>${esc(f.nom)}</b><span class="small">${foKind(f)} · ${minTxt(f.duree)}${n ? ' · ' + plural(n, 'pack') : ''}</span></span><span class="foip"><b>${eur(f.prix)}</b><span class="small">${foParTxt(f)}</span></span></button>`;
+        return `<button class="foi${f === sel ? ' on' : ''}${f.masque ? ' fooff' : ''}" data-a="coFoSel" data-id="${f.id}" aria-pressed="${f === sel}"><span class="foit">${ic(f.joueurs > 1 ? 'users' : 'user')}</span><span class="grow"><b>${esc(f.nom)}${f.masque ? ' · masquée' : ''}</b><span class="small">${foKind(f)} · ${minTxt(f.duree)}${n ? ' · ' + plural(n, 'pack') : ''}</span></span><span class="foip"><b>${eur(f.prix)}</b><span class="small">${foParTxt(f)}</span></span></button>`;
       })
       .join(
         ''
@@ -686,7 +695,7 @@ function coAbVRow(a, nom) {
     .map(([v, t]) => `<option value="${esc(v)}" ${v === (a.formule || '') ? 'selected' : ''}>${esc(t)}</option>`)
     .join(
       ''
-    )}</select></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0 8px">${f('w', 'Séances par mois', REGLES.parMoisDef(a), 1)}${f('p', 'Prix en euros', a.prix, 0, 1)}<div class="fld"><label for="${k}-e">Par</label><select id="${k}-e" class="co-ave">${PERIODES.map(x => `<option ${x === a.periode ? 'selected' : ''}>${x}</option>`).join('')}</select></div>${f('d', 'Engagement', a.duree, 1)}</div><details class="coabvs"${a.sku || a.url ? ' open' : ''}><summary class="muted small">Vente sur Shopify (facultatif)</summary><div class="fld"><label for="${k}-s">Référence Shopify (SKU)</label><input id="${k}-s" class="co-avs" value="${esc(a.sku || '')}" placeholder="ABO-1"></div><div class="fld"><label for="${k}-u">Lien d’achat Shopify</label><input id="${k}-u" class="co-avu" value="${esc(a.url || '')}" placeholder="https://…"></div></details></div>`;
+    )}</select></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0 8px">${f('w', 'Séances par mois', REGLES.parMoisDef(a), 1)}${f('p', 'Prix en euros', a.prix, 0, 1)}<div class="fld"><label for="${k}-e">Par</label><select id="${k}-e" class="co-ave">${PERIODES.map(x => `<option ${x === a.periode ? 'selected' : ''}>${x}</option>`).join('')}</select></div>${f('d', 'Engagement', a.duree, 1)}</div>${ofVisChk(k + '-m', a)}<details class="coabvs"${a.sku || a.url ? ' open' : ''}><summary class="muted small">Vente sur Shopify (facultatif)</summary><div class="fld"><label for="${k}-s">Référence Shopify (SKU)</label><input id="${k}-s" class="co-avs" value="${esc(a.sku || '')}" placeholder="ABO-1"></div><div class="fld"><label for="${k}-u">Lien d’achat Shopify</label><input id="${k}-u" class="co-avu" value="${esc(a.url || '')}" placeholder="https://…"></div></details></div>`;
 }
 const ofSel = (id, l, opts, sel) =>
   `<div class="fld"><label for="${id}">${l}</label><select id="${id}">${opts.map(([v, t]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`;
@@ -720,7 +729,7 @@ Object.assign(A, {
           ['personne', 'Par personne']
         ],
         f.par
-      )}${ofVente('co-fv', f)}<div class="cotools"><button class="btn">Enregistrer</button>${d.id === 'new' ? '' : ofDel('coFoDel', d.id)}</div></form>`
+      )}${ofVente('co-fv', f)}${ofVisChk('co-fvis', f)}<div class="cotools"><button class="btn">Enregistrer</button>${d.id === 'new' ? '' : ofDel('coFoDel', d.id)}</div></form>`
     );
   },
   coFoDel(d) {
@@ -735,7 +744,7 @@ Object.assign(A, {
       f = foOf(p.formule);
     sheet(
       p.id ? 'Pack de séances' : 'Nouveau pack',
-      `<form class="body" id="co-pk" data-id="${p.id || 'new'}" data-f="${p.formule}"><p class="muted small">${f ? esc(f.nom) + ' · ' + foKind(f) + ' · ' + minTxt(f.duree) + ' · à l’unité : ' + foPrice(f) : ''}</p>${O('co-kn', 'Nom du pack (facultatif)', 'Pack Découverte, Perfectionnement…', p.nom)}${ofNum('co-ks', 'Nombre de séances', p.seances, 1)}${ofNum('co-kp', 'Prix du pack en euros', p.prix)}<p class="muted small" id="co-kx"></p><span class="kicker">Paiement en plusieurs fois</span><div id="co-kr" class="stack">${(p.ech || []).map((s, i) => coKeRow(s, (p.echm || [])[i])).join('')}</div><button type="button" class="btn sm ghost full" data-a="coKeAdd">${ic('plus')}Ajouter un paiement</button><p class="muted small">À quelle séance chaque paiement est dû, et son montant. Vaut pour tous les élèves qui prennent ce pack. Sans montant : à parts égales. Sans ligne : tout d’un coup.</p>${ofVente('co-kv', p)}<div class="cotools"><button class="btn">Enregistrer</button>${p.id ? ofDel('coPkDel', p.id) : ''}</div></form>`
+      `<form class="body" id="co-pk" data-id="${p.id || 'new'}" data-f="${p.formule}"><p class="muted small">${f ? esc(f.nom) + ' · ' + foKind(f) + ' · ' + minTxt(f.duree) + ' · à l’unité : ' + foPrice(f) : ''}</p>${O('co-kn', 'Nom du pack (facultatif)', 'Pack Découverte, Perfectionnement…', p.nom)}${ofNum('co-ks', 'Nombre de séances', p.seances, 1)}${ofNum('co-kp', 'Prix du pack en euros', p.prix)}<p class="muted small" id="co-kx"></p><span class="kicker">Paiement en plusieurs fois</span><div id="co-kr" class="stack">${(p.ech || []).map((s, i) => coKeRow(s, (p.echm || [])[i])).join('')}</div><button type="button" class="btn sm ghost full" data-a="coKeAdd">${ic('plus')}Ajouter un paiement</button><p class="muted small">À quelle séance chaque paiement est dû, et son montant. Vaut pour tous les élèves qui prennent ce pack. Sans montant : à parts égales. Sans ligne : tout d’un coup.</p>${ofVente('co-kv', p)}${ofVisChk('co-kvis', p)}<div class="cotools"><button class="btn">Enregistrer</button>${p.id ? ofDel('coPkDel', p.id) : ''}</div></form>`
     );
     const upd = () => {
       const n = +$('co-ks').value,
@@ -779,6 +788,13 @@ Object.assign(A, {
       const p = v.querySelector('.co-avp');
       if (p) p.focus({ preventScroll: true });
     }
+  },
+  /* visible ou non sur la page de réservation, d'un geste */
+  coVis(d) {
+    const x = (OFFRES[d.t] || []).find(y => y.id === d.id);
+    if (!x) return;
+    x.masque = !x.masque;
+    ofSave(x.masque ? 'Masqué sur ta page de réservation' : 'Visible sur ta page de réservation');
   },
   coFoTab(d) {
     S.foTab = d.k;
@@ -851,6 +867,7 @@ document.addEventListener('submit', e => {
       duree: +v('co-fd'),
       prix: n('co-fp'),
       par: v('co-fpp'),
+      masque: !$('co-fvis').checked,
       ...ofVenteLue('co-fv')
     };
     if (f.dataset.id === 'new') OFFRES.formules.push(Object.assign({ id: nid('f') }, x));
@@ -865,6 +882,7 @@ document.addEventListener('submit', e => {
         nom: v('co-kn'),
         seances: Math.max(2, Math.round(n('co-ks'))),
         prix: n('co-kp'),
+        masque: !$('co-kvis').checked,
         ...ofVenteLue('co-kv')
       },
       lignes = [...document.querySelectorAll('#co-kr .co-ker')]
@@ -905,7 +923,8 @@ document.addEventListener('submit', e => {
             periode: r.querySelector('.co-ave').value,
             duree: Math.max(1, Math.round(num(r, 'd'))),
             sku: r.querySelector('.co-avs').value.trim(),
-            url: r.querySelector('.co-avu').value.trim()
+            url: r.querySelector('.co-avu').value.trim(),
+            masque: !r.querySelector('.co-vis').checked
           },
           lib = r.querySelector('.co-avn').value.trim().slice(0, 60);
         // plusieurs variantes : chacune porte son libellé, l'abonnement est leur ensemble
