@@ -1227,7 +1227,7 @@ function coDash() {
   done.forEach(x => {
     const n = Math.max(1, coStu(x.g).length),
       min = durMin(durAt(x.g, x.d)),
-      f = REGLES.formuleDe(OFFRES, n, min, x.g.sport),
+      f = REGLES.formuleDe(OFFRES, n, min, x.g.sport, x.g.name),
       k = f ? ofLabel('f', f.id) : foKind({ joueurs: n }) + ' · ' + minTxt(min) + ' · ' + x.g.sport;
     (byF[k] = byF[k] || []).push(x);
   });

@@ -446,7 +446,13 @@ function coPayTodo(depuis) {
       Object.keys(x.s.pres)
         .filter(k => x.s.pres[k] === 'P' && coDue(k, x.d) && !((coEl(k) || {}).payIgn || []).includes(x.d))
         .forEach(k => {
-          const f = REGLES.formuleDe(OFFRES, Math.max(1, coStu(x.g).length), durMin(durAt(x.g, x.d)), x.g.sport);
+          const f = REGLES.formuleDe(
+            OFFRES,
+            Math.max(1, coStu(x.g).length),
+            durMin(durAt(x.g, x.d)),
+            x.g.sport,
+            x.g.name
+          );
           out.push({
             id: 's|' + k + '|' + x.d,
             t: esc(svName(k)),
@@ -621,7 +627,7 @@ Object.assign(A, {
       e = coElGet(d.k);
     if (d.v === '1') {
       const n = Math.max(1, coStu(g).length),
-        f = REGLES.formuleDe(OFFRES, n, durMin(g.dur), g.sport),
+        f = REGLES.formuleDe(OFFRES, n, durMin(g.dur), g.sport, g.name),
         prix = f ? REGLES.prixEleve(f, n) : +tarifOf(g).prix || 0;
       e.achats = (e.achats || []).concat({
         id: 'h' + Date.now().toString(36),

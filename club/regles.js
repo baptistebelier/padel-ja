@@ -60,11 +60,29 @@
   }
   /* format d'une séance : 1 individuel, 2 duo, 3 collectif (3 élèves ou plus) */
   const fmt = n => (n >= 3 ? 3 : Math.max(1, n || 1));
-  /* formule de l'enseignant pour une séance de n élèves et de min minutes (même format, même durée) */
-  const formuleDe = (offres, n, min, sport) =>
-    ((offres && offres.formules) || []).find(
+  /* formule de l'enseignant pour une séance de n élèves et de min minutes (même format, même durée).
+     Plusieurs formules au même format (« Collectif à 3 », « Partie dirigée ») : celle qui porte le nom de la séance,
+     puis celle au nombre exact de joueurs, puis la première. */
+  const nomCle = t =>
+    String(t || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  const formuleDe = (offres, n, min, sport, nom) => {
+    const l = ((offres && offres.formules) || []).filter(
       f => fmt(f.joueurs) === fmt(n) && +f.duree === +min && (!sport || !f.sport || f.sport === sport)
-    ) || null;
+    );
+    const c = nomCle(nom);
+    return (
+      (c && l.find(f => nomCle(f.nom) === c)) ||
+      (c && l.find(f => nomCle(f.nom) && c.includes(nomCle(f.nom)))) ||
+      l.find(f => +f.joueurs === +n) ||
+      l[0] ||
+      null
+    );
+  };
   /* prix d'une séance pour UN élève selon une formule (par personne, ou la séance partagée entre les élèves) */
   const prixEleve = (f, n) => (!f ? 0 : f.par === 'personne' ? +f.prix || 0 : (+f.prix || 0) / Math.max(1, n || 1));
   /* ce que rapporte une séance selon le tarif réglé sur le groupe (ancien calcul, gardé comme « valeur des séances ») */
@@ -119,8 +137,7 @@
   const quotaMois = a => (+a.pm > 0 ? Math.round(+a.pm) : +a.freq > 0 ? Math.round((+a.freq * 52) / 12) : 0);
   /* le quota affiché : celui noté sur l'achat, sinon celui de sa définition (parMois), 4 par défaut : la jauge apparaît toujours
      (rien n'est réécrit sur l'achat) */
-  const quotaAffiche = (a, offres) =>
-    quotaMois(a) || parMoisDef(((offres || {}).abos || []).find(x => x.id === a.ref));
+  const quotaAffiche = (a, offres) => quotaMois(a) || parMoisDef(((offres || {}).abos || []).find(x => x.id === a.ref));
   /* le compteur du mois civil : séances de cet abonnement faites ce mois-ci (o.parMois, calculé par couverture) sur son quota ;
      remis à zéro le 1er, sans report, jamais bloquant : 5 sur 4 reste possible (depasse) */
   function moisAbo(a, today, offres) {
@@ -462,11 +479,21 @@
       // format de la séance : ses inscrits (n), sinon ses présents (un duo reste un duo si l'un manque)
       const n = x.n || (x.presents || []).length,
         min = durMin(x.g && durAt(x.g, x.d)),
-        sport = x.sport || (x.g && x.g.sport);
+        sport = x.sport || (x.g && x.g.sport),
+        nom = x.nom || (x.g && x.g.name);
       const gid = x.gid != null ? x.gid : x.g && x.g.id,
         cy = x.cy != null ? x.cy : x.g && gid != null ? (cycleDe(x.g, x.d) || {}).id : undefined;
       (x.presents || []).forEach(k =>
-        (venues[k] = venues[k] || []).push({ d: x.d, min, n, sport, gid: gid == null ? undefined : gid, cy, ac: x.g && achatDe(x.g, k) })
+        (venues[k] = venues[k] || []).push({
+          d: x.d,
+          min,
+          n,
+          sport,
+          nom,
+          gid: gid == null ? undefined : gid,
+          cy,
+          ac: x.g && achatDe(x.g, k)
+        })
       );
     });
     const keys = new Set(Object.keys(eleves || {}).concat(Object.keys(venues)));
@@ -499,7 +526,7 @@
       });
       (venues[k] || []).forEach(v => {
         if (v.d < from || cov.couvre.has(v) || (((eleves || {})[k] || {}).payIgn || []).includes(v.d)) return;
-        const f = formuleDe(offres, v.n, v.min, v.sport);
+        const f = formuleDe(offres, v.n, v.min, v.sport, v.nom);
         if (!f) return;
         nonCouvertes++;
         aEncaisser += prixEleve(f, v.n);
@@ -655,12 +682,19 @@
      un objectif : { nom, ord, comps: [{ id, nom }], ok: { idCompétence: { clé de l'élève: date de validation } }, to | g } ;
      « to » : objectif d'un élève ; « g » : objectif d'un groupe, appliqué à chaque élève du groupe, validé élève par élève. */
   const objDe = (liste, k, groupes) =>
-    (liste || []).filter(o => o && (o.to === k || (o.g && (groupes || []).includes(o.g)))).sort((a, b) => (a.ord || 0) - (b.ord || 0));
+    (liste || [])
+      .filter(o => o && (o.to === k || (o.g && (groupes || []).includes(o.g))))
+      .sort((a, b) => (a.ord || 0) - (b.ord || 0));
   /* avancement d'un objectif pour une ou plusieurs clés d'élèves : compétences validées / compétences à valider */
   function objProgres(o, cles) {
-    const comps = (o && o.comps) || [], ks = [].concat(cles || []);
+    const comps = (o && o.comps) || [],
+      ks = [].concat(cles || []);
     let ok = 0;
-    comps.forEach(c => ks.forEach(k => { if (o.ok && o.ok[c.id] && o.ok[c.id][k]) ok++; }));
+    comps.forEach(c =>
+      ks.forEach(k => {
+        if (o.ok && o.ok[c.id] && o.ok[c.id][k]) ok++;
+      })
+    );
     return { ok, total: comps.length * ks.length, comps: comps.length };
   }
   /* valide ou dévalide une compétence pour un élève ; renvoie vrai si elle est validée après coup */
@@ -679,7 +713,12 @@
   /* séances à venir déjà rattachées à chaque achat : { idAchat: nombre } (séances ponctuelles « achat », dates de cycle exclues) */
   function progParAchat(groupes, today) {
     const m = {};
-    (groupes || []).forEach(g => { if (g && g.once && g.once > today && !(g.cancel || []).includes(g.once)) new Set([g.achat].concat(Object.values(g.achatPar || {})).filter(Boolean)).forEach(id => { m[id] = (m[id] || 0) + 1; }); });
+    (groupes || []).forEach(g => {
+      if (g && g.once && g.once > today && !(g.cancel || []).includes(g.once))
+        new Set([g.achat].concat(Object.values(g.achatPar || {})).filter(Boolean)).forEach(id => {
+          m[id] = (m[id] || 0) + 1;
+        });
+    });
     return m;
   }
   /* les achats qu'une séance peut décompter : pack ou abonnement non terminé (état « En cours »), avec ce qu'il en reste.
@@ -695,9 +734,17 @@
           prog = (programmees && programmees[a.id]) || 0,
           nom = a.nom || (a.t === 'pack' ? 'Pack' : 'Abonnement');
         return {
-          id: a.id, t: a.t, nom, cycle: a.cycle || '', restantes, programmees: prog,
+          id: a.id,
+          t: a.t,
+          nom,
+          cycle: a.cycle || '',
+          restantes,
+          programmees: prog,
           a_programmer: fini ? Math.max(0, restantes - prog) : null,
-          libelle: nom + (fini ? ', ' + restantes + ' restante' + (restantes > 1 ? 's' : '') : '') + (prog ? ' · ' + prog + ' déjà programmée' + (prog > 1 ? 's' : '') : '')
+          libelle:
+            nom +
+            (fini ? ', ' + restantes + ' restante' + (restantes > 1 ? 's' : '') : '') +
+            (prog ? ' · ' + prog + ' déjà programmée' + (prog > 1 ? 's' : '') : '')
         };
       });
   }
@@ -706,11 +753,25 @@
   function seanceElevePlan(o) {
     const [y, m, d] = String(o.date).split('-'),
       g = {
-        type: 'train', name: o.nom || 'Cours individuel', sport: o.sport || 'Padel', once: o.date, day: dowOf(o.date), h: o.h, dur: o.dur || '1 h',
-        defLoc: o.lieu || 'En salle', coach: o.coach, mem: o.mem || [], ext: o.ext || [], sub: d + '/' + m + '/' + y + ' ' + o.h + ' · ' + (o.dur || '1 h'),
-        tarif: { mode: 'seance', prix: o.achat ? 0 : +o.prix || 0 }, at: o.at || Date.now()
+        type: 'train',
+        name: o.nom || 'Cours individuel',
+        sport: o.sport || 'Padel',
+        once: o.date,
+        day: dowOf(o.date),
+        h: o.h,
+        dur: o.dur || '1 h',
+        defLoc: o.lieu || 'En salle',
+        coach: o.coach,
+        mem: o.mem || [],
+        ext: o.ext || [],
+        sub: d + '/' + m + '/' + y + ' ' + o.h + ' · ' + (o.dur || '1 h'),
+        tarif: { mode: 'seance', prix: o.achat ? 0 : +o.prix || 0 },
+        at: o.at || Date.now()
       };
-    if (o.achat) { g.achat = o.achat.id; g.couvert = o.achat.t; }
+    if (o.achat) {
+      g.achat = o.achat.id;
+      g.couvert = o.achat.t;
+    }
     if (o.theme) g.goal = o.theme;
     if (o.lieu) g.locPref = 1;
     return g;

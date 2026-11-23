@@ -27,6 +27,18 @@ test('jours de cours : chaque semaine, cycle, vacances, séance déplacée, une 
   assert.equal(R.durMin('45 min'), 45);
 });
 
+test('formule correspondante : au même format, le nom de la séance puis le nombre exact de joueurs', () => {
+  const o = { formules: [
+    { id: 'c3', nom: 'Collectif à 3', joueurs: 3, duree: 90, prix: 28, par: 'personne' },
+    { id: 'c4', nom: 'Collectif à 4', joueurs: 4, duree: 90, prix: 25, par: 'personne' },
+    { id: 'pd', nom: 'Partie dirigée', joueurs: 3, duree: 90, prix: 15, par: 'personne' }
+  ] };
+  assert.equal(R.formuleDe(o, 3, 90, 'Padel', 'Partie dirigée').id, 'pd', 'séance « Partie dirigée » : 15 €');
+  assert.equal(R.formuleDe(o, 3, 90, 'Padel', 'partie dirigee du vendredi').id, 'pd');
+  assert.equal(R.formuleDe(o, 4, 90).id, 'c4', '4 élèves : collectif à 4');
+  assert.equal(R.formuleDe(o, 3, 90, '', 'Entraînement').id, 'c3');
+});
+
 test('formule correspondante : même format et même durée', () => {
   assert.equal(R.formuleDe(OFFRES, 1, 60).id, 'ind');
   assert.equal(R.formuleDe(OFFRES, 6, 90).id, 'col', 'collectif à 6 : formule collectif');
