@@ -2062,3 +2062,7 @@ select option { background: var(--c-surface); color: var(--c-text); }
   :root #main .bvbox:not(.bvagb) .lis { background: var(--c-surface) !important; border: var(--bw, 2px) solid var(--c-ink) !important; box-shadow: var(--sh) !important; }
   :root #main .bvbox:not(.bvagb) :is(.card, .post) :is(.card, .post) { background: none !important; border-width: 0 !important; box-shadow: none !important; padding: 0 !important; }
 }
+
+/* bloc « Lien d’inscription public » des parties par niveau : icône à taille fixe (elle prenait toute la largeur) */
+.nv-lien { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.nv-lien .row > svg, .nv-lien .btn svg { width: 20px; height: 20px; flex: none; }

@@ -87,7 +87,8 @@
     // filtre par sport (chaque événement porte son sport et son type)
     if (d.tournaments && sportChoisi()) d.tournaments = d.tournaments.filter(t => (t.sport || 'Padel') === sportChoisi());
     // À venir : le plus proche d'abord ; En cours : le plus récent ; Clôturés : le plus récent
-    const today = new Date().toISOString().slice(0, 10), started = t => t.drawn || (t.dateStart && t.dateStart <= today);
+    // la date du jour à l'heure de l'appareil (comme les dates des tournois), pas en heure universelle : sinon, entre minuit et 1 h, un tournoi du jour passait en « À venir »
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10), started = t => t.drawn || (t.dateStart && t.dateStart <= today);
     const up = d.tournaments.filter(t => !t.closed && !started(t)).sort((x, y) => String(x.dateStart || '9').localeCompare(String(y.dateStart || '9')));
     const live = d.tournaments.filter(t => !t.closed && started(t)).sort((x, y) => (y.updated_at || 0) - (x.updated_at || 0));
     const closed = d.tournaments.filter(t => t.closed).sort((x, y) => (y.closedAt || 0) - (x.closedAt || 0));

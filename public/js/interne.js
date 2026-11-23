@@ -30,7 +30,7 @@
   else root.Int = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);   // date à l'heure de l'appareil
   const isInterne = T => !!(T && T.kind === 'interne' && T.int);
   const TOURS = ['Finale', 'Demi-finales', 'Quarts de finale', 'Huitièmes de finale', 'Seizièmes de finale', '32es de finale', '64es de finale'];
 
