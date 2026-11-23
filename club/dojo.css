@@ -2369,3 +2369,6 @@ select option { background: var(--c-surface); color: var(--c-text); }
 .focv .ib { width: 32px; height: 32px; }
 .fomasq { align-self: flex-start; margin-top: 4px; }
 .fovischk { margin: 4px 0; }
+/* ligne de l'heure actuelle sur le planning (jour et semaine), au-dessus des cours */
+.conow { position: absolute; height: 2px; margin-top: -1px; background: var(--hot); z-index: 6; pointer-events: none; }
+.conow i { position: absolute; left: -6px; top: -5px; width: 12px; height: 12px; border-radius: 50%; background: var(--hot); }

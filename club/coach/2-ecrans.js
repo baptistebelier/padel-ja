@@ -493,6 +493,27 @@ const coTopClub = () =>
     : '';
 /* ---------- vue jour : un quadrillage d'heures ; le libre en fond, les cours dessus ---------- */
 const CO_H = 56; // hauteur d'une heure, en pixels
+/* ligne de l'heure actuelle, comme dans un agenda : sur le jour d'aujourd'hui, elle descend en temps réel
+   (data-lo : première heure de la grille, data-h : hauteur d'une heure en pixels) */
+const coMinNow = () => {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+};
+const coNow = (lo, hi, h, style) => {
+  const m = coMinNow();
+  return m < lo * 60 || m > hi * 60
+    ? ''
+    : `<div class="conow" data-lo="${lo}" data-hi="${hi}" data-h="${h}" style="top:${((m - lo * 60) / 60) * h}px;${style}" aria-hidden="true"><i></i></div>`;
+};
+setInterval(() => {
+  const m = coMinNow();
+  document.querySelectorAll('.conow').forEach(el => {
+    const lo = +el.dataset.lo,
+      hi = +el.dataset.hi;
+    el.hidden = m < lo * 60 || m > hi * 60;
+    el.style.top = ((m - lo * 60) / 60) * +el.dataset.h + 'px';
+  });
+}, 30000);
 function coPlanJour() {
   const d = S.pl.j || TODAY,
     l = coSessions(d, d, '', 1),
@@ -517,7 +538,7 @@ function coPlanJour() {
   let lignes = '';
   for (let h = lo; h < hi; h++)
     lignes += `<div class="cogh" style="top:${(h - lo) * CO_H}px"><span>${h} h</span></div>`;
-  return `<div class="pad covuej">${coPlanTools()}<div class="card coweek" style="display:flex"><button class="ib" data-a="coJour" data-n="-1" aria-label="Jour précédent">${ic('back')}</button><span class="grow" style="text-align:center"><b>${DAYS[coDow(d)]} ${+d.slice(8)} ${MO[+d.slice(5, 7) - 1]}</b><br><span class="muted small">${d === TODAY ? "Aujourd'hui · " : ''}${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}</span></span><button class="ib flip" data-a="coJour" data-n="1" aria-label="Jour suivant">${ic('back')}</button></div>${coCollHtml(d)}<div class="card cogrid" style="height:${(hi - lo) * CO_H}px">${lignes}${libres.map(p => `<div class="cogfree" style="top:${y(p.du)}px;height:${y(p.au) - y(p.du)}px"><span>Libre${p.lieu ? ' · ' + esc(p.lieu) : ''}</span></div>`).join('')}${blocs.map(({ x, du, au, n }) => `<button class="cogb${isCx(x.g, x.d) ? ' cx' : ''}" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}" style="top:${y(du)}px;height:${y(au) - y(du)}px;left:calc(44px + (100% - 48px) * ${n} / ${nb});width:calc((100% - 48px) / ${nb} - 2px)"><b>${esc(hAt(x.g, x.d))}${isCx(x.g, x.d) ? ' · annulé' : ''}</b> ${esc(x.g.name)}</button>`).join('')}</div></div>`;
+  return `<div class="pad covuej">${coPlanTools()}<div class="card coweek" style="display:flex"><button class="ib" data-a="coJour" data-n="-1" aria-label="Jour précédent">${ic('back')}</button><span class="grow" style="text-align:center"><b>${DAYS[coDow(d)]} ${+d.slice(8)} ${MO[+d.slice(5, 7) - 1]}</b><br><span class="muted small">${d === TODAY ? "Aujourd'hui · " : ''}${plural(l.filter(x => !isCx(x.g, x.d)).length, 'séance')}</span></span><button class="ib flip" data-a="coJour" data-n="1" aria-label="Jour suivant">${ic('back')}</button></div>${coCollHtml(d)}<div class="card cogrid" style="height:${(hi - lo) * CO_H}px">${lignes}${d === TODAY ? coNow(lo, hi, CO_H, 'left:44px;right:4px') : ''}${libres.map(p => `<div class="cogfree" style="top:${y(p.du)}px;height:${y(p.au) - y(p.du)}px"><span>Libre${p.lieu ? ' · ' + esc(p.lieu) : ''}</span></div>`).join('')}${blocs.map(({ x, du, au, n }) => `<button class="cogb${isCx(x.g, x.d) ? ' cx' : ''}" data-a="open" data-v="seance" data-id="${sesKey(x.g, x.d)}" style="top:${y(du)}px;height:${y(au) - y(du)}px;left:calc(44px + (100% - 48px) * ${n} / ${nb});width:calc((100% - 48px) / ${nb} - 2px)"><b>${esc(hAt(x.g, x.d))}${isCx(x.g, x.d) ? ' · annulé' : ''}</b> ${esc(x.g.name)}</button>`).join('')}</div></div>`;
 }
 /* ---------- vue mois : chaque jour, ses cours ; toucher un jour l'ouvre ---------- */
 function coPlanMois() {
@@ -623,7 +644,7 @@ function coPlanning() {
       .join('');
   return `<div class="pad covues">${coPlanTools()}
 <div class="card coweek" style="display:flex"><button class="ib" data-a="coWeek" data-n="-1" aria-label="Semaine précédente">${ic('back')}</button><span class="grow" style="text-align:center"><b>Semaine du ${+from.slice(8)} ${MO[+from.slice(5, 7) - 1]}</b><br><span class="muted small">${n}${S.pl.w ? '' : ' · cette semaine'}</span></span><button class="ib flip" data-a="coWeek" data-n="1" aria-label="Semaine suivante">${ic('back')}</button></div>
-<div class="card cowg"><div class="cowh"><div class="cowjs">${tete}</div>${vac ? `<div class="cowvs">${vac}</div>` : ''}</div><div class="cowc" style="height:${(hi - lo) * CO_HW}px">${lignes}${fond}${corps}</div></div>${jours.map(coCollHtml).join('')}${stages.length ? hd('Stages') + list(stages.map(p => `<div class="item"><button class="grow row" data-a="open" data-v="post" data-id="${p.id}" style="gap:10px;text-align:left"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(String(p.title).replace(/<[^>]*>/g, ''))}</span><br><span class="muted small">${esc(p.date || '')}${typeof prixTxt === 'function' && prixTxt(p) ? ' · ' + prixTxt(p) : ''}${typeof ensTxt === 'function' && ensTxt(p) ? ' · avec ' + esc(ensTxt(p)) : ''}</span></span></button><button class="btn sm ghost" data-a="pedit" data-id="${p.id}">${ic('edit')}Modifier</button></div>`).join('')) : ''}</div>`;
+<div class="card cowg"><div class="cowh"><div class="cowjs">${tete}</div>${vac ? `<div class="cowvs">${vac}</div>` : ''}</div><div class="cowc" style="height:${(hi - lo) * CO_HW}px">${lignes}${fond}${corps}${jours.includes(TODAY) ? coNow(lo, hi, CO_HW, pos(jours.indexOf(TODAY))) : ''}</div></div>${jours.map(coCollHtml).join('')}${stages.length ? hd('Stages') + list(stages.map(p => `<div class="item"><button class="grow row" data-a="open" data-v="post" data-id="${p.id}" style="gap:10px;text-align:left"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${esc(String(p.title).replace(/<[^>]*>/g, ''))}</span><br><span class="muted small">${esc(p.date || '')}${typeof prixTxt === 'function' && prixTxt(p) ? ' · ' + prixTxt(p) : ''}${typeof ensTxt === 'function' && ensTxt(p) ? ' · avec ' + esc(ensTxt(p)) : ''}</span></span></button><button class="btn sm ghost" data-a="pedit" data-id="${p.id}">${ic('edit')}Modifier</button></div>`).join('')) : ''}</div>`;
 }
 /* actions d'une séance : une grille de tuiles avec pictogramme (lieu, annuler, reporter, changer la date, supprimer) */
 function coActs(g, d, loc, cx) {
