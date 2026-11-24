@@ -451,10 +451,20 @@ function coPlDay() {
   if (Number.isInteger(S.pl.d) && (S.pl.d > 0 || S.pl.w)) return S.pl.d;
   return S.pl.w ? 0 : (coDow(TODAY) + 6) % 7;
 }
-/* collectifs à moi qui n'ont pas encore leur minimum : ils ne bloquent rien et ne comptent pas comme des cours */
+/* collectifs à moi qui n'ont pas encore leur minimum : ils ne bloquent rien et ne comptent pas comme des cours ;
+   pas de rappel une fois la date passée, ni pour un collectif « complet dès le départ » (l'enseignant y ajoute ses élèves lui-même) */
 const coCollAtt = d =>
   posts
-    .filter(p => p.kind === 'niveaux' && p.nv && !p.arch && coIsMe(p.by) && (p.nv.dates || []).includes(d))
+    .filter(
+      p =>
+        d >= TODAY &&
+        p.kind === 'niveaux' &&
+        p.nv &&
+        !p.nv.complet &&
+        !p.arch &&
+        coIsMe(p.by) &&
+        (p.nv.dates || []).includes(d)
+    )
     .filter(p => !nvState(p.nv, d).win)
     .map(p => ({ p, n: Object.values(nvState(p.nv, d).lists).flat().length }));
 const coCollHtml = d =>
