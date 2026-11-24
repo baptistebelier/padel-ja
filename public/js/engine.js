@@ -759,7 +759,7 @@
       if (r.state === 'done' && m.startedAt) { start = m.startedAt; end = m.endedAt || m.startedAt + durOf(T, r.fk); }
       else if (r.state === 'done') { start = Q.free; end = m.endedAt || start; }
       else if (m.status === 'live' && m.startedAt) { start = m.startedAt; end = Math.max(now + 5 * MIN, start + durOf(T, r.fk)); }
-      else { start = Math.max(Q.free, ready, floor); end = start + durOf(T, r.fk); }
+      else { start = Math.max(Q.free, ready, floor, +m.notBefore || 0); end = start + durOf(T, r.fk); }   // notBefore : heure posée sur l'agenda de la programmation
       times[m.id] = { start, end, court: Q.c.id };
       [r.A, r.B].forEach(p => { if (p && p !== 'BYE') pairFree[p] = end + restOf(r.fk); });
       Q.free = end; Q.i++;
@@ -780,7 +780,7 @@
   function autoSchedule(T) {
     const R = resolve(T);
     const now = Date.now();
-    T.matches.forEach(m => { if (R[m.id].state !== 'done' && m.status !== 'live') { m.court = null; m.order = null; } });
+    T.matches.forEach(m => { if (R[m.id].state !== 'done' && m.status !== 'live') { m.court = null; m.order = null; m.notBefore = null; } });
     const kept = timeline(T, R, now);
     const free = {}, count = {};
     T.courts.forEach(c => {
@@ -819,10 +819,13 @@
     }
   }
 
-  function moveMatch(T, id, court, index) {
+  /* at : heure (ms) où le match est posé sur l'agenda ; il ne commencera pas avant (null : pas d'heure fixe) */
+  function moveMatch(T, id, court, index, at) {
     const m = T.matches.find(x => x.id === id); if (!m) return;
     const oldCourt = m.court;
     m.court = court || null;
+    if (at !== undefined) m.notBefore = m.court && +at > 0 ? Math.round(+at / (5 * MIN)) * 5 * MIN : null;
+    if (!m.court) m.notBefore = null;
     const renum = cid => {
       const list = T.matches.filter(x => x.court === cid && x !== m).sort((a, b) => a.order - b.order);
       if (cid === m.court) { const i = Math.max(0, Math.min(index == null ? list.length : index, list.length)); list.splice(i, 0, m); }
@@ -1369,8 +1372,8 @@
         }
         break;
       }
-      case 'schedule/move': moveMatch(T, p.id, p.court, p.index); break;
-      case 'schedule/clear': T.matches.forEach(m => { if (m.status === 'pending') { m.court = null; m.order = null; } }); break;
+      case 'schedule/move': moveMatch(T, p.id, p.court, p.index, p.at); break;
+      case 'schedule/clear': T.matches.forEach(m => { if (m.status === 'pending') { m.court = null; m.order = null; m.notBefore = null; } }); break;
 
       case 'template/apply': applyTemplate(T, p.template); break;
       case 'profile/apply': applyProfile(T, p.profile); break;

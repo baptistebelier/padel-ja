@@ -1084,9 +1084,54 @@ button.ps-more .ic, .ps-ib .ic { width: 20px; height: 20px; }
 /* Programmation : intercalaires, terrains sur une largeur qui tient, « À programmer » à droite */
 #tab-programmation[data-ps-view='sched'] #orderCard, #tab-programmation[data-ps-view='order'] .ps-schedcard { display: none; }
 .ps-schedcard #schedAuto, .ps-schedcard #schedClear { display: none; }
-#sched { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) minmax(230px, 280px); gap: 0 12px; overflow: visible; align-items: start; padding-right: 0; }
-#sched .scol { width: auto; min-width: 0; margin-bottom: 12px; }
-#sched .scol:first-child { grid-column: -2 / -1; grid-row: 1 / span 12; }
+#sched { display: block; overflow: visible; padding-right: 0; }
+/* agenda : une colonne par terrain, l'heure de haut en bas, « À programmer » à droite */
+.agd { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 280px); gap: 12px; align-items: start; }
+.agd-scroll { overflow-x: auto; min-width: 0; background: var(--c-surface); box-shadow: var(--sh-sm); border: var(--bw) solid var(--c-ink); }
+.agd-grid { --agd-head: 52px; position: relative; display: grid; grid-template-columns: 54px repeat(var(--n), minmax(170px, 1fr)); grid-template-rows: var(--agd-head) auto; min-width: calc(54px + var(--n) * 170px); }
+.agd-corner, .agd-h { position: sticky; top: 0; z-index: 3; background: var(--c-hero); color: var(--c-on-hero); border-bottom: var(--bw) solid var(--c-ink); }
+.agd-h { padding: 7px 10px; border-left: 1px solid color-mix(in srgb, var(--c-on-hero) 25%, transparent); min-width: 0; }
+.agd-h b { display: block; font: 400 20px/1.1 var(--f-display); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agd-h small { display: block; font: 700 12px var(--f-label); letter-spacing: .06em; text-transform: uppercase; opacity: .85; white-space: nowrap; }
+.agd-hours { position: relative; border-right: 1px solid color-mix(in srgb, var(--c-muted) 40%, transparent); }
+.agd-hours span { position: absolute; right: 6px; transform: translateY(-50%); font: 700 12px var(--f-label); color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.agd-hours span:first-child { transform: none; }
+.agd-col { position: relative; border-left: 1px solid color-mix(in srgb, var(--c-muted) 25%, transparent);
+  background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--c-muted) 30%, transparent) 0 1px, transparent 1px 48px, color-mix(in srgb, var(--c-muted) 12%, transparent) 48px 49px, transparent 49px 96px); }
+.agd-col.over { background-color: color-mix(in srgb, var(--c-lime) 10%, transparent); }
+.agd-b { position: absolute; left: 4px; right: 4px; margin: 0; padding: 5px 8px; overflow: hidden; display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; line-height: 1.25; border-left: 5px solid var(--c-lime); z-index: 1; }
+.agd-b.st-live { border-left-color: var(--c-pink); }
+.agd-b.st-done { border-left-color: var(--c-muted); }
+.agd-bh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; padding-right: 64px; }
+.agd-bh b { font: 400 15px var(--f-display); }
+.agd-bh span { font-variant-numeric: tabular-nums; }
+.agd-fk { color: var(--c-muted); font-size: 12px; flex-basis: 100%; }
+.agd-pin { font-style: normal; font: 700 12px var(--f-label); padding: 1px 4px; background: var(--c-lime); color: #0E1104; }
+.agd-tm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agd-b .sc-acts { position: absolute; top: 3px; right: 3px; display: flex; gap: 2px; }
+.agd-b .sc-acts button { width: 24px; height: 24px; min-width: 0; min-height: 0; padding: 0; display: inline-grid; place-items: center; box-shadow: none !important; border-width: 1px; }
+.agd-b .sc-acts button svg { width: 14px; height: 14px; }
+.agd-bh { padding-right: 80px; flex-wrap: nowrap; white-space: nowrap; }
+.agd-bh span:not(.agd-fk) { overflow: hidden; text-overflow: ellipsis; }
+.agd-fk { position: absolute; left: 8px; bottom: 4px; right: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agd-b.agd-s .agd-fk { display: none; }
+.agd-b.agd-xs { flex-direction: row; align-items: center; gap: 6px; padding: 2px 6px; }
+.agd-b.agd-xs .agd-fk, .agd-b.agd-xs .agd-tm + .agd-tm, .agd-b.agd-xs .agd-pin { display: none; }
+.agd-b.agd-xs .agd-bh { flex-wrap: nowrap; padding-right: 0; }
+.agd-b.agd-xs .sc-acts { position: static; margin-left: auto; }
+.agd-drop { position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed var(--c-ink); z-index: 4; pointer-events: none; }
+.agd-drop::after { content: attr(data-h); position: absolute; left: 4px; top: -11px; font: 700 12px var(--f-label); background: var(--c-ink); color: var(--c-surface); padding: 1px 5px; }
+.agd-now { position: absolute; left: 54px; right: 0; height: 2px; margin-top: -1px; background: var(--c-pink); z-index: 5; pointer-events: none; }
+.agd-now i { position: absolute; left: -6px; top: -5px; width: 12px; height: 12px; border-radius: 50%; background: var(--c-pink); }
+.agd-now span { position: absolute; left: -52px; top: -9px; width: 46px; text-align: right; font: 700 12px var(--f-label); color: var(--c-pink); font-variant-numeric: tabular-nums; }
+.agd-side { width: auto; min-width: 0; position: sticky; top: 12px; }
+.agd-side .scol-h { background: var(--c-pink); color: var(--c-dark); }
+.agd-side .scol-b { max-height: 70vh; overflow-y: auto; }
+.agd-side.over { outline: 2px dashed var(--c-ink); }
+.agd-days { display: flex; gap: 0; margin: 0; }
+.agd-days button { border-bottom: 0; }
+.agd-days button[aria-selected="true"] { background: var(--c-lime); color: var(--c-dark); }
+@media (max-width: 1100px) { .agd { grid-template-columns: minmax(0, 1fr); } .agd-side { position: static; order: -1; } .agd-side .scol-b { max-height: 260px; } }
 
 /* Direct & repos : cartes de terrain posées sur la page, colonne de droite Repos des joueurs et À suivre */
 .card:has(> #liveList) { padding: 0; background: none; border: 0; box-shadow: none; }

@@ -1321,13 +1321,7 @@
     $('#schedWarn').innerHTML = W.slice(0, 6).map(w => `<div class="alert ${w.lvl}">${esc(w.msg)}</div>`).join('') + (W.length > 6 ? `<div class="muted small">+ ${W.length - 6} autre(s) alerte(s) — onglet Direct & repos</div>` : '');
     const list = S.matches.filter(m => !R[m.id].staticBye);
     const unsched = list.filter(m => !m.court && R[m.id].state !== 'done').sort((a, b) => a.num - b.num);
-    const col = (cid, title, items, sub) => `<div class="scol" data-court="${cid}"><div class="scol-h"><b>${esc(title)}</b><small>${sub || ''}</small></div><div class="scol-b">${items.map(m => schedCard(m, tl, PS)).join('') || '<div class="drop-hint">Déposez un match ici</div>'}</div></div>`;
-    $('#sched').innerHTML = col('', 'À programmer', unsched, unsched.length + ' match(s)') +
-      S.courts.map(c => {
-        const items = list.filter(m => m.court === c.id).sort((a, b) => a.order - b.order);
-        const last = items.length ? tl[items[items.length - 1].id] : null;
-        return col(c.id, c.name, items, `Début ${c.start}${last ? ' · fin ~' + A.hhmm(last.end) : ''}`);
-      }).join('');
+    agendaSched(list, unsched, tl, PS);
     $$('#sched .scard').forEach(card => {
       const id = card.dataset.id, m = S.matches.find(x => x.id === id);
       card.ondragstart = e => { dragging = true; e.dataTransfer.setData('text/plain', id); card.classList.add('drag'); };
@@ -1337,27 +1331,100 @@
       b('[data-open]', () => openMatchModal(id));
       const mb = $('[data-more]', card);
       if (mb) mb.onclick = e => { e.stopPropagation(); psMenu(mb, [
-        m.court && ['Monter', PSI.up, () => send('schedule/move', { id, court: m.court, index: Math.max(0, m.order - 1) })],
-        m.court && ['Descendre', PSI.down, () => send('schedule/move', { id, court: m.court, index: m.order + 1 })],
+        m.court && ['Monter', PSI.up, () => send('schedule/move', { id, court: m.court, index: Math.max(0, m.order - 1), at: null })],
+        m.court && ['Descendre', PSI.down, () => send('schedule/move', { id, court: m.court, index: m.order + 1, at: null })],
+        m.court && m.notBefore && ['Enlever l’heure fixe', PSI.x, () => send('schedule/move', { id, court: m.court, index: m.order, at: null })],
         m.court && ['Retirer du créneau', PSI.x, () => send('schedule/move', { id, court: null })],
         !m.court && ['Ouvrir le match', PSI.edit, () => openMatchModal(id)]
       ]); };
       card.ondblclick = () => openMatchModal(id);
     });
-    $$('#sched .scol').forEach(colEl => {
-      colEl.ondragover = e => { e.preventDefault(); colEl.classList.add('over'); };
-      colEl.ondragleave = () => colEl.classList.remove('over');
+    // « À programmer » : retirer un match de l'agenda
+    $$('#sched .agd-side').forEach(side => {
+      side.ondragover = e => { e.preventDefault(); side.classList.add('over'); };
+      side.ondragleave = () => side.classList.remove('over');
+      side.ondrop = e => { e.preventDefault(); side.classList.remove('over'); dragging = false; const id = e.dataTransfer.getData('text/plain'); if (id) send('schedule/move', { id, court: null }); };
+    });
+    // une colonne de terrain : le match est posé à l'heure du dépôt (pas de 5 min), et rangé à sa place dans la file du terrain
+    $$('#sched .agd-col').forEach(colEl => {
+      const atOf = e => {
+        const y = e.clientY - colEl.getBoundingClientRect().top - (agdGrab || 0);
+        return agd.lo + Math.max(0, Math.round(y / AGD_PX / 5) * 5) * 60000;
+      };
+      const guide = $('.agd-drop', colEl);
+      colEl.ondragover = e => {
+        e.preventDefault(); colEl.classList.add('over');
+        const at = atOf(e);
+        guide.hidden = false; guide.style.top = ((at - agd.lo) / 60000) * AGD_PX + 'px'; guide.dataset.h = A.hhmm(at);
+      };
+      colEl.ondragleave = e => { if (!colEl.contains(e.relatedTarget)) { colEl.classList.remove('over'); guide.hidden = true; } };
       colEl.ondrop = e => {
-        e.preventDefault(); colEl.classList.remove('over'); dragging = false;
-        const id = e.dataTransfer.getData('text/plain');
-        const court = colEl.dataset.court || null;
-        const cards = $$('.scard', colEl).filter(c => c.dataset.id !== id);
-        let index = cards.length;
-        for (let i = 0; i < cards.length; i++) { const r = cards[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { index = i; break; } }
-        send('schedule/move', { id, court, index });
+        e.preventDefault(); colEl.classList.remove('over'); guide.hidden = true; dragging = false;
+        const id = e.dataTransfer.getData('text/plain'); if (!id) return;
+        const court = colEl.dataset.court, at = atOf(e);
+        const index = list.filter(x => x.court === court && x.id !== id && tl[x.id] && tl[x.id].start < at).length;
+        send('schedule/move', { id, court, index, at });
       };
     });
   }
+
+  /* ---------- Programmation en agenda : une colonne par terrain, l'heure de haut en bas ----------
+     Chaque match prend la hauteur de sa durée estimée (onglet Tournoi), à l'heure calculée par le moteur
+     (file du terrain, repos obligatoires, matchs dont il dépend, heure posée). Une ligne marque l'heure actuelle. */
+  const AGD_PX = 1.6;                 // pixels par minute (96 px par heure)
+  let agd = { lo: 0, hi: 0 }, agdGrab = 0, agdDay = null;
+  const dayOf = ts => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  function agdBlock(m, t) {
+    const r = R[m.id], top = ((t.start - agd.lo) / 60000) * AGD_PX, h = Math.max(26, ((t.end - t.start) / 60000) * AGD_PX - 3);
+    const taille = h < 46 ? ' agd-xs' : h < 80 ? ' agd-s' : '';
+    const quand = r.state === 'live' ? 'En cours' : r.state === 'done' ? E.scoreText(r) : A.hhmm(t.start);
+    const menu = r.state !== 'done' && m.status !== 'live';
+    return `<div class="scard agd-b st-${r.state}${taille}" style="top:${top}px;height:${h}px" draggable="${r.state === 'done' || m.status === 'live' ? 'false' : 'true'}" data-id="${m.id}" title="M${m.num} · ${esc(A.sideName(m, 'A'))} contre ${esc(A.sideName(m, 'B'))}">
+      <div class="agd-bh"><b>M${m.num}</b><span>${esc(quand)}</span>${m.notBefore && r.state !== 'done' && m.status !== 'live' ? `<i class="agd-pin" title="Heure posée : pas avant ${A.hhmm(m.notBefore)}">${A.hhmm(m.notBefore)}</i>` : ''}<span class="agd-fk">${r.state === 'done' ? 'Joué' : 'Fin ~' + A.hhmm(t.end)} · ${r.fk} · ${esc(E.matchLabel(m))}</span></div>
+      <div class="agd-tm">${esc(A.sideName(m, 'A'))}</div><div class="agd-tm">${esc(A.sideName(m, 'B'))}</div>
+      <span class="sc-acts">${r.state === 'ready' ? `<button class="accent ps-ib" data-start aria-label="Lancer le match M${m.num}">${PSI.play}</button>` : ''}<button class="ps-ib" data-open aria-label="Score du match M${m.num}">${PSI.edit}</button>${menu ? `<button class="ps-more" data-more aria-label="Plus d'actions pour M${m.num}" aria-haspopup="menu">${PSI.more}</button>` : ''}</span>
+    </div>`;
+  }
+  function agendaSched(list, unsched, tl, PS) {
+    const placed = list.filter(m => m.court && tl[m.id]);
+    // les journées du tournoi (un tournoi sur plusieurs jours : une journée à la fois)
+    const days = [...new Set(placed.map(m => dayOf(tl[m.id].start)).concat(S.tournament.dateStart || dayOf(Date.now())))].sort();
+    const today = dayOf(Date.now());
+    if (!days.includes(agdDay)) agdDay = days.includes(today) ? today : days[0];
+    const inDay = m => dayOf(tl[m.id].start) === agdDay;
+    const starts = S.courts.map(c => new Date(`${agdDay}T${c.start || S.tournament.startTime || '09:00'}:00`).getTime());
+    const ts = placed.filter(inDay).map(m => tl[m.id]);
+    const H = 3600000;
+    let lo = Math.min(...starts, ...ts.map(t => t.start)), hi = Math.max(...ts.map(t => t.end), lo + 4 * H);
+    lo = Math.floor(lo / H) * H; hi = Math.ceil(hi / H) * H + H;   // une heure libre en bas pour poser un match à la suite
+    agd = { lo, hi };
+    const height = ((hi - lo) / 60000) * AGD_PX;
+    const hours = []; for (let t = lo; t <= hi; t += H) hours.push(t);
+    const now = Date.now(), nowTop = now >= lo && now <= hi ? ((now - lo) / 60000) * AGD_PX : null;
+    const dayTabs = days.length > 1 ? `<div class="agd-days" role="tablist">${days.map(d => `<button type="button" role="tab" data-agd-day="${d}" aria-selected="${d === agdDay}">${esc(new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }))}</button>`).join('')}</div>` : '';
+    const keep = $('.agd-scroll'), sl = keep ? keep.scrollLeft : 0;
+    $('#sched').innerHTML = `${dayTabs}<div class="agd">
+      <div class="agd-scroll"><div class="agd-grid" style="--n:${S.courts.length}">
+        <div class="agd-corner"></div>
+        ${S.courts.map(c => { const items = placed.filter(m => m.court === c.id && inDay(m)); const last = items.length ? Math.max(...items.map(m => tl[m.id].end)) : 0; return `<div class="agd-h"><b>${esc(c.name)}</b><small>${items.length} match${items.length > 1 ? 's' : ''}${last ? ' · fin ~' + A.hhmm(last) : ''}</small></div>`; }).join('')}
+        <div class="agd-hours" style="height:${height}px">${hours.map(t => `<span style="top:${((t - lo) / 60000) * AGD_PX}px">${A.hhmm(t)}</span>`).join('')}</div>
+        ${S.courts.map(c => `<div class="agd-col" data-court="${c.id}" style="height:${height}px">${placed.filter(m => m.court === c.id && inDay(m)).map(m => agdBlock(m, tl[m.id])).join('')}<div class="agd-drop" hidden></div></div>`).join('')}
+        ${nowTop != null ? `<div class="agd-now" style="top:calc(var(--agd-head) + ${nowTop}px)" data-lo="${lo}" aria-hidden="true"><i></i><span>${A.hhmm(now)}</span></div>` : ''}
+      </div></div>
+      <aside class="agd-side scol" data-court=""><div class="scol-h"><b>À programmer</b><small>${unsched.length} match(s) · glissez-les sur un terrain</small></div><div class="scol-b">${unsched.map(m => schedCard(m, tl, PS)).join('') || '<div class="drop-hint">Tout est programmé. Déposez ici un match à retirer de l’agenda.</div>'}</div></aside>
+    </div>`;
+    const sc = $('.agd-scroll'); if (sc) sc.scrollLeft = sl;
+    $$('#sched [data-agd-day]').forEach(b => b.onclick = () => { agdDay = b.dataset.agdDay; renderSched(); });
+    // la prise du bloc : l'heure de dépôt est celle du haut du bloc, pas celle du curseur
+    $$('#sched .agd-b').forEach(b => b.addEventListener('dragstart', e => { agdGrab = e.clientY - b.getBoundingClientRect().top; }));
+    $$('#sched .agd-side .scard').forEach(b => b.addEventListener('dragstart', () => { agdGrab = 0; }));
+  }
+  // la ligne de l'heure actuelle descend toute seule (le reste de l'agenda se redessine toutes les 15 s)
+  setInterval(() => {
+    const l = document.querySelector('#sched .agd-now'); if (!l) return;
+    const now = Date.now(), y = ((now - +l.dataset.lo) / 60000) * AGD_PX;
+    l.style.top = `calc(var(--agd-head) + ${y}px)`; const s = l.querySelector('span'); if (s) s.textContent = A.hhmm(now);
+  }, 20000);
 
   /* =====================================================================
      06 · DIRECT & REPOS
