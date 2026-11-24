@@ -259,6 +259,23 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal((await w('ja_matchs', { id: tj.id })).matchs.length, 0);
   await assert.rejects(w('ja_inscrire', { id: 't2', joueur1: { nom: 'X' }, joueur2: { nom: 'Y' } }), /introuvable/, 'le tournoi d’un autre compte');
   await assert.rejects(w('ja_matchs', { id: 't2' }), /introuvable/);
+  // réglages à la création, modèle enregistré la première fois puis réutilisé
+  const r1 = await w('ja_creer_tournoi', { nom: 'P100 Hommes Soir', categorie: 'P100', genre: 'Messieurs', date: '2026-12-04', heure: '18:30', paires_max: 16, format_matchs: 'D2', notes: 'Homologation P 2027 0001', modele: 'P100 Soir MCP' });
+  assert.equal(r1.format, 'D2');
+  assert.equal(r1.heure, '18:30');
+  assert.ok(r1.modele.enregistre);
+  const r2 = await w('ja_creer_tournoi', { nom: 'P100 Hommes Soir 2', date: '2027-01-22', modele: 'P100 Soir MCP' });
+  assert.ok(r2.modele.applique);
+  assert.equal(r2.categorie, 'P100');
+  assert.equal(r2.heure, '18:30');
+  assert.equal(r2.paires_max, 16);
+  assert.equal(r2.format, 'D2');
+  assert.equal(r2.date, '2027-01-22');
+  const rgl = await w('ja_regler_tournoi', { id: r2.id, heure: '13:00', nom: 'P100 Hommes Après-midi' });
+  assert.equal(rgl.heure, '13:00');
+  assert.equal(rgl.nom, 'P100 Hommes Après-midi');
+  await assert.rejects(w('ja_regler_tournoi', { id: r2.id, categorie: 'P25', format_matchs: 'A1' }), /autorisé/);
+  await assert.rejects(w('ja_regler_tournoi', { id: r2.id, date: '04/12/2026' }), /AAAA-MM-JJ/);
   const an = await w('ja_creer_tournoi', { nom: 'Americano', type: 'animation', format: 'americano' });
   for (const n of ['Ana', 'Ben', 'Cléo', 'Dan']) await w('ja_inscrire', { id: an.id, joueur1: { nom: n } });
   const mch = await w('ja_manche_suivante', { id: an.id });
