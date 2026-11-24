@@ -43,8 +43,8 @@ Le même service Render sert les trois applis ; le nom tapé choisit l'appli (ta
 | /Dojo | `dojo.riseandmove.fr` | `coach.riseandmove.fr` |
 
 Pour chaque nom :
-1. Dans Render : service `padel-ja` → **Settings → Custom Domains → Add Custom Domain** → le nom. Render affiche la cible `padel-ja.onrender.com`.
-2. Dans **Shopify** : **Paramètres → Domaines → riseandmove.fr → Paramètres du domaine → Modifier les enregistrements DNS → Ajouter un enregistrement** :
+1. Dans Render : service `padel-ja` → **Settings → Custom Domains → Add Custom Domain** → le nom (0,25 $ par mois par domaine au-delà des 2 inclus). Render affiche la cible `padel-ja.onrender.com`.
+2. Dans **Hostinger** (les serveurs DNS de riseandmove.fr sont `ns1/ns2.dns-parking.com`) : **Domaines → riseandmove.fr → DNS / Serveurs de noms → Ajouter un enregistrement** :
    - Type : **CNAME**
    - Nom : `pista` (puis `buvette`, puis `dojo`)
    - Valeur : `padel-ja.onrender.com`
