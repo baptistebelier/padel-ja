@@ -839,25 +839,47 @@ if (UI2) {
           : `<button class="u2ct u2ctadd" data-a="coEditEl" data-id="${id}"><span class="u2cti">${ic(i)}</span><span class="u2ctt"><small>${lab}</small><b>Ajouter</b></span></button>`;
     if (S.elTab === 'histo') {
       const hs = SEANCES.filter(s => s.pres && s.pres[id] && s.d <= TODAY).sort((a, b) => b.d.localeCompare(a.d)),
-        nP = hs.filter(s => s.pres[id] === 'P').length;
-      body =
-        `<div class="cotiles">${coTile('cal', hs.length, 'Séances')}${coTile('check', (hs.length ? Math.round((nP * 100) / hs.length) : 0) + ' %', 'Présence')}${coTile('excuse', hs.filter(s => s.pres[id] === 'E').length, 'Excusé')}${coTile('x', hs.filter(s => s.pres[id] === 'A').length, 'Absent')}</div>` +
-        (hs.length
-          ? `<div class="u2hl">${hs
-              .map(s =>
-                u2Hist({
-                  d: s.d,
-                  h: (grp(s.g) || {}).h || s.gh || '',
-                  title: esc((grp(s.g) || {}).name || s.gnom || 'Séance'),
-                  sub: s.theme ? esc(s.theme) : '',
-                  tone: s.pres[id] === 'P' ? 'ok' : s.pres[id] === 'E' ? 'ex' : 'ab',
-                  tags: `<span class="tag">${presLbl[s.pres[id]]}</span>`,
-                  go: `data-a="open" data-v="seance" data-id="${s.id}"`,
-                  del: `data-a="u2SesDel" data-g="${s.g}" data-d="${s.d}" data-k="${id}"`
-                })
-              )
-              .join('')}</div>`
-          : none('cal', 'Aucune séance', ''));
+        nP = hs.filter(s => s.pres[id] === 'P').length,
+        // séances à venir de l'élève : celles de ses groupes et cours, jusqu'à 4 mois, sans appel noté pour lui
+        av = coSessions(TODAY, isoIn(120), '', 1)
+          .filter(x => coStu(x.g).includes(id) && !(x.s && x.s.pres && x.s.pres[id]))
+          .sort((a, b) => a.d.localeCompare(b.d) || hMin(hAt(a.g, a.d)) - hMin(hAt(b.g, b.d))),
+        f = S.elSes || (av.length ? 'avenir' : 'faites'),
+        filtre = `<div class="chips u2sesf" role="group" aria-label="Séances">${[
+          ['avenir', 'À venir', av.length],
+          ['faites', 'Faites', hs.length]
+        ]
+          .map(
+            ([k, l, n]) =>
+              `<button class="chip" data-a="seg" data-k="elSes" data-val="${k}" aria-pressed="${f === k}">${l}<span class="cnt">${n}</span></button>`
+          )
+          .join('')}</div>`;
+      if (f === 'avenir') {
+        body =
+          filtre +
+          (av.length
+            ? `<div class="u2hl">${av.map(x => u2Ses(x.g, x.d).replace(/<div class="u2sw"><button class="u2swd"[^>]*>[\s\S]*?<\/button>/, '<div class="u2sw">')).join('')}</div>`
+            : none('cal', 'Aucune séance à venir', 'Ajoute-le à un groupe ou programme-lui un cours.'));
+      } else
+        body =
+          filtre +
+          `<div class="cotiles">${coTile('cal', hs.length, 'Séances')}${coTile('check', (hs.length ? Math.round((nP * 100) / hs.length) : 0) + ' %', 'Présence')}${coTile('excuse', hs.filter(s => s.pres[id] === 'E').length, 'Excusé')}${coTile('x', hs.filter(s => s.pres[id] === 'A').length, 'Absent')}</div>` +
+          (hs.length
+            ? `<div class="u2hl">${hs
+                .map(s =>
+                  u2Hist({
+                    d: s.d,
+                    h: (grp(s.g) || {}).h || s.gh || '',
+                    title: esc((grp(s.g) || {}).name || s.gnom || 'Séance'),
+                    sub: s.theme ? esc(s.theme) : '',
+                    tone: s.pres[id] === 'P' ? 'ok' : s.pres[id] === 'E' ? 'ex' : 'ab',
+                    tags: `<span class="tag">${presLbl[s.pres[id]]}</span>`,
+                    go: `data-a="open" data-v="seance" data-id="${s.id}"`,
+                    del: `data-a="u2SesDel" data-g="${s.g}" data-d="${s.d}" data-k="${id}"`
+                  })
+                )
+                .join('')}</div>`
+            : none('cal', 'Aucune séance', ''));
     }
     return `<div class="pad u2f"><div class="card u2fiche"><div class="u2fh">${coAv(id, 'lg')}<div class="u2fn"><span class="u2fp">${esc(fn)}</span><b class="u2fl">${esc(ln)}</b><span class="tag">${M[id] ? 'Compte /Buvette' : 'Sans compte'}</span></div><div class="u2fc">${cell('phone', 'Téléphone', tel, 'tel:' + esc(String(tel).replace(/[^+\d]/g, '')))}${cell('mail', 'E-mail', mail, 'mailto:' + esc(mail))}</div><div class="u2fa"><button class="btn" data-a="u2Prog" data-id="${id}">${ic('cal')}Programmer une séance</button><button class="btn ghost" data-a="coEditEl" data-id="${id}">${ic('edit')}Modifier la fiche</button>${M[id] ? '' : `<button class="btn" data-a="coLink" data-id="${id}">${ic('link')}Relier à un compte /RAM</button>`}</div></div></div><div class="u2boite">${tabs}<div class="card u2fb">${body}</div></div></div>`;
   };

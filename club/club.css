@@ -2066,3 +2066,25 @@ select option { background: var(--c-surface); color: var(--c-text); }
 /* bloc « Lien d’inscription public » des parties par niveau : icône à taille fixe (elle prenait toute la largeur) */
 .nv-lien { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .nv-lien .row > svg, .nv-lien .btn svg { width: 20px; height: 20px; flex: none; }
+
+/* fiche enseignant : formules en cartes (prix en avant, packs et variantes en pastilles) */
+.pofs { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 4px; }
+.pof { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--c-surface-2); border: var(--bw, 2px) solid var(--c-ink); border-radius: var(--r, 0); box-shadow: var(--sh-sm, none); min-width: 0; }
+.pofh { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pofi { width: 38px; height: 38px; flex: none; display: grid; place-items: center; background: var(--c-accent); color: var(--c-on-accent); border: var(--bw, 2px) solid var(--c-ink); border-radius: var(--r, 0); }
+.pofi svg { width: 18px; height: 18px; }
+.pofn { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.pofn b { font-weight: 700; overflow-wrap: anywhere; }
+.pofn .small, .pofp .small, .pofc .small { color: var(--c-muted); font-size: 12px; }
+.pofp { display: flex; flex-direction: column; align-items: flex-end; flex: none; text-align: right; }
+.pofp b { font-family: var(--f-display, inherit); font-size: 22px; line-height: 1.1; }
+.pofk { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.pofc { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--c-surface); border: 1px solid var(--line); border-radius: var(--r, 0); min-width: 0; }
+.pofct { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.pofct b { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.pofct span { flex: none; font-weight: 700; }
+.pofa { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-weight: 600; font-size: 13px; color: inherit; }
+.pofa svg { width: 14px; height: 14px; }
+
+/* un nom qui mène au profil */
+.plien { display: inline; padding: 0; margin: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }

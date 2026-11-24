@@ -3587,7 +3587,7 @@ test('Dojo : une séance dont le groupe a disparu s’ouvre en lecture (date, he
     document.querySelector('.ram-splash')?.remove();
     const k = ELEVES[0].id, d = isoIn(-5);
     SEANCES.push({ id: 'orph.' + d, g: 'orph', d, gnom: 'Cycle d’entraînement individuel', gh: '18 h', gdur: '1 h 30', theme: 'Volée / Bandeja', pres: { [k]: 'P' } });
-    S.tab = 'eleves'; S.elTab = 'histo'; S.stack = [{ v: 'eleve', id: k }]; render();
+    S.tab = 'eleves'; S.elTab = 'histo'; S.elSes = 'faites'; S.stack = [{ v: 'eleve', id: k }]; render();
     return k;
   });
   // la carte de l'historique porte le nom gardé ; un toucher ouvre la séance en lecture
@@ -3629,7 +3629,7 @@ test('Historique d’un élève : glissement vers la gauche pour supprimer, déf
       GROUPS.push({ id: 'gsw' + i, type: 'train', name: 'Cours test ' + i, once: d, day: 1, h: '18 h', dur: '1 h', sport: 'Padel', coach: ME(), mem: M[k] ? [k] : [], ext: M[k] ? [] : [k] });
       SEANCES.push({ id: 'gsw' + i + '.' + d, g: 'gsw' + i, d, pres: { [k]: 'P' } });
     }
-    S.tab = 'eleves'; S.elTab = 'histo'; S.stack = [{ v: 'eleve', id: k }]; render();
+    S.tab = 'eleves'; S.elTab = 'histo'; S.elSes = 'faites'; S.stack = [{ v: 'eleve', id: k }]; render();
     return { k, n: SEANCES.length, g: GROUPS.length };
   });
   // ---- téléphone : toucher réel (CDP)

@@ -138,3 +138,64 @@ setInterval(() => {
   void b.getBoundingClientRect();
   b.classList.add('ramring');
 }, 30000);
+
+/* une photo de profil, ou un nom écrit à côté d'une photo, mène au profil de la personne, partout (demande de Baptiste,
+   24/11/2026). /Dojo ouvre la fiche de l'élève quand c'en est un. Pas dans les listes où toucher sert à choisir
+   (cases à cocher, sélections du panneau du bas), ni sur sa propre photo à modifier, ni dans le menu. */
+function profilVers(k) {
+  if (!k || k === 'club') return false;
+  if (window.RAM_APP === 'coach' && typeof coEl === 'function' && coEl(k)) {
+    if (typeof closeSheet === 'function') closeSheet();
+    A.open({ v: 'eleve', id: k });
+    return true;
+  }
+  if (M[k] && A.member) {
+    A.member({ id: k });
+    return true;
+  }
+  return false;
+}
+const PROFIL_NAV = new Set(['open', 'chan', 'member', 'go', 'ngo']);
+document.addEventListener(
+  'click',
+  e => {
+    const t = e.target;
+    if (!t.closest || t.closest('#tabs, #rbot, .avedit, .composer, input, select, textarea')) return;
+    const inter = t.closest('button, a, label, summary, [data-a]');
+    let k = null;
+    const a = t.closest('.av[data-pk]');
+    if (a) {
+      // déjà un lien vers ce profil : rien à changer
+      if (
+        inter &&
+        ((inter.dataset.a === 'member' && inter.dataset.id === a.dataset.pk) ||
+          (inter.dataset.v === 'eleve' && inter.dataset.id === a.dataset.pk))
+      )
+        return;
+      // dans une liste où l'on choisit (panneau du bas, case à cocher) : le choix d'abord
+      if (
+        inter &&
+        (inter.tagName === 'LABEL' ||
+          t.closest('#sheet') ||
+          !(inter.tagName === 'SUMMARY' || PROFIL_NAV.has(inter.dataset.a)))
+      )
+        return;
+      k = a.dataset.pk;
+    } else if (!inter) {
+      // un nom (en gras) à côté d'une seule photo, hors de tout bouton
+      const nom = t.closest('.nm, .who, .mnm, .name, b, strong');
+      if (!nom) return;
+      let box = nom.parentElement;
+      for (let i = 0; box && i < (/^(B|STRONG)$/.test(nom.tagName) ? 2 : 3) && !k; i++, box = box.parentElement) {
+        const avs = box.querySelectorAll('.av[data-pk]');
+        if (avs.length === 1) k = avs[0].dataset.pk;
+        else if (avs.length > 1) break;
+      }
+    }
+    if (k && profilVers(k)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  },
+  true
+);

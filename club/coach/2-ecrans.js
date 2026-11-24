@@ -106,7 +106,7 @@ function coStudents() {
 const coAv = (id, c = 'sm') =>
   M[id]
     ? av(id, c)
-    : `<span class="av ${c}" style="--h:${hue(id)}">${svName(id)
+    : `<span class="av ${c}" data-pk="${id}" style="--h:${hue(id)}">${svName(id)
         .split(' ')
         .map(w => w[0])
         .join('')
