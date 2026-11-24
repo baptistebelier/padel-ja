@@ -387,23 +387,27 @@ function grpCardEns0(g) {
     n = grpN(g),
     nowS = E && E.seances.find(x => x.etat === 'now'),
     nextS = E && E.seances.find(x => x.etat === 'next'),
-    fin = !!E && !nextS && E.seances.length > 0,
-    proche = !!E && (fin || E.seances.filter(x => x.etat === 'next').length <= 1),
+    // les séances du cycle pas encore programmées (sans date) restent à faire, comme dans /Dojo
+    reste = E ? E.seances.filter(x => x.etat === 'next').length + (E.sansDate || 0) : 0,
+    fin = !!E && !reste && E.seances.length > 0,
+    proche = !!E && (fin || reste <= 1),
     loc = locOf(g, nowS ? nowS.d : TODAY) || '';
   let prog = '';
   if (E && E.seances.length) {
     const dated = E.seances.filter(x => x.d),
       lab = nowS
-        ? nextS
+        ? reste
           ? `Séance ${nowS.num || E.faites} aujourd’hui`
           : 'Dernière séance aujourd’hui'
         : nextS
           ? 'Prochaine : ' + fmtD(nextS.d)
-          : 'Cycle terminé',
+          : reste
+            ? plural(reste, 'séance à programmer', 'séances à programmer')
+            : 'Cycle terminé',
       pct = Math.round((100 * E.faites) / Math.max(1, E.prevues)),
       vis =
         E.seances.length <= 12
-          ? `<div class="cocycb gcases" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}">${E.seances.map(x => `<i class="${x.etat}" title="${x.d ? fmtD(x.d) : 'Date à poser'}"></i>`).join('')}</div>`
+          ? `<div class="cocycb gcases" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}">${E.seances.map(x => `<i class="${x.etat}" title="${x.d ? fmtD(x.d) : 'Date à poser'}"></i>`).join('')}${'<i class="pose" title="Date à poser"></i>'.repeat(E.sansDate || 0)}</div>`
           : `<div class="cocycb gbar" role="img" aria-label="${E.faites} séances faites sur ${E.prevues}"><span class="gbt"><i style="width:${pct}%"></i>${nowS ? `<i class="gnow" style="width:${Math.max(2, Math.round(100 / Math.max(1, E.prevues)))}%"></i>` : ''}</span><span class="gbd"><small>${dated[0] ? fmtD(dated[0].d) : ''}</small><small>${dated.length ? fmtD(dated[dated.length - 1].d) : ''}</small></span></div>`;
     prog = `<div class="gprog"><div class="gpt"><b>${E.faites}</b><span>/ ${E.prevues} séance${pl(E.prevues, '', 's')} faite${pl(E.faites, '', 's')}</span><span class="grow"></span><small>${lab}</small></div>${vis}<div class="glg"><span><i class="done"></i>Faites</span>${nowS ? '<span><i class="now"></i>Aujourd’hui</span>' : ''}<span><i class="next"></i>À venir</span></div></div>`;
   } else prog = cycleBar(g);
