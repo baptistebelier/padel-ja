@@ -176,10 +176,20 @@ function render(keep) {
     sx = key === lastKey ? [...main.querySelectorAll(strips)].map(e => e.scrollLeft) : [];
   const oldSeg =
     main.querySelector(':scope > .seg:not(.haut)') || subNav().querySelector(':scope > .seg:not(.seg-out)');
+  // même page redessinée (donnée arrivée en direct, présence notée…) : les fiches dépliées (fiche enseignant, « Comment
+  // réserver »…) restent comme on les a laissées, au lieu de se refermer juste après les avoir ouvertes
+  const ouv = key + '|' + subOf() === lastMk ? [...main.querySelectorAll('details')].map(e => e.open) : [];
   main.innerHTML = pending() && !lockOk(v) ? lockView(v) : V[v.v](v.id);
   main.querySelectorAll(strips).forEach((e, i) => {
     if (sx[i]) e.scrollLeft = sx[i];
   });
+  if (ouv.length) {
+    const ds = main.querySelectorAll('details');
+    ds.forEach((e, i) => {
+      if (ds.length === ouv.length) e.open = ouv[i];
+      else if (ouv[i]) e.open = true;
+    });
+  }
   // chemin des cadres (trophées) : à l'ouverture, l'étape en cours au milieu de l'écran
   if (key !== lastKey)
     main.querySelectorAll('.fpath').forEach(e => {

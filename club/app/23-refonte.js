@@ -402,7 +402,7 @@ function grpCardEns0(g) {
         : nextS
           ? 'Prochaine : ' + fmtD(nextS.d)
           : reste
-            ? plural(reste, 'séance à programmer', 'séances à programmer')
+            ? `${reste} séance${pl(reste, '', 's')} à programmer`
             : 'Cycle terminé',
       pct = Math.round((100 * E.faites) / Math.max(1, E.prevues)),
       vis =
