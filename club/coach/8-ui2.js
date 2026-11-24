@@ -21,6 +21,9 @@ if (UI2) {
   ];
   TABBAR.splice(0, TABBAR.length, ...U2_MENU, ...U2_HORS);
   const u2Hors = k => U2_HORS.some(x => x[0] === k);
+  /* l'entrée du menu allumée, lue par render() avant de placer le curseur (la corriger après coup le faisait clignoter) :
+     une fiche élève ouverte depuis une autre page (Planning, Groupes…) allume Élèves ; Statistiques allume Aujourd'hui */
+  window.tabActif = () => (view().v === 'eleve' ? 'eleves' : S.tab === 'dash' && !S.stack.length ? 'today' : S.tab);
 
   /* titres des pages */
   const u2Titres = {
@@ -656,23 +659,7 @@ if (UI2) {
         if (u2Hors(b.dataset.t)) b.remove();
       });
       tabs.querySelectorAll('.coplus').forEach(b => b.remove());
-      // une fiche élève ouverte depuis une autre page (Planning, Groupes…) : l'entrée Élèves reste allumée
-      if (view().v === 'eleve' && S.tab !== 'eleves') {
-        tabs.querySelectorAll('button[data-t]').forEach(b => b.removeAttribute('aria-current'));
-        const b = tabs.querySelector('button[data-t="eleves"]');
-        if (b) {
-          b.setAttribute('aria-current', 'page');
-          if (typeof pillTo === 'function') pillTo(b, true);
-        }
-      }
-      // Statistiques est un sous-onglet d'Aujourd'hui : l'entrée Aujourd'hui reste allumée
-      if (S.tab === 'dash' && !S.stack.length) {
-        const b = tabs.querySelector('button[data-t="today"]');
-        if (b) {
-          b.setAttribute('aria-current', 'page');
-          if (typeof pillTo === 'function') pillTo(b, true);
-        }
-      }
+      // l'entrée allumée (Élèves pour une fiche élève, Aujourd'hui pour Statistiques) est choisie par window.tabActif
     }
     // grand écran : Réglages en bas du menu (à la place de Profil)
     const rb = $('rbot');

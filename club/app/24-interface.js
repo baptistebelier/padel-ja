@@ -21,6 +21,7 @@ TABBAR.splice(0, TABBAR.length, ...BV_MENU, ...BV_HORS);
 const bvHors = k => BV_HORS.some(x => x[0] === k);
 /* la rubrique du menu qui reste allumée pour une page hors menu : l'École s'ouvre depuis Club */
 const BV_PARENT = { ecole: 'club' };
+window.tabActif = () => (BV_PARENT[S.tab] && !S.stack.length ? BV_PARENT[S.tab] : S.tab);
 if (!S.jouTab) S.jouTab = 'parties';
 // Équipes n'est plus le premier sous-onglet de Club (il est parti dans Jouer)
 if (S.clubTab === 'teams') S.clubTab = 'club';
@@ -147,15 +148,7 @@ function bvNav() {
     tabs.querySelectorAll('button[data-t]').forEach(b => {
       if (bvHors(b.dataset.t)) b.remove();
     });
-    // une page hors menu allume sa rubrique (École → Club)
-    const par = BV_PARENT[S.tab];
-    if (par && main) {
-      const b = tabs.querySelector(`button[data-t="${par}"]`);
-      if (b) {
-        b.setAttribute('aria-current', 'page');
-        if (typeof pillTo === 'function') pillTo(b, true);
-      }
-    }
+    // une page hors menu allume sa rubrique (École → Club) : choisi avant l'affichage par window.tabActif
   }
   // grand écran : « Moi » en bas du menu, avec l'avatar
   const rb = $('rbot');

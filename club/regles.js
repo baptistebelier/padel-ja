@@ -188,7 +188,9 @@
           // une séance ponctuelle rattachée à un achat (v.ac) ne se décompte que de cet achat, quel que soit son format,
           // tant que cet achat existe ; sinon la règle de la formule s'applique
           if (v.ac != null) {
-            if (v.ac === '-') return false; // « ne compte dans aucun achat » : séance réglée à part
+            // « ne compte dans aucun achat » : séance réglée à part ; seul son propre paiement (« Marquer payée » : un achat
+            // à la séance qui porte sa clé, a.ses) la couvre
+            if (v.ac === '-') return !!a.ses && v.ses != null && a.ses === v.ses;
             if (v.ac === a.id) return true;
             if (all.some(x => x.id === v.ac)) return false;
           }
@@ -281,7 +283,8 @@
         sport: g.sport,
         gid: g.id,
         cy: (cycleDe(g, d) || {}).id,
-        ac: achatDe(g, k)
+        ac: achatDe(g, k),
+        ses: g.id + '.' + d
       });
     };
     ses.forEach(s => {

@@ -217,9 +217,12 @@ function render(keep) {
     // pastilles : messages non lus dans les groupes ; nouveautés depuis la dernière visite des autres onglets
     const un = pending() ? 0 : chans.reduce((a, c) => a + (c.mute || !chanOk(c) ? 0 : c.un), 0),
       cnt = k => (k === 'chans' ? un : S.tab === k && !S.stack.length ? 0 : tabNews(k)),
+      // l'entrée allumée est choisie ici, une seule fois : si une appli la corrigeait après coup (fiche élève ouverte
+      // depuis le Planning…), le curseur partirait vers une entrée puis reviendrait sur l'autre à chaque affichage
+      actif = typeof window.tabActif === 'function' ? window.tabActif() : S.tab,
       tb = (k, i, l) => {
         const n = cnt(k);
-        return `<button data-a="tab" data-t="${k}" ${S.tab === k ? 'aria-current="page"' : ''} aria-label="${l}${n ? ` (${n} nouveauté${n > 1 ? 's' : ''})` : ''}">${ic(i)}${l}${n ? `<span class="cnt">${n > 99 ? '99+' : n}</span>` : ''}</button>`;
+        return `<button data-a="tab" data-t="${k}" ${actif === k ? 'aria-current="page"' : ''} aria-label="${l}${n ? ` (${n} nouveauté${n > 1 ? 's' : ''})` : ''}">${ic(i)}${l}${n ? `<span class="cnt">${n > 99 ? '99+' : n}</span>` : ''}</button>`;
       };
     tabs.innerHTML = TABBAR.map(x => tb(x[0], x[1], x[2])).join('');
     tabs.insertAdjacentHTML('afterbegin', '<span class="pill" id="tpill" aria-hidden="true"></span>');

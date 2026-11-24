@@ -245,7 +245,8 @@ const coVenues = id => {
       sport: g.sport,
       gid: g.id,
       cy: (REGLES.cycleDe(g, d) || {}).id,
-      ac: REGLES.achatDe(g, id)
+      ac: REGLES.achatDe(g, id),
+      ses: sesKey(g, d)
     });
   };
   SEANCES.forEach(s => {

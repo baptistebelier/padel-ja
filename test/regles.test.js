@@ -172,6 +172,12 @@ test('séance « ne compte dans aucun achat » (ac « - ») : aucun pack ne la p
   const r = R.couverture([pack], vs, O);
   assert.equal(r.achats[0].used, 1, 'la thématique détachée ne compte pas');
   assert.equal(r.couvre.has(vs[1]), false);
+  // « Marquer payée » sur cette séance : l'achat à la séance qui porte sa clé la couvre (plus rien à régler)
+  const paye = { id: 'h2', t: 'seance', ref: 'c3', d: '2026-11-23', ses: 'th.2026-11-23' };
+  const vs3 = [v('2026-09-29', 'g1'), Object.assign(v('2026-11-23', 'th', '-'), { ses: 'th.2026-11-23' })];
+  const r3 = R.couverture([pack, paye], vs3, O);
+  assert.equal(r3.couvre.get(vs3[1]).id, 'h2');
+  assert.equal(r3.achats[0].used, 1);
   // rattaché au cycle, le pack ne prend que les séances de son groupe
   const r2 = R.couverture([Object.assign({}, pack, { cycle: 'g1:c1' })], [v('2026-09-29', 'g1'), v('2026-11-23', 'th')], O);
   assert.equal(r2.achats[0].used, 1);
