@@ -11,7 +11,7 @@
 <script>
 /* Les feuilles et scripts communs des trois applis vivent dans le dossier du Club : /club/… sur le domaine principal, à la racine sur coach. et club. */
 (function () {
-  var B = /^(coach|club)\./.test(location.hostname) ? '' : '/club', s = document.documentElement.style;
+  var B = /^(coach|club|buvette|dojo)\./.test(location.hostname) ? '' : '/club', s = document.documentElement.style;
   s.setProperty('--mk', 'url(' + B + '/motifs/w30/padel-base.png)');
   s.setProperty('--ma', 'url(' + B + '/motifs/w30/padel-accent.png)');
   document.write('<link rel="stylesheet" href="' + B + '/ds.css"><script src="' + B + '/liste.js"><\/script>');
