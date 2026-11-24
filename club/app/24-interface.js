@@ -382,7 +382,7 @@ V.home = () => {
   let h = bvHome();
   const i = h.indexOf('<div class="stories">'),
     e = i >= 0 ? sectionAt(h, 'div', i) : -1,
-    tete = (MUR_LARGE.matches ? '' : bvPourMoi() + bvRaccourcis()) + bvFavoris() + bvFiltres();
+    tete = (MUR_LARGE.matches ? '' : bvPourMoi()) + bvFavoris() + bvFiltres(); // plus de grandes tuiles (partie, bar) : les favoris juste sous « Pour moi »
   if (i >= 0 && e > 0) h = h.slice(0, i) + `<div class="bvtete">${tete}</div>` + h.slice(e);
   return h;
 };
@@ -390,7 +390,7 @@ V.home = () => {
 murSide = function () {
   if (!MUR_LARGE.matches) return '';
   const unread = chans.filter(c => chanOk(c) && c.un && !c.mute).slice(0, 5);
-  return `<aside class="murside" aria-label="Pour moi">${bvPourMoi()}${bvRaccourcis()}${
+  return `<aside class="murside" aria-label="Pour moi">${bvPourMoi()}${
     unread.length
       ? `<section class="card msb"><h3 class="bvh">${ic('chat')}Messages non lus</h3>${unread
           .map(c => {
