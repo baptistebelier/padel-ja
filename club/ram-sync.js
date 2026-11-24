@@ -1069,10 +1069,24 @@
   /* panneau de notifications : ce que le serveur a gardé pour ce compte, même reçu appli fermée */
   const NAPP = window.RAM_APP === 'coach' ? 'coach' : 'club',
     NSINCE = 'ram-notif-since-' + NAPP;
-  let notifT = 0;
+  let notifT = 0,
+    suiviVuT = 0;
   function pullNotifs() {
     if (!R.key || Date.now() - notifT < 15000) return;
     notifT = Date.now();
+    // conversations de suivi déjà lues (sur un autre appareil, ou avant que Safari n'oublie la mémoire de l'appareil)
+    if (typeof window.svVuFusion === 'function' && Date.now() - suiviVuT > 6e4) {
+      suiviVuT = Date.now();
+      fetch('/api/ram/suivi-vu', { credentials: 'include' })
+        .then(r => (r.ok ? r.json() : {}))
+        .then(d => {
+          if (window.svVuFusion(d.vu)) {
+            if (typeof window.ramNotifsDmLus === 'function') window.ramNotifsDmLus();
+            if (!$('sheet')) render(true);
+          }
+        })
+        .catch(() => {});
+    }
     let since = 0;
     try {
       since = +localStorage.getItem(NSINCE) || 0;

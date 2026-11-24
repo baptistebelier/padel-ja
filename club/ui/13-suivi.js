@@ -62,13 +62,50 @@ try {
   SV_SEEN = JSON.parse(localStorage.getItem('club-suivi-vu') || '{}') || {};
 } catch (e) {}
 const svUnread = id => svOf(id).filter(x => svMe(x.by) !== ME() && (x.at || 0) > (SV_SEEN[id] || 0)).length;
-function svSeen(id) {
-  const l = svOf(id);
-  SV_SEEN[id] = Math.max(SV_SEEN[id] || 0, l.length ? l[l.length - 1].at || 0 : 0);
+/* le « lu » est aussi gardé sur le compte (/api/ram/suivi-vu) : sur iPad, l'appli rouverte dans Safari perdait la mémoire
+   de l'appareil et le dernier message redevenait « non lu » à chaque lancement */
+let svVuT = 0;
+const svVuGarder = () => {
   try {
     localStorage.setItem('club-suivi-vu', JSON.stringify(SV_SEEN));
   } catch (e) {}
+};
+function svSeen(id) {
+  const l = svOf(id),
+    avant = SV_SEEN[id] || 0;
+  SV_SEEN[id] = Math.max(avant, l.length ? l[l.length - 1].at || 0 : 0);
+  if (SV_SEEN[id] === avant) return;
+  svVuGarder();
+  svVuEnvoyer();
 }
+function svVuEnvoyer() {
+  if (!(window.RAM && RAM.live)) return;
+  clearTimeout(svVuT);
+  svVuT = setTimeout(
+    () =>
+      fetch('/api/ram/suivi-vu', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vu: SV_SEEN })
+      }).catch(() => {}),
+    1000
+  );
+}
+/* lectures gardées sur le compte, reçues au démarrage : true si une conversation est devenue lue */
+window.svVuFusion = vu => {
+  let ch = false;
+  Object.keys(vu || {}).forEach(k => {
+    if (+vu[k] > (SV_SEEN[k] || 0)) {
+      SV_SEEN[k] = +vu[k];
+      ch = true;
+    }
+  });
+  if (ch) svVuGarder();
+  // des lectures de cet appareil que le compte n'a pas encore : on les lui envoie
+  if (Object.keys(SV_SEEN).some(k => SV_SEEN[k] > (+(vu || {})[k] || 0))) svVuEnvoyer();
+  return ch;
+};
 const sesOf = id => SEANCES.find(s => s.id === id);
 const sesLbl = s => {
   const g = s && grp(s.g);

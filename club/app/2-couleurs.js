@@ -210,7 +210,7 @@ window.ramNotifsMerge = items => {
         by: 'club',
         txt: (ici ? ': ' : 'de ' + x.title + ' : ') + x.body,
         t: '',
-        n: 1,
+        n: dmLu(go) ? 0 : 1,
         at: x.at,
         go,
         url: x.url,
@@ -221,6 +221,20 @@ window.ramNotifsMerge = items => {
   if (n) trimNotifs();
   return n;
 };
+/* message de suivi (#/dm/…) d'une conversation déjà lue : la notification reçue à nouveau ne compte pas comme non lue
+   (la mémoire de l'appareil perdue, l'appli la récupérait au lancement et la remontait « non lue ») */
+const dmLu = go =>
+  !!go &&
+  go.v === 'dm' &&
+  !!go.id &&
+  typeof svUnread === 'function' &&
+  typeof SUIVI !== 'undefined' &&
+  SUIVI.some(x => x.to === go.id) &&
+  !svUnread(go.id);
+window.ramNotifsDmLus = () =>
+  NOTIFS.forEach(n => {
+    if (n.srv && n.n && dmLu(n.go)) n.n = 0;
+  });
 /* Historique des notifications : toutes celles des 7 derniers jours, et au moins les 20 dernières (même plus anciennes) */
 const NOTIF_DAYS = 7,
   NOTIF_MIN = 20,

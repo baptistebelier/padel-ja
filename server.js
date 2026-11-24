@@ -1391,6 +1391,22 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req);
         return json(res, 200, { badges: await ram.badges(u.id, b.since && typeof b.since === 'object' ? b.since : {}) });
       }
+      // conversations de suivi lues (/Dojo, /Buvette) : gardées sur le compte, pas seulement sur l'appareil (sur iPad,
+      // l'appli rouverte dans Safari perdait sa mémoire et le dernier message redevenait « non lu » à chaque lancement)
+      if (p === '/api/ram/suivi-vu') {
+        const id = Object.assign({}, await store.getIdentity(u.id).catch(() => null)), vu = Object.assign({}, id.suiviVu);
+        if (req.method === 'GET') return json(res, 200, { vu });
+        if (req.method !== 'POST') return json(res, 405, { error: 'Méthode non prise en charge' });
+        const b = await readBody(req), recu = b && typeof b.vu === 'object' && b.vu ? b.vu : {};
+        let change = false;
+        Object.keys(recu).slice(0, 300).forEach(k => { const t = Math.floor(+recu[k]); if (/^[\w-]{1,60}$/.test(k) && t > 0 && t < 1e14 && t > (vu[k] || 0)) { vu[k] = t; change = true; } });
+        if (change) {
+          // 300 conversations au plus : les plus anciennes lectures partent
+          id.suiviVu = Object.fromEntries(Object.entries(vu).sort((a, c) => c[1] - a[1]).slice(0, 300));
+          await store.saveIdentity(u.id, id);
+        }
+        return json(res, 200, { vu: change ? id.suiviVu : vu });
+      }
       // choisir son club principal (celui de sa licence) parmi ses clubs
       if (p === '/api/ram/main' && req.method === 'POST') {
         const b = await readBody(req), sp = (await ram.spaces()).find(s => s.id === b.id);
