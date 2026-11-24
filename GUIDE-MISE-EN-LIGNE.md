@@ -1,6 +1,6 @@
 # Mettre /RAM JA en ligne — guide pas à pas
 
-Objectif : `https://ja.riseandmove.fr`, une page de présentation pour les clubs, une démo en un clic et des comptes juge-arbitre.
+Objectif : `https://pista.riseandmove.fr` (ancien nom : `ja.riseandmove.fr`), une page de présentation pour les clubs, une démo en un clic et des comptes juge-arbitre.
 
 Durée : environ 45 minutes. Coût : 0 € pour Supabase et GitHub, environ 7 $/mois pour Render (formule *Starter*, sans mise en veille).
 
@@ -33,18 +33,30 @@ Durée : environ 45 minutes. Coût : 0 € pour Supabase et GitHub, environ 7 $/
 4. Render te demande deux valeurs : colle **SUPABASE_URL** (Project URL) et **SUPABASE_SERVICE_KEY** (clé service_role). `SESSION_SECRET` est générée automatiquement.
 5. Clique sur **Apply**. Au bout de 2 à 3 minutes, tu as une adresse du type `https://padel-ja.onrender.com`. Ouvre-la : c'est la page de présentation.
 
-## Étape 4 — Ton adresse `ja.riseandmove.fr`
-1. Dans Render : service `padel-ja` → **Settings → Custom Domains → Add** → `ja.riseandmove.fr`. Render affiche une cible du type `padel-ja.onrender.com`.
+## Étape 4 — Les adresses des trois applis
+Le même service Render sert les trois applis ; le nom tapé choisit l'appli (table unique : `club/noms.js`).
+
+| Appli | Nom officiel | Ancien nom (à garder pour toujours) |
+|---|---|---|
+| /Pista | `pista.riseandmove.fr` | `ja.riseandmove.fr` |
+| /Buvette | `buvette.riseandmove.fr` | `club.riseandmove.fr` |
+| /Dojo | `dojo.riseandmove.fr` | `coach.riseandmove.fr` |
+
+Pour chaque nom :
+1. Dans Render : service `padel-ja` → **Settings → Custom Domains → Add Custom Domain** → le nom. Render affiche la cible `padel-ja.onrender.com`.
 2. Dans **Shopify** : **Paramètres → Domaines → riseandmove.fr → Paramètres du domaine → Modifier les enregistrements DNS → Ajouter un enregistrement** :
    - Type : **CNAME**
-   - Nom : `ja`
-   - Valeur : la cible donnée par Render
+   - Nom : `pista` (puis `buvette`, puis `dojo`)
+   - Valeur : `padel-ja.onrender.com`
 3. Retourne dans Render et clique sur **Verify**. Le certificat HTTPS se crée tout seul (de quelques minutes à 1 heure).
+4. Quand les trois nouveaux noms répondent en HTTPS, pose la variable `NOMS_OFFICIELS=nouveaux` sur Render : les e-mails, les liens générés et les pages de présentation passent aux nouveaux noms, et les anciens renvoient vers les nouveaux.
 
-Ta boutique n'est pas touchée : on ajoute seulement un sous-domaine.
+Ne supprime jamais les anciens CNAME : les applis installées, les notifications et les liens déjà envoyés en dépendent.
+
+Ta boutique n'est pas touchée : on ajoute seulement des sous-domaines.
 
 ## Étape 5 — Vérification
-- `https://ja.riseandmove.fr`, bouton **Essayer la démo** : le tournoi démo s'ouvre.
+- `https://pista.riseandmove.fr`, bouton **Essayer la démo** : le tournoi démo s'ouvre.
 - **Créer un compte** avec ton e-mail, puis crée un tournoi à partir d'un modèle.
 - Onglet *Écran TV & stream* : les liens « Écran TV » et « Télécommande » fonctionnent depuis un autre appareil (smart TV, iPad, téléphone).
 

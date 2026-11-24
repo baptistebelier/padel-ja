@@ -1165,7 +1165,7 @@
   if ($('#rgpdCopy')) $('#rgpdCopy').onclick = () => {
     const txt = 'Information : vos nom, prénom, numéro de licence, classement, club et résultats sont enregistrés par le juge-arbitre dans le logiciel /Pista '
       + 'pour organiser ce tournoi, puis conservés dans sa base de joueurs pendant 3 ans après votre dernier tournoi (historique, inscriptions plus rapides). '
-      + 'Vous pouvez à tout moment demander à les consulter, les corriger ou les supprimer auprès du juge-arbitre ou de /Pista (ja.riseandmove.fr).';
+      + 'Vous pouvez à tout moment demander à les consulter, les corriger ou les supprimer auprès du juge-arbitre ou de /Pista (' + (/riseandmove\.fr$/.test(location.hostname) ? location.hostname : 'pista.riseandmove.fr') + ').';
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => A.toast('Texte copié : collez-le sur la fiche ou l\'affiche du tournoi', 'ok'))
       .catch(() => window.prompt('Copiez ce texte :', txt));
   };
