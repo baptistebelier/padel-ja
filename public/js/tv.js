@@ -7,11 +7,45 @@
   const VIEW_H = 860;
   let S = null, R = {}, view = null, rotIdx = 0, rotTimer = null, rotKey = '';
 
-  function fit() {
-    const k = Math.min(innerWidth / 1920, innerHeight / 1080);
-    stage.style.transform = `translate(${(innerWidth - 1920 * k) / 2}px, ${(innerHeight - 1080 * k) / 2}px) scale(${k})`;
+  /* mise à l'échelle : la zone vraiment visible (beaucoup de navigateurs de TV annoncent une fenêtre plus grande que
+     l'écran, ou un zoom par défaut), plus un réglage de taille fait à la télécommande (flèches haut / bas, 0 pour revenir),
+     gardé sur la TV ; ?taille=90 dans l'adresse le fixe aussi */
+  const TKEY = 'pista-tv-taille';
+  let taille = +new URLSearchParams(location.search).get('taille') || 0;
+  if (!taille) try { taille = +localStorage.getItem(TKEY) || 100; } catch (e) { taille = 100; }
+  taille = Math.min(110, Math.max(50, taille));
+  function zone() {
+    const vv = window.visualViewport, de = document.documentElement;
+    const w = Math.min(innerWidth, de.clientWidth || innerWidth, vv ? vv.width : Infinity);
+    const h = Math.min(innerHeight, de.clientHeight || innerHeight, vv ? vv.height : Infinity);
+    return { w, h, x: vv ? vv.offsetLeft : 0, y: vv ? vv.offsetTop : 0 };
   }
-  addEventListener('resize', fit); fit();
+  let lastFit = '';
+  function fit() {
+    const z = zone(), k = Math.min(z.w / 1920, z.h / 1080) * (taille / 100);
+    const t = `translate(${z.x + (z.w - 1920 * k) / 2}px, ${z.y + (z.h - 1080 * k) / 2}px) scale(${k})`;
+    if (t !== lastFit) { stage.style.transform = t; lastFit = t; }
+  }
+  addEventListener('resize', fit); addEventListener('orientationchange', fit); addEventListener('load', fit);
+  if (window.visualViewport) { visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit); }
+  setInterval(fit, 2000);   // certaines TV changent la taille de la fenêtre sans prévenir
+  fit();
+  let tailleTimer = null;
+  function setTaille(v) {
+    taille = Math.min(110, Math.max(50, v));
+    try { localStorage.setItem(TKEY, String(taille)); } catch (e) { /* stockage indisponible */ }
+    fit();
+    let b = document.getElementById('tvTaille');
+    if (!b) { b = document.createElement('div'); b.id = 'tvTaille'; b.className = 'tv-taille'; document.body.appendChild(b); }
+    b.textContent = `Taille de l’affichage : ${taille} %  ·  flèches haut / bas, 0 pour revenir à 100 %`;
+    b.hidden = false; clearTimeout(tailleTimer); tailleTimer = setTimeout(() => { b.hidden = true; }, 3000);
+  }
+  document.addEventListener('keydown', e => {
+    if (view === 'draw') return;   // le tirage au sort garde le clavier
+    if (e.key === 'ArrowDown' || e.key === '-' || e.key === 'PageDown') { e.preventDefault(); setTaille(taille - 2); }
+    else if (e.key === 'ArrowUp' || e.key === '+' || e.key === 'PageUp') { e.preventDefault(); setTaille(taille + 2); }
+    else if (e.key === '0') setTaille(100);
+  });
   document.addEventListener('dblclick', e => {
     if (e.target.closest('.dcard')) return;
     if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen();
