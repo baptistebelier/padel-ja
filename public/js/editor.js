@@ -182,7 +182,8 @@
     if (dg) {
       const VIEW_IC = { bracket: '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>', poules: '<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/>',
         schedule: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>', live: '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/>',
-        standings: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>', info: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>', stats: '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>', draw: '<path d="M4 7h3l10 10h3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3M17 14l3 3-3 3"/>' };
+        standings: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>', info: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>', stats: '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>', draw: '<path d="M4 7h3l10 10h3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3M17 14l3 3-3 3"/>',
+        classif: '<path d="M4 5h6v4H4zM4 15h6v4H4zM14 10h6v4h-6z"/><path d="M10 7h2v10h-2M12 12h2"/>', month: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4M7 14h3M14 14h3M7 18h3"/>' };
       $$('#tvViews [data-tv]').forEach(b => { const k = b.querySelector('b'); b.title = 'Touche ' + (k ? k.textContent : ''); if (k) k.replaceWith(document.createRange().createContextualFragment(psIc(VIEW_IC[b.dataset.tv] || ''))); });
       const [tvc, stc] = $$(':scope > .card', dg);
       $('h3', tvc).innerHTML = psIc('<rect x="3" y="5" width="18" height="12"/><path d="M8 21h8M12 17v4"/>') + 'Télévision';
@@ -1469,12 +1470,12 @@
      ===================================================================== */
   $$('#tvViews [data-tv]').forEach(b => b.onclick = () => send('display/set', { tv: b.dataset.tv, rotate: false }));
   $('#rotate').onchange = e => send('display/set', { rotate: e.target.checked });
-  const VIEWS = [['bracket', 'Tableau final'], ['poules', 'Poules / qualifs'], ['schedule', 'Programmation'], ['live', 'Scores en direct'], ['standings', 'Classement'], ['info', 'Fiche tournoi'], ['stats', 'Stats du club']];
+  const VIEWS = [['bracket', 'Tableau final'], ['classif', 'Tableau de classement'], ['poules', 'Poules / qualifs'], ['schedule', 'Programmation'], ['live', 'Scores en direct'], ['standings', 'Classement'], ['info', 'Fiche tournoi'], ['stats', 'Stats du club'], ['month', 'Tournois du mois']];
   $('#rotViews').innerHTML = VIEWS.map(([k, l]) => `<label class="chk"><input type="checkbox" value="${k}"> ${l}</label>`).join('');
   $$('#rotViews input').forEach(cb => cb.onchange = () => {
     const sel = $$('#rotViews input').filter(x => x.checked).map(x => x.value);
     if (!sel.length) { cb.checked = true; return A.toast('Gardez au moins un écran dans la rotation', 'err'); }
-    send('display/set', { rotateViews: sel });
+    send('display/set', { rotateViews: sel, rotateV2: true });
   });
   $('#rotateSec').onchange = e => send('display/set', { rotateSec: +e.target.value || 20 });
   $('#ticker').onchange = e => send('display/set', { ticker: e.target.value });
@@ -1491,7 +1492,9 @@
   function renderDiffusion() {
     const d = S.display;
     $$('#tvViews [data-tv]').forEach(b => b.classList.toggle('on', b.dataset.tv === d.tv && !d.rotate));
-    const rv = d.rotateViews || ['bracket', 'poules', 'schedule', 'live', 'standings'];
+    const rv0 = d.rotateViews || ['bracket', 'poules', 'schedule', 'live', 'standings'];
+    // rotation réglée avant l'écran « Tableau de classement » : il suit le tableau final
+    const rv = !d.rotateV2 && rv0.includes('bracket') && !rv0.includes('classif') ? rv0.flatMap(v => (v === 'bracket' ? ['bracket', 'classif'] : [v])) : rv0;
     $$('#rotViews input').forEach(cb => { cb.checked = rv.includes(cb.value); });
     fill($('#rotate'), d.rotate); fill($('#rotateSec'), d.rotateSec); fill($('#ticker'), d.ticker); fill($('#overlayBg'), d.overlay);
     $$('[data-obg]').forEach(b => b.setAttribute('aria-selected', b.dataset.obg === (d.overlay || 'green')));
@@ -1622,7 +1625,7 @@
       <tr><td><kbd>Maj</kbd>+<kbd>←</kbd> · <kbd>Maj</kbd>+<kbd>→</kbd></td><td>Jeu pour l'équipe 1 / l'équipe 2 (score suivi aux jeux)</td></tr>
       <tr><td><kbd>Retour arrière</kbd></td><td>Annuler le dernier point</td></tr>
       <tr><td><kbd>S</kbd></td><td>Changer le premier serveur</td></tr>
-      <tr><td><kbd>T</kbd> <kbd>O</kbd> <kbd>P</kbd> <kbd>D</kbd> <kbd>C</kbd> <kbd>I</kbd> <kbd>S</kbd> <kbd>G</kbd></td><td>Écran TV : Tableau · Poules · Programmation · Direct · Classement · Infos · Stats du club · Tirage (onglet 7)</td></tr>
+      <tr><td><kbd>T</kbd> <kbd>L</kbd> <kbd>O</kbd> <kbd>P</kbd> <kbd>D</kbd> <kbd>C</kbd> <kbd>I</kbd> <kbd>S</kbd> <kbd>M</kbd> <kbd>G</kbd></td><td>Écran TV : Tableau · Tableau de classement · Poules · Programmation · Direct · Classement · Infos · Stats du club · Tournois du mois · Tirage (onglet 7)</td></tr>
       <tr><td><kbd>R</kbd></td><td>Rotation automatique de l'écran TV (onglet 7)</td></tr>
       <tr><td><kbd>Échap</kbd></td><td>Fermer la fenêtre</td></tr>
       </tbody></table><div class="btns"><button class="accent" data-close>OK</button></div>`, null, { static: true });
@@ -1648,7 +1651,7 @@
     }
     if (modal) return;
     if (tab === 'diffusion') {
-      const map = { t: 'bracket', o: 'poules', p: 'schedule', d: 'live', c: 'standings', i: 'info', s: 'stats', g: 'draw' };
+      const map = { t: 'bracket', l: 'classif', o: 'poules', p: 'schedule', d: 'live', c: 'standings', i: 'info', s: 'stats', m: 'month', g: 'draw' };
       const k = e.key.toLowerCase();
       if (map[k]) return send('display/set', { tv: map[k], rotate: false });
       if (k === 'r') return send('display/set', { rotate: !S.display.rotate });

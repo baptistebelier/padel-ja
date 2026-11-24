@@ -2062,7 +2062,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     /* ---------- API d'un tournoi ---------- */
-    m = p.match(/^\/api\/t\/([\w-]+)\/(events|action|undo|export|info|stats|membres|adjoints)$/);
+    m = p.match(/^\/api\/t\/([\w-]+)\/(events|action|undo|export|info|stats|mois|membres|adjoints)$/);
     if (m) {
       const room = await getRoom(m[1]);
       if (!room) return json(res, 404, { error: 'Tournoi introuvable' });
@@ -2071,6 +2071,18 @@ const server = http.createServer(async (req, res) => {
       if (!level) return json(res, 401, { error: 'Accès refusé : connexion, clé de diffusion ou code PIN requis.' });
       const what = m[2];
       // écran TV : statistiques générales du compte organisateur (pas seulement ce tournoi), gardées 1 min
+      // écran TV « Tournois du mois » : les tournois de l'organisateur qui ont lieu ce mois-ci (ni tournoi d'exemple, ni démo)
+      if (what === 'mois') {
+        const ym = new Date().toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' }).slice(0, 7);
+        const own = await store.listTournaments(room.row.owner).catch(() => []);
+        const list = own.filter(t => !Access.isExample(t) && !t.demo && t.dateStart && (String(t.dateStart).slice(0, 7) === ym || (t.dateEnd && String(t.dateStart).slice(0, 7) < ym && String(t.dateEnd).slice(0, 7) >= ym)))
+          .sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart)) || String(a.startTime || '').localeCompare(String(b.startTime || '')))
+          .slice(0, 24)
+          .map(t => ({ id: t.id, ici: t.id === room.row.id, name: t.name || 'Tournoi', type: t.type || 'tournoi', category: t.category || '', gender: t.gender || '', club: t.club || '',
+            dateStart: t.dateStart, dateEnd: t.dateEnd || '', startTime: t.startTime || '', pairs: t.pairs || 0, players: t.players || 0, maxPairs: t.maxPairs || null,
+            etat: t.closed ? 'Terminé' : t.drawn ? 'En cours' : 'Inscriptions' }));
+        return json(res, 200, { mois: ym, list });
+      }
       if (what === 'stats') {
         const c = statsCache.get(room.row.owner);
         if (c && Date.now() - c.at < 60000) return json(res, 200, c.data);

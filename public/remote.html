@@ -58,9 +58,9 @@ body { padding: calc(14px + env(safe-area-inset-top, 0px)) 16px calc(30px + env(
   const E = Engine, A = App, esc = A.esc, app = document.getElementById('app');
   const ic = d => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const VIEWS = [['bracket', 'Tableau final', '<path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M12 13v4M8 21h8M9 17h6"/>'], ['poules', 'Poules', '<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/>'],
-    ['schedule', 'Programmation', '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>'], ['live', 'Scores en direct', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/>'],
+    ['classif', 'Tableau de classement', '<path d="M4 5h6v4H4zM4 15h6v4H4zM14 10h6v4h-6z"/><path d="M10 7h2v10h-2M12 12h2"/>'], ['schedule', 'Programmation', '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>'], ['live', 'Scores en direct', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/>'],
     ['standings', 'Classement', '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>'], ['info', 'Fiche tournoi', '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>'],
-    ['stats', 'Stats du club', '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>'], ['draw', 'Tirage', '<path d="M4 7h3l10 10h3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3M17 14l3 3-3 3"/>']];
+    ['stats', 'Stats du club', '<path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/>'], ['month', 'Tournois du mois', '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4M7 14h3M14 14h3M7 18h3"/>'], ['draw', 'Tirage', '<path d="M4 7h3l10 10h3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3M17 14l3 3-3 3"/>']];
   let sel = null; try { sel = localStorage.getItem('padelja-remote-match'); } catch (e) {}
   let part = 'tv'; try { part = localStorage.getItem('padelja-remote-part') || 'tv'; } catch (e) {}
   let started = false, msgDraft = null;

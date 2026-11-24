@@ -51,7 +51,7 @@
     if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen();
   });
 
-  const TITLES = { bracket: 'Tableau final', poules: 'Poules', schedule: 'Programmation', live: 'En direct', standings: 'Classement live', info: 'Le tournoi', stats: 'Stats du club', draw: 'Tirage au sort' };
+  const TITLES = { bracket: 'Tableau final', classif: 'Tableau de classement', month: 'Tournois du mois', poules: 'Poules', schedule: 'Programmation', live: 'En direct', standings: 'Classement live', info: 'Le tournoi', stats: 'Stats du club', draw: 'Tirage au sort' };
 
   A.connect(st => { S = st; R = A.R; $('#waiting').hidden = true; update(); }, ok => { if (!ok) $('#waiting').hidden = false; });
   setInterval(() => { $('#clock').textContent = A.hhmm(Date.now()); }, 1000);
@@ -94,15 +94,17 @@
     A.marquee(tk, `<div class="ti-run">${run}</div>`, 90);
     setupRotation();
     showView(currentView());
-    [renderBracket, renderPoules, renderSchedule, renderLive, renderStandings, renderInfo, renderDraw].forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+    [renderBracket, renderClassif, renderPoules, renderSchedule, renderLive, renderStandings, renderInfo, renderDraw].forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
   }
 
   /* ---------- rotation ---------- */
   function rotList() {
     // écrans choisis par le JA, sauf ceux qui n'ont rien à montrer
-    const want = S.display.rotateViews || ['bracket', 'poules', 'schedule', 'live', 'standings'];
-    const ok = { bracket: S.matches.some(m => m.phase === 'TF'), poules: S.poules.length || S.matches.some(m => m.phase === 'Q'),
-      schedule: true, live: true, standings: !!(S.draw && S.draw.built), info: true, stats: true };
+    const rv = S.display.rotateViews || ['bracket', 'classif', 'poules', 'schedule', 'live', 'standings'];
+    // rotation réglée avant l'écran « Tableau de classement » : il suit le tableau final
+    const want = !S.display.rotateV2 && rv.includes('bracket') && !rv.includes('classif') ? rv.flatMap(v => (v === 'bracket' ? ['bracket', 'classif'] : [v])) : rv;
+    const ok = { bracket: S.matches.some(m => m.phase === 'TF'), classif: classifMatches().length > 0, poules: S.poules.length || S.matches.some(m => m.phase === 'Q'),
+      schedule: true, live: true, standings: !!(S.draw && S.draw.built), info: true, stats: true, month: true };
     const l = want.filter(v => ok[v]);
     return l.length ? l : ['schedule'];
   }
@@ -119,6 +121,7 @@
     document.querySelectorAll('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
     document.body.classList.toggle('pointer', v === 'draw');
     if (v === 'stats') loadStats();
+    if (v === 'month') loadMonth();
     let title = TITLES[v] || '';
     if (v === 'poules' && !S.poules.length) title = 'Qualifications';
     A.setText($('#viewTitle'), title, 'slide');
@@ -162,24 +165,25 @@
     // les cases grandissent d'un tour à l'autre jusqu'au bord droit de l'écran
     const final = main.find(m => m.size === 2);
     const nCols = sizes.length;
-    const top = 34, H = VIEW_H - 80, gapX = 44;
-    const weights = sizes.map((sz, c) => 1 + 0.38 * c + (sz === 2 ? 0.25 : 0));
+    // l'étiquette (heure, terrain) chevauche le haut de la case : il suffit d'un petit écart entre deux cases
+    const top = 26, H = VIEW_H - 46, gapX = 40;
+    const weights = sizes.map((sz, c) => 1 + 0.2 * c + (sz === 2 ? 0.15 : 0));
     const sumW = weights.reduce((a, b) => a + b, 0);
     const usable = 1920 - 56 - gapX * (nCols - 1);
     const colWs = weights.map(w => usable * w / sumW);
     const n0 = main.filter(m => m.size === sizes[0]).length;
-    const ch0 = Math.max(44, Math.min(112, H / n0 - 38));
+    const ch0 = Math.max(50, Math.min(150, H / n0 - 34));
     const pos = {};
     let x = 28;
     sizes.forEach((sz, c) => {
       const ms = main.filter(m => m.size === sz).sort((a, b) => a.idx - b.idx);
       const slot = H / ms.length;
       const w = colWs[c];
-      const h = sz === 2 ? Math.min(260, H * 0.3) : Math.max(ch0, Math.min(slot - 46, ch0 * (1 + 0.5 * c), 220));
+      const h = sz === 2 ? Math.min(280, H * 0.32) : Math.max(ch0, Math.min(slot - 34, ch0 * (1 + 0.5 * c), 240));
       ms.forEach((m, i) => { pos[m.id] = { x, y: top + slot * (i + 0.5) - h / 2, w, h, left: true, final: sz === 2 }; });
       x += w + gapX;
     });
-    const fsOf = p => Math.round(Math.max(15, Math.min(p.final ? 46 : 40, p.h * 0.3, p.w * 0.085)));
+    const fsOf = p => Math.round(Math.max(20, Math.min(p.final ? 54 : 46, p.h * 0.36, p.w * 0.09)));
     const champPos = final ? { x: pos[final.id].x, y: pos[final.id].y + pos[final.id].h + 70, w: pos[final.id].w } : null;
     const sig = S.draw.id + ':' + main.length;
     keyed(el, sig, () => {
@@ -220,6 +224,82 @@
   }
 
   /* =====================================================================
+     TABLEAU DE CLASSEMENT — matchs de classement du TMC (3e place, places 5 à 8, 9 à 16…)
+     un bloc par série de places, ses matchs tour par tour
+     ===================================================================== */
+  function classifMatches() { return S ? S.matches.filter(m => m.phase === 'TF' && m.a > 1 && m.size <= 32) : []; }
+  function renderClassif() {
+    const el = $('#classifBox'), ms = classifMatches();
+    if (!ms.length) { keyed(el, 'none', () => '<div class="empty"><span class="band lime">Tableau de classement</span><small>pas de matchs de classement</small></div>', () => ({})); return; }
+    const tl = E.timeline(S, R);
+    const groups = [...new Set(ms.map(m => m.a))].sort((a, b) => a - b).map(a => {
+      const l = ms.filter(m => m.a === a).sort((x, y) => y.size - x.size || x.idx - y.idx);
+      const span = Math.max(...l.map(m => m.size));
+      return { a, l, title: span === 2 ? (a === 3 ? '3e place' : `${a}e place`) : `Places ${a} à ${a + span - 1}` };
+    });
+    const n = ms.length + groups.length * 0.6;
+    const cols = n <= 7 ? 2 : n <= 22 ? 3 : 4;
+    const fs = n <= 7 ? 34 : n <= 14 ? 30 : n <= 22 ? 26 : n <= 34 ? 22 : 20;
+    el.style.setProperty('--ccols', cols); el.style.setProperty('--cfs', fs + 'px');
+    const rnd = m => (m.size === 2 ? (m.a === 3 ? 'Petite finale' : `Match ${m.a}e place`) : (E.ROUND_SHORT[m.size] || 'Tour ' + m.depth));
+    keyed(el, 'cl:' + S.draw.id + ':' + ms.length, () => groups.map(g => `<div class="cg"><div class="cg-h"><span class="band ${g.a === 3 ? 'pink' : 'lime'}">${esc(g.title)}</span></div>
+      ${g.l.map(m => `<div class="cm" data-c="${m.id}" data-base="cm"><div class="cm-h"><span>${esc(rnd(m))}</span><em data-h="${m.id}t"></em></div>
+        ${['A', 'B'].map(s => `<div class="bc-row" data-c="${m.id}${s}" data-base="bc-row"><span class="nm" data-k="${m.id}${s}n"></span><span class="sets" data-h="${m.id}${s}h"></span></div>`).join('')}</div>`).join('')}</div>`).join(''), () => {
+      const v = {};
+      ms.forEach(m => {
+        const r = R[m.id];
+        ['A', 'B'].forEach(s => { v[m.id + s + 'n'] = r.staticBye && r[s] === 'BYE' ? 'Exempt' : A.sideName(m, s, 'last'); v[m.id + s + 'h'] = setsHtml(m, s, true); v['c:' + m.id + s] = rowCls(m, s); });
+        v[m.id + 't'] = tagOf(m, tl);
+        v['c:' + m.id] = 'st-' + r.state + (r.staticBye ? ' isbye' : '');
+      });
+      return v;
+    });
+    // tout doit tenir dans l'écran : une colonne de plus, sinon un texte un peu plus petit (jamais sous 18 px)
+    let c = cols, f = fs;
+    for (let i = 0; i < 12 && el.scrollWidth > el.clientWidth + 4; i++) {
+      if (c < 4 && f >= 24) el.style.setProperty('--ccols', ++c);
+      else if (f > 18) el.style.setProperty('--cfs', (f -= 2) + 'px');
+      else break;
+    }
+    // et s'il reste de la place, le texte grandit tant que tout tient
+    for (let i = 0; i < 8 && f < 36 && el.scrollWidth <= el.clientWidth + 4; i++) {
+      el.style.setProperty('--cfs', (f + 2) + 'px');
+      if (el.scrollWidth > el.clientWidth + 4) { el.style.setProperty('--cfs', f + 'px'); break; }
+      f += 2;
+    }
+  }
+
+  /* =====================================================================
+     TOURNOIS DU MOIS — les tournois de l'organisateur ce mois-ci
+     ===================================================================== */
+  let month = null, monthAt = 0;
+  function loadMonth() {
+    if (Date.now() - monthAt < 60000 && month) return renderMonth();
+    monthAt = Date.now();
+    A.api(A.base + '/mois').then(d => { if (!d.error) { month = d; renderMonth(); } }).catch(() => {});
+  }
+  setInterval(() => { if (view === 'month') loadMonth(); }, 61000);
+  function renderMonth() {
+    const el = $('#monthBox'), d = month;
+    if (!d) return;
+    const nomMois = new Date(d.mois + '-15T12:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    if (!d.list.length) { keyed(el, 'mo:none', () => `<div class="empty"><span class="band lime">${esc(nomMois)}</span><small>aucun tournoi ce mois-ci</small></div>`, () => ({})); return; }
+    const today = new Date().toLocaleDateString('fr-CA');
+    const n = d.list.length, cols = n <= 4 ? 1 : 2;
+    el.style.setProperty('--mcols', cols);
+    el.style.setProperty('--mfs', (n <= 2 ? 56 : n <= 4 ? 46 : n <= 8 ? 34 : n <= 12 ? 28 : n <= 16 ? 24 : 20) + 'px');
+    keyed(el, 'mo:' + JSON.stringify(d), () => `<div class="mo-h"><span class="band lime">${esc(nomMois)}</span><b>${n} tournoi${n > 1 ? 's' : ''}</b></div><div class="mo-list">${d.list.map(t => {
+      const dt = new Date(t.dateStart + 'T12:00:00'), fin = t.dateEnd && t.dateEnd !== t.dateStart ? new Date(t.dateEnd + 'T12:00:00') : null;
+      const passe = (t.dateEnd || t.dateStart) < today && t.etat !== 'En cours';
+      const nb = t.type === 'animation' ? (t.players ? t.players + ' joueurs' : '') : t.pairs ? t.pairs + (t.maxPairs ? '/' + t.maxPairs : '') + ' paires' : '';
+      return `<div class="mo ${t.ici ? 'ici' : ''} ${passe ? 'passe' : ''} ${t.etat === 'En cours' ? 'live' : ''}">
+        <div class="mo-d"><b>${dt.getDate()}${fin ? '–' + fin.getDate() : ''}</b><span>${esc(dt.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', ''))}</span></div>
+        <div class="mo-t"><b>${esc(t.name)}</b><span>${esc([t.type === 'animation' ? 'Animation' : [t.category, t.gender].filter(Boolean).join(' '), t.startTime ? t.startTime.replace(':', 'h') : '', nb].filter(Boolean).join(' · '))}</span></div>
+        <em>${t.etat === 'En cours' ? '<b class="live-dot"></b>' : ''}${esc(t.etat)}</em></div>`;
+    }).join('')}</div>`, () => ({}));
+  }
+
+  /* =====================================================================
      POULES / QUALIFICATIONS
      ===================================================================== */
   function renderPoules() {
@@ -232,6 +312,9 @@
       const sig = 'p:' + S.draw.id + ':' + data.map(d => d.st.rows.map(x => x.pair).join(',')).join('|');
       const cols = n <= 2 ? n : n <= 4 ? 2 : n <= 6 ? 3 : 4;
       el.style.setProperty('--pcols', cols);
+      // taille du texte selon la place : moins de poules, plus gros
+      const rowsPerCol = Math.ceil(n / cols) * (Math.max(...S.poules.map(P => P.pairs.length)) + 3);
+      el.style.setProperty('--pfs', Math.round(Math.max(20, Math.min(40, 700 / rowsPerCol))) + 'px');
       keyed(el, sig, () => data.map(({ P, st }) => `<div class="pcard">
           <div class="pc-h"><span class="band lime">Poule ${P.id}</span><em data-k="pd${P.id}"></em></div>
           <div class="pc-rows"><div class="pc-r hd"><span></span><span></span><span>J</span><span>Pts</span><span>Sets</span><span>Jeux</span></div>
@@ -342,6 +425,8 @@
       return v;
     });
     el.style.setProperty('--n', Math.max(1, items.length));
+    // les cartes remplissent la hauteur ; moins de terrains, plus gros
+    el.style.setProperty('--lfs', (items.length <= 2 ? 66 : items.length <= 4 ? 54 : items.length <= 6 ? 44 : 36) + 'px');
     const done = S.matches.filter(m => R[m.id].state === 'done' && m.endedAt).sort((a, b) => b.endedAt - a.endedAt).slice(0, 6);
     keyed($('#lastRes'), 'lr:' + done.map(m => m.id).join(','), () => `<h3><span class="band lime">Résultats</span></h3>` + done.map(m => {
       const r = R[m.id];
@@ -357,12 +442,19 @@
     // classement en temps réel : blocs de places qui se scindent au fil des tours, avec les points FFT
     const LS = E.liveStandings(S, R);
     const pts = g => (g.ptsHi == null ? '' : g.exact || g.ptsHi === g.ptsLo ? `${g.ptsHi} pts` : `${g.ptsLo} à ${g.ptsHi} pts`);
-    el.style.setProperty('--fs', LS.N > 24 ? '18px' : LS.N > 16 ? '21px' : '25px');
+    el.style.setProperty('--fs', LS.N > 24 ? '22px' : LS.N > 16 ? '26px' : LS.N > 8 ? '30px' : '36px');
     keyed(el, 'st:' + JSON.stringify(LS.groups.map(g => [g.lo, g.hi, g.pairs])), () => LS.groups.length ? LS.groups.map(g => `
       <div class="rkb ${g.exact ? 'exact' : ''} ${g.exact && g.lo <= 3 ? 'p' + g.lo : ''}">
         <div class="rkb-h"><b>${g.exact ? g.lo + (g.lo === 1 ? 'er' : 'e') : `Places ${g.lo}–${g.hi}`}</b><span>${pts(g)}</span></div>
         <div class="rkb-p">${g.pairs.map(p => `<div>${esc(A.pairName(p, 'initial'))}</div>`).join('')}</div></div>`).join('')
       : '<div class="empty"><span class="band lime">Classement</span><small>après le tirage au sort</small></div>', () => ({}));
+    // autant de colonnes que de blocs (4 au plus), puis le texte le plus grand qui tienne dans l'écran
+    if (!LS.groups.length) return;
+    el.style.setProperty('--scols', Math.min(4, LS.groups.length));
+    const over = () => el.scrollWidth > el.clientWidth + 4;
+    let f = parseInt(el.style.getPropertyValue('--fs'), 10) || 26;
+    for (let i = 0; i < 10 && over() && f > 18; i++) el.style.setProperty('--fs', (f -= 2) + 'px');
+    for (let i = 0; i < 12 && f < 44 && !over(); i++) { el.style.setProperty('--fs', (f + 2) + 'px'); if (over()) { el.style.setProperty('--fs', f + 'px'); break; } f += 2; }
   }
 
   /* =====================================================================
