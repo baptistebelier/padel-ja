@@ -1,0 +1,41 @@
+# Compilation de l'appli /Buvette pour l'App Store, sur les Mac de Codemagic (voir natif/LISEZMOI.md).
+# Lancée à la main depuis codemagic.io : chaque compilation est envoyée sur TestFlight.
+workflows:
+  buvette-ios:
+    name: /Buvette iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    working_directory: natif
+    integrations:
+      app_store_connect: RAM App Store   # nom de la clé d'API ajoutée dans Codemagic (Team settings → Integrations)
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: fr.riseandmove.buvette
+      vars:
+        APP_STORE_APPLE_ID: "0000000000"   # identifiant Apple de l'appli (App Store Connect → Informations sur l'app), à remplacer
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Dépendances
+        script: npm ci
+      - name: Copie de la configuration dans le projet iOS
+        script: npx cap sync ios
+      - name: Profils de signature
+        script: xcode-project use-profiles
+      - name: Numéro de compilation
+        script: |
+          N=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0) + 1))
+          cd ios/App && agvtool new-version -all $N
+      - name: Compilation
+        script: |
+          xcode-project build-ipa \
+            --project ios/App/App.xcodeproj \
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

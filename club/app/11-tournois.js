@@ -204,6 +204,6 @@ function jaAccessBlocked(d, o) {
  <span class="kicker">Pour l’organiser quand même</span>
  <p>1. Prendre une offre /Pista (pass tournoi ou abonnement du club), puis recommencer ici.</p>
  <p>2. Ou demander au juge-arbitre du club de le créer dans /Pista avec le nom du club : il apparaîtra tout seul sur le mur, avec les inscriptions dans l’appli.</span></div>
- ${shop ? `<a class="btn full" href="${esc(shop)}" target="_blank" rel="noopener">Voir les offres /Pista ${ic('link')}</a>` : ''}<button class="btn ghost full" data-a="close">Fermer</button></div>`
+ ${shop && !enNatif() ? `<a class="btn full" href="${esc(shop)}" target="_blank" rel="noopener">Voir les offres /Pista ${ic('link')}</a>` : ''}<button class="btn ghost full" data-a="close">Fermer</button></div>`
   );
 }

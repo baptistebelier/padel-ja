@@ -1,0 +1,4 @@
+node_modules/
+ios/App/App/public/
+ios/DerivedData/
+*.ipa

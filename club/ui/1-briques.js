@@ -1,5 +1,7 @@
 /* /Buvette — ui/1-briques.js : Briques communes : catégories, classements, avatars, petits éléments réutilisés partout.
    Morceau de l'ancien ui.js : les fichiers ui/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
+/* appli de l'App Store (coque Capacitor) : pas d'achat d'offre ni de prix dans l'appli (règles d'Apple) */
+const enNatif = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
 /* Briques d'interface et écrans */
 const hue = id => [...id].reduce((a, c) => a + c.charCodeAt(0) * 7, 0) % 360;
 const ini = id =>

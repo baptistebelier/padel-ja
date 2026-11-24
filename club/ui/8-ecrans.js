@@ -469,5 +469,7 @@ function offreClubCarte() {
   if (o.niveau !== 'decouverte')
     return `<div class="card adm-sec"><span class="kicker">Offre du club</span><p><b>/Buvette ${esc(o.nom)}</b> · ${o.admin ? 'compte administrateur, sans abonnement' : 'active jusqu’au ' + date(o.until)}</p><p class="muted small">${o.adherents} adhérents validés, sans limite.${o.niveau === 'clubplus' ? ' /Dojo Pro est offert à tous les enseignants du club.' : ''}</p></div>`;
   const plein = o.adherents >= o.limites.adherents;
+  if (enNatif())
+    return `<div class="card adm-sec"><span class="kicker">Offre du club</span><p><b>/Buvette Découverte</b> · ${o.adherents} / ${o.limites.adherents} adhérents validés</p><p class="muted small">L’offre du club se gère depuis le site /Buvette.</p></div>`;
   return `<div class="card adm-sec"><span class="kicker">Offre du club</span><p><b>/Buvette Découverte</b> · ${o.adherents} / ${o.limites.adherents} adhérents validés</p><p class="muted small">${plein ? 'Le club a atteint la limite de l’offre gratuite : passe à l’offre Club pour valider d’autres adhésions.' : 'Toutes les fonctions sont ouvertes jusqu’à ' + o.limites.adherents + ' adhérents.'} Club : adhérents illimités, 19 € par mois. Club + : en plus, /Dojo Pro pour tous les enseignants, 29 € par mois.</p><a class="btn full" href="${esc(o.boutique)}" target="_blank" rel="noopener">${ic('star')}Voir les offres Club et Club +</a></div>`;
 }

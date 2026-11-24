@@ -1,0 +1,32 @@
+{
+  "appId": "fr.riseandmove.buvette",
+  "appName": "Buvette",
+  "webDir": "www",
+  "server": {
+    "url": "https://buvette.riseandmove.fr",
+    "allowNavigation": [
+      "*.riseandmove.fr",
+      "riseandmove.fr"
+    ],
+    "errorPath": "index.html"
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0B0B0B",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#0B0B0B",
+      "showSpinner": false
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  }
+}

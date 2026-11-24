@@ -316,7 +316,36 @@ if ('serviceWorker' in navigator)
    La clé publique vient du serveur (/api/ram/push/key) ; l'abonnement est rattaché au compte connecté.
    Le serveur envoie {"title":"…","body":"…","url":"#/post/p1","tag":"post-p1"} (voir sw.js).
    Sans serveur (démo) ou si le navigateur ne connaît pas le push (iPhone hors appli installée, iOS < 16.4…), rien n'est bloqué. */
-const pushReady = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+/* Appli de l'App Store (coque Capacitor) : notifications natives d'Apple, jeton envoyé au serveur sous la forme « apns:<jeton> » */
+const natif = enNatif;
+const pushNatif = () => natif() && Capacitor.Plugins && Capacitor.Plugins.PushNotifications;
+let permNatif = '';
+const permission = () => (pushNatif() ? permNatif : 'Notification' in window ? Notification.permission : 'default');
+const pushReady = () =>
+  !!pushNatif() || ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+let jetonNatif = null;
+async function abonnerNatif(ask) {
+  const PN = pushNatif();
+  let p = (await PN.checkPermissions()).receive;
+  if (p !== 'granted' && ask) p = (await PN.requestPermissions()).receive;
+  permNatif = p === 'granted' ? 'granted' : p === 'denied' ? 'denied' : 'default';
+  if (p !== 'granted') return null;
+  jetonNatif =
+    jetonNatif ||
+    new Promise((ok, ko) => {
+      PN.addListener('registration', t => ok(t.value));
+      PN.addListener('registrationError', e => ko(new Error((e && e.error) || 'APNs')));
+      PN.addListener('pushNotificationActionPerformed', a => {
+        const u = a && a.notification && a.notification.data && a.notification.data.url;
+        if (u) openFromUrl(u);
+      });
+      PN.register();
+    });
+  const t = await jetonNatif.catch(() => (jetonNatif = null));
+  return t
+    ? { endpoint: 'apns:' + t, toJSON: () => ({ endpoint: 'apns:' + t, keys: { p256dh: 'apns', auth: 'apns' } }) }
+    : null;
+}
 function b64ToU8(s) {
   const p = '='.repeat((4 - (s.length % 4)) % 4),
     b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/'));
@@ -329,7 +358,23 @@ async function pushKey() {
 }
 /* ask : demander l'autorisation (bouton « Activer ») ; sinon, seulement renouveler un abonnement déjà autorisé */
 async function pushSubscribe(ask) {
-  if (!pushReady() || (!ask && Notification.permission !== 'granted')) return null;
+  if (!pushReady()) return null;
+  if (pushNatif()) {
+    try {
+      const sub = await abonnerNatif(ask);
+      if (!sub) return null;
+      const r = await fetch('/api/ram/push/subscribe', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON(), app: 'club' })
+      });
+      return r.ok ? sub : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  if (!ask && Notification.permission !== 'granted') return null;
   try {
     const key = await pushKey();
     if (!key) return null;
@@ -374,7 +419,7 @@ A.pushOn = async () => {
   toast(
     sub
       ? 'Notifications activées sur ce téléphone'
-      : Notification.permission === 'denied'
+      : permission() === 'denied'
         ? 'Notifications refusées : tu peux changer ça dans les réglages du téléphone'
         : "Les notifications n'ont pas pu être activées, réessaie dans un instant"
   );
@@ -396,13 +441,13 @@ const iosTropAncien = () => {
   return !!v && (v[0] < 16 || (v[0] === 16 && v[1] < 4));
 };
 A.pushTest = async () => {
-  if (isIOS() && (iosTropAncien() || !standalone() || !pushReady())) return installGuide(true);
+  if (!natif() && isIOS() && (iosTropAncien() || !standalone() || !pushReady())) return installGuide(true);
   if (!pushReady()) return toast('Ce navigateur ne gère pas les notifications push');
   if (!enLigne()) return toast("La notification d'essai part de l'appli du club, une fois connecté");
   const sub = await pushSubscribe(true);
   if (!sub)
     return toast(
-      Notification.permission === 'denied'
+      permission() === 'denied'
         ? 'Notifications refusées : autorise-les dans les réglages du téléphone, puis réessaie'
         : "Les notifications n'ont pas pu être activées, réessaie dans un instant"
     );
@@ -529,7 +574,7 @@ const isPWAPage = !!document.querySelector('link[rel="manifest"]');
 /* ---------- iPhone : écran guidé « Installer l'appli du club » au premier lancement dans Safari ---------- */
 const isIOS = () =>
   /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const standalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const standalone = () => natif() || navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
 function installGuide(force) {
   let later = false;
   try {

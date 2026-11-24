@@ -1,0 +1,23 @@
+{
+  "name": "buvette-natif",
+  "private": true,
+  "description": "Coque native (Capacitor) de /Buvette pour l'App Store. Compilée par Codemagic : voir LISEZMOI.md.",
+  "scripts": {
+    "icones": "node icones.mjs && npx capacitor-assets generate --ios --iconBackgroundColor '#2467D6' --splashBackgroundColor '#0B0B0B'",
+    "sync": "npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/camera": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/push-notifications": "^8.0.0",
+    "@capacitor/share": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  }
+}
