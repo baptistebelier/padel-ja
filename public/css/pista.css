@@ -1582,6 +1582,9 @@ body.editor-page .top { top: 0; z-index: 30; padding-top: calc(var(--s5) + env(s
 @view-transition { navigation: auto; }
 .rail { view-transition-name: rail; }
 ::view-transition-group(rail) { animation: none; }
+/* onglets d'un tournoi (Tournoi, Inscriptions, Tirage…) et filtres : aucun mouvement au changement (24/11/2026) ;
+   seul le passage d'une grande page à une autre garde sa transition */
+.tab, .tab.on { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .tab, .dcard, .modal-box, .pmodal-box, .ps-secwrap .r-sheet, .rail, .sheet-box { animation: none; transition: none; }
 }

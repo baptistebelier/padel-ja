@@ -188,6 +188,7 @@
           // une séance ponctuelle rattachée à un achat (v.ac) ne se décompte que de cet achat, quel que soit son format,
           // tant que cet achat existe ; sinon la règle de la formule s'applique
           if (v.ac != null) {
+            if (v.ac === '-') return false; // « ne compte dans aucun achat » : séance réglée à part
             if (v.ac === a.id) return true;
             if (all.some(x => x.id === v.ac)) return false;
           }

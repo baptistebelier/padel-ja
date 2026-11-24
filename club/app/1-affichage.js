@@ -2,6 +2,7 @@
    Morceau de l'ancien app.js : les fichiers app/*.js se chargent dans l'ordre de leur numéro (voir index.html). */
 /* Rendu, actions, formulaires et simulation du direct */
 let lastKey = '',
+  lastRacine = true,
   lastFoot = '',
   slT,
   toastT;
@@ -284,11 +285,12 @@ function render(keep) {
           : SCROLLS[mk] || 0;
   S.toTop = false;
   lastMk = mk;
-  if (S.dir && !wide) {
-    slide((key !== lastKey ? 'pg-' : 'sg-') + (S.dir > 0 ? 'r' : 'l'));
-    S.dir = 0;
-  }
+  // glissement seulement d'une grande rubrique à une autre (Accueil → Agenda → Jouer…) : jamais pour un sous-onglet, un filtre
+  // ni une page ouverte dans une rubrique (choix de Baptiste, 24/11/2026)
+  const racine = !S.stack.length;
+  if (S.dir && !wide && key !== lastKey && racine && lastRacine) slide('pg-' + (S.dir > 0 ? 'r' : 'l'));
   S.dir = 0;
+  lastRacine = racine;
   if (key !== lastKey) repeint();
   lastKey = key;
   lastFoot = fk;

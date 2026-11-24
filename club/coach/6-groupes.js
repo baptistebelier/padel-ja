@@ -256,7 +256,7 @@ function coSesCycle(g, d) {
           (plein ? ' · complet' : '')
         );
       };
-    return `<form class="card" id="co-s-att" data-id="${g.id}" data-d="${d}"><div class="fld"><label for="co-s-ac">Rattacher cette séance</label><select id="co-s-ac"><option value="">${n0.length ? 'Aucun achat (règle par défaut)' : 'Choisir un achat ou un cycle'}</option>${parEl.map(([k, ach]) => `<optgroup label="${st.length > 1 ? 'Achats de ' + esc(svFirst(k)) : 'Ses achats'}">${ach.map(a => `<option value="a|${k}|${a.id}" ${REGLES.achatDe(g, k) === a.id ? 'selected' : ''}>${esc(lib(a))}</option>`).join('')}</optgroup>`).join('')}${l.length ? `<optgroup label="Groupes">${l.flatMap(x => x.cycles.map(c => `<option value="${x.id}|${c.id}">${esc(x.name)} · ${esc(c.nom)}</option>`)).join('')}</optgroup>` : ''}</select></div><button class="btn sm ghost full">Rattacher</button><p class="muted small">À un achat : la séance compte dans son décompte (même complet : 11/10), elle garde son nom, son heure et sa durée. À un groupe : elle devient une séance du groupe, à son horaire, avec ses élèves et son appel.</p></form>`;
+    return `<form class="card" id="co-s-att" data-id="${g.id}" data-d="${d}"><div class="fld"><label for="co-s-ac">Rattacher cette séance</label><select id="co-s-ac"><option value="">${n0.length ? 'Aucun achat (règle par défaut)' : 'Choisir un achat ou un cycle'}</option>${parEl.map(([k, ach]) => `<optgroup label="${st.length > 1 ? 'Achats de ' + esc(svFirst(k)) : 'Ses achats'}">${ach.map(a => `<option value="a|${k}|${a.id}" ${REGLES.achatDe(g, k) === a.id ? 'selected' : ''}>${esc(lib(a))}</option>`).join('')}<option value="n|${k}" ${REGLES.achatDe(g, k) === '-' ? 'selected' : ''}>${st.length > 1 ? esc(svFirst(k)) + ' : n' : 'N'}e compte dans aucun achat (réglée à part)</option></optgroup>`).join('')}${l.length ? `<optgroup label="Groupes">${l.flatMap(x => x.cycles.map(c => `<option value="${x.id}|${c.id}">${esc(x.name)} · ${esc(c.nom)}</option>`)).join('')}</optgroup>` : ''}</select></div><button class="btn sm ghost full">Rattacher</button><p class="muted small">À un achat : la séance compte dans son décompte (même complet : 11/10), elle garde son nom, son heure et sa durée. À un groupe : elle devient une séance du groupe, à son horaire, avec ses élèves et son appel.</p></form>`;
   }
   if (!(g.cycles || []).length) return '';
   const c = REGLES.cycleDe(g, d),
@@ -273,6 +273,15 @@ document.addEventListener('submit', e => {
     cid = gid === 'a' ? cid0 : kA,
     g = grp(gid),
     c = g && (g.cycles || []).find(x => x.id === cid);
+  // « ne compte dans aucun achat » : la séance ne se décompte d'aucun pack ni cycle de cet élève (REGLES.couverture, ac « - »)
+  if (o && gid === 'n') {
+    if (coStu(o).length === 1) {
+      o.achat = '-';
+      delete o.couvert;
+    } else o.achatPar = Object.assign({}, o.achatPar, { [kA]: '-' });
+    coSave('Séance retirée des achats de ' + svFirst(kA));
+    return;
+  }
   // un achat de l'élève (ou plus aucun) : le lien séance → achat (g.achat), que REGLES.couverture lit
   if (o && (gid === 'a' || val === '')) {
     const a = gid === 'a' ? coPacks(kA).find(x => x.id === cid) : null,

@@ -163,3 +163,16 @@ test('chiffre : un paiement retiré de la liste ne compte plus dans ce qui reste
   assert.equal(f(false), 90);
   assert.equal(f(true), 0);
 });
+
+test('séance « ne compte dans aucun achat » (ac « - ») : aucun pack ne la prend, même sans cycle', () => {
+  const O = { formules: [{ id: 'c3', joueurs: 3, duree: 90 }], packs: [] };
+  const pack = { id: 'p1', t: 'pack', n: 10, d: '2026-09-29' };   // pack importé, sans formule ni cycle : prend tout
+  const v = (d, gid, ac) => ({ d, min: 90, n: 4, gid, ac });
+  const vs = [v('2026-09-29', 'g1'), v('2026-11-23', 'th', '-')];
+  const r = R.couverture([pack], vs, O);
+  assert.equal(r.achats[0].used, 1, 'la thématique détachée ne compte pas');
+  assert.equal(r.couvre.has(vs[1]), false);
+  // rattaché au cycle, le pack ne prend que les séances de son groupe
+  const r2 = R.couverture([Object.assign({}, pack, { cycle: 'g1:c1' })], [v('2026-09-29', 'g1'), v('2026-11-23', 'th')], O);
+  assert.equal(r2.achats[0].used, 1);
+});

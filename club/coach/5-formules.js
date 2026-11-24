@@ -648,9 +648,31 @@ Object.assign(A, {
     const ech = d.ech || coPayEch(a) || [{ s: 0, m: +a.prix || 0, ok: a.d }],
       row = (x, i) =>
         `<div class="copech"><div class="fld"><label for="co-es${i}">Séance</label><input id="co-es${i}" class="co-es" type="number" min="0" value="${+x.s || 0}" data-ok="${esc(x.ok || '')}"></div><div class="fld"><label for="co-em${i}">Montant</label><input id="co-em${i}" class="co-em" type="number" min="0" step="any" value="${+x.m || 0}"></div><label class="copok"><input type="checkbox" class="co-eo" ${x.ok ? 'checked' : ''}>Payé</label></div>`;
+    // un pack ou un abonnement rattaché à un cycle ne compte que les séances de ce cycle (pas un collectif thématique à côté)
+    const cycles =
+        a.t === 'pack' || a.t === 'abo'
+          ? coGroups('', true).filter(
+              g =>
+                !g.once &&
+                (g.cycles || []).length &&
+                (coStu(g).includes(d.id) || String(a.cycle || '').startsWith(g.id + ':'))
+            )
+          : [],
+      cyc = cycles.length
+        ? `<div class="fld"><label for="co-pcy">Cycle</label><select id="co-pcy"><option value="">Aucun : toute séance du même format compte</option>${cycles
+            .flatMap(g =>
+              g.cycles.map(
+                c =>
+                  `<option value="${g.id}:${c.id}" ${a.cycle === g.id + ':' + c.id ? 'selected' : ''}>${esc(g.name)} · ${esc(c.nom)}</option>`
+              )
+            )
+            .join(
+              ''
+            )}</select><p class="muted small">Rattaché à un cycle, l’achat ne compte que les séances de ce cycle.</p></div>`
+        : '';
     sheet(
       'Paiement · ' + (a.nom || 'Achat'),
-      `<form class="body" id="co-pay" data-id="${d.id}" data-x="${d.x}"><p class="muted small">${esc(svName(d.id))} · acheté le ${fmtD(a.d)}${a.prix ? ' · ' + eur(a.prix) : ''}. Séance : à quelle séance le paiement est attendu (0 : tout de suite).</p>${ech.map(row).join('')}<div class="row" style="gap:8px;align-items:flex-end"><div class="fld grow"><label for="co-pn">Nombre de paiements</label><input id="co-pn" type="number" min="1" max="12" value="${ech.length}"></div><button type="button" class="btn ghost" data-a="coPayN" data-id="${d.id}" data-x="${d.x}">Répartir</button></div>${O('co-pmo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify', (a.pay || {}).moyen)}<button class="btn full">Enregistrer</button></form>`
+      `<form class="body" id="co-pay" data-id="${d.id}" data-x="${d.x}"><p class="muted small">${esc(svName(d.id))} · acheté le ${fmtD(a.d)}${a.prix ? ' · ' + eur(a.prix) : ''}. Séance : à quelle séance le paiement est attendu (0 : tout de suite).</p>${cyc}${ech.map(row).join('')}<div class="row" style="gap:8px;align-items:flex-end"><div class="fld grow"><label for="co-pn">Nombre de paiements</label><input id="co-pn" type="number" min="1" max="12" value="${ech.length}"></div><button type="button" class="btn ghost" data-a="coPayN" data-id="${d.id}" data-x="${d.x}">Répartir</button></div>${O('co-pmo', 'Moyen de paiement (facultatif)', 'Espèces, virement, Shopify', (a.pay || {}).moyen)}<button class="btn full">Enregistrer</button></form>`
     );
   },
   /* nouvelle répartition : ce qui est déjà payé ne bouge pas */
@@ -684,6 +706,16 @@ document.addEventListener('submit', e => {
   const moyen = $('co-pmo').value.trim().slice(0, 60);
   a.pay = { ech: coPayRead() };
   if (moyen) a.pay.moyen = moyen;
+  const cy = $('co-pcy');
+  if (cy) {
+    if (cy.value) {
+      a.cycle = cy.value;
+      a.groupe = cy.value.split(':')[0];
+    } else if (a.cycle) {
+      delete a.cycle;
+      delete a.groupe;
+    }
+  }
   closeSheet();
   coSave('Paiement enregistré');
 });
