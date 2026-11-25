@@ -232,15 +232,7 @@
 
 /* ===== Boîtes imbriquées : gérées par empilement.js (moteur commun aux applis, qui lit les couleurs affichées) ===== */
 
-/* ===== Navigation active et survolée : ni trait noir ni ombre portée =====
-   La navigation (menu de gauche, sous-menus, barre du bas, élément choisi dans une liste : conversation, élève…) n'est pas
-   faite de boutons mais de sections, actives ou non : fond coloré seul. Les boutons et les étiquettes, eux, gardent toujours
-   leur contour noir, même actifs (« Présent »). Les intercalaires gardent leur trait ; le contour de focus au clavier reste. */
-@media (hover: hover) {
-  :root :is(#tabs button, .tabs button, .rbot button, #subnav :is(button, a), #main > .seg:not(.haut) button, .colist .item, .cofr, .cobm .item, .r-row, .r-rail__it, .r-sub__it):hover { box-shadow: none !important; outline: none !important; border-color: transparent !important; }
-}
-:root :is(#tabs button, .tabs button, .rbot button, #subnav :is(button, a), #main > .seg:not(.haut) button, .colist .item, .cofr, .cobm .item, .r-row, .r-rail__it, .r-sub__it):is([aria-current]:not([aria-current='false']), [aria-selected='true'], [aria-pressed='true'], .on, .sel, .active, :has(> [aria-current]:not([aria-current='false']))) { box-shadow: none !important; outline: none !important; border-color: transparent !important; }
-:root :is(.tabs, .rbot) button[aria-current='page']::before { box-shadow: none !important; }
+/* ===== Navigation active et survolée : règle commune, dans empilement.js ===== */
 /* dates des séances à venir : heure en gras (le fond contrasté vient de empilement.js) */
 :root[data-ui="2"] .u2d span { font-weight: 700; }
 /* menu vertical (ordinateur, iPad en paysage) : la section active prend toute la largeur de la barre, bord à bord,

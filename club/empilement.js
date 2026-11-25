@@ -13,7 +13,11 @@
   if (window.__ramEmpilement) return;
   window.__ramEmpilement = true;
   const cfg = Object.assign(
-    { racines: '#main, .sheet', ignore: '#tabs, #subnav, .seg.haut, .rl, .tabs, .rbot' },
+    {
+      // zones traitées : /Buvette et /Dojo (#main, .sheet), /Pista (main, fenêtres .modal-box) ; navigation et intercalaires laissés de côté
+      racines: '#main, .sheet, main, .modal-box, dialog[open]',
+      ignore: '#tabs, #subnav, .seg.haut, .rl, .tabs, .rbot, .rail, .r-rail, .r-itabs, .tsec-tabs, .ps-side'
+    },
     window.RamEmpilement || {}
   );
 
@@ -27,6 +31,11 @@
     '[data-niv-plat]{box-shadow:none!important}' +
     // éléments de données (jauges, barres, cases) : toujours un contour noir
     '[data-niv-donnee]{border:var(--bw,2px) solid var(--c-ink)!important;box-sizing:border-box}' +
+    // navigation active ou survolée (menus, sous-menus, barre du bas, élément choisi dans une liste) : fond coloré seul,
+    // ni trait noir ni ombre ; ce sont des sections, pas des boutons. Intercalaires et contour de focus au clavier gardés.
+    '@media (hover:hover){:root :is(#tabs button, .tabs button, .rbot button, #subnav :is(button, a), #main > .seg:not(.haut) button, .colist .item, .cofr, .cobm .item, .r-row, .r-rail__it, .r-sub__it, .ps-side :is(button, a)):hover{box-shadow:none!important;outline:none!important;border-color:transparent!important}}' +
+    ':root :is(#tabs button, .tabs button, .rbot button, #subnav :is(button, a), #main > .seg:not(.haut) button, .colist .item, .cofr, .cobm .item, .r-row, .r-rail__it, .r-sub__it, .ps-side :is(button, a)):is([aria-current]:not([aria-current="false"]),[aria-selected="true"],[aria-pressed="true"],.on,.sel,.active,:has(> [aria-current]:not([aria-current="false"]))){box-shadow:none!important;outline:none!important;border-color:transparent!important}' +
+    ':root :is(.tabs,.rbot) button[aria-current="page"]::before{box-shadow:none!important}' +
     // pas de fondu quand le moteur change un fond ou retire une ombre : le changement ne doit pas se voir
     '[data-niv],[data-niv-boite],[data-niv-plat],[data-niv-donnee]{transition:none!important}';
   document.head.appendChild(css);
@@ -135,15 +144,15 @@
         pere.offsetHeight <= 30 &&
         (parseFloat(getComputedStyle(pere).borderTopWidth) > 0 || pere.hasAttribute('data-niv-donnee'));
       const plate = H >= 4 && H <= 28 && L >= 2.5 * H, // jauge, barre horizontale, case
-        debout = L >= 4 && L <= 48 && H >= 2.5 * L; // barre verticale de graphique
+        debout = L >= 4 && L <= 96 && H >= 1.5 * L; // barre verticale de graphique
       const donnee = !inter && !!fond && !x.textContent.trim() && (plate || debout) && !remplissage;
 
       let niv = null,
         sous = dessous;
-      if (fond && !donnee) {
+      if (fond) {
         if (principale) {
           // boîte principale, posée sur le fond de l'appli : on n'y touche pas
-        } else if (bandeau) {
+        } else if (bandeau && !donnee) {
           niv = 't';
         } else if (proche(fond, dessous)) {
           const t = ton(dessous);
@@ -189,7 +198,8 @@
   const tout_de_suite = recs => {
     if (
       encours ||
-      recs.every(r => r.target === document.body && [...r.addedNodes, ...r.removedNodes].every(n => n.__ramSonde))
+      (recs.length &&
+        recs.every(r => r.target === document.body && [...r.addedNodes, ...r.removedNodes].every(n => n.__ramSonde)))
     )
       return;
     encours = true;
@@ -208,8 +218,9 @@
       attributeFilter: ['style', 'class', 'data-theme', 'data-style']
     });
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', retons);
-    // un onglet qui s'affiche sans redessin (élément jusque-là caché) : décidé après le toucher ; rien d'autre n'est recalculé
-    addEventListener('click', plus_tard, true);
+    // un onglet qui s'affiche sans redessin (élément jusque-là caché) : décidé juste après le toucher, une fois que l'appli a
+    // réagi (écoute en fin de propagation) et avant l'affichage ; rien d'autre n'est recalculé
+    addEventListener('click', () => queueMicrotask(() => tout_de_suite([])));
     plus_tard();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarre);

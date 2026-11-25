@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-25-donnees-generiques';
+const VERSION = '2026-11-25-empilement-3-applis';
 /* /Dojo (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -70,6 +70,7 @@ const CORE = [
   'app/17-promo.js',
   'app/18-stage.js',
   'app/19-formulaires.js',
+  'empilement.js',
   'app/20-interne.js',
   'app/21-equipes.js',
   'app/22-suggestions.js',
@@ -105,7 +106,6 @@ if (APP === 'coach')
     'coach/7-refonte.js',
     'coach/8-ui2.js',
     'dojo-ui2.css',
-    'empilement.js',
     'img/dojo-favicon.png'
   );
 
