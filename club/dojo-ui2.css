@@ -230,12 +230,26 @@
   :root[data-ui="2"] .u2ga .btn { flex: 1 1 auto; }
 }
 
-/* Essai (page Aujourd'hui) : une seule ombre par niveau. La grande boîte garde son ombre portée pour se détacher du fond ;
-   chaque boîte posée dedans perd son ombre, garde un trait noir et prend un fond voisin : même teinte, valeur nettement différente
-   (mélangée avec la couleur du texte : plus claire la nuit, plus foncée le jour). Rien n'a jamais le même fond que ce sur quoi il est posé. */
-:root { --c-surface-sub: color-mix(in srgb, var(--c-surface) 84%, var(--c-text)); }
-:root[data-ui="2"] .u2auj .u2ap { background: var(--c-surface-sub) !important; box-shadow: none !important; border: var(--bw, 2px) solid var(--c-ink) !important; }
-/* l'en-tête de la séance fait partie de la sous-boîte : son fond, pas celui de la grande boîte */
-:root[data-ui="2"] .u2auj .u2ap > .u2hs { background: transparent; }
-/* boutons et étiquettes posés sur la sous-boîte : le fond de la grande boîte, donc une valeur différente de la sous-boîte */
-:root[data-ui="2"] .u2auj .u2ap :is(.btn.ghost, .u2apb button:not(.on), .tag, .u2hs .tag) { background: var(--c-surface); }
+/* ===== Boîtes imbriquées (page Aujourd'hui, avant de passer au design system) =====
+   Une seule ombre : la boîte de premier niveau. Chaque boîte inverse le ton de ce qu'elle contient : la boîte posée dans une
+   boîte prend l'autre valeur (même teinte), et tout ce qui utilise le fond de carte (boutons, étiquettes, champs) prend
+   automatiquement la valeur opposée à celle de la boîte qui le porte. Rien n'est jamais posé sur exactement son propre fond.
+   Ton B = fond de carte mélangé à 16 % avec la couleur du texte : plus clair la nuit, plus foncé le jour. */
+:root { --niv-a: var(--c-surface); --niv-b: color-mix(in srgb, var(--c-surface) 84%, var(--c-text)); --c-surface-sub: var(--niv-b); }
+.pad:has(.u2mois) .card * { --c-surface: var(--niv-b); }
+.pad:has(.u2mois) .card .card * { --c-surface: var(--niv-a); }
+.pad:has(.u2mois) .card .card .card * { --c-surface: var(--niv-b); }
+.pad:has(.u2mois) .card .card { background: var(--c-surface) !important; box-shadow: none !important; border: var(--bw, 2px) solid var(--c-ink) !important; }
+/* l'en-tête d'une sous-boîte en fait partie : le fond de la sous-boîte */
+.pad:has(.u2mois) .card .card > .u2hs:first-child { background: transparent !important; }
+/* dans une boîte, seuls les boutons gardent leur petite ombre : étiquettes, pastilles et vignettes n'en ont plus */
+.pad:has(.u2mois) .card :is(.tag, .tile, .av, .bd) { box-shadow: none !important; }
+
+/* ===== États actifs et survol : ni trait noir ni ombre portée =====
+   Élément survolé, sélectionné, page en cours, bouton enfoncé : fond coloré seul. Les intercalaires gardent leur trait
+   (ils se collent à la carte) et le contour de focus au clavier reste (accessibilité). */
+@media (hover: hover) {
+  :root :is(button, a, [role='button'], [role='tab'], [role='option'], .item, .r-row):not(:disabled, .seg.haut *, .fotabs *, .r-itabs *):hover { box-shadow: none !important; outline: none !important; border-color: transparent !important; }
+}
+:root :is(button, a, [role='button'], [role='tab'], [role='option'], .item, .r-row, .cofr):not(.seg.haut *, .fotabs *, .r-itabs *):is([aria-current]:not([aria-current='false']), [aria-selected='true'], [aria-pressed='true'], .on, .sel, .active, :has(> [aria-current]:not([aria-current='false']))) { box-shadow: none !important; outline: none !important; border-color: transparent !important; }
+:root :is(.tabs, .rbot) button[aria-current='page']::before { box-shadow: none !important; }
