@@ -1191,6 +1191,26 @@ const server = http.createServer(async (req, res) => {
         }
         return json(res, 200, await reconciliation.analyser());
       }
+      /* club de démonstration pour les testeurs d'Apple : compte (adresse DEMO_APPLE_EMAIL, mot de passe DEMO_APPLE_PASSWORD
+         posé sur Render, jamais dans le code) au bureau d'un club fictif, rempli avec le contenu de la démo envoyé par l'administrateur.
+         Relancer remet le club à neuf. Le contenu arrive avec « __ME__ » à la place de la clé du compte de démo. */
+      if (p === '/api/admin/club-demo' && req.method === 'POST') {
+        const email = String(process.env.DEMO_APPLE_EMAIL || 'demo@riseandmove.fr').trim().toLowerCase(), pass = String(process.env.DEMO_APPLE_PASSWORD || '');
+        if (pass.length < 8) return json(res, 400, { error: 'Pose d’abord DEMO_APPLE_PASSWORD (8 caractères au moins) dans les variables Render.' });
+        const b = await readBody(req), items = Array.isArray(b.items) ? b.items : [];
+        if (items.length < 10) return json(res, 400, { error: 'Contenu de démo manquant.' });
+        let d = await store.getUserByEmail(email);
+        if (!d) {
+          d = { id: 'u' + Auth.randomId(12), email, name: 'Camille Démo', club: '', pass_hash: await Auth.hashPasswordAsync(pass), plan: 'essai', guest: false, created_at: Date.now() };
+          await store.saveUser(d); await store.saveIdentity(d.id, { first: 'Camille', last: 'Démo' }); await store.saveBilling(d.id, { noTrial: true });
+        } else if (!(await Auth.checkPasswordAsync(pass, d.pass_hash))) { d.pass_hash = await Auth.hashPasswordAsync(pass); await store.saveUser(d); }
+        const nom = 'Club Démo /Buvette';
+        let cl = (await ram.myClubs(d.id)).find(x => x.name === nom && x.role === 'bureau');
+        if (!cl) cl = await ram.create(d, { name: nom, short: 'DEMO' });
+        const txt = JSON.stringify(items.map(x => ({ coll: String(x.coll), id: String(x.id) === '__ME__' ? cl.key : String(x.id), data: x.data }))).replace(/"__ME__"/g, JSON.stringify(cl.key));
+        const n = await ram.serverReplace(cl.id, JSON.parse(txt));
+        return json(res, 200, { ok: true, club: cl.id, code: cl.code, email, elements: n });
+      }
       // mesures du serveur (?zero pour repartir de zéro)
       if (p === '/api/admin/mesures') {
         const r = Mesures.report({ clubs_en_memoire: ram.loaded(), tournois_en_memoire: rooms.size, taches: await taches.stats().catch(() => null) });
