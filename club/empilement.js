@@ -24,7 +24,9 @@
     '[data-niv="b"]{background-color:var(--niv-b)!important}' +
     '[data-niv="t"]{background-color:transparent!important}' +
     '[data-niv-boite]{box-shadow:none!important;border:var(--bw,2px) solid var(--c-ink)!important}' +
-    '[data-niv-plat]{box-shadow:none!important}';
+    '[data-niv-plat]{box-shadow:none!important}' +
+    // pas de fondu quand le moteur change un fond ou retire une ombre : le changement ne doit pas se voir
+    '[data-niv],[data-niv-boite],[data-niv-plat]{transition:none!important}';
   document.head.appendChild(css);
 
   const INTER = 'button, a, input, select, textarea, label, summary, [role="button"], [role="tab"], .btn';
