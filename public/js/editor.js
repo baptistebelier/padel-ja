@@ -457,7 +457,7 @@
   }
   function describeTpl(t) {
     const f = t.fields;
-    return `${E.FORMULAS[f.formula] || ''} · ${f.maxPairs} paires · ${(t.courts || []).length} terrains dès ${f.startTime} · format ${f.formatMain}${f.formatFinal ? ', finale ' + f.formatFinal : ''}`;
+    return `${E.FORMULAS[f.formula] || ''} · ${f.maxPairs} paires · ${(t.courts || []).length} terrains dès ${f.startTime}${f.endTime ? ', fin vers ' + f.endTime : ''} · format ${f.formatMain}${f.formatFinal ? ', finale ' + f.formatFinal : ''}`;
   }
 
   function fill(el, v) { if (document.activeElement === el) return; if (el.type === 'checkbox') el.checked = !!v; else if (el.type !== 'file') el.value = v == null ? '' : v; }

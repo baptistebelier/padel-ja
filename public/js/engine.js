@@ -982,7 +982,7 @@
      MODÈLES DE TOURNOI (formats préenregistrés)
      --------------------------------------------------------------------- */
   const TEMPLATE_FIELDS = ['category', 'gender', 'age', 'maxPairs', 'formula', 'drawMode', 'thirdPlace', 'pouleSize', 'pouleQualif', 'pouleMethod',
-    'tfDirect', 'qualifCount', 'formatMain', 'formatQuarter', 'formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif', 'startTime', 'durations', 'balls'];
+    'tfDirect', 'qualifCount', 'formatMain', 'formatQuarter', 'formatSemi', 'formatFinal', 'formatClass', 'formatPoule', 'formatQualif', 'startTime', 'endTime', 'durations', 'balls'];
 
   const courtsOf = (n, start) => Array.from({ length: n }, (_, i) => ({ name: `Terrain ${i + 1}`, start }));
   const PRESETS = [
@@ -1141,7 +1141,7 @@
         formula: 'tf', drawMode: 'tmc', thirdPlace: true,
         pouleSize: 4, pouleQualif: 2, pouleMethod: 'serpentin', tfDirect: 12, qualifCount: 4,
         formatMain: 'C2', formatQuarter: '', formatSemi: '', formatFinal: 'B2', formatClass: 'C2', formatPoule: '', formatQualif: '',
-        startTime: '09:00', durations: Object.assign({}, DEFAULT_DUR), prize: '', notes: '',
+        startTime: '09:00', endTime: '', durations: Object.assign({}, DEFAULT_DUR), prize: '', notes: '',
         colors: Object.assign({}, RAM_COLORS), look: Object.assign({}, DEFAULT_LOOK), logo: '', logoLight: '', logoDark: '', sponsors: []
       },
       courts: [{ id: 'c1', name: 'Terrain 1', start: '09:00' }, { id: 'c2', name: 'Terrain 2', start: '09:00' }, { id: 'c3', name: 'Terrain 3', start: '09:00' }],

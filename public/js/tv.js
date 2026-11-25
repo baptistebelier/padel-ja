@@ -509,7 +509,7 @@
     const f = t.formula || 'tf';
     const formats = [f.startsWith('poules') ? 'Poules : ' + fmt(t.formatPoule || t.formatMain) : '', f === 'qualif_tf' ? 'Qualifs : ' + fmt(t.formatQualif || t.formatMain) : '',
       f !== 'poules' ? 'Tableau : ' + fmt(t.formatMain) : '', f !== 'poules' ? 'Finale : ' + fmt(t.formatFinal || t.formatSemi || t.formatMain) : ''].filter(Boolean);
-    const tiles = [['date', 'Date', d + (d2 ? ' → ' + d2 : '')], ['heure', 'Début', t.startTime ? t.startTime.replace(':', 'h') : ''],
+    const tiles = [['date', 'Date', d + (d2 ? ' → ' + d2 : '')], ['heure', 'Horaires', t.startTime ? t.startTime.replace(':', 'h') + (t.endTime ? ' → ' + t.endTime.replace(':', 'h') : '') : ''],
       ['lieu', 'Club', [t.club, t.address].filter(Boolean).join(' · ')], ['ja', 'Juge-arbitre', [t.ja, t.jaNumber].filter(Boolean).join(' · ')],
       ['formule', 'Formule', `${E.FORMULAS[f]}`], ['format', 'Formats', formats.join('\n')],
       ['terrains', 'Terrains', S.courts.length ? `${S.courts.length} terrain${S.courts.length > 1 ? 's' : ''}` : ''], ['balles', 'Balles', t.balls],
