@@ -276,6 +276,15 @@ test('connecteur MCP /RAM : OAuth avec le compte /RAM, puis lecture des tournois
   assert.equal(rgl.nom, 'P100 Hommes Après-midi');
   await assert.rejects(w('ja_regler_tournoi', { id: r2.id, categorie: 'P25', format_matchs: 'A1' }), /autorisé/);
   await assert.rejects(w('ja_regler_tournoi', { id: r2.id, date: '04/12/2026' }), /AAAA-MM-JJ/);
+  // modèles : lus puis modifiés par le connecteur (heure de fin prévue)
+  const mods = await w('ja_modeles', {});
+  const mo = mods.find(x => x.nom === 'P100 Soir MCP');
+  assert.ok(mo && mo.heure === '18:30' && mo.heure_fin === '');
+  const mo2 = await w('ja_modifier_modele', { id: 'p100 soir mcp', heure_fin: '23:30' });
+  assert.equal(mo2.heure_fin, '23:30');
+  assert.equal((await w('ja_modeles', {})).find(x => x.id === mo.id).heure_fin, '23:30');
+  await assert.rejects(w('ja_modifier_modele', { id: mo.id, heure_fin: '25:00' }), /HH:MM/);
+  await assert.rejects(w('ja_modifier_modele', { id: 'inconnu' }), /introuvable/);
   const an = await w('ja_creer_tournoi', { nom: 'Americano', type: 'animation', format: 'americano' });
   for (const n of ['Ana', 'Ben', 'Cléo', 'Dan']) await w('ja_inscrire', { id: an.id, joueur1: { nom: n } });
   const mch = await w('ja_manche_suivante', { id: an.id });
