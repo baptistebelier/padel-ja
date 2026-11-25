@@ -87,7 +87,7 @@ function murJour(feed) {
 const V = {
   home() {
     const v = M[ME()],
-      feed = posts.filter(p => canSee(p) && p.mur !== false).sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0));
+      feed = posts.filter(p => canSee(p) && murOk(p)).sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0));
     const st = (a, attrs, inner, l, cls) =>
       `<button class="story" data-a="${a}" ${attrs}><span class="ring ${cls || ''}"><span>${inner}</span></span><span class="sl">${l}</span></button>`;
     // ordinateur et iPad en paysage : le mur à gauche, une colonne « à suivre » à droite (cachée sur téléphone)

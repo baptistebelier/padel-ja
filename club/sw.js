@@ -1,6 +1,6 @@
 /* ---------- Service worker de l'appli du club : hors connexion + notifications push ----------
    Changer VERSION à chaque mise en ligne : l'ancien cache est supprimé à l'activation. */
-const VERSION = '2026-11-25-planning';
+const VERSION = '2026-11-25-tournois-buvette';
 /* /Dojo (coach.html) enregistre ce même fichier avec « ?app=coach » : sa page et ses fichiers à lui */
 const APP = new URL(location.href).searchParams.get('app') === 'coach' ? 'coach' : 'club';
 const SHELL = APP === 'coach' ? 'coach.html' : 'index.html';
@@ -78,6 +78,7 @@ const CORE = [
   'app/24-interface.js',
   'app/24-achats.js',
   'app/25-ecole.js',
+  'app/26-tournois.js',
   'manifest.webmanifest',
   'icon-180.png',
   'icon-512.png'

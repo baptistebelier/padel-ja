@@ -266,7 +266,8 @@ function tabNews(tab) {
     kids = (M[me] && M[me].kids) || [];
   if (since == null || pending()) return 0;
   const aft = x => (x.at || 0) > since;
-  if (tab === 'home') return posts.filter(p => p.kind !== 'ad' && p.by !== me && aft(p) && canSee(p)).length;
+  if (tab === 'home')
+    return posts.filter(p => p.kind !== 'ad' && murOk(p) && p.by !== me && aft(p) && canSee(p)).length;
   if (tab === 'agenda')
     return (
       recs.filter(r => !r.arch && aft(r)).length +

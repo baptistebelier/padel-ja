@@ -75,6 +75,10 @@ const who = id =>
     ? `<span class="nm">${name(id)}</span>`
     : `<button class="nm" data-a="member" data-id="${id}">${name(id)}</button>`;
 const view = () => (S.stack.length ? S.stack[S.stack.length - 1] : { v: S.tab });
+/* tournois et animations /Pista (et tournois internes) : rangés dans Jouer > Tournois et Club > Tournois ;
+   ils ne passent sur le mur que si le club les met en avant (bouton « Mettre sur le mur ») */
+const estTournoi = p => p.kind === 'jatour' || p.kind === 'jaint';
+const murOk = p => p.mur !== false && (!estTournoi(p) || !!p.promo);
 /* onglets d'une page ; à partir de 4 onglets (avec pictogrammes), sur téléphone : tous tiennent dans la largeur,
    seul l'onglet ouvert affiche son titre à côté de son pictogramme (plus besoin de faire défiler) */
 const segs = (k, tabs) =>

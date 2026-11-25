@@ -110,12 +110,14 @@ V.jouer = () => {
   const tabs = [
     ['parties', 'Parties', 'ball'],
     ['equipes', 'Équipes', 'users'],
-    ['resultats', 'Résultats', 'trophy']
+    ['resultats', 'Résultats', 'trophy'],
+    ['tournois', 'Tournois', 'medal']
   ];
   if (!tabs.some(t => t[0] === S.jouTab)) S.jouTab = 'parties';
   const seg = segs('jouTab', tabs).replace('class="seg ico"', 'class="seg"');
   if (S.jouTab === 'equipes') return seg + teamsBody();
   if (S.jouTab === 'resultats') return seg + bvResultats();
+  if (S.jouTab === 'tournois') return seg + trJouer();
   const l = bvPartiesOuvertes();
   return (
     seg +
@@ -564,12 +566,14 @@ V.jouer = () => {
   const tabs = [
     ['parties', 'Parties', 'ball'],
     ['equipes', 'Équipes', 'users'],
-    ['resultats', 'Résultats', 'trophy']
+    ['resultats', 'Résultats', 'trophy'],
+    ['tournois', 'Tournois', 'medal']
   ];
   if (!tabs.some(t => t[0] === S.jouTab)) S.jouTab = 'parties';
   const seg = segs('jouTab', tabs).replace('class="seg ico"', 'class="seg"');
   if (S.jouTab === 'equipes') return seg + teamsBody();
   if (S.jouTab === 'resultats') return seg + bvResultats();
+  if (S.jouTab === 'tournois') return seg + trJouer();
   const l = bvPartiesOuvertes().filter(bvPartieOk),
     coll = bvCollectifs(),
     chip = (k, lb) =>
@@ -702,6 +706,7 @@ V.club = () => {
           'data-a="bvBar"'
         ),
       t('school', 'École', 'Enseignants, stages', 'data-a="bvEcole"'),
+      t('medal', 'Tournois', trResume(), 'data-a="open" data-v="tournois"'),
       !kid && t('users', 'Adhérents', 'Annuaire', 'data-a="open" data-v="list"'),
       I2.mods.actus &&
         t(

@@ -2088,3 +2088,37 @@ select option { background: var(--c-surface); color: var(--c-text); }
 
 /* un nom qui mène au profil */
 .plien { display: inline; padding: 0; margin: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+/* ===== Tournois (app/26-tournois.js) : Jouer > Tournois, Club > Tournois (liste, calendrier, filtres) ===== */
+.trliste { padding: 4px 14px; }
+.trl { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+.trl:last-child { border-bottom: 0; }
+.trl .trrow { border-bottom: 0; flex: 1; min-width: 0; text-align: left; background: none; color: inherit; font: inherit; cursor: pointer; }
+.trrow > svg:last-child { width: 18px; height: 18px; flex: none; transform: rotate(180deg); color: var(--c-muted, var(--muted)); }
+.trd { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; padding: 4px 6px; border: var(--bw, 2px) solid var(--c-ink); font-family: var(--f-sub, var(--f-label)); font-weight: 700; font-size: 13px; text-transform: uppercase; line-height: 1.15; flex: none; }
+.trd span { font-size: 12px; }
+.trl .tag { margin-top: 4px; }
+.trmur { flex: none; }
+.trfil { margin-bottom: 14px; }
+.trfg { margin: 10px 0 4px; }
+.trfg .kicker { display: block; margin-bottom: 6px; }
+.trj > .btn { margin-top: 12px; }
+.trcal { padding: 12px; margin-bottom: 14px; }
+.trcalh { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.trcalh b { font: 700 18px var(--f-label); text-transform: capitalize; }
+.trsuiv svg { transform: rotate(180deg); }
+.trgrille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.trjs { text-align: center; font: 700 12px var(--f-label); color: var(--c-muted, var(--muted)); padding-bottom: 2px; }
+.trc { min-height: 74px; padding: 4px; border: var(--bw, 2px) solid var(--c-ink); display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.trc.vide { border-color: transparent; background: none; }
+.trcj { font: 700 13px var(--f-label); }
+.trc.today .trcj { color: var(--accent); }
+.trce { display: block; width: 100%; padding: 2px 4px; border: var(--bw, 2px) solid var(--c-ink); background: var(--accent); color: var(--on-accent, var(--c-dark)); font: 600 11px/1.2 var(--f-body); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.trplus { font-size: 11px; color: var(--c-muted, var(--muted)); }
+@media (max-width: 600px) {
+  .trc { min-height: 48px; padding: 3px; }
+  .trce { font-size: 0; height: 8px; padding: 0; }
+  .trl { flex-wrap: wrap; gap: 0 10px; padding-bottom: 10px; }
+  .trl .trrow { flex: 1 1 100%; }
+  .trmur { margin-left: 70px; }
+}
