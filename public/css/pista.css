@@ -178,6 +178,9 @@ input[type=checkbox]:checked::before { transform: translateX(22px); }
 input[type=checkbox]:focus-visible { outline: 3px solid var(--c-pink); outline-offset: 2px; }
 /* dates et heures : icône native dans le thème */
 input[type=date], input[type=time], input[type=datetime-local] { color-scheme: inherit; }
+/* Safari iPad : le champ date/heure garde une largeur propre et déborde de sa case ; texte à gauche comme les autres champs */
+input[type=date], input[type=time], input[type=datetime-local] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; box-sizing: border-box; text-align: left; }
+input[type=date]::-webkit-date-and-time-value, input[type=time]::-webkit-date-and-time-value, input[type=datetime-local]::-webkit-date-and-time-value { text-align: left; margin: 0; }
 
 /* carte (r-card) : surface, trait, ombre ; titre intégré en Barlow */
 .card, .tcard, .profile-box, .ucard, .nvdlg {
@@ -635,7 +638,9 @@ button.urow { background: var(--c-surface-2); }
   #tsecs .tsec[data-sec='terrains'] #courts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr)); gap: 0 18px; }
   #tsecs .sponsors { grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 0 18px; }
 }
-@media (min-width: 1100px) {
+/* formule : deux colonnes seulement si la carte elle-même est assez large (iPad : volets ouverts, la carte est étroite) */
+#tsecs { container-type: inline-size; }
+@container (min-width: 820px) {
   #tsecs .fcols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0 30px; align-items: start; }
   #tsecs .fcol-r > h4:first-child { margin-top: 0; }
   #tsecs .fcol-l .form { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
@@ -1302,9 +1307,17 @@ input.ps-set::-webkit-inner-spin-button, input.ps-set::-webkit-outer-spin-button
 @media (min-width: 1024px) {
   .ps-bento { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); align-items: start; }
   .ps-bside { position: sticky; top: 130px; }
-  #tab-tournoi.on { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); column-gap: var(--s5); align-items: start; }
-  #tab-tournoi.on > .tsecs { grid-column: 1; grid-row: 1; }
-  #tab-tournoi.on > .ps-fside { grid-column: 2; grid-row: 1; position: sticky; top: 130px; }
+  /* fiche à gauche, volet à droite tant que la fiche garde 560 px ; sinon (iPad, menu ouvert) le volet passe dessous */
+  #tab-tournoi.on { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s5); container: tabt / inline-size; }
+  #tab-tournoi.on > .tsecs { flex: 1 1 560px; min-width: 0; }
+  #tab-tournoi.on > .ps-fside { flex: 0 1 380px; min-width: 300px; position: sticky; top: 130px; margin-bottom: 0; }
+}
+@container tabt (max-width: 979px) {
+  #tab-tournoi.on > .ps-fside { flex: 1 1 100%; position: static; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+}
+/* formats de jeu : le libellé passe au-dessus de la liste quand la carte est étroite */
+@container (max-width: 560px) {
+  #tsecs .fmt-list label { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
 .card h3 > .ic { display: inline-block; width: 20px; height: 20px; margin-right: 8px; vertical-align: -4px; color: var(--c-kick); }
 /* 1 · Fiche : intercalaires « 01 · Infos »… collés à la carte ; à droite Inscriptions sur /Buvette et Formats préenregistrés */
