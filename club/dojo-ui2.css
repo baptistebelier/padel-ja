@@ -245,11 +245,12 @@
 /* dans une boîte, seuls les boutons gardent leur petite ombre : étiquettes, pastilles et vignettes n'en ont plus */
 .pad:has(.u2mois) .card :is(.tag, .tile, .av, .bd) { box-shadow: none !important; }
 
-/* ===== États actifs et survol : ni trait noir ni ombre portée =====
-   Élément survolé, sélectionné, page en cours, bouton enfoncé : fond coloré seul. Les intercalaires gardent leur trait
-   (ils se collent à la carte) et le contour de focus au clavier reste (accessibilité). */
+/* ===== Navigation active et survolée : ni trait noir ni ombre portée =====
+   La navigation (menu de gauche, sous-menus, barre du bas, élément choisi dans une liste : conversation, élève…) n'est pas
+   faite de boutons mais de sections, actives ou non : fond coloré seul. Les boutons et les étiquettes, eux, gardent toujours
+   leur contour noir, même actifs (« Présent »). Les intercalaires gardent leur trait ; le contour de focus au clavier reste. */
 @media (hover: hover) {
-  :root :is(button, a, [role='button'], [role='tab'], [role='option'], .item, .r-row):not(:disabled, .seg.haut *, .fotabs *, .r-itabs *):hover { box-shadow: none !important; outline: none !important; border-color: transparent !important; }
+  :root :is(#tabs button, .tabs button, .rbot button, #subnav :is(button, a), #main > .seg:not(.haut) button, .colist .item, .cofr, .cobm .item, .r-row, .r-rail__it, .r-sub__it):hover { box-shadow: none !important; outline: none !important; border-color: transparent !important; }
 }
-:root :is(button, a, [role='button'], [role='tab'], [role='option'], .item, .r-row, .cofr):not(.seg.haut *, .fotabs *, .r-itabs *):is([aria-current]:not([aria-current='false']), [aria-selected='true'], [aria-pressed='true'], .on, .sel, .active, :has(> [aria-current]:not([aria-current='false']))) { box-shadow: none !important; outline: none !important; border-color: transparent !important; }
+:root :is(#tabs button, .tabs button, .rbot button, #subnav :is(button, a), #main > .seg:not(.haut) button, .colist .item, .cofr, .cobm .item, .r-row, .r-rail__it, .r-sub__it):is([aria-current]:not([aria-current='false']), [aria-selected='true'], [aria-pressed='true'], .on, .sel, .active, :has(> [aria-current]:not([aria-current='false']))) { box-shadow: none !important; outline: none !important; border-color: transparent !important; }
 :root :is(.tabs, .rbot) button[aria-current='page']::before { box-shadow: none !important; }
