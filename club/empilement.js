@@ -3,9 +3,9 @@
    - Une boîte posée dans une boîte perd son ombre, garde un trait noir et prend l'autre valeur de la même teinte.
    - Rien n'est jamais posé sur un fond identique ou trop proche du sien : bouton, étiquette, champ, vignette,
      en-tête… prend alors l'autre valeur.
-   - Dans une boîte, les pastilles (étiquettes, avatars, vignettes) n'ont plus d'ombre ; les boutons gardent la leur.
+   - Ombres : seules les boîtes principales (posées sur le fond de l'appli) et les boutons en ont une ; rien d'autre.
    Plutôt qu'une liste de classes (il y en a des dizaines), le moteur lit les couleurs réellement affichées, de haut en bas,
-   et pose des attributs data-niv* que la feuille de style ci-dessous traduit. Il repasse à chaque changement de l'écran.
+   et pose des attributs data-niv* que la feuille de style ci-dessous traduit. Chaque élément est décidé une fois, avant affichage.
    Les deux valeurs : A = fond de carte, B = fond de carte mélangé à 16 % avec la couleur du texte (plus clair la nuit,
    plus foncé le jour). Réglages par appli : window.RamEmpilement = { racines, ignore } avant le chargement. */
 (function () {
@@ -30,7 +30,6 @@
   document.head.appendChild(css);
 
   const INTER = 'button, a, input, select, textarea, label, summary, [role="button"], [role="tab"], .btn';
-  const orig = new WeakMap(); // fond et ombre d'origine, avant nos attributs
 
   /* couleurs : « rgb(…) », « rgba(…) » ou « color(srgb …) » ramenés à [r, g, b, alpha] */
   function rgb(s) {
@@ -78,19 +77,29 @@
     } else if (el.getAttribute(nom) !== v) el.setAttribute(nom, v);
   }
 
+  /* Chaque élément est décidé UNE SEULE FOIS, à son apparition, avant d'être affiché, puis ne bouge plus : ni le défilement,
+     ni la barre de Safari qui se replie, ni un redimensionnement ne relancent le calcul (aucun clignotement possible).
+     Seul le passage jour / nuit (une action de l'utilisateur) refait tout. */
+  let gen = 1;
+  const fait = new WeakMap(); // élément -> { gen, sous, boite }
+
   /* parcours de haut en bas : « dessous » = couleur sur laquelle l'élément est posé, « prof » = nombre de boîtes au-dessus */
   function visite(el, dessous, prof, parentR) {
     for (const x of el.children) {
       if (x.matches(cfg.ignore)) continue;
-      if (!x.getClientRects().length) continue; // caché
-      let o = orig.get(x);
+      const deja = fait.get(x);
+      if (deja && deja.gen === gen) {
+        visite(x, deja.sous, prof + (deja.boite ? 1 : 0), deja.r);
+        continue;
+      }
+      if (!x.getClientRects().length) continue; // caché : décidé quand il apparaîtra
       const cs = getComputedStyle(x);
-      if (
-        !o ||
-        (!x.hasAttribute('data-niv') && !x.hasAttribute('data-niv-boite') && !x.hasAttribute('data-niv-plat'))
-      ) {
-        o = { fond: cs.backgroundColor, ombre: cs.boxShadow };
-        orig.set(x, o);
+      if (x.hasAttribute('data-niv')) x.removeAttribute('data-niv'); // nouvelle décision (jour / nuit) : on relit le fond d'origine
+      const o = { fond: x.hasAttribute('data-niv') ? null : getComputedStyle(x).backgroundColor, ombre: cs.boxShadow };
+      if (x.hasAttribute('data-niv-boite') || x.hasAttribute('data-niv-plat')) {
+        x.removeAttribute('data-niv-boite');
+        x.removeAttribute('data-niv-plat');
+        o.ombre = getComputedStyle(x).boxShadow;
       }
       const fond = rgb(o.fond),
         ombre = o.ombre && o.ombre !== 'none';
@@ -101,12 +110,13 @@
       // un élément cliquable de la taille d'une carte (ligne de séance, carte d'élève…) est une boîte ; un vrai bouton, non
       const carte = inter && r.height >= 52 && r.width >= 200;
       const boite = (!inter || carte) && grand && (ombre || (fond && trait));
+      const principale = boite && prof === 0;
 
       let niv = null,
         sous = dessous;
       if (fond) {
-        if (prof === 0 && boite) {
-          // boîte de premier niveau : on n'y touche pas
+        if (principale) {
+          // boîte principale, posée sur le fond de l'appli : on n'y touche pas
         } else if (
           !boite &&
           prof > 0 &&
@@ -116,7 +126,7 @@
           ton(fond) &&
           !proche(fond, dessous)
         ) {
-          // bandeau collé en haut d'une sous-boîte, sur toute sa largeur (en-tête, cliquable ou non) : il en fait partie, il prend son fond
+          // bandeau collé en haut d'une sous-boîte, sur toute sa largeur (en-tête) : il en fait partie, il prend son fond
           niv = 't';
         } else if (proche(fond, dessous)) {
           const t = ton(dessous);
@@ -127,8 +137,10 @@
         sous = niv === 't' ? dessous : niv ? couleur(niv) : fond;
       }
       marque(x, 'data-niv', niv);
-      marque(x, 'data-niv-boite', boite && prof > 0 ? '' : null);
-      marque(x, 'data-niv-plat', !boite && !inter && ombre && prof > 0 ? '' : null);
+      // ombres, règle fixe : seules les boîtes principales et les boutons en ont une
+      marque(x, 'data-niv-boite', boite && !principale ? '' : null);
+      marque(x, 'data-niv-plat', ombre && !boite && !(inter && !carte) ? '' : null);
+      fait.set(x, { gen, sous, boite, r });
       visite(x, sous, prof + (boite ? 1 : 0), r);
     }
   }
@@ -150,11 +162,11 @@
   };
   const retons = () => {
     A = B = null;
+    gen++;
     plus_tard();
   };
 
-  /* l'écran vient d'être redessiné : on passe tout de suite, avant que le navigateur ne l'affiche (sinon il montre une
-     image sans la règle puis une avec : clignotement), et une seconde fois à l'image suivante, une fois la mise en page posée */
+  /* l'écran vient d'être redessiné : on décide les nouveaux éléments tout de suite, avant que le navigateur ne les affiche */
   let encours = false;
   const tout_de_suite = recs => {
     if (
@@ -168,18 +180,18 @@
     } finally {
       encours = false;
     }
-    plus_tard();
   };
 
   function demarre() {
     new MutationObserver(tout_de_suite).observe(document.body, { childList: true, subtree: true, characterData: true });
-    // jour / nuit : nouvelles couleurs
+    // jour / nuit : nouvelles couleurs, tout est redécidé
     new MutationObserver(retons).observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['style', 'class', 'data-theme', 'data-style']
     });
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', retons);
-    addEventListener('resize', plus_tard);
+    // un onglet qui s'affiche sans redessin (élément jusque-là caché) : décidé après le toucher ; rien d'autre n'est recalculé
+    addEventListener('click', plus_tard, true);
     plus_tard();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarre);
