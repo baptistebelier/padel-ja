@@ -136,7 +136,15 @@ const A = {
       fresh = vis.filter(([n]) => n.n),
       old = vis.filter(([n]) => !n.n),
       part = (t, l) =>
-        l.length ? `<span class="kicker nsec">${t}</span>${l.map(([n, i]) => row(n, i)).join('')}` : '';
+        l.length ? `<span class="kicker nsec">${t}</span>${l.map(([n, i]) => rowSur(n, i)).join('')}` : '',
+      // une notification abîmée (personne partie du club, contenu supprimé) est sautée : elle n'empêche jamais d'ouvrir le panneau
+      rowSur = (n, i) => {
+        try {
+          return row(n, i);
+        } catch (e) {
+          return '';
+        }
+      };
     sheet(
       'Notifications',
       `<div class="body">${

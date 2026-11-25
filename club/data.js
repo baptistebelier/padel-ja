@@ -1478,7 +1478,7 @@ const isBureau = () => S.role === 'admin';
 const isAnim = () => !!S.anim;
 const canModerate = () => isBureau() || isAnim();
 const canTeam = g => isAdmin() || (!!g && g.cap === ME() && (S.role === 'cap' || !!window.RAM_KEY));
-const name = id => (id === 'club' ? club().name : M[id].n);
+const name = id => (id === 'club' ? club().name : M[id] ? M[id].n : 'Un ancien adhérent');
 const first = id => name(id).split(' ')[0];
 const age = id => {
   if (!M[id] || !M[id].bd) return 30;

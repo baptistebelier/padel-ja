@@ -13,9 +13,11 @@ const ini = id =>
 const av = (id, c = '') =>
   id === 'club'
     ? `<span class="av club ${c} ${club().logo ? 'logo' : ''}" ${club().logo ? `style="background-image:url(${club().logo})"` : ''}>${club().logo ? '' : club().short}</span>`
-    : M[id].photo
-      ? `<span class="av ${c}${frc(id)}" data-pk="${id}" style="background-image:url(${M[id].photo})"></span>`
-      : `<span class="av ${c}${frc(id)}" data-pk="${id}" style="--h:${hue(id)}">${ini(id)}</span>`;
+    : !M[id] // personne qui n'est plus (ou pas) dans le club : pastille neutre, jamais d'erreur
+      ? `<span class="av ${c}" aria-hidden="true">?</span>`
+      : M[id].photo
+        ? `<span class="av ${c}${frc(id)}" data-pk="${id}" style="background-image:url(${M[id].photo})"></span>`
+        : `<span class="av ${c}${frc(id)}" data-pk="${id}" style="--h:${hue(id)}">${ini(id)}</span>`;
 /* un nom qui mène au profil de la personne (texte simple si elle n'a pas de compte) */
 const pLien = (k, t) =>
   M[k] && k !== 'club' ? `<button type="button" class="plien" data-a="member" data-id="${k}">${t}</button>` : t;
