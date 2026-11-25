@@ -98,7 +98,9 @@
       const r = x.getBoundingClientRect();
       const grand = r.width >= 120 && r.height >= 40;
       const trait = parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0;
-      const boite = !inter && grand && (ombre || (fond && trait));
+      // un élément cliquable de la taille d'une carte (ligne de séance, carte d'élève…) est une boîte ; un vrai bouton, non
+      const carte = inter && r.height >= 52 && r.width >= 200;
+      const boite = (!inter || carte) && grand && (ombre || (fond && trait));
 
       let niv = null,
         sous = dessous;
