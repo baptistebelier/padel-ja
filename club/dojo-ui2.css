@@ -229,3 +229,7 @@
   :root[data-ui="2"] .u2gm { grid-template-columns: 1fr 1fr; }
   :root[data-ui="2"] .u2ga .btn { flex: 1 1 auto; }
 }
+
+/* Essai (page Aujourd'hui) : une seule ombre par niveau. La grande boîte garde son ombre portée pour se détacher du fond ;
+   chaque boîte posée dedans perd son ombre, garde un trait noir et prend le fond voisin (même teinte, autre valeur). */
+:root[data-ui="2"] .u2auj .u2ap { background: var(--c-surface-2) !important; box-shadow: none !important; border: var(--bw, 2px) solid var(--c-ink) !important; }
