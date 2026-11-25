@@ -231,5 +231,11 @@
 }
 
 /* Essai (page Aujourd'hui) : une seule ombre par niveau. La grande boîte garde son ombre portée pour se détacher du fond ;
-   chaque boîte posée dedans perd son ombre, garde un trait noir et prend le fond voisin (même teinte, autre valeur). */
-:root[data-ui="2"] .u2auj .u2ap { background: var(--c-surface-2) !important; box-shadow: none !important; border: var(--bw, 2px) solid var(--c-ink) !important; }
+   chaque boîte posée dedans perd son ombre, garde un trait noir et prend un fond voisin : même teinte, valeur nettement différente
+   (mélangée avec la couleur du texte : plus claire la nuit, plus foncée le jour). Rien n'a jamais le même fond que ce sur quoi il est posé. */
+:root { --c-surface-sub: color-mix(in srgb, var(--c-surface) 84%, var(--c-text)); }
+:root[data-ui="2"] .u2auj .u2ap { background: var(--c-surface-sub) !important; box-shadow: none !important; border: var(--bw, 2px) solid var(--c-ink) !important; }
+/* l'en-tête de la séance fait partie de la sous-boîte : son fond, pas celui de la grande boîte */
+:root[data-ui="2"] .u2auj .u2ap > .u2hs { background: transparent; }
+/* boutons et étiquettes posés sur la sous-boîte : le fond de la grande boîte, donc une valeur différente de la sous-boîte */
+:root[data-ui="2"] .u2auj .u2ap :is(.btn.ghost, .u2apb button:not(.on), .tag, .u2hs .tag) { background: var(--c-surface); }
