@@ -258,3 +258,12 @@
 :root[data-ui="2"] .u2d { background: var(--c-surface-sub); }
 :root[data-ui="2"] .u2d b { color: var(--c-kick, var(--c-lime)); }
 :root[data-ui="2"] .u2d span { font-weight: 700; }
+/* menu vertical (ordinateur, iPad en paysage) : la section active prend toute la largeur de la barre, bord à bord,
+   comme sur la barre du bas du téléphone ; plus une boîte posée sous le pictogramme. Même chose dans le sous-menu. */
+@media (min-width: 1024px) {
+  :root #phone .tabs, :root .tabs { padding-left: 0 !important; padding-right: 0 !important; }
+  :root .tabs > button { width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+  :root #subnav > .seg { padding-left: 0 !important; padding-right: 0 !important; }
+  :root #subnav > .seg button { width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; padding-left: 24px !important; padding-right: 24px !important; }
+  :root #subnav > .seg > :not(button) { padding-left: 24px !important; padding-right: 24px !important; }
+}
