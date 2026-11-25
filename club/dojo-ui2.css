@@ -254,10 +254,7 @@
 }
 
 /* ===== Éléments de données : toujours un contour noir =====
-   Jauges (pleines ou en cases), échelles de niveau, grilles de notes, barres de graphique : trait noir, comme les boutons. */
+   Jauges, barres et cases sont repérées par empilement.js (sans liste de classes). Restent ici les composants cliquables
+   de données (échelle de niveau, grille de notes), que le moteur ne touche pas puisque ce sont des boutons. */
 :root .coscale button, :root .cogauge button { border: var(--bw, 2px) solid var(--c-ink) !important; }
-:root .cobarre { height: 12px; border: var(--bw, 2px) solid var(--c-ink); background: var(--c-surface-sub, var(--c-surface-2)); box-sizing: border-box; }
-:root .fr-g { border: var(--bw, 2px) solid var(--c-ink); box-sizing: border-box; height: 14px; }
-:root .cobars i { border: var(--bw, 2px) solid var(--c-ink); border-bottom-width: 0; box-sizing: border-box; }
-:root .ig-bar i { border: var(--bw, 2px) solid var(--c-ink); }
-:root .pips i { border-width: var(--bw, 2px); }
+:root .cobarre { height: 12px; }

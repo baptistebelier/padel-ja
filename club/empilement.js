@@ -25,8 +25,10 @@
     '[data-niv="t"]{background-color:transparent!important}' +
     '[data-niv-boite]{box-shadow:none!important;border:var(--bw,2px) solid var(--c-ink)!important}' +
     '[data-niv-plat]{box-shadow:none!important}' +
+    // éléments de données (jauges, barres, cases) : toujours un contour noir
+    '[data-niv-donnee]{border:var(--bw,2px) solid var(--c-ink)!important;box-sizing:border-box}' +
     // pas de fondu quand le moteur change un fond ou retire une ombre : le changement ne doit pas se voir
-    '[data-niv],[data-niv-boite],[data-niv-plat]{transition:none!important}';
+    '[data-niv],[data-niv-boite],[data-niv-plat],[data-niv-donnee]{transition:none!important}';
   document.head.appendChild(css);
 
   const INTER = 'button, a, input, select, textarea, label, summary, [role="button"], [role="tab"], .btn';
@@ -96,37 +98,52 @@
       const cs = getComputedStyle(x);
       if (x.hasAttribute('data-niv')) x.removeAttribute('data-niv'); // nouvelle décision (jour / nuit) : on relit le fond d'origine
       const o = { fond: x.hasAttribute('data-niv') ? null : getComputedStyle(x).backgroundColor, ombre: cs.boxShadow };
-      if (x.hasAttribute('data-niv-boite') || x.hasAttribute('data-niv-plat')) {
+      if (x.hasAttribute('data-niv-boite') || x.hasAttribute('data-niv-plat') || x.hasAttribute('data-niv-donnee')) {
         x.removeAttribute('data-niv-boite');
         x.removeAttribute('data-niv-plat');
+        x.removeAttribute('data-niv-donnee');
         o.ombre = getComputedStyle(x).boxShadow;
       }
       const fond = rgb(o.fond),
         ombre = o.ombre && o.ombre !== 'none';
       const inter = x.matches(INTER);
       const r = x.getBoundingClientRect();
-      const grand = r.width >= 120 && r.height >= 40;
+      // tailles de mise en page (offsetWidth/Height) : elles ignorent les animations (échelle, glissement), contrairement au rectangle affiché
+      const L = x.offsetWidth || r.width,
+        H = x.offsetHeight || r.height;
+      const grand = L >= 120 && H >= 40;
       const trait = parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0;
-      // un élément cliquable de la taille d'une carte (ligne de séance, carte d'élève…) est une boîte ; un vrai bouton, non
-      const carte = inter && r.height >= 52 && r.width >= 200;
-      const boite = (!inter || carte) && grand && (ombre || (fond && trait));
+      const neutre = !!fond && (!!ton(fond) || proche(fond, dessous));
+      const etat = x.matches('[aria-current]:not([aria-current="false"]), [aria-selected="true"]'); // navigation choisie : pas une boîte
+      // bandeau collé en haut d'une sous-boîte, sur toute sa largeur (en-tête) : il en fait partie
+      const bandeau =
+        prof > 0 &&
+        !!parentR &&
+        neutre &&
+        L >= parentR.width - 6 &&
+        Math.abs(r.top - parentR.top) <= 4 &&
+        !proche(fond, dessous);
+      // un élément cliquable de la taille d'une carte (ligne de séance, tuile, carte d'élève…) est une boîte ; un vrai bouton, non
+      const carte = inter && H >= 52 && L >= 200;
+      const boite =
+        (!inter || carte) && grand && !etat && !bandeau && (ombre || (!!fond && trait) || (prof > 0 && neutre));
       const principale = boite && prof === 0;
+      // élément de données (jauge pleine ou en cases, barre) : sans texte, fond coloré, plat et allongé ; pas le remplissage d'une jauge déjà bordée
+      const pere = x.parentElement;
+      const remplissage =
+        !!pere &&
+        pere.offsetHeight <= 30 &&
+        (parseFloat(getComputedStyle(pere).borderTopWidth) > 0 || pere.hasAttribute('data-niv-donnee'));
+      const plate = H >= 4 && H <= 28 && L >= 2.5 * H, // jauge, barre horizontale, case
+        debout = L >= 4 && L <= 48 && H >= 2.5 * L; // barre verticale de graphique
+      const donnee = !inter && !!fond && !x.textContent.trim() && (plate || debout) && !remplissage;
 
       let niv = null,
         sous = dessous;
-      if (fond) {
+      if (fond && !donnee) {
         if (principale) {
           // boîte principale, posée sur le fond de l'appli : on n'y touche pas
-        } else if (
-          !boite &&
-          prof > 0 &&
-          parentR &&
-          r.width >= parentR.width - 6 &&
-          Math.abs(r.top - parentR.top) <= 4 &&
-          ton(fond) &&
-          !proche(fond, dessous)
-        ) {
-          // bandeau collé en haut d'une sous-boîte, sur toute sa largeur (en-tête) : il en fait partie, il prend son fond
+        } else if (bandeau) {
           niv = 't';
         } else if (proche(fond, dessous)) {
           const t = ton(dessous);
@@ -140,6 +157,7 @@
       // ombres, règle fixe : seules les boîtes principales et les boutons en ont une
       marque(x, 'data-niv-boite', boite && !principale ? '' : null);
       marque(x, 'data-niv-plat', ombre && !boite && !(inter && !carte) ? '' : null);
+      marque(x, 'data-niv-donnee', donnee ? '' : null);
       fait.set(x, { gen, sous, boite, r });
       visite(x, sous, prof + (boite ? 1 : 0), r);
     }
