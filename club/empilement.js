@@ -35,6 +35,8 @@
     // ni trait noir ni ombre ; ce sont des sections, pas des boutons. Intercalaires et contour de focus au clavier gardés.
     '@media (hover:hover){:root :is(#tabs button, .tabs button, .rbot button, #subnav :is(button, a), #main > .seg:not(.haut) button, .colist .item, .cofr, .cobm .item, .r-row, .r-rail__it, .r-sub__it, .ps-side :is(button, a)):hover{box-shadow:none!important;outline:none!important;border-color:transparent!important}}' +
     ':root :is(#tabs button, .tabs button, .rbot button, #subnav :is(button, a), #main > .seg:not(.haut) button, .colist .item, .cofr, .cobm .item, .r-row, .r-rail__it, .r-sub__it, .ps-side :is(button, a)):is([aria-current]:not([aria-current="false"]),[aria-selected="true"],[aria-pressed="true"],.on,.sel,.active,:has(> [aria-current]:not([aria-current="false"]))){box-shadow:none!important;outline:none!important;border-color:transparent!important}' +
+    // jour en cours d'un calendrier (colonne, en-tête, case) : c'est aussi une section active, fond coloré seul
+    ':root :is(.today,[aria-current="date"]):not(.btn){box-shadow:none!important;outline:none!important;border-color:transparent!important}' +
     ':root :is(.tabs,.rbot) button[aria-current="page"]::before{box-shadow:none!important}' +
     // pas de fondu quand le moteur change un fond ou retire une ombre : le changement ne doit pas se voir
     '[data-niv],[data-niv-boite],[data-niv-plat],[data-niv-donnee]{transition:none!important}';
@@ -133,9 +135,13 @@
         Math.abs(r.top - parentR.top) <= 4 &&
         !proche(fond, dessous);
       // un élément cliquable de la taille d'une carte (ligne de séance, tuile, carte d'élève…) est une boîte ; un vrai bouton, non
-      const carte = inter && H >= 52 && L >= 200;
+      const carte = inter && H >= 52 && L >= 96;
       const boite =
-        (!inter || carte) && grand && !etat && !bandeau && (ombre || (!!fond && trait) || (prof > 0 && neutre));
+        (!inter || carte) &&
+        grand &&
+        !etat &&
+        !bandeau &&
+        (ombre || (!!fond && trait) || (prof > 0 && (neutre || (carte && !!fond))));
       const principale = boite && prof === 0;
       // élément de données (jauge pleine ou en cases, barre) : sans texte, fond coloré, plat et allongé ; pas le remplissage d'une jauge déjà bordée
       const pere = x.parentElement;
@@ -154,7 +160,8 @@
           // boîte principale, posée sur le fond de l'appli : on n'y touche pas
         } else if (bandeau && !donnee) {
           niv = 't';
-        } else if (proche(fond, dessous)) {
+        } else if (proche(fond, dessous) && ton(fond)) {
+          // seulement les fonds neutres (carte, sous-boîte) : une couleur d'accent sur la même couleur (point rouge sur sa ligne) reste telle quelle
           const t = ton(dessous);
           niv = t ? autre(t) : 'b';
         } else if (prof > 0 && boite && ton(fond) && ton(fond) === ton(dessous)) {
