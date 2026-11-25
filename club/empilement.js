@@ -58,6 +58,7 @@
     B = null;
   function tons() {
     const p = document.createElement('div');
+    p.__ramSonde = true;
     p.style.cssText = 'position:absolute;width:1px;height:1px;left:-9px;top:-9px;background:var(--niv-a)';
     document.body.appendChild(p);
     A = rgb(getComputedStyle(p).backgroundColor);
@@ -141,15 +142,33 @@
     });
   }
   const plus_tard = () => {
-    if (!prevu) prevu = requestAnimationFrame(() => setTimeout(passe, 60));
+    if (!prevu) prevu = requestAnimationFrame(passe);
   };
   const retons = () => {
     A = B = null;
     plus_tard();
   };
 
+  /* l'écran vient d'être redessiné : on passe tout de suite, avant que le navigateur ne l'affiche (sinon il montre une
+     image sans la règle puis une avec : clignotement), et une seconde fois à l'image suivante, une fois la mise en page posée */
+  let encours = false;
+  const tout_de_suite = recs => {
+    if (
+      encours ||
+      recs.every(r => r.target === document.body && [...r.addedNodes, ...r.removedNodes].every(n => n.__ramSonde))
+    )
+      return;
+    encours = true;
+    try {
+      passe();
+    } finally {
+      encours = false;
+    }
+    plus_tard();
+  };
+
   function demarre() {
-    new MutationObserver(plus_tard).observe(document.body, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(tout_de_suite).observe(document.body, { childList: true, subtree: true, characterData: true });
     // jour / nuit : nouvelles couleurs
     new MutationObserver(retons).observe(document.documentElement, {
       attributes: true,
