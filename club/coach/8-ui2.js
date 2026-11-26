@@ -28,7 +28,7 @@ if (UI2) {
   /* titres des pages */
   const u2Titres = {
     today: () => ['Aujourd’hui', fmtD(TODAY)],
-    dash: () => ['Aujourd’hui', 'Statistiques'],
+    dash: () => ['Statistiques', 'Aujourd’hui'],
     clubs: () => ['Groupes', 'Mes groupes'],
     asuivi: () => ['Bilans et paiements', 'À suivre'],
     me: () => ['Réglages', 'Mon compte enseignant']
@@ -354,14 +354,18 @@ if (UI2) {
     return h;
   };
   /* À faire (Aujourd'hui) : les groupes qui attendent leur formule */
-  const u2FoTodo = () =>
-    coGroups('', true)
-      .filter(u2SansFormule)
+  const u2FoTodo = () => {
+    const l = coGroups('', true).filter(u2SansFormule);
+    // plusieurs groupes sans formule : une seule ligne qui les nomme (revue design, 26/11)
+    if (l.length > 1)
+      return `<button class="item" data-a="tab" data-t="clubs"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">${l.length} groupes sans formule</span><br><span class="muted small">${esc(l.map(g => g.name).join(' · '))}</span></span></button>`;
+    return l
       .map(
         g =>
           `<button class="item" data-a="open" data-v="cgroupe" data-id="${g.id}"><span class="tile">${ic('ball')}</span><span class="grow"><span class="nm">Formule à choisir</span><br><span class="muted small">${esc(g.name)}</span></span></button>`
       )
       .join('');
+  };
   const u2TodayF = V.today;
   V.today = () => {
     const h = u2TodayF(),

@@ -263,3 +263,7 @@
 :root #main .cowl.today { background: color-mix(in srgb, var(--c-lime) 22%, transparent) !important; border: 0 !important; box-shadow: none !important; }
 :root .cowj.today { border-color: transparent !important; box-shadow: none !important; }
 :root[data-ui="2"] #main .u2plbox { padding: 10px !important; }
+/* vue Mois : le jour en cours avec la même teinte citron que la colonne du jour de la vue Semaine, sans contour */
+:root #main .comc.today { background: color-mix(in srgb, var(--c-lime) 22%, transparent) !important; border-color: transparent !important; box-shadow: none !important; }
+/* pastille de non-lus d'une ligne : toujours alignée à droite, avant la flèche */
+:root .item > :is(.un, .cnt, .badge) { margin-left: auto; }

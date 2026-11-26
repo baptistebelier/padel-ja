@@ -3457,7 +3457,8 @@ test('Dojo ?ui=2 : groupe sans tarif affiché, formule demandée groupe par grou
     await page.evaluate(g => A.coGrpEdit({ id: g }), id);
     assert.equal(await page.locator('#layer #co-prix').isVisible(), false, 'tarif caché dans Modifier');
     await page.evaluate(() => { closeSheet(); S.tab = 'today'; S.stack = []; render(); });
-    assert.ok((await page.textContent('#main .cobside')).includes('Formule à choisir'), 'rappel dans À faire');
+    // un groupe : « Formule à choisir » ; plusieurs : une seule ligne « N groupes sans formule » (revue design, 26/11)
+    assert.ok(/Formule à choisir|groupes sans formule/.test(await page.textContent('#main .cobside')), 'rappel dans À faire');
   }
   assert.deepEqual(errs, []);
   await ctx.close();

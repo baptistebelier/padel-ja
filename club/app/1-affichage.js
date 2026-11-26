@@ -320,6 +320,10 @@ function nstack() {
     st.className = 'nstack';
     $('phone').appendChild(st);
   }
+  // sous l'en-tête, jamais par-dessus le titre ni la cloche (revue design, 26/11)
+  const t = $('top'),
+    bas = t && t.getBoundingClientRect().bottom;
+  if (bas > 0) st.style.top = Math.round(bas + 8) + 'px';
   return st;
 }
 /* Confirmations : courtes (2,6 s, 5 s avec « Annuler »), jamais plus de 2 à la fois, toujours sous l'éventuel bandeau de notification */

@@ -909,7 +909,7 @@ ${(e.parents || []).length ? hd(ic('kid') + 'Parents') + `<div class="card">${e.
       list(
         `<button class="item" data-a="open" data-v="dm" data-id="${id}"><span class="tile">${ic('chat')}</span><span class="grow"><span class="nm">Conversation avec ${esc(svFirst(id))}</span><br><span class="muted small">${l.length ? plural(l.length, 'envoi') : 'Aucun échange pour le moment'}</span></span>${un ? `<span class="cnt">${un}</span>` : ''}</button>`
       ) +
-      `<div class="card cotools"><button class="btn" data-a="coContent" data-id="${id}">${ic('spark')}Envoyer un contenu</button></div>` +
+      `<div class="card cotools"><button class="btn ghost" data-a="coContent" data-id="${id}">${ic('spark')}Envoyer un contenu</button></div>` +
       (cards ? hd('Bilans, vidéos et contenus') + cards : '');
   }
   return (

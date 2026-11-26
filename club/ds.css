@@ -388,3 +388,11 @@
    les pastilles de filtre (.chips) gardent leur comportement */
 .seg, .seg.plus-d, .seg.plus-g, .seg.plus-g.plus-d, #main > .seg:not(.haut), #main > .seg:not(.haut).plus-d, #main > .seg:not(.haut).plus-g, #main > .seg:not(.haut).plus-g.plus-d,
 .r-itabs, .r-itabs.plus-d, .r-itabs.plus-g, .r-itabs.plus-g.plus-d { -webkit-mask-image: none !important; mask-image: none !important; }
+
+/* ===== Revue design du 26/11/2026 : briques communes aux trois applis ===== */
+/* état vide standard : pictogramme, titre, une phrase, un bouton (jamais une phrase grise seule) */
+.etat-vide { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 20px; border: var(--bw, 2px) solid var(--c-ink); background: var(--c-surface); color: var(--c-text); }
+.etat-vide > svg { width: 28px; height: 28px; color: var(--c-kick, var(--accent)); }
+.etat-vide > b { font: 700 18px/1.2 var(--f-label, inherit); }
+.etat-vide > span { color: var(--c-muted); max-width: 52ch; }
+.etat-vide > button, .etat-vide > a { margin-top: 4px; }

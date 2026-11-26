@@ -103,6 +103,9 @@
       <div class="ps-ch"><b>${esc(c.name)}</b><small>${esc(E.matchLabel(m))}</small>${tag}</div>${line('A')}${line('B')}
       ${r.state === 'ready' ? `<div class="btns"><button class="accent sm" data-st="${m.id}">${PSI.play}Lancer</button></div>` : ''}</div>`;
   }
+  /* état vide standard (revue design, 26/11) : pictogramme, titre, une phrase, un bouton qui mène à l'étape utile */
+  const psVide = (titre, texte, bouton, vers) => `<div class="etat-vide"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg><b>${titre}</b><span>${texte}</span>${bouton ? `<button type="button" class="ghost" data-aller="${vers}">${bouton}</button>` : ''}</div>`;
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-aller]'); if (!b) return; const n = document.querySelector('#nav button[data-tab="' + b.dataset.aller + '"]'); if (n) n.click(); });
   /* ---------- en-tête, intercalaires et colonnes de droite (maquette « Refonte /Pista ») ---------- */
   const secName = t => { const b = $('#nav button[data-tab="' + t + '"] .lg'); return b ? b.textContent : t; };
   // une seule action citron par en-tête : sur Inscriptions, « Ajouter » est déjà dans la Saisie rapide et Écran TV garde le citron
@@ -113,7 +116,8 @@
     $('#abTitle').textContent = secName(tab);
     $('#abSub').textContent = t.name || 'Tournoi';
     const act = $('#psAct');
-    const lab = tab === 'tirage' && S && !S.draw ? 'Lancer le tirage' : PS_ACT[tab];
+    // Tirage : « Lancer le tirage » reste dans la carte, sous ses réglages (pas de doublon dans l'en-tête)
+    const lab = PS_ACT[tab];
     if (act) { act.hidden = !lab; act.lastChild.textContent = lab || ''; }
     document.body.dataset.psTab = tab;
   }
@@ -1316,7 +1320,7 @@
 
   function renderSched() {
     renderOrder();
-    if (!S.draw || !S.draw.built) { $('#sched').innerHTML = '<p class="muted">Effectuez le tirage au sort pour programmer les matchs.</p>'; $('#schedWarn').innerHTML = ''; return; }
+    if (!S.draw || !S.draw.built) { $('#sched').innerHTML = psVide('Rien à programmer pour l’instant', 'Les matchs se placent sur les terrains une fois le tirage au sort fait.', 'Aller au tirage', 'tirage'); $('#schedWarn').innerHTML = ''; return; }
     const tl = E.timeline(S, R), PS = E.pairsStatus(S, R, tl);
     const W = E.dayChecks(S, R, tl);
     $('#schedWarn').innerHTML = W.slice(0, 6).map(w => `<div class="alert ${w.lvl}">${esc(w.msg)}</div>`).join('') + (W.length > 6 ? `<div class="muted small">+ ${W.length - 6} autre(s) alerte(s) — onglet Direct & repos</div>` : '');
@@ -1431,7 +1435,7 @@
      06 · DIRECT & REPOS
      ===================================================================== */
   function renderDirect() {
-    if (!S.draw || !S.draw.built) { $('#liveList').innerHTML = '<p class="muted">Aucun match pour l\'instant.</p>'; $('#allMatches').innerHTML = ''; $('#restTbl').innerHTML = ''; $('#dayChecks').innerHTML = ''; psDirect(null, null); return; }
+    if (!S.draw || !S.draw.built) { $('#liveList').innerHTML = psVide('Aucun match pour l’instant', 'Les matchs en cours et à venir apparaissent ici une fois le tirage fait.', 'Aller au tirage', 'tirage'); $('#allMatches').innerHTML = ''; $('#restTbl').innerHTML = ''; $('#dayChecks').innerHTML = ''; psDirect(null, null); return; }
     const tl = E.timeline(S, R), PS = E.pairsStatus(S, R, tl);
     $('#liveList').innerHTML = S.courts.map(c => {
       const q = S.matches.filter(m => m.court === c.id && !R[m.id].staticBye).sort((a, b) => a.order - b.order);

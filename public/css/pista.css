@@ -1622,3 +1622,7 @@ body.editor-page .top { top: 0; z-index: 30; padding-top: calc(var(--s5) + env(s
   .rail-logo .rl-ic { display: none; }
   .rail-logo .rl-full { display: block; width: auto; height: 52px; }
 }
+
+/* Revue design (26/11) : jour en cours du calendrier en teinte légère, sans contour ni ombre, pour que le tournoi s'y lise */
+.cal .day.today, .ps-calc .cal .day.today { background: color-mix(in srgb, var(--c-lime) 22%, var(--c-surface)) !important; color: var(--c-text) !important; box-shadow: none !important; border-color: transparent !important; }
+.cal .day.today > :first-child { color: var(--c-lime); font-weight: 700; }
