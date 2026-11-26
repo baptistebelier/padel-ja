@@ -66,7 +66,7 @@
     return null;
   }
   const proche = (a, b) =>
-    !!a && !!b && Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])) < 20;
+    !!a && !!b && Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])) < 12; // écart sous lequel deux fonds se confondent (la sous-boîte de nuit est à environ 14)
 
   let A = null,
     B = null;
@@ -79,7 +79,7 @@
     // mode nuit (fond de carte sombre) : les sous-boîtes partent dans le très foncé, pas dans le gris clair (Baptiste, 26/11) ;
     // mode jour : un gris un cran plus foncé que la carte (mélange avec la couleur du texte)
     const nuit = A && A[0] * 0.3 + A[1] * 0.59 + A[2] * 0.11 < 110,
-      voulu = nuit ? 'color-mix(in srgb, var(--c-surface) 40%, #000)' : '',
+      voulu = nuit ? 'color-mix(in srgb, var(--c-surface) 62%, #000)' : '',
       st = document.documentElement.style;
     if (st.getPropertyValue('--niv-b') !== voulu)
       voulu ? st.setProperty('--niv-b', voulu) : st.removeProperty('--niv-b');
