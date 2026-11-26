@@ -76,6 +76,13 @@
     p.style.cssText = 'position:absolute;width:1px;height:1px;left:-9px;top:-9px;background:var(--niv-a)';
     document.body.appendChild(p);
     A = rgb(getComputedStyle(p).backgroundColor);
+    // mode nuit (fond de carte sombre) : les sous-boîtes partent dans le très foncé, pas dans le gris clair (Baptiste, 26/11) ;
+    // mode jour : un gris un cran plus foncé que la carte (mélange avec la couleur du texte)
+    const nuit = A && A[0] * 0.3 + A[1] * 0.59 + A[2] * 0.11 < 110,
+      voulu = nuit ? 'color-mix(in srgb, var(--c-surface) 40%, #000)' : '',
+      st = document.documentElement.style;
+    if (st.getPropertyValue('--niv-b') !== voulu)
+      voulu ? st.setProperty('--niv-b', voulu) : st.removeProperty('--niv-b');
     p.style.background = 'var(--niv-b)';
     B = rgb(getComputedStyle(p).backgroundColor);
     p.remove();
