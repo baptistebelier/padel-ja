@@ -303,6 +303,9 @@
     live: '<path d="M12 14a2 2 0 100-4 2 2 0 000 4zM7.8 16.2a6 6 0 010-8.4M16.2 7.8a6 6 0 010 8.4M5 19a10 10 0 010-14M19 5a10 10 0 010 14"/>',
     medal: '<path d="M8 3h8l-2 6h-4zM12 9a6 6 0 100 12 6 6 0 000-12z"/>',
     shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+    flag: '<path d="M5 21V4h11l-2 4 2 4H5"/>',
+    layers: '<path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/>',
+    history: '<path d="M3 12a9 9 0 103-6.7L3 8M3 3v5h5M12 7v5l3 2"/>',
     point: '<path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>'
   };
   const MOTS = [
@@ -330,7 +333,10 @@
     [/tirage/, 'shuffle'],
     [/programmation|horaires?/, 'clock'],
     [/direct|en cours/, 'live'],
-    [/abonn/, 'shield']
+    [/abonn/, 'shield'],
+    [/clubs?/, 'flag'],
+    [/mod[èe]les?/, 'layers'],
+    [/reprises?|historique|archives?/, 'history']
   ];
   function picto(t) {
     const s = String(t)
