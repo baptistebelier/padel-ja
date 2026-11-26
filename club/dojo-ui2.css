@@ -250,3 +250,16 @@
    de données (échelle de niveau, grille de notes), que le moteur ne touche pas puisque ce sont des boutons. */
 :root .coscale button, :root .cogauge button { border: var(--bw, 2px) solid var(--c-ink) !important; }
 :root .cobarre { height: 12px; }
+
+/* ===== Planning (26/11/2026) =====
+   - boîtes d'évènements et de réservation : jamais d'ombre, contour noir, petites marges internes ;
+   - plages réservables : discrètes, sans contour, juste une valeur légèrement différente ;
+   - colonne du jour en cours : sans contour, une teinte et une valeur nettement différentes pour qu'elle ressorte ;
+   - la grille garde une petite marge interne dans sa boîte. */
+:root .cogb { box-shadow: none !important; border: var(--bw, 2px) solid var(--c-ink) !important; }
+:root .cogb.cowb { padding: 3px 6px !important; }
+:root .cogb:not(.cowb) { padding: 6px 12px !important; }
+:root .cowf { background: color-mix(in srgb, var(--c-text) 7%, transparent) !important; opacity: 1 !important; border: 0 !important; box-shadow: none !important; }
+:root #main .cowl.today { background: color-mix(in srgb, var(--c-lime) 22%, transparent) !important; border: 0 !important; box-shadow: none !important; }
+:root .cowj.today { border-color: transparent !important; box-shadow: none !important; }
+:root[data-ui="2"] #main .u2plbox { padding: 10px !important; }
