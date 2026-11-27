@@ -1,5 +1,12 @@
 # Consignes pour Claude Code — /RAM JA et /RAM Club
 
+## À faire au début de chaque session
+- Lire `docs/etat.md` (carnet de bord : chantiers en cours, ce qui reste, comment on travaille) et
+  `docs/regles-design.md` (règles de design validées, à ne pas modifier). « Reprends le travail en cours » = repartir de là.
+- À la fin d'une tâche, mettre `docs/etat.md` à jour (fait / reste / décisions), en restant court.
+- Économiser les jetons : sessions courtes ; confier le travail mécanique à Codex (`codex exec`, il lit `AGENTS.md`)
+  avec une consigne précise, puis relire le résultat, vérifier et mettre en ligne ; peu de captures d'écran.
+
 ## Une seule source pour /RAM Club
 - Le code de /RAM Club se modifie **uniquement ici, dans `club/`**.
 - Le dépôt `baptistebelier/appli-club` est un **miroir** (démo GitHub Pages) recopié

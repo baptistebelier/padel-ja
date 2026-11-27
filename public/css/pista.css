@@ -1626,3 +1626,15 @@ body.editor-page .top { top: 0; z-index: 30; padding-top: calc(var(--s5) + env(s
 /* Revue design (26/11) : jour en cours du calendrier en teinte légère, sans contour ni ombre, pour que le tournoi s'y lise */
 .cal .day.today, .ps-calc .cal .day.today { background: color-mix(in srgb, var(--c-lime) 22%, var(--c-surface)) !important; color: var(--c-text) !important; box-shadow: none !important; border-color: transparent !important; }
 .cal .day.today > :first-child { color: var(--c-lime); font-weight: 700; }
+
+/* Revue design (26/11) : un seul bandeau d'en-tête partout. « Équipes du club » (.page-h) prend le même bandeau que .phead :
+   fond, toute la largeur (marges négatives jusqu'aux bords), collé en haut */
+.acct .page-h { position: sticky; top: 0; z-index: 30; margin: calc(-1 * (var(--s5) + env(safe-area-inset-top, 0px))) calc(-1 * var(--s6)) var(--s5); padding: calc(var(--s5) + env(safe-area-inset-top, 0px)) var(--s6) var(--s4); background: var(--c-bg); }
+.acct .page-h h1 { font: 400 48px/1 var(--f-display); text-transform: uppercase; margin: 0; }
+@media (max-width: 720px) { .acct .page-h { margin: calc(-1 * var(--s4)) calc(-1 * var(--s4)) var(--s4); padding: calc(var(--s3) + env(safe-area-inset-top, 0px)) var(--s4) var(--s3); } }
+/* éditeur de tournoi : le bandeau d'en-tête va jusqu'aux bords de la zone principale (la marge passe à l'intérieur du bandeau) */
+body.editor-page main > .top { margin-left: calc(-1 * var(--s6)); margin-right: calc(-1 * var(--s6)); padding-left: var(--s6); padding-right: var(--s6); }
+@media (max-width: 1100px) { body.editor-page main > .top { margin-left: calc(-1 * var(--s4)); margin-right: calc(-1 * var(--s4)); padding-left: var(--s4); padding-right: var(--s4); } }
+@media (max-width: 720px) { body.editor-page main > .top { margin-left: calc(-1 * var(--s3)); margin-right: calc(-1 * var(--s3)); padding-left: var(--s3); padding-right: var(--s3); } }
+/* chiffres clés : pictogramme en contour, le rose reste pour l'action (Nouveau tournoi) et le direct */
+.kpi .ico { background: transparent !important; color: var(--c-kick, var(--c-lime)) !important; }

@@ -267,3 +267,13 @@
 :root #main .comc.today { background: color-mix(in srgb, var(--c-lime) 22%, transparent) !important; border-color: transparent !important; box-shadow: none !important; }
 /* pastille de non-lus d'une ligne : toujours alignée à droite, avant la flèche */
 :root .item > :is(.un, .cnt, .badge) { margin-left: auto; }
+/* heures du planning : 13 px comme les autres petits textes */
+:root .cowc .cogh span, :root .cogrid .cogh span { font-size: 13px !important; }
+/* fiche élève et fiche de groupe : le nom est déjà le grand titre de la page, la carte d'en-tête ne le répète pas */
+:root[data-ui="2"] .u2fiche .u2fn > .u2fp, :root[data-ui="2"] .u2fiche .u2fn > .u2fl { display: none; }
+:root[data-ui="2"] .u2gh .u2gt > .h3 { display: none; }
+/* accent réservé à l'action, à la sélection et à l'état : pictogrammes décoratifs en contour (plus de carrés citron),
+   pastilles de niveau de la liste des élèves neutres */
+:root #main .tile:not(.on), :root .sheet .tile:not(.on) { background: transparent !important; color: var(--c-kick, var(--c-lime)) !important; box-shadow: none !important; }
+:root #main .colist .tag.ac { background: var(--c-surface-sub, var(--c-surface-2)) !important; color: var(--c-text) !important; }
+:root #main .tile:not(.on) svg, :root .sheet .tile:not(.on) svg { color: inherit !important; stroke: currentColor; }

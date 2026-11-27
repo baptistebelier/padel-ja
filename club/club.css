@@ -2122,3 +2122,14 @@ select option { background: var(--c-surface); color: var(--c-text); }
   .trl .trrow { flex: 1 1 100%; }
   .trmur { margin-left: 70px; }
 }
+
+/* Revue design (26/11) : pictogrammes décoratifs des tuiles de Club en contour, l'accent reste pour l'action et l'état */
+.bvtile > .tile, .bvsc > .tile { background: transparent !important; color: var(--c-kick, var(--accent)) !important; box-shadow: none !important; }
+.bvtile > .tile svg, .bvsc > .tile svg { color: inherit !important; }
+/* bandeau « adhérents qui ont rejoint l'appli » : carte neutre, seul le lien est en couleur */
+.note[data-v="join"] { background: var(--c-surface) !important; color: var(--c-text) !important; border: var(--bw, 2px) solid var(--c-ink) !important; }
+.note[data-v="join"] b { color: var(--c-kick, var(--accent)) !important; text-decoration: underline; }
+/* Agenda : la date en surtitre (plus de bandeau rose pleine largeur), la tuile d'heure neutre ; le rose reste pour aujourd'hui */
+.evday > span { background: transparent !important; color: var(--c-text) !important; border-color: transparent !important; box-shadow: none !important; padding-left: 0 !important; }
+.evday.today > span, .evday.auj > span { color: var(--hot, var(--c-pink)) !important; }
+.evx .evh { background: var(--c-surface-sub, var(--c-surface-2)) !important; color: var(--c-text) !important; }
