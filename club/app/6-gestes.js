@@ -41,7 +41,9 @@ let lpT = null,
   lpY = 0;
 document.addEventListener('pointerdown', e => {
   const el = e.target.closest('[data-lp]');
-  if (!el || e.target.closest('[data-a]')) return;
+  // data-lp-tout : l'appui long marche aussi sur le bouton qui couvre la ligne (liste des groupes), pas sur son « … »
+  const btn = e.target.closest('[data-a]');
+  if (!el || (btn && !(el.hasAttribute('data-lp-tout') && btn.dataset.a === 'open'))) return;
   lpX = e.clientX;
   lpY = e.clientY;
   clearTimeout(lpT);
@@ -50,6 +52,13 @@ document.addEventListener('pointerdown', e => {
     try {
       navigator.vibrate && navigator.vibrate(12);
     } catch (_) {}
+    // le clic qui suit le relâchement n'ouvre pas la ligne
+    const stop = ev => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    };
+    document.addEventListener('click', stop, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener('click', stop, true), 700);
     A[el.dataset.lp](el.dataset, el);
   }, 450);
 });

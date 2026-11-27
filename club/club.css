@@ -1305,6 +1305,19 @@ select { -webkit-appearance: none; appearance: none; padding-right: 38px; text-o
 .bar-tabs button:first-child { border-left: 0; }
 .bar-tabs button[aria-selected="true"] { background: var(--c-accent); color: var(--c-on-accent); }
 .bar-tabs button[aria-selected="true"] svg { color: var(--c-dark); }
+/* Bar (bureau) : Carte / Gestion en intercalaires collés à la boîte du dessous (règle commune, empilement.js) */
+.bar-tabs:not(.me-tabs) { position: relative; z-index: 1; align-items: flex-end; gap: 6px; padding-left: 12px; margin-bottom: calc(-1 * var(--bw)); border: 0; box-shadow: none; background: transparent; border-radius: 0; overflow: visible; }
+.bar-tabs:not(.me-tabs) > button { flex: none; min-height: 40px; padding: 0 16px; font-size: 15px; border-radius: var(--rad-sm, 6px) var(--rad-sm, 6px) 0 0; }
+.bar-tabs:not(.me-tabs) > button[aria-selected="true"] { min-height: 44px; padding-bottom: var(--bw); }
+.bar-tabs:not(.me-tabs) > button[aria-selected="true"] svg { color: inherit; }
+.bar-tabs + .bar-corps { margin-top: 0; }
+/* Groupes : options à l'appui long ; le « … » n'apparaît qu'au survol de la souris (ou au clavier) */
+[data-lp-tout] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.chmore { display: none !important; }
+@media (hover: hover) and (pointer: fine) {
+  .chmore { display: grid !important; opacity: 0; }
+  .li:hover .chmore, .chmore:focus-visible { opacity: 1; }
+}
 .cinfo, .empty, .teaser, .row.thead { border: var(--bw) solid var(--c-ink); border-radius: var(--r); }
 .cinfo, .empty { box-shadow: var(--sh-sm); }
 .nv-tier.win { box-shadow: var(--sh-sm); background: var(--c-accent); color: var(--c-on-accent); }

@@ -44,14 +44,14 @@ function barView() {
   const tab = (v, i, l, n) =>
     `<button role="tab" aria-selected="${B.v === v}" data-a="barSet" data-k="v" data-val="${v}">${ic(i)}${l}${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
   const top = staff
-    ? `<div class="bar-tabs" role="tablist">${tab('carte', 'cup', 'Carte')}${tab('cmd', 'gear', 'Gestion', REDEEMS.filter(r => r.st === 'ok').length + ORDERS.filter(o => o.date === isoIn(1) && o.st === 'ok').length)}</div>`
+    ? `<div class="bar-onglets"><div class="bar-tabs" role="tablist">${tab('carte', 'cup', 'Carte')}${tab('cmd', 'gear', 'Gestion', REDEEMS.filter(r => r.st === 'ok').length + ORDERS.filter(o => o.date === isoIn(1) && o.st === 'ok').length)}</div>`
     : '';
   const when = `<div class="chips">${days.map(d => chip('d', d, barDay(d))).join('')}</div>`;
   const wal = myWallet(),
     bons = REDEEMS.filter(r => r.by === ME() && r.st === 'ok'),
     wtop = wal.earned > 0 || wal.balance > 0 || bons.length ? barWallet(wal, bons) : '';
   if (staff && B.v === 'cmd')
-    return `<div class="pad">${wtop}${top}${barVouchers()}<span class="kicker">Commandes</span>${when}${barOrders(B.d)}${barProducts()}</div>`;
+    return `<div class="pad">${wtop}${top}<div class="card bar-corps">${barVouchers()}<span class="kicker">Commandes</span>${when}${barOrders(B.d)}${barProducts()}</div></div></div>`;
   const open = barOpen(B.d),
     mine = ORDERS.filter(o => myBarKeys().includes(o.by) && o.st !== 'annule'),
     // la carte du moment choisi (Midi ou Soir) : les plats servis seulement à l'autre moment n'y sont pas
@@ -75,7 +75,7 @@ function barView() {
     })
     .join('');
   const next = mine.filter(o => o.date >= TODAY).sort((a, b) => (a.date + a.moment).localeCompare(b.date + b.moment));
-  return `<div class="pad">${wtop}${top}<p class="muted small">Réserve ton repas à l'avance : le club prévoit les quantités. Réservations jusqu'à la veille, ${barCut()} h.${CLUBINFO.house ? ' Club-house : ' + esc(CLUBINFO.house) + '.' : ''}</p>
+  return `<div class="pad">${wtop}${top}${staff ? '<div class="card bar-corps">' : ''}<p class="muted small">Réserve ton repas à l'avance : le club prévoit les quantités. Réservations jusqu'à la veille, ${barCut()} h.${CLUBINFO.house ? ' Club-house : ' + esc(CLUBINFO.house) + '.' : ''}</p>
  ${when}<div class="chips">${chip('m', 'midi', 'Midi')}${chip('m', 'soir', 'Soir')}</div>
  ${open ? '' : `<div class="note">Les réservations pour ${barDay(B.d).toLowerCase()} sont closes depuis la veille, ${barCut()} h. Les articles restent en vente au bar.</div>`}
  ${byCat || empty('cup', 'La carte est vide', staff ? 'Ajoute les plats et boissons dans l’onglet Gestion.' : 'Le bureau ajoutera bientôt la carte du bar.')}
@@ -89,7 +89,7 @@ function barView() {
          })
          .join('')}</div>`
      : ''
- }</div>`;
+ }${staff ? '</div></div>' : ''}</div>`;
 }
 /* « Mes points bar » : le solde, les bons à utiliser et comment gagner des points */
 function barRules(wal) {

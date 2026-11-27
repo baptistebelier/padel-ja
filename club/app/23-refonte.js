@@ -679,9 +679,14 @@ V.chans = () => {
     const a = muteBtn(c),
       b = typeof chanDelBtn === 'function' ? chanDelBtn(c) : '';
     if (!h.includes(a)) return;
+    // revue design : les options passent à l'appui long sur la ligne ; le « … » ne se montre qu'au survol de la souris
     h = h.replace(
       a + b,
-      `<button class="ib" data-a="chMenu" data-id="${c.id}" aria-label="Options de ${esc(c.name)}">${ic('more')}</button>`
+      `<button class="ib chmore" data-a="chMenu" data-id="${c.id}" aria-label="Options de ${esc(c.name)}">${ic('more')}</button>`
+    );
+    h = h.replace(
+      `<div class="li ${c.mute ? 'dim' : ''}"><button class="go" data-a="open" data-v="chan" data-id="${c.id}">`,
+      `<div class="li ${c.mute ? 'dim' : ''}" data-lp="chMenu" data-lp-tout="" data-id="${c.id}"><button class="go" data-a="open" data-v="chan" data-id="${c.id}">`
     );
   });
   ['club', 'train', 'team'].forEach(k => {

@@ -255,7 +255,7 @@
   'use strict';
   if (window.__ramOnglets) return;
   window.__ramOnglets = true;
-  const BARRES = '.seg.haut, .r-itabs, .tsec-tabs, .ps-itabs, #main > .seg';
+  const BARRES = '.seg.haut, .r-itabs, .tsec-tabs, .ps-itabs, #main > .seg, .bar-tabs:not(.me-tabs)';
   const HORS = '#subnav, #tabs, .tabs, .rbot, .rail, .r-rail';
   const ACTIF = ':is([aria-selected="true"], [aria-current]:not([aria-current="false"]), .on, .cur)';
   const css = document.createElement('style');

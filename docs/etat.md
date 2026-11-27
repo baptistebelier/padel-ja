@@ -31,7 +31,11 @@ Revue (page privée) : https://claude.ai/artifact/LsVW48RwUKLzoEbUwsa1bt — rè
   neutres, bandeau « adhérents » neutre et Agenda moins rose (Buvette).
   Reste : bandeau d'en-tête uniforme vérifié sur toutes les pages des 3 applis ; échelle d'espacement commune
   (4·8·12·16·24·32 ; carte 20 px, 16 au téléphone ; 16 entre cartes ; 24 entre sections) ; « Un seul bouton plein
-  par zone » écran par écran ; Bar /Buvette : Carte / Gestion en intercalaires ; Messages /Buvette : « … » en appui long.
+  par zone » écran par écran.
+  Fait le 27/11 (après-midi) : Bar /Buvette (bureau) — Carte / Gestion en intercalaires collés à une boîte
+  `.bar-corps` (`.bar-tabs` ajouté au moteur des intercalaires) ; Groupes /Buvette — le « … » de chaque ligne laisse
+  place à l'appui long (ou clic droit) sur la ligne (`data-lp-tout` dans `app/6-gestes.js`), « … » visible seulement
+  au survol de la souris. Le serveur local et le service worker gardent l'ancien CSS : relancer et désinscrire.
 - **Lot 3 — à faire** : état vide standard partout (Pista Joueurs, Équipes ; Dojo Réglages de groupe) ; listes à deux
   lignes et rangées entièrement cliquables (élèves, inscriptions, tournois, Groupes) ; menus « … » pour les actions
   secondaires (Pista Mes tournois, Inscriptions) ; réglages du groupe regroupés dans leur intercalaire (Dojo) ;
